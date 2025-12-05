@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +15,7 @@ import { Sun, Moon, Sparkles, Eye, EyeOff } from 'lucide-react';
 const Login = () => {
   const { t, language, setLanguage } = useLanguage();
   const { theme, toggleTheme } = useTheme();
+  const { login } = useAuth();
   const navigate = useNavigate();
   
   const [email, setEmail] = useState('');
@@ -21,26 +23,23 @@ const Login = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     setIsLoading(true);
     
-    // Simulate authentication
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const result = await login(email, password, rememberMe);
     
-    if (email && password) {
+    if (result.success) {
       toast({
         title: t.common.success,
         description: t.auth.loginSuccess,
       });
       navigate('/');
     } else {
-      toast({
-        title: t.common.error,
-        description: t.auth.invalidCredentials,
-        variant: 'destructive',
-      });
+      setError(result.error || t.auth.invalidCredentials);
     }
     
     setIsLoading(false);
@@ -117,6 +116,9 @@ const Login = () => {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {error && (
+                <p className="text-sm text-destructive mt-1">{error}</p>
+              )}
             </div>
 
             <div className="flex items-center justify-between">

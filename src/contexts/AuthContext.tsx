@@ -13,7 +13,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string, remember?: boolean) => Promise<boolean>;
+  login: (email: string, password: string, remember?: boolean) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   hasRole: (roles: UserRole[]) => boolean;
 }
@@ -33,36 +33,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored auth token
-    const storedAuth = localStorage.getItem('auth_token');
-    if (storedAuth) {
-      // In a real app, validate token with backend
-      setUser(mockUser);
+    // Check for stored auth in localStorage or sessionStorage
+    const storedUser = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch {
+        localStorage.removeItem('auth_user');
+        sessionStorage.removeItem('auth_user');
+      }
     }
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string, remember: boolean = false): Promise<boolean> => {
+  const login = async (email: string, password: string, remember: boolean = false): Promise<{ success: boolean; error?: string }> => {
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 500));
     
-    // In a real app, validate credentials with backend
-    if (email && password) {
-      setUser(mockUser);
-      if (remember) {
-        localStorage.setItem('auth_token', 'mock_token');
-      } else {
-        sessionStorage.setItem('auth_token', 'mock_token');
-      }
-      return true;
+    // Mock credentials validation
+    const validEmail = 'admin@tidyout.com';
+    const validPassword = 'Admin123!';
+    
+    if (email !== validEmail) {
+      return { success: false, error: 'Invalid email address' };
     }
-    return false;
+    
+    if (password !== validPassword) {
+      return { success: false, error: 'Invalid password' };
+    }
+    
+    // Success - store user
+    setUser(mockUser);
+    const userJson = JSON.stringify(mockUser);
+    
+    if (remember) {
+      localStorage.setItem('auth_user', userJson);
+    } else {
+      sessionStorage.setItem('auth_user', userJson);
+    }
+    
+    return { success: true };
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('auth_token');
-    sessionStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
+    sessionStorage.removeItem('auth_user');
   };
 
   const hasRole = (roles: UserRole[]): boolean => {
