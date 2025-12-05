@@ -88,7 +88,7 @@ const AddJobModal = ({ open, onOpenChange, onSave, job }: AddJobModalProps) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Edit Job' : t.schedule.addJob}</DialogTitle>
+          <DialogTitle>{isEditing ? t.schedule.editJob : t.schedule.addJob}</DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
@@ -96,7 +96,7 @@ const AddJobModal = ({ open, onOpenChange, onSave, job }: AddJobModalProps) => {
             <Label>{t.job.client}</Label>
             <Select value={formData.clientId} onValueChange={handleClientChange}>
               <SelectTrigger>
-                <SelectValue placeholder="Select client" />
+                <SelectValue placeholder={t.job.selectClient} />
               </SelectTrigger>
               <SelectContent>
                 {mockClients.map(client => (
@@ -115,7 +115,7 @@ const AddJobModal = ({ open, onOpenChange, onSave, job }: AddJobModalProps) => {
           
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Date</Label>
+              <Label>{t.job.date}</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className={cn("w-full justify-start text-left font-normal")}>
@@ -136,7 +136,7 @@ const AddJobModal = ({ open, onOpenChange, onSave, job }: AddJobModalProps) => {
             </div>
             
             <div className="space-y-2">
-              <Label>Time</Label>
+              <Label>{t.job.time}</Label>
               <Select value={formData.time} onValueChange={(time) => setFormData(prev => ({ ...prev, time }))}>
                 <SelectTrigger>
                   <SelectValue />
@@ -152,7 +152,7 @@ const AddJobModal = ({ open, onOpenChange, onSave, job }: AddJobModalProps) => {
           
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Duration</Label>
+              <Label>{t.job.duration}</Label>
               <Select value={formData.duration} onValueChange={(duration) => setFormData(prev => ({ ...prev, duration }))}>
                 <SelectTrigger>
                   <SelectValue />
@@ -166,10 +166,10 @@ const AddJobModal = ({ open, onOpenChange, onSave, job }: AddJobModalProps) => {
             </div>
             
             <div className="space-y-2">
-              <Label>Assigned Employee</Label>
+              <Label>{t.job.assignedEmployee}</Label>
               <Select value={formData.employeeId} onValueChange={handleEmployeeChange}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select employee" />
+                  <SelectValue placeholder={t.job.selectEmployee} />
                 </SelectTrigger>
                 <SelectContent>
                   {mockEmployees.map(emp => (
@@ -181,7 +181,7 @@ const AddJobModal = ({ open, onOpenChange, onSave, job }: AddJobModalProps) => {
           </div>
           
           <div className="space-y-2">
-            <Label>Service Type</Label>
+            <Label>{t.job.serviceType}</Label>
             <Select 
               value={formData.services[0]} 
               onValueChange={(service) => setFormData(prev => ({ ...prev, services: [service] }))}
@@ -190,11 +190,11 @@ const AddJobModal = ({ open, onOpenChange, onSave, job }: AddJobModalProps) => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Standard Clean">Standard Clean</SelectItem>
-                <SelectItem value="Deep Clean">Deep Clean</SelectItem>
-                <SelectItem value="Move-out Clean">Move-out Clean</SelectItem>
-                <SelectItem value="Office Clean">Office Clean</SelectItem>
-                <SelectItem value="Daily Clean">Daily Clean</SelectItem>
+                <SelectItem value="Standard Clean">{t.job.standardClean}</SelectItem>
+                <SelectItem value="Deep Clean">{t.job.deepClean}</SelectItem>
+                <SelectItem value="Move-out Clean">{t.job.moveOutClean}</SelectItem>
+                <SelectItem value="Office Clean">{t.job.officeClean}</SelectItem>
+                <SelectItem value="Daily Clean">{t.job.dailyClean}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -204,7 +204,7 @@ const AddJobModal = ({ open, onOpenChange, onSave, job }: AddJobModalProps) => {
             <Textarea
               value={formData.notes}
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              placeholder="Special instructions..."
+              placeholder={t.job.notesPlaceholder}
               rows={3}
             />
           </div>

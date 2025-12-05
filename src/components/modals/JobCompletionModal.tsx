@@ -117,7 +117,7 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
                   ) : (
                     <div className="text-center">
                       <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
-                      <p className="text-xs text-muted-foreground mt-2">Upload before photo</p>
+                      <p className="text-xs text-muted-foreground mt-2">{t.job.uploadBeforePhoto}</p>
                     </div>
                   )}
                 </div>
@@ -137,7 +137,7 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
                   ) : (
                     <div className="text-center">
                       <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
-                      <p className="text-xs text-muted-foreground mt-2">Upload after photo</p>
+                      <p className="text-xs text-muted-foreground mt-2">{t.job.uploadAfterPhoto}</p>
                     </div>
                   )}
                 </div>
@@ -190,7 +190,7 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Any notes about the service..."
+              placeholder={t.job.serviceNotesPlaceholder}
               rows={3}
             />
           </div>

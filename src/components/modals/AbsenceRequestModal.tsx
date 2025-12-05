@@ -55,13 +55,13 @@ const AbsenceRequestModal = ({ open, onOpenChange, onSubmit, employeeName }: Abs
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           {employeeName && (
             <div className="p-3 rounded-lg bg-muted/50">
-              <p className="text-sm text-muted-foreground">Requesting for</p>
+              <p className="text-sm text-muted-foreground">{t.schedule.requestingFor}</p>
               <p className="font-medium">{employeeName}</p>
             </div>
           )}
           
           <div className="space-y-2">
-            <Label>Date Range</Label>
+            <Label>{t.schedule.dateRange}</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -81,7 +81,7 @@ const AbsenceRequestModal = ({ open, onOpenChange, onSubmit, employeeName }: Abs
                       format(dateRange.from, 'LLL dd, y')
                     )
                   ) : (
-                    <span>Select dates</span>
+                    <span>{t.schedule.selectDates}</span>
                   )}
                 </Button>
               </PopoverTrigger>
@@ -100,17 +100,17 @@ const AbsenceRequestModal = ({ open, onOpenChange, onSubmit, employeeName }: Abs
             </Popover>
             {daysDiff > 0 && (
               <p className="text-sm text-muted-foreground">
-                {daysDiff} day{daysDiff > 1 ? 's' : ''} requested
+                {daysDiff} {t.schedule.daysRequested}
               </p>
             )}
           </div>
           
           <div className="space-y-2">
-            <Label>Reason</Label>
+            <Label>{t.schedule.reason}</Label>
             <Textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Please provide a reason for your absence..."
+              placeholder={t.schedule.reasonPlaceholder}
               rows={3}
               required
             />
@@ -121,7 +121,7 @@ const AbsenceRequestModal = ({ open, onOpenChange, onSubmit, employeeName }: Abs
               {t.common.cancel}
             </Button>
             <Button type="submit" disabled={!dateRange?.from || !dateRange?.to || !reason}>
-              Submit Request
+              {t.schedule.submitRequest}
             </Button>
           </DialogFooter>
         </form>

@@ -6,21 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Clock, Edit, User } from 'lucide-react';
 import { CleanerAvailability, DayOfWeek, useScheduleStore } from '@/stores/scheduleStore';
 import { cn } from '@/lib/utils';
-
-const daysOfWeek: { key: DayOfWeek; label: string; short: string }[] = [
-  { key: 'monday', label: 'Monday', short: 'Mon' },
-  { key: 'tuesday', label: 'Tuesday', short: 'Tue' },
-  { key: 'wednesday', label: 'Wednesday', short: 'Wed' },
-  { key: 'thursday', label: 'Thursday', short: 'Thu' },
-  { key: 'friday', label: 'Friday', short: 'Fri' },
-  { key: 'saturday', label: 'Saturday', short: 'Sat' },
-  { key: 'sunday', label: 'Sunday', short: 'Sun' },
-];
 
 const timeOptions = [
   '06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00',
@@ -36,6 +25,16 @@ const AvailabilityManager = () => {
     startTime: string;
     endTime: string;
   }>({ availableDays: [], startTime: '08:00', endTime: '17:00' });
+
+  const daysOfWeek: { key: DayOfWeek; labelKey: keyof typeof t.days; shortKey: keyof typeof t.days }[] = [
+    { key: 'monday', labelKey: 'monday', shortKey: 'mon' },
+    { key: 'tuesday', labelKey: 'tuesday', shortKey: 'tue' },
+    { key: 'wednesday', labelKey: 'wednesday', shortKey: 'wed' },
+    { key: 'thursday', labelKey: 'thursday', shortKey: 'thu' },
+    { key: 'friday', labelKey: 'friday', shortKey: 'fri' },
+    { key: 'saturday', labelKey: 'saturday', shortKey: 'sat' },
+    { key: 'sunday', labelKey: 'sunday', shortKey: 'sun' },
+  ];
 
   const handleEdit = (availability: CleanerAvailability) => {
     setEditingAvailability(availability);
@@ -105,7 +104,7 @@ const AvailabilityManager = () => {
                             !availability.availableDays.includes(day.key) && "opacity-40"
                           )}
                         >
-                          {day.short}
+                          {t.days[day.shortKey]}
                         </Badge>
                       ))}
                     </div>
@@ -120,7 +119,7 @@ const AvailabilityManager = () => {
           
           {availabilities.length === 0 && (
             <p className="text-center text-muted-foreground py-8">
-              No availability data configured
+              {t.schedule.noAvailabilityData}
             </p>
           )}
         </CardContent>
@@ -132,13 +131,13 @@ const AvailabilityManager = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <User className="h-5 w-5 text-primary" />
-              Edit Availability - {editingAvailability?.employeeName}
+              {t.schedule.editAvailability} - {editingAvailability?.employeeName}
             </DialogTitle>
           </DialogHeader>
           
           <div className="space-y-6 mt-4">
             <div className="space-y-3">
-              <Label>Available Days</Label>
+              <Label>{t.schedule.availableDays}</Label>
               <div className="grid grid-cols-4 gap-2">
                 {daysOfWeek.map(day => (
                   <div
@@ -151,7 +150,7 @@ const AvailabilityManager = () => {
                     )}
                     onClick={() => toggleDay(day.key)}
                   >
-                    <span className="text-xs font-medium">{day.short}</span>
+                    <span className="text-xs font-medium">{t.days[day.shortKey]}</span>
                   </div>
                 ))}
               </div>
@@ -159,7 +158,7 @@ const AvailabilityManager = () => {
             
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Start Time</Label>
+                <Label>{t.schedule.startTime}</Label>
                 <Select 
                   value={editForm.startTime} 
                   onValueChange={(v) => setEditForm(prev => ({ ...prev, startTime: v }))}
@@ -176,7 +175,7 @@ const AvailabilityManager = () => {
               </div>
               
               <div className="space-y-2">
-                <Label>End Time</Label>
+                <Label>{t.schedule.endTime}</Label>
                 <Select 
                   value={editForm.endTime} 
                   onValueChange={(v) => setEditForm(prev => ({ ...prev, endTime: v }))}
@@ -196,10 +195,10 @@ const AvailabilityManager = () => {
           
           <DialogFooter className="pt-4">
             <Button variant="outline" onClick={() => setEditingAvailability(null)}>
-              Cancel
+              {t.common.cancel}
             </Button>
             <Button onClick={handleSave}>
-              Save Changes
+              {t.schedule.saveChanges}
             </Button>
           </DialogFooter>
         </DialogContent>
