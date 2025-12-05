@@ -4,29 +4,59 @@ import PageHeader from '@/components/ui/page-header';
 import SearchInput from '@/components/ui/search-input';
 import DataTable, { Column } from '@/components/ui/data-table';
 import StatusBadge from '@/components/ui/status-badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FilePlus, MapPin, Clock, DollarSign, CheckSquare, History } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import AddContractModal, { ContractFormData } from '@/components/modals/AddContractModal';
+import ConfirmDialog from '@/components/modals/ConfirmDialog';
+import { toast } from '@/hooks/use-toast';
+import { 
+  FilePlus, 
+  MapPin, 
+  Clock, 
+  DollarSign, 
+  CheckSquare, 
+  History, 
+  MoreHorizontal, 
+  Pencil, 
+  Trash2, 
+  FileText,
+  Mail,
+  MessageSquare,
+  Download
+} from 'lucide-react';
 
 interface Contract {
   id: string;
+  clientId: string;
   clientName: string;
   location: string;
   frequency: 'weekly' | 'biweekly' | 'monthly' | 'oneTime';
   services: string[];
-  status: 'active' | 'pending' | 'completed' | 'cancelled';
+  status: 'draft' | 'pending' | 'active' | 'completed' | 'cancelled';
   value: number;
   avgDuration: string;
   startDate: string;
+  hoursPerWeek: number;
+  hourlyRate: number;
 }
 
-const mockContracts: Contract[] = [
-  { id: '1', clientName: 'Sarah Mitchell', location: '245 Oak Street', frequency: 'weekly', services: ['Deep Clean', 'Kitchen', 'Bathrooms'], status: 'active', value: 180, avgDuration: '3h', startDate: '2024-01-15' },
-  { id: '2', clientName: 'Thompson Corp', location: '890 Business Ave', frequency: 'biweekly', services: ['Office Clean', 'Windows', 'Floors'], status: 'active', value: 450, avgDuration: '6h', startDate: '2024-02-01' },
-  { id: '3', clientName: 'Emily Chen', location: '112 Maple Drive', frequency: 'monthly', services: ['Standard Clean'], status: 'active', value: 120, avgDuration: '2h', startDate: '2024-03-10' },
-  { id: '4', clientName: 'Metro Office', location: '456 Tower Blvd', frequency: 'weekly', services: ['Daily Clean', 'Sanitization'], status: 'pending', value: 850, avgDuration: '8h', startDate: '2024-06-01' },
-  { id: '5', clientName: 'Robert Johnson', location: '78 Pine Avenue', frequency: 'oneTime', services: ['Move-out Clean'], status: 'completed', value: 350, avgDuration: '5h', startDate: '2024-05-20' },
+const mockClients = [
+  { id: '1', name: 'Sarah Mitchell' },
+  { id: '2', name: 'Thompson Corporation' },
+  { id: '3', name: 'Emily Chen' },
+  { id: '4', name: 'Metro Office Solutions' },
+  { id: '5', name: 'Robert Johnson' },
+];
+
+const initialContracts: Contract[] = [
+  { id: '1', clientId: '1', clientName: 'Sarah Mitchell', location: '245 Oak Street', frequency: 'weekly', services: ['Deep Clean', 'Kitchen', 'Bathrooms'], status: 'active', value: 180, avgDuration: '3h', startDate: '2024-01-15', hoursPerWeek: 4, hourlyRate: 45 },
+  { id: '2', clientId: '2', clientName: 'Thompson Corp', location: '890 Business Ave', frequency: 'biweekly', services: ['Office Clean', 'Windows', 'Floors'], status: 'active', value: 450, avgDuration: '6h', startDate: '2024-02-01', hoursPerWeek: 6, hourlyRate: 50 },
+  { id: '3', clientId: '3', clientName: 'Emily Chen', location: '112 Maple Drive', frequency: 'monthly', services: ['Standard Clean'], status: 'active', value: 120, avgDuration: '2h', startDate: '2024-03-10', hoursPerWeek: 2, hourlyRate: 45 },
+  { id: '4', clientId: '4', clientName: 'Metro Office', location: '456 Tower Blvd', frequency: 'weekly', services: ['Daily Clean', 'Sanitization'], status: 'pending', value: 850, avgDuration: '8h', startDate: '2024-06-01', hoursPerWeek: 10, hourlyRate: 55 },
+  { id: '5', clientId: '5', clientName: 'Robert Johnson', location: '78 Pine Avenue', frequency: 'oneTime', services: ['Move-out Clean'], status: 'completed', value: 350, avgDuration: '5h', startDate: '2024-05-20', hoursPerWeek: 5, hourlyRate: 45 },
 ];
 
 const frequencyColors: Record<string, string> = {
@@ -36,15 +66,105 @@ const frequencyColors: Record<string, string> = {
   oneTime: 'bg-warning/10 text-warning',
 };
 
+const statusColors: Record<string, string> = {
+  draft: 'bg-muted text-muted-foreground',
+  pending: 'bg-warning/10 text-warning',
+  active: 'bg-success/10 text-success',
+  completed: 'bg-info/10 text-info',
+  cancelled: 'bg-destructive/10 text-destructive',
+};
+
 const Contracts = () => {
   const { t } = useLanguage();
   const [search, setSearch] = useState('');
+  const [contracts, setContracts] = useState<Contract[]>(initialContracts);
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editContract, setEditContract] = useState<Contract | null>(null);
+  const [deleteContract, setDeleteContract] = useState<Contract | null>(null);
 
-  const filteredContracts = mockContracts.filter(contract =>
+  const filteredContracts = contracts.filter(contract =>
     contract.clientName.toLowerCase().includes(search.toLowerCase()) ||
     contract.location.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleAddContract = (contractData: ContractFormData) => {
+    const client = mockClients.find(c => c.id === contractData.clientId);
+    
+    if (editContract) {
+      setContracts(prev => prev.map(c => 
+        c.id === editContract.id 
+          ? { 
+              ...c, 
+              clientId: contractData.clientId,
+              clientName: client?.name || c.clientName,
+              location: contractData.serviceLocation,
+              frequency: (contractData.billingFrequency === 'bi-weekly' ? 'biweekly' : contractData.billingFrequency === 'monthly' ? 'monthly' : 'weekly') as Contract['frequency'],
+              services: contractData.cleaningScope.split(',').map(s => s.trim()).filter(Boolean),
+              status: contractData.status,
+              value: contractData.hoursPerWeek * contractData.hourlyRate,
+              hoursPerWeek: contractData.hoursPerWeek,
+              hourlyRate: contractData.hourlyRate,
+              startDate: contractData.startDate?.toISOString().split('T')[0] || c.startDate,
+            } 
+          : c
+      ));
+      setEditContract(null);
+    } else {
+      const newContract: Contract = {
+        id: Date.now().toString(),
+        clientId: contractData.clientId,
+        clientName: client?.name || 'Unknown',
+        location: contractData.serviceLocation,
+        frequency: contractData.billingFrequency === 'bi-weekly' ? 'biweekly' : contractData.billingFrequency === 'monthly' ? 'monthly' : 'weekly',
+        services: contractData.cleaningScope.split(',').map(s => s.trim()).filter(Boolean),
+        status: contractData.status,
+        value: contractData.hoursPerWeek * contractData.hourlyRate,
+        avgDuration: `${contractData.hoursPerWeek}h`,
+        startDate: contractData.startDate?.toISOString().split('T')[0] || '',
+        hoursPerWeek: contractData.hoursPerWeek,
+        hourlyRate: contractData.hourlyRate,
+      };
+      setContracts(prev => [...prev, newContract]);
+    }
+  };
+
+  const handleDeleteContract = () => {
+    if (deleteContract) {
+      setContracts(prev => prev.filter(c => c.id !== deleteContract.id));
+      toast({
+        title: t.common.success,
+        description: t.contracts.contractDeleted,
+      });
+      setDeleteContract(null);
+    }
+  };
+
+  const openEditModal = (contract: Contract) => {
+    setEditContract(contract);
+    setIsAddModalOpen(true);
+  };
+
+  const handleViewPdf = (contract: Contract) => {
+    toast({
+      title: 'PDF Generated',
+      description: `Contract PDF for ${contract.clientName} is ready for download.`,
+    });
+  };
+
+  const handleSendEmail = (contract: Contract) => {
+    toast({
+      title: t.common.success,
+      description: `Contract sent to ${contract.clientName} via email.`,
+    });
+  };
+
+  const handleSendSms = (contract: Contract) => {
+    toast({
+      title: t.common.success,
+      description: `Contract sent to ${contract.clientName} via SMS.`,
+    });
+  };
 
   const columns: Column<Contract>[] = [
     {
@@ -94,7 +214,47 @@ const Contracts = () => {
       key: 'status',
       header: t.contracts.status,
       render: (contract) => (
-        <StatusBadge status={contract.status} />
+        <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusColors[contract.status]}`}>
+          {t.contracts[contract.status]}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: t.common.actions,
+      render: (contract) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-popover">
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewPdf(contract); }}>
+              <FileText className="h-4 w-4 mr-2" />
+              {t.contracts.viewPdf}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleSendEmail(contract); }}>
+              <Mail className="h-4 w-4 mr-2" />
+              {t.contracts.sendEmail}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleSendSms(contract); }}>
+              <MessageSquare className="h-4 w-4 mr-2" />
+              {t.contracts.sendSms}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditModal(contract); }}>
+              <Pencil className="h-4 w-4 mr-2" />
+              {t.common.edit}
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={(e) => { e.stopPropagation(); setDeleteContract(contract); }}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              {t.common.delete}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       ),
     },
   ];
@@ -107,7 +267,7 @@ const Contracts = () => {
         action={{
           label: t.contracts.addContract,
           icon: FilePlus,
-          onClick: () => console.log('Add contract'),
+          onClick: () => { setEditContract(null); setIsAddModalOpen(true); },
         }}
       />
 
@@ -134,7 +294,6 @@ const Contracts = () => {
           
           {selectedContract && (
             <div className="space-y-6 mt-4">
-              {/* Contract Header */}
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="text-lg font-semibold">{selectedContract.clientName}</h3>
@@ -143,10 +302,11 @@ const Contracts = () => {
                     {selectedContract.location}
                   </p>
                 </div>
-                <StatusBadge status={selectedContract.status} />
+                <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusColors[selectedContract.status]}`}>
+                  {t.contracts[selectedContract.status]}
+                </span>
               </div>
 
-              {/* Stats */}
               <div className="grid gap-4 sm:grid-cols-3">
                 <Card className="border-border/50">
                   <CardContent className="pt-4">
@@ -191,7 +351,6 @@ const Contracts = () => {
                 </Card>
               </div>
 
-              {/* Services */}
               <Card className="border-border/50">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -207,10 +366,56 @@ const Contracts = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={() => handleViewPdf(selectedContract)}>
+                  <Download className="h-4 w-4 mr-2" />
+                  {t.contracts.viewPdf}
+                </Button>
+                <Button variant="outline" onClick={() => handleSendEmail(selectedContract)}>
+                  <Mail className="h-4 w-4 mr-2" />
+                  {t.contracts.sendEmail}
+                </Button>
+              </DialogFooter>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Add/Edit Contract Modal */}
+      <AddContractModal
+        open={isAddModalOpen}
+        onOpenChange={setIsAddModalOpen}
+        onSubmit={handleAddContract}
+        clients={mockClients}
+        editContract={editContract ? {
+          id: editContract.id,
+          clientId: editContract.clientId,
+          status: editContract.status,
+          type: editContract.frequency === 'oneTime' ? 'one-time' : 'recurring',
+          startDate: editContract.startDate ? new Date(editContract.startDate) : null,
+          endDate: null,
+          hoursPerWeek: editContract.hoursPerWeek,
+          hourlyRate: editContract.hourlyRate,
+          billingFrequency: editContract.frequency === 'biweekly' ? 'bi-weekly' : editContract.frequency === 'monthly' ? 'monthly' : 'weekly',
+          cleaningDays: [],
+          timeWindow: '09:00 - 17:00',
+          serviceLocation: editContract.location,
+          cleaningScope: editContract.services.join(', '),
+          specialNotes: '',
+          generatePdfAutomatically: true,
+          allowPdfDownload: true,
+        } : null}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!deleteContract}
+        onOpenChange={() => setDeleteContract(null)}
+        onConfirm={handleDeleteContract}
+        title={t.common.confirmDelete}
+        description={`Are you sure you want to delete the contract for "${deleteContract?.clientName}"? This action cannot be undone.`}
+      />
     </div>
   );
 };

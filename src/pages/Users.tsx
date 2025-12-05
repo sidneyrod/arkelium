@@ -8,14 +8,20 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { UserPlus, Briefcase, Clock, Star, Phone, Mail } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import AddUserModal, { UserFormData } from '@/components/modals/AddUserModal';
+import ConfirmDialog from '@/components/modals/ConfirmDialog';
+import { toast } from '@/hooks/use-toast';
+import { UserPlus, Briefcase, Clock, Star, Phone, Mail, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 
 interface User {
   id: string;
   name: string;
   email: string;
   phone: string;
-  role: 'admin' | 'manager' | 'cleaner' | 'accountant';
+  address: string;
+  role: 'admin' | 'manager' | 'supervisor' | 'cleaner';
   status: 'active' | 'inactive';
   lastLogin: string;
   avatar?: string;
@@ -24,31 +30,72 @@ interface User {
   performance?: number;
 }
 
-const mockUsers: User[] = [
-  { id: '1', name: 'John Doe', email: 'john@cleanpro.com', phone: '(416) 555-0101', role: 'admin', status: 'active', lastLogin: '2 min ago', jobsCompleted: 0, hoursWorked: 160, performance: 95 },
-  { id: '2', name: 'Maria Garcia', email: 'maria@cleanpro.com', phone: '(416) 555-0102', role: 'cleaner', status: 'active', lastLogin: '1 hour ago', jobsCompleted: 156, hoursWorked: 148, performance: 92 },
-  { id: '3', name: 'Ana Rodriguez', email: 'ana@cleanpro.com', phone: '(416) 555-0103', role: 'cleaner', status: 'active', lastLogin: '3 hours ago', jobsCompleted: 142, hoursWorked: 152, performance: 88 },
-  { id: '4', name: 'James Wilson', email: 'james@cleanpro.com', phone: '(416) 555-0104', role: 'manager', status: 'active', lastLogin: '1 day ago', jobsCompleted: 28, hoursWorked: 160, performance: 94 },
-  { id: '5', name: 'Sophie Martin', email: 'sophie@cleanpro.com', phone: '(416) 555-0105', role: 'cleaner', status: 'inactive', lastLogin: '5 days ago', jobsCompleted: 89, hoursWorked: 120, performance: 78 },
-  { id: '6', name: 'David Chen', email: 'david@cleanpro.com', phone: '(416) 555-0106', role: 'accountant', status: 'active', lastLogin: '2 hours ago', jobsCompleted: 0, hoursWorked: 160, performance: 90 },
+const initialUsers: User[] = [
+  { id: '1', name: 'John Doe', email: 'john@cleanpro.com', phone: '(416) 555-0101', address: '123 Main St, Toronto', role: 'admin', status: 'active', lastLogin: '2 min ago', jobsCompleted: 0, hoursWorked: 160, performance: 95 },
+  { id: '2', name: 'Maria Garcia', email: 'maria@cleanpro.com', phone: '(416) 555-0102', address: '456 Oak Ave, Toronto', role: 'cleaner', status: 'active', lastLogin: '1 hour ago', jobsCompleted: 156, hoursWorked: 148, performance: 92 },
+  { id: '3', name: 'Ana Rodriguez', email: 'ana@cleanpro.com', phone: '(416) 555-0103', address: '789 Pine Rd, Toronto', role: 'cleaner', status: 'active', lastLogin: '3 hours ago', jobsCompleted: 142, hoursWorked: 152, performance: 88 },
+  { id: '4', name: 'James Wilson', email: 'james@cleanpro.com', phone: '(416) 555-0104', address: '321 Elm St, Toronto', role: 'manager', status: 'active', lastLogin: '1 day ago', jobsCompleted: 28, hoursWorked: 160, performance: 94 },
+  { id: '5', name: 'Sophie Martin', email: 'sophie@cleanpro.com', phone: '(416) 555-0105', address: '654 Cedar Ln, Toronto', role: 'supervisor', status: 'inactive', lastLogin: '5 days ago', jobsCompleted: 89, hoursWorked: 120, performance: 78 },
 ];
 
 const roleColors: Record<string, string> = {
   admin: 'bg-primary/10 text-primary',
   manager: 'bg-info/10 text-info',
+  supervisor: 'bg-warning/10 text-warning',
   cleaner: 'bg-success/10 text-success',
-  accountant: 'bg-warning/10 text-warning',
 };
 
 const Users = () => {
   const { t } = useLanguage();
   const [search, setSearch] = useState('');
+  const [users, setUsers] = useState<User[]>(initialUsers);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editUser, setEditUser] = useState<User | null>(null);
+  const [deleteUser, setDeleteUser] = useState<User | null>(null);
 
-  const filteredUsers = mockUsers.filter(user =>
+  const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(search.toLowerCase()) ||
     user.email.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleAddUser = (userData: UserFormData) => {
+    if (editUser) {
+      setUsers(prev => prev.map(u => 
+        u.id === editUser.id 
+          ? { ...u, ...userData, status: userData.isActive ? 'active' : 'inactive' } 
+          : u
+      ));
+      setEditUser(null);
+    } else {
+      const newUser: User = {
+        id: Date.now().toString(),
+        ...userData,
+        status: userData.isActive ? 'active' : 'inactive',
+        lastLogin: 'Never',
+        jobsCompleted: 0,
+        hoursWorked: 0,
+        performance: 0,
+      };
+      setUsers(prev => [...prev, newUser]);
+    }
+  };
+
+  const handleDeleteUser = () => {
+    if (deleteUser) {
+      setUsers(prev => prev.filter(u => u.id !== deleteUser.id));
+      toast({
+        title: t.common.success,
+        description: t.users.userDeleted,
+      });
+      setDeleteUser(null);
+    }
+  };
+
+  const openEditModal = (user: User) => {
+    setEditUser(user);
+    setIsAddModalOpen(true);
+  };
 
   const columns: Column<User>[] = [
     {
@@ -94,6 +141,32 @@ const Users = () => {
       header: t.users.lastLogin,
       className: 'text-muted-foreground',
     },
+    {
+      key: 'actions',
+      header: t.common.actions,
+      render: (user) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-popover">
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditModal(user); }}>
+              <Pencil className="h-4 w-4 mr-2" />
+              {t.common.edit}
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={(e) => { e.stopPropagation(); setDeleteUser(user); }}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              {t.common.delete}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
   ];
 
   return (
@@ -104,7 +177,7 @@ const Users = () => {
         action={{
           label: t.users.addUser,
           icon: UserPlus,
-          onClick: () => console.log('Add user'),
+          onClick: () => { setEditUser(null); setIsAddModalOpen(true); },
         }}
       />
 
@@ -131,7 +204,6 @@ const Users = () => {
           
           {selectedUser && (
             <div className="space-y-6">
-              {/* User Header */}
               <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16">
                   <AvatarImage src={selectedUser.avatar} />
@@ -154,7 +226,6 @@ const Users = () => {
                 </div>
               </div>
 
-              {/* Stats */}
               <div className="grid gap-4 sm:grid-cols-3">
                 <Card className="border-border/50">
                   <CardHeader className="pb-2">
@@ -199,6 +270,31 @@ const Users = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Add/Edit User Modal */}
+      <AddUserModal
+        open={isAddModalOpen}
+        onOpenChange={setIsAddModalOpen}
+        onSubmit={handleAddUser}
+        editUser={editUser ? {
+          id: editUser.id,
+          name: editUser.name,
+          email: editUser.email,
+          phone: editUser.phone,
+          address: editUser.address,
+          role: editUser.role,
+          isActive: editUser.status === 'active',
+        } : null}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!deleteUser}
+        onOpenChange={() => setDeleteUser(null)}
+        onConfirm={handleDeleteUser}
+        title={t.common.confirmDelete}
+        description={`Are you sure you want to delete "${deleteUser?.name}"? This action cannot be undone.`}
+      />
     </div>
   );
 };

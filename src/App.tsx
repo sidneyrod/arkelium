@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 import AppLayout from "@/components/layout/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import Company from "./pages/Company";
@@ -15,6 +16,8 @@ import Schedule from "./pages/Schedule";
 import Calculator from "./pages/Calculator";
 import Payroll from "./pages/Payroll";
 import Settings from "./pages/Settings";
+import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,26 +26,34 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <LanguageProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route element={<AppLayout />}>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/company" element={<Company />} />
-                <Route path="/users" element={<Users />} />
-                <Route path="/clients" element={<Clients />} />
-                <Route path="/contracts" element={<Contracts />} />
-                <Route path="/schedule" element={<Schedule />} />
-                <Route path="/calculator" element={<Calculator />} />
-                <Route path="/payroll" element={<Payroll />} />
-                <Route path="/settings" element={<Settings />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                {/* Public routes */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                
+                {/* Protected routes */}
+                <Route element={<AppLayout />}>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/company" element={<Company />} />
+                  <Route path="/users" element={<Users />} />
+                  <Route path="/clients" element={<Clients />} />
+                  <Route path="/contracts" element={<Contracts />} />
+                  <Route path="/schedule" element={<Schedule />} />
+                  <Route path="/calculator" element={<Calculator />} />
+                  <Route path="/payroll" element={<Payroll />} />
+                  <Route path="/settings" element={<Settings />} />
+                </Route>
+                
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
       </LanguageProvider>
     </ThemeProvider>
   </QueryClientProvider>
