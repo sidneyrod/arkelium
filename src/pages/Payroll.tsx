@@ -137,13 +137,13 @@ const Payroll = () => {
                     <Badge variant="outline">{currentPeriod.province} - OT after {provincialOvertimeRules[currentPeriod.province].weeklyThreshold}h/week</Badge>
                     <StatusBadge status={statusColors[currentPeriod.status].variant} label={statusColors[currentPeriod.status].label} />
                     {currentPeriod.status === 'pending' && <Button size="sm" onClick={() => handleApprove(currentPeriod.id)}>{t.payroll.approvePayroll}</Button>}
-                    {currentPeriod.status === 'approved' && <Button size="sm" onClick={() => handleMarkPaid(currentPeriod.id)}>Mark as Paid</Button>}
+                    {currentPeriod.status === 'approved' && <Button size="sm" onClick={() => handleMarkPaid(currentPeriod.id)}>{t.payroll.paid}</Button>}
                   </div>
                 </div>
               </CardHeader>
               <CardContent><DataTable columns={employeeColumns} data={currentPeriod.entries} emptyMessage={t.common.noData} /></CardContent>
             </Card>
-          ) : <p className="text-center text-muted-foreground py-8">No active payroll period</p>}
+          ) : <p className="text-center text-muted-foreground py-8">{t.common.noData}</p>}
         </TabsContent>
         <TabsContent value="history"><DataTable columns={periodColumns} data={periods.filter(p => p.status === 'paid')} onRowClick={setSelectedPeriod} emptyMessage={t.common.noData} /></TabsContent>
       </Tabs>
@@ -168,11 +168,11 @@ const Payroll = () => {
 
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Payroll Settings</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t.settings.companyPreferences}</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-4">
             <div className="space-y-2"><Label>{t.payroll.payPeriod}</Label><Select value={defaultPayPeriod} onValueChange={(v: any) => setDefaultPayPeriod(v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="weekly">{t.payroll.weeklyPay}</SelectItem><SelectItem value="biweekly">{t.payroll.biweeklyPay}</SelectItem><SelectItem value="semimonthly">{t.payroll.semiMonthlyPay}</SelectItem><SelectItem value="monthly">{t.payroll.monthlyPay}</SelectItem></SelectContent></Select></div>
-            <div className="space-y-2"><Label>Default Province</Label><Select value={defaultProvince} onValueChange={(v: any) => setDefaultProvince(v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(provinceNames).map(([code, name]) => <SelectItem key={code} value={code}>{name}</SelectItem>)}</SelectContent></Select></div>
-            <Card className="border-border/50 bg-muted/30"><CardContent className="pt-4"><p className="text-sm font-medium mb-2">{t.payroll.overtimeRules} - {provinceNames[defaultProvince]}</p><p className="text-xs text-muted-foreground">Weekly threshold: {provincialOvertimeRules[defaultProvince].weeklyThreshold}h</p><p className="text-xs text-muted-foreground">Overtime multiplier: {provincialOvertimeRules[defaultProvince].overtimeMultiplier}x</p></CardContent></Card>
+            <div className="space-y-2"><Label>{t.payroll.selectProvince}</Label><Select value={defaultProvince} onValueChange={(v: any) => setDefaultProvince(v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(provinceNames).map(([code, name]) => <SelectItem key={code} value={code}>{name}</SelectItem>)}</SelectContent></Select></div>
+            <Card className="border-border/50 bg-muted/30"><CardContent className="pt-4"><p className="text-sm font-medium mb-2">{t.payroll.overtimeRules} - {provinceNames[defaultProvince]}</p><p className="text-xs text-muted-foreground">{t.payroll.overtimeThreshold}: {provincialOvertimeRules[defaultProvince].weeklyThreshold}h</p><p className="text-xs text-muted-foreground">{t.payroll.overtimeMultiplier}: {provincialOvertimeRules[defaultProvince].overtimeMultiplier}x</p></CardContent></Card>
           </div>
         </DialogContent>
       </Dialog>

@@ -101,7 +101,7 @@ const Schedule = () => {
     if (job) {
       logActivity('job_completed', `Job completed for ${job.clientName}`, jobId, job.clientName);
     }
-    toast.success('Job marked as completed! Invoice can now be generated.');
+    toast.success(t.job.jobCompleted);
     setSelectedJob(null);
   };
 
@@ -112,18 +112,18 @@ const Schedule = () => {
       ...request,
     });
     logActivity('absence_requested', `Absence request submitted for ${request.startDate} - ${request.endDate}`);
-    toast.success('Absence request submitted successfully');
+    toast.success(t.schedule.absenceSubmitted);
   };
 
   const handleSendSchedule = () => {
-    toast.success('Weekly schedule sent to all assigned employees');
+    toast.success(t.schedule.scheduleSent);
   };
 
   return (
     <div className="container px-4 py-8 lg:px-8 space-y-6">
       <PageHeader 
         title={t.schedule.title}
-        description="Manage your cleaning schedule and appointments"
+        description={t.schedule.title}
         action={{
           label: t.schedule.addJob,
           icon: CalendarPlus,
@@ -135,7 +135,7 @@ const Schedule = () => {
         <TabsList>
           <TabsTrigger value="calendar" className="gap-2">
             <CalendarIcon className="h-4 w-4" />
-            Calendar
+            {t.schedule.weeklyPlanner}
           </TabsTrigger>
           <TabsTrigger value="availability" className="gap-2">
             <Users className="h-4 w-4" />
@@ -143,7 +143,7 @@ const Schedule = () => {
           </TabsTrigger>
           <TabsTrigger value="requests" className="gap-2">
             <CalendarOff className="h-4 w-4" />
-            Absence Requests
+            {t.schedule.absenceRequest}
           </TabsTrigger>
         </TabsList>
 
@@ -171,7 +171,7 @@ const Schedule = () => {
                   <SelectValue placeholder={t.schedule.filterByEmployee} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Employees</SelectItem>
+                  <SelectItem value="all">{t.schedule.allEmployees}</SelectItem>
                   {uniqueEmployees.map(emp => (
                     <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
                   ))}
@@ -404,14 +404,14 @@ const Schedule = () => {
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                   <Clock className="h-5 w-5 text-muted-foreground" />
                   <div>
-                    <p className="text-xs text-muted-foreground">Time</p>
+                    <p className="text-xs text-muted-foreground">{t.job.time}</p>
                     <p className="font-medium">{selectedJob.time} ({selectedJob.duration})</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                   <User className="h-5 w-5 text-muted-foreground" />
                   <div>
-                    <p className="text-xs text-muted-foreground">Assigned</p>
+                    <p className="text-xs text-muted-foreground">{t.job.assignedEmployee}</p>
                     <p className="font-medium">{selectedJob.employeeName}</p>
                   </div>
                 </div>
@@ -420,7 +420,7 @@ const Schedule = () => {
               <div className="space-y-3">
                 <h4 className="text-sm font-medium flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-primary" />
-                  Services
+                  {t.job.serviceType}
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {selectedJob.services.map((service, i) => (
@@ -498,7 +498,7 @@ const Schedule = () => {
         onOpenChange={() => setJobToDelete(null)}
         onConfirm={handleDeleteJob}
         title={t.common.confirmDelete}
-        description={`Are you sure you want to delete the job for ${jobToDelete?.clientName}? This action cannot be undone.`}
+        description={t.common.confirmDeleteDescription}
       />
     </div>
   );
