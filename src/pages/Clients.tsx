@@ -10,7 +10,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { UserPlus, Building, Home, MapPin, Phone, CreditCard, Key, PawPrint, Car } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import AddClientModal, { ClientFormData } from '@/components/modals/AddClientModal';
+import ConfirmDialog from '@/components/modals/ConfirmDialog';
+import { toast } from '@/hooks/use-toast';
+import { UserPlus, Building, Home, MapPin, Phone, CreditCard, Key, PawPrint, Car, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 
 interface Client {
   id: string;
@@ -18,6 +22,9 @@ interface Client {
   type: 'residential' | 'commercial';
   phone: string;
   email: string;
+  address: string;
+  contactPerson: string;
+  notes: string;
   status: 'active' | 'inactive';
   locationsCount: number;
   locations?: Location[];
@@ -32,13 +39,16 @@ interface Location {
   parkingInfo?: string;
 }
 
-const mockClients: Client[] = [
+const initialClients: Client[] = [
   { 
     id: '1', 
     name: 'Sarah Mitchell', 
     type: 'residential', 
     phone: '(416) 555-0201', 
     email: 'sarah@email.com',
+    address: '245 Oak Street, Toronto',
+    contactPerson: 'Sarah Mitchell',
+    notes: 'Prefers morning appointments',
     status: 'active', 
     locationsCount: 2,
     locations: [
@@ -46,22 +56,61 @@ const mockClients: Client[] = [
       { id: '2', address: '78 Pine Avenue, Toronto', accessInstructions: 'Key under mat', alarmCode: '****', hasPets: false, parkingInfo: 'Driveway' },
     ]
   },
-  { id: '2', name: 'Thompson Corporation', type: 'commercial', phone: '(416) 555-0202', email: 'contact@thompson.com', status: 'active', locationsCount: 3 },
-  { id: '3', name: 'Emily Chen', type: 'residential', phone: '(416) 555-0203', email: 'emily@email.com', status: 'active', locationsCount: 1 },
-  { id: '4', name: 'Metro Office Solutions', type: 'commercial', phone: '(416) 555-0204', email: 'info@metrooffice.com', status: 'active', locationsCount: 5 },
-  { id: '5', name: 'Robert Johnson', type: 'residential', phone: '(416) 555-0205', email: 'robert@email.com', status: 'inactive', locationsCount: 1 },
-  { id: '6', name: 'Greenfield Realty', type: 'commercial', phone: '(416) 555-0206', email: 'admin@greenfield.com', status: 'active', locationsCount: 8 },
+  { id: '2', name: 'Thompson Corporation', type: 'commercial', phone: '(416) 555-0202', email: 'contact@thompson.com', address: '890 Business Ave', contactPerson: 'John Thompson', notes: '', status: 'active', locationsCount: 3 },
+  { id: '3', name: 'Emily Chen', type: 'residential', phone: '(416) 555-0203', email: 'emily@email.com', address: '112 Maple Drive', contactPerson: 'Emily Chen', notes: '', status: 'active', locationsCount: 1 },
+  { id: '4', name: 'Metro Office Solutions', type: 'commercial', phone: '(416) 555-0204', email: 'info@metrooffice.com', address: '456 Tower Blvd', contactPerson: 'Michael Brown', notes: 'After hours cleaning only', status: 'active', locationsCount: 5 },
+  { id: '5', name: 'Robert Johnson', type: 'residential', phone: '(416) 555-0205', email: 'robert@email.com', address: '321 Elm Street', contactPerson: 'Robert Johnson', notes: '', status: 'inactive', locationsCount: 1 },
 ];
 
 const Clients = () => {
   const { t } = useLanguage();
   const [search, setSearch] = useState('');
+  const [clients, setClients] = useState<Client[]>(initialClients);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editClient, setEditClient] = useState<Client | null>(null);
+  const [deleteClient, setDeleteClient] = useState<Client | null>(null);
 
-  const filteredClients = mockClients.filter(client =>
+  const filteredClients = clients.filter(client =>
     client.name.toLowerCase().includes(search.toLowerCase()) ||
     client.email.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleAddClient = (clientData: ClientFormData) => {
+    if (editClient) {
+      setClients(prev => prev.map(c => 
+        c.id === editClient.id 
+          ? { ...c, ...clientData, status: clientData.isActive ? 'active' : 'inactive' } 
+          : c
+      ));
+      setEditClient(null);
+    } else {
+      const newClient: Client = {
+        id: Date.now().toString(),
+        ...clientData,
+        status: clientData.isActive ? 'active' : 'inactive',
+        locationsCount: 0,
+        locations: [],
+      };
+      setClients(prev => [...prev, newClient]);
+    }
+  };
+
+  const handleDeleteClient = () => {
+    if (deleteClient) {
+      setClients(prev => prev.filter(c => c.id !== deleteClient.id));
+      toast({
+        title: t.common.success,
+        description: t.clients.clientDeleted,
+      });
+      setDeleteClient(null);
+    }
+  };
+
+  const openEditModal = (client: Client) => {
+    setEditClient(client);
+    setIsAddModalOpen(true);
+  };
 
   const columns: Column<Client>[] = [
     {
@@ -110,7 +159,33 @@ const Clients = () => {
       key: 'locationsCount',
       header: t.clients.locations,
       render: (client) => (
-        <span className="text-muted-foreground">{client.locationsCount} location{client.locationsCount > 1 ? 's' : ''}</span>
+        <span className="text-muted-foreground">{client.locationsCount} location{client.locationsCount !== 1 ? 's' : ''}</span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: t.common.actions,
+      render: (client) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-popover">
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditModal(client); }}>
+              <Pencil className="h-4 w-4 mr-2" />
+              {t.common.edit}
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={(e) => { e.stopPropagation(); setDeleteClient(client); }}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              {t.common.delete}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       ),
     },
   ];
@@ -123,7 +198,7 @@ const Clients = () => {
         action={{
           label: t.clients.addClient,
           icon: UserPlus,
-          onClick: () => console.log('Add client'),
+          onClick: () => { setEditClient(null); setIsAddModalOpen(true); },
         }}
       />
 
@@ -170,24 +245,24 @@ const Clients = () => {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>{t.clients.name}</Label>
-                    <Input defaultValue={selectedClient.name} />
+                    <Input defaultValue={selectedClient.name} readOnly />
                   </div>
                   <div className="space-y-2">
                     <Label>{t.clients.type}</Label>
-                    <Input defaultValue={selectedClient.type} />
+                    <Input defaultValue={t.clients[selectedClient.type]} readOnly />
                   </div>
                   <div className="space-y-2">
                     <Label>{t.clients.phone}</Label>
-                    <Input defaultValue={selectedClient.phone} />
+                    <Input defaultValue={selectedClient.phone} readOnly />
                   </div>
                   <div className="space-y-2">
                     <Label>Email</Label>
-                    <Input defaultValue={selectedClient.email} />
+                    <Input defaultValue={selectedClient.email} readOnly />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label>{t.clients.notes}</Label>
-                  <Input placeholder="Add notes about this client..." />
+                  <Input defaultValue={selectedClient.notes || 'No notes'} readOnly />
                 </div>
               </TabsContent>
 
@@ -229,7 +304,7 @@ const Clients = () => {
               <TabsContent value="billing" className="space-y-4 mt-4">
                 <div className="space-y-2">
                   <Label>{t.clients.billingAddress}</Label>
-                  <Input placeholder="Billing address..." />
+                  <Input defaultValue={selectedClient.address} readOnly />
                 </div>
                 <div className="space-y-2">
                   <Label>{t.clients.paymentMethod}</Label>
@@ -244,6 +319,33 @@ const Clients = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Add/Edit Client Modal */}
+      <AddClientModal
+        open={isAddModalOpen}
+        onOpenChange={setIsAddModalOpen}
+        onSubmit={handleAddClient}
+        editClient={editClient ? {
+          id: editClient.id,
+          name: editClient.name,
+          type: editClient.type,
+          address: editClient.address,
+          contactPerson: editClient.contactPerson,
+          phone: editClient.phone,
+          email: editClient.email,
+          notes: editClient.notes,
+          isActive: editClient.status === 'active',
+        } : null}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!deleteClient}
+        onOpenChange={() => setDeleteClient(null)}
+        onConfirm={handleDeleteClient}
+        title={t.common.confirmDelete}
+        description={`Are you sure you want to delete "${deleteClient?.name}"? This action cannot be undone.`}
+      />
     </div>
   );
 };
