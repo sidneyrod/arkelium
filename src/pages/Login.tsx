@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Sun, Moon, Sparkles, Eye, EyeOff, Building2 } from 'lucide-react';
+import { Sun, Moon, Eye, EyeOff, Building2 } from 'lucide-react';
 
 const Login = () => {
   const { t, language, setLanguage } = useLanguage();
@@ -50,76 +50,63 @@ const Login = () => {
   const primaryColor = branding.primaryColor || '#1a3d2e';
 
   return (
-    <div className="min-h-screen bg-background flex w-full">
-      {/* Left Side - Premium Branding Panel */}
+    <div className="h-screen bg-background flex w-full overflow-hidden">
+      {/* Left Side - Premium Branding Panel with Watermark */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        {/* Soft gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/8 to-primary/3 dark:from-primary/15 dark:via-primary/5 dark:to-background" />
+        {/* Soft gradient background - cleaner, no solid blocks */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent dark:from-primary/10 dark:via-primary/3 dark:to-background" />
         
-        {/* Secondary gradient overlay for depth */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-primary/5 to-primary/10 dark:via-primary/3 dark:to-primary/8" />
+        {/* Secondary radial gradient for depth */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_40%,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent dark:from-primary/8" />
         
         {/* Decorative plus pattern - very subtle */}
         <div 
-          className="absolute inset-0 opacity-[0.04] dark:opacity-[0.08]"
+          className="absolute inset-0 opacity-[0.025] dark:opacity-[0.04]"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M21 19v-2h-2v2h-2v2h2v2h2v-2h2v-2h-2z'/%3E%3C/g%3E%3C/svg%3E")`
           }}
         />
         
-        {/* Radial glow effect */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent dark:from-primary/15" />
-        
-        {/* Logo Watermark - Dynamic from Company */}
+        {/* Logo Watermark - Dynamic from Company, clean subtle appearance */}
         <div className="absolute inset-0 flex items-center justify-center">
           {branding.logoUrl ? (
-            <div className="relative w-[70%] max-w-[400px] aspect-square flex items-center justify-center">
-              {/* Glow behind logo */}
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-3xl scale-110" />
-              <img 
-                src={branding.logoUrl} 
-                alt={profile.companyName}
-                className="w-full h-full object-contain opacity-[0.10] dark:opacity-[0.08] select-none pointer-events-none"
-                style={{ filter: 'grayscale(10%)' }}
-              />
-            </div>
+            <img 
+              src={branding.logoUrl} 
+              alt={profile.companyName}
+              className="w-[55%] max-w-[320px] h-auto object-contain opacity-[0.08] dark:opacity-[0.06] select-none pointer-events-none"
+              style={{ filter: 'grayscale(20%)' }}
+            />
           ) : (
-            <div className="relative flex items-center justify-center">
-              {/* Glow effect for placeholder */}
-              <div className="absolute w-64 h-64 bg-gradient-to-br from-primary/15 to-primary/5 rounded-full blur-3xl" />
-              <div className="relative w-40 h-40 rounded-3xl bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/10 flex items-center justify-center opacity-60 dark:opacity-50">
-                <Building2 className="w-20 h-20 text-primary/40" strokeWidth={1} />
-              </div>
+            <div className="w-32 h-32 rounded-3xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/10 flex items-center justify-center opacity-50 dark:opacity-40">
+              <Building2 className="w-16 h-16 text-primary/30" strokeWidth={1} />
             </div>
           )}
         </div>
 
         {/* Company Info - Centered below logo area */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <div className="mt-[320px] text-center">
-            <h1 className="text-3xl font-semibold text-foreground/80 tracking-tight">
-              {profile.companyName}
-            </h1>
-            <p className="text-base text-muted-foreground/70 mt-2 font-light">
-              Professional Workspace
-            </p>
-          </div>
+        <div className="absolute inset-x-0 bottom-1/4 flex flex-col items-center pointer-events-none px-8">
+          <h1 className="text-2xl font-semibold text-foreground/70 tracking-tight text-center">
+            {profile.companyName}
+          </h1>
+          <p className="text-sm text-muted-foreground/60 mt-1.5 font-light">
+            Professional Workspace
+          </p>
         </div>
 
         {/* Bottom credits */}
-        <div className="absolute bottom-6 left-8 right-8">
-          <p className="text-xs text-muted-foreground/50 font-light">
-            © {new Date().getFullYear()} {profile.companyName}. All rights reserved.
+        <div className="absolute bottom-4 left-6 right-6">
+          <p className="text-xs text-muted-foreground/40 font-light">
+            © {new Date().getFullYear()} {profile.companyName}
           </p>
         </div>
       </div>
 
       {/* Right Side - Login Form with Glassmorphism */}
-      <div className="flex-1 flex flex-col lg:w-1/2 bg-gradient-to-br from-background via-background to-muted/20">
+      <div className="flex-1 flex flex-col lg:w-1/2 bg-gradient-to-br from-background via-background to-muted/10">
         {/* Theme & Language Controls */}
-        <div className="flex items-center justify-end gap-2 p-4 sm:p-6">
+        <div className="flex items-center justify-end gap-2 p-4">
           <Select value={language} onValueChange={(val: 'en' | 'fr') => setLanguage(val)}>
-            <SelectTrigger className="w-20 h-9 bg-background/60 backdrop-blur-sm border-border/50 hover:bg-background/80 transition-colors">
+            <SelectTrigger className="w-18 h-8 bg-background/60 backdrop-blur-sm border-border/50 hover:bg-background/80 transition-colors text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-popover/95 backdrop-blur-sm">
@@ -132,22 +119,22 @@ const Login = () => {
             variant="outline" 
             size="icon" 
             onClick={toggleTheme} 
-            className="h-9 w-9 bg-background/60 backdrop-blur-sm border-border/50 hover:bg-background/80 transition-all hover:scale-105"
+            className="h-8 w-8 bg-background/60 backdrop-blur-sm border-border/50 hover:bg-background/80 transition-all hover:scale-105"
           >
-            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
           </Button>
         </div>
 
         {/* Login Form Container */}
-        <div className="flex-1 flex items-center justify-center px-6 sm:px-8 pb-12">
+        <div className="flex-1 flex items-center justify-center px-6 sm:px-8">
           {/* Glassmorphism Card */}
-          <div className="w-full max-w-[380px] rounded-2xl bg-card/80 dark:bg-card/60 backdrop-blur-xl border border-border/50 shadow-2xl shadow-primary/5 dark:shadow-primary/10 p-8 sm:p-10">
+          <div className="w-full max-w-[360px] rounded-2xl bg-card/80 dark:bg-card/60 backdrop-blur-xl border border-border/50 shadow-xl shadow-primary/5 dark:shadow-primary/10 p-7 sm:p-8">
             {/* Header */}
-            <div className="text-center mb-8">
+            <div className="text-center mb-6">
               {/* Mobile Logo */}
-              <div className="lg:hidden mx-auto mb-5">
+              <div className="lg:hidden mx-auto mb-4">
                 {branding.logoUrl ? (
-                  <div className="h-16 w-16 mx-auto rounded-xl overflow-hidden flex items-center justify-center bg-muted/30">
+                  <div className="h-14 w-14 mx-auto rounded-xl overflow-hidden flex items-center justify-center bg-muted/30">
                     <img 
                       src={branding.logoUrl} 
                       alt="Company logo" 
@@ -155,23 +142,23 @@ const Login = () => {
                     />
                   </div>
                 ) : (
-                  <div className="h-14 w-14 mx-auto rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20 flex items-center justify-center">
-                    <Building2 className="h-7 w-7 text-primary/70" />
+                  <div className="h-12 w-12 mx-auto rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20 flex items-center justify-center">
+                    <Building2 className="h-6 w-6 text-primary/70" />
                   </div>
                 )}
               </div>
               
-              <h2 className="text-2xl font-semibold text-foreground tracking-tight">
+              <h2 className="text-xl font-semibold text-foreground tracking-tight">
                 {profile.companyName} <span className="text-primary">Workspace</span>
               </h2>
-              <p className="text-sm text-muted-foreground mt-2 font-light">
+              <p className="text-sm text-muted-foreground mt-1.5 font-light">
                 {t.auth.welcomeBack || "Welcome back! Sign in to your account"}
               </p>
             </div>
             
             {/* Form */}
-            <form onSubmit={handleLogin} className="space-y-5">
-              <div className="space-y-2">
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-1.5">
                 <Label htmlFor="email" className="text-sm font-medium text-foreground/90">
                   {t.auth.email}
                 </Label>
@@ -182,11 +169,11 @@ const Login = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="h-11 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50"
+                  className="h-10 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50"
                 />
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="password" className="text-sm font-medium text-foreground/90">
                   {t.auth.password}
                 </Label>
@@ -198,7 +185,7 @@ const Login = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="pr-11 h-11 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50"
+                    className="pr-10 h-10 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50"
                   />
                   <button
                     type="button"
@@ -209,14 +196,14 @@ const Login = () => {
                   </button>
                 </div>
                 {error && (
-                  <p className="text-sm text-destructive mt-2 flex items-center gap-1.5">
+                  <p className="text-sm text-destructive mt-1.5 flex items-center gap-1.5">
                     <span className="w-1 h-1 rounded-full bg-destructive" />
                     {error}
                   </p>
                 )}
               </div>
 
-              <div className="flex items-center justify-between pt-1">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Checkbox 
                     id="remember" 
@@ -239,7 +226,7 @@ const Login = () => {
 
               <Button 
                 type="submit" 
-                className="w-full h-11 text-base font-medium shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+                className="w-full h-10 text-sm font-medium shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
                 disabled={isLoading}
                 style={{ 
                   backgroundColor: primaryColor,
@@ -257,27 +244,17 @@ const Login = () => {
               </Button>
             </form>
 
-            {/* Divider with subtle accent */}
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border/40" />
-              </div>
-              <div className="relative flex justify-center">
-                <span className="bg-card/80 px-3 text-xs text-muted-foreground/60">
-                  Secure login
-                </span>
-              </div>
-            </div>
-
             {/* Footer info */}
-            <p className="text-center text-xs text-muted-foreground/50">
-              Protected by enterprise-grade security
-            </p>
+            <div className="mt-5 pt-4 border-t border-border/30">
+              <p className="text-center text-xs text-muted-foreground/50">
+                Protected by enterprise-grade security
+              </p>
+            </div>
           </div>
         </div>
 
         {/* Mobile footer */}
-        <div className="lg:hidden px-6 pb-6">
+        <div className="lg:hidden px-6 pb-4">
           <p className="text-center text-xs text-muted-foreground/50">
             © {new Date().getFullYear()} {profile.companyName}
           </p>

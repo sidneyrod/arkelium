@@ -701,48 +701,50 @@ const Company = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Login Preview Modal */}
+      {/* Login Preview Modal - Matches actual login page exactly */}
       <Dialog open={previewLoginOpen} onOpenChange={setPreviewLoginOpen}>
-        <DialogContent className="sm:max-w-4xl h-[80vh] p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-4xl h-[70vh] p-0 overflow-hidden">
           <div className="flex h-full">
-            {/* Left side preview - matches actual login */}
-            <div className="flex-1 bg-gradient-to-br from-primary/15 via-primary/5 to-background flex flex-col items-center justify-center p-8 relative">
-              <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.06]" 
+            {/* Left side preview - matches actual login watermark style */}
+            <div className="flex-1 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent dark:from-primary/10 dark:via-primary/3 dark:to-background" />
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_40%,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent dark:from-primary/8" />
+              <div 
+                className="absolute inset-0 opacity-[0.025] dark:opacity-[0.04]"
                 style={{
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M21 19v-2h-2v2h-2v2h2v2h2v-2h2v-2h-2z'/%3E%3C/g%3E%3C/svg%3E")`
                 }}
               />
-              {branding.logoUrl ? (
-                <div className="relative flex flex-col items-center">
+              <div className="absolute inset-0 flex items-center justify-center">
+                {branding.logoUrl ? (
                   <img 
                     src={branding.logoUrl} 
                     alt={profile.companyName}
-                    className="w-48 h-48 object-contain opacity-25 dark:opacity-20"
+                    className="w-[50%] max-w-[200px] h-auto object-contain opacity-[0.08] dark:opacity-[0.06]"
+                    style={{ filter: 'grayscale(20%)' }}
                   />
-                  <h3 className="mt-4 text-xl font-semibold text-foreground/70">{profile.companyName}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">Welcome to your workspace</p>
-                </div>
-              ) : (
-                <div className="text-center relative">
-                  <div className="h-24 w-24 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/15 flex items-center justify-center mx-auto">
-                    <Building2 className="h-12 w-12 text-primary/50" />
+                ) : (
+                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/10 flex items-center justify-center opacity-50">
+                    <Building2 className="w-10 h-10 text-primary/30" strokeWidth={1} />
                   </div>
-                  <h3 className="mt-4 text-xl font-semibold text-foreground/70">{profile.companyName}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">Welcome to your workspace</p>
-                </div>
-              )}
+                )}
+              </div>
+              <div className="absolute inset-x-0 bottom-1/4 flex flex-col items-center pointer-events-none px-6">
+                <h3 className="text-lg font-semibold text-foreground/70 text-center">{profile.companyName}</h3>
+                <p className="text-xs text-muted-foreground/60 mt-1">Professional Workspace</p>
+              </div>
             </div>
             {/* Right side form preview */}
-            <div className="flex-1 flex items-center justify-center p-8 bg-background">
-              <div className="w-full max-w-xs space-y-4">
+            <div className="flex-1 flex items-center justify-center p-6 bg-background">
+              <div className="w-full max-w-[220px] space-y-3">
                 <div className="text-center">
-                  <h2 className="text-lg font-semibold">{profile.companyName}</h2>
-                  <p className="text-sm text-muted-foreground">Welcome back! Sign in to your account</p>
+                  <h2 className="text-sm font-semibold">{profile.companyName} <span className="text-primary">Workspace</span></h2>
+                  <p className="text-xs text-muted-foreground mt-1">Welcome back!</p>
                 </div>
-                <div className="space-y-3">
-                  <div className="h-9 bg-muted rounded-md" />
-                  <div className="h-9 bg-muted rounded-md" />
-                  <div className="h-9 bg-primary rounded-md" />
+                <div className="space-y-2">
+                  <div className="h-8 bg-muted rounded-md" />
+                  <div className="h-8 bg-muted rounded-md" />
+                  <div className="h-8 bg-primary rounded-md" />
                 </div>
               </div>
             </div>

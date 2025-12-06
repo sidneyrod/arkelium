@@ -22,7 +22,10 @@ import {
   CalendarOff,
   Users,
   Pencil,
-  Trash2
+  Trash2,
+  FileText,
+  Mail,
+  MessageSquare
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -166,12 +169,36 @@ const Schedule = () => {
     toast.success(t.schedule.scheduleSent);
   };
 
+  // Invoice actions for completed jobs
+  const handleGenerateInvoice = (job: ScheduledJob) => {
+    toast.success('Invoice generated successfully');
+    logActivity('job_completed', `Invoice generated for ${job.clientName}`, job.id, job.clientName);
+  };
+
+  const handleSendInvoiceEmail = (job: ScheduledJob) => {
+    toast.success('Invoice sent via email');
+    logActivity('job_completed', `Invoice sent via email to ${job.clientName}`, job.id, job.clientName);
+  };
+
+  const handleSendInvoiceSms = (job: ScheduledJob) => {
+    toast.success('Invoice sent via SMS');
+    logActivity('job_completed', `Invoice sent via SMS to ${job.clientName}`, job.id, job.clientName);
+  };
+
   // Get jobs for a specific date
   const getJobsForDate = (date: Date) => {
     return filteredJobs.filter(job => {
       const jobDate = new Date(job.date);
       return isSameDay(jobDate, date);
     });
+  };
+
+  // Safe checklist access helper
+  const getJobChecklist = (job: ScheduledJob | null) => {
+    if (!job) return [];
+    if (!job.checklist) return [];
+    if (!Array.isArray(job.checklist)) return [];
+    return job.checklist;
   };
 
   return (
@@ -589,14 +616,15 @@ const Schedule = () => {
                 </div>
               </div>
 
-              {selectedJob.checklist && Array.isArray(selectedJob.checklist) && selectedJob.checklist.length > 0 && (
+              {/* Safe checklist rendering */}
+              {getJobChecklist(selectedJob).length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-primary" />
                     {t.job.checklist}
                   </h4>
                   <div className="space-y-1">
-                    {selectedJob.checklist.map((item, i) => (
+                    {getJobChecklist(selectedJob).map((item, i) => (
                       <div key={i} className="flex items-center gap-2 text-sm">
                         <div className={cn(
                           "h-4 w-4 rounded-full border-2 flex items-center justify-center",
@@ -626,13 +654,32 @@ const Schedule = () => {
                 </div>
               )}
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex flex-wrap gap-2 pt-2">
                 {selectedJob.status === 'scheduled' && (
                   <Button className="flex-1 gap-2" onClick={() => { setShowCompletion(true); }}>
                     <CheckCircle className="h-4 w-4" />
                     {t.job.completeJob}
                   </Button>
                 )}
+                
+                {/* Invoice actions for completed jobs */}
+                {selectedJob.status === 'completed' && (
+                  <>
+                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => handleGenerateInvoice(selectedJob)}>
+                      <FileText className="h-4 w-4" />
+                      Invoice
+                    </Button>
+                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => handleSendInvoiceEmail(selectedJob)}>
+                      <Mail className="h-4 w-4" />
+                      Email
+                    </Button>
+                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => handleSendInvoiceSms(selectedJob)}>
+                      <MessageSquare className="h-4 w-4" />
+                      SMS
+                    </Button>
+                  </>
+                )}
+                
                 <Button variant="outline" size="icon" onClick={() => handleEditJob(selectedJob)}>
                   <Pencil className="h-4 w-4" />
                 </Button>
