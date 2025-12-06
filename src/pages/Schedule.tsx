@@ -583,7 +583,7 @@ const Schedule = () => {
                 <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
                   <User className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-xs text-muted-foreground">{t.job.assignedTo}</p>
+                    <p className="text-xs text-muted-foreground">{t.job.assignedEmployee}</p>
                     <p className="text-sm font-medium">{selectedJob.employeeName}</p>
                   </div>
                 </div>
@@ -604,7 +604,7 @@ const Schedule = () => {
                         )}>
                           {item.completed && <CheckCircle className="h-3 w-3 text-success-foreground" />}
                         </div>
-                        <span className={item.completed ? "text-muted-foreground line-through" : ""}>{item.task}</span>
+                        <span className={item.completed ? "text-muted-foreground line-through" : ""}>{item.item}</span>
                       </div>
                     ))}
                   </div>
@@ -630,7 +630,7 @@ const Schedule = () => {
                 {selectedJob.status === 'scheduled' && (
                   <Button className="flex-1 gap-2" onClick={() => { setShowCompletion(true); }}>
                     <CheckCircle className="h-4 w-4" />
-                    {t.job.complete}
+                    {t.job.completeJob}
                   </Button>
                 )}
                 <Button variant="outline" size="icon" onClick={() => handleEditJob(selectedJob)}>
@@ -660,9 +660,8 @@ const Schedule = () => {
             setSelectedDate(null);
           }
         }}
-        onSubmit={editingJob ? handleUpdateJob : handleAddJob}
-        editJob={editingJob}
-        preselectedDate={selectedDate}
+        onSave={editingJob ? handleUpdateJob : handleAddJob}
+        job={editingJob || undefined}
       />
 
       {/* Job Completion Modal */}
