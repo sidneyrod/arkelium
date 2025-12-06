@@ -589,7 +589,7 @@ const Schedule = () => {
                 </div>
               </div>
 
-              {selectedJob.checklist && selectedJob.checklist.length > 0 && (
+              {selectedJob.checklist && Array.isArray(selectedJob.checklist) && selectedJob.checklist.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-primary" />

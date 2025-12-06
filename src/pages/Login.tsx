@@ -50,43 +50,47 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-background flex w-full">
       {/* Left Side - Branding Panel */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-primary/10 via-primary/5 to-background overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-primary/15 via-primary/5 to-background overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0">
-          <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]" 
+          <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.06]" 
             style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
             }}
           />
           {/* Gradient overlays */}
-          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/8 via-transparent to-transparent" />
-          <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-gradient-to-tl from-primary/5 via-transparent to-transparent" />
+          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/10 via-transparent to-transparent" />
+          <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-gradient-to-tl from-primary/8 via-transparent to-transparent" />
         </div>
         
-        {/* Logo Watermark */}
-        <div className="absolute inset-0 flex items-center justify-center p-12">
+        {/* Logo Watermark + Company Info */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-12">
           {branding.logoUrl ? (
-            <div className="relative w-full max-w-md aspect-square flex items-center justify-center">
-              <img 
-                src={branding.logoUrl} 
-                alt="Company logo" 
-                className="w-full h-full object-contain opacity-20 dark:opacity-15 filter grayscale"
-              />
-              {/* Subtle glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+            <div className="relative flex flex-col items-center justify-center">
+              <div className="relative w-64 h-64 flex items-center justify-center">
+                <img 
+                  src={branding.logoUrl} 
+                  alt={profile.companyName} 
+                  className="w-full h-full object-contain opacity-25 dark:opacity-20"
+                />
+              </div>
+              <div className="mt-6 text-center">
+                <h2 className="text-2xl font-semibold text-foreground/70">{profile.companyName}</h2>
+                <p className="text-sm text-muted-foreground mt-2">Welcome to your workspace</p>
+              </div>
             </div>
           ) : (
-            <div className="relative w-full max-w-sm aspect-square flex flex-col items-center justify-center">
+            <div className="relative flex flex-col items-center justify-center">
               {/* Modern placeholder with gradient */}
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full blur-3xl scale-150" />
-                <div className="relative h-32 w-32 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/10 flex items-center justify-center">
-                  <Sparkles className="h-16 w-16 text-primary/40" />
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/25 to-primary/10 rounded-full blur-3xl scale-150" />
+                <div className="relative h-28 w-28 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/15 flex items-center justify-center">
+                  <Sparkles className="h-14 w-14 text-primary/50" />
                 </div>
               </div>
               <div className="mt-8 text-center">
-                <h2 className="text-2xl font-semibold text-foreground/60">{profile.companyName}</h2>
-                <p className="text-sm text-muted-foreground mt-2">Professional Cleaning Services</p>
+                <h2 className="text-2xl font-semibold text-foreground/70">{profile.companyName}</h2>
+                <p className="text-sm text-muted-foreground mt-2">Welcome to your workspace</p>
               </div>
             </div>
           )}

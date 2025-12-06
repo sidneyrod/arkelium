@@ -59,13 +59,14 @@ function DataTable<T extends { id: string | number }>({
               </TableCell>
             </TableRow>
           ) : (
-            data.map((item) => (
+            data.map((item, index) => (
               <TableRow 
                 key={item.id}
                 onClick={() => onRowClick?.(item)}
                 className={cn(
                   "border-border/50 transition-colors",
-                  onRowClick && "cursor-pointer hover:bg-muted/50"
+                  onRowClick && "cursor-pointer hover:bg-accent/50",
+                  index % 2 === 0 && "bg-muted/20"
                 )}
               >
                 {columns.map((column) => (

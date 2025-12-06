@@ -705,20 +705,30 @@ const Company = () => {
       <Dialog open={previewLoginOpen} onOpenChange={setPreviewLoginOpen}>
         <DialogContent className="sm:max-w-4xl h-[80vh] p-0 overflow-hidden">
           <div className="flex h-full">
-            {/* Left side preview */}
-            <div className="flex-1 bg-gradient-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center p-8">
+            {/* Left side preview - matches actual login */}
+            <div className="flex-1 bg-gradient-to-br from-primary/15 via-primary/5 to-background flex flex-col items-center justify-center p-8 relative">
+              <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.06]" 
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+                }}
+              />
               {branding.logoUrl ? (
-                <img 
-                  src={branding.logoUrl} 
-                  alt="Company logo" 
-                  className="max-w-[200px] max-h-[200px] object-contain opacity-30"
-                />
+                <div className="relative flex flex-col items-center">
+                  <img 
+                    src={branding.logoUrl} 
+                    alt={profile.companyName}
+                    className="w-48 h-48 object-contain opacity-25 dark:opacity-20"
+                  />
+                  <h3 className="mt-4 text-xl font-semibold text-foreground/70">{profile.companyName}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">Welcome to your workspace</p>
+                </div>
               ) : (
-                <div className="text-center">
-                  <div className="h-24 w-24 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/10 flex items-center justify-center mx-auto">
-                    <Building2 className="h-12 w-12 text-primary/40" />
+                <div className="text-center relative">
+                  <div className="h-24 w-24 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/15 flex items-center justify-center mx-auto">
+                    <Building2 className="h-12 w-12 text-primary/50" />
                   </div>
-                  <p className="mt-4 text-muted-foreground">{profile.companyName}</p>
+                  <h3 className="mt-4 text-xl font-semibold text-foreground/70">{profile.companyName}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">Welcome to your workspace</p>
                 </div>
               )}
             </div>

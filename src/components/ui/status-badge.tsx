@@ -11,7 +11,7 @@ interface StatusBadgeProps {
 const statusConfig: Record<StatusType, { defaultLabel: string; className: string }> = {
   active: { 
     defaultLabel: 'Active', 
-    className: 'bg-success/10 text-success border-success/20' 
+    className: 'bg-success/15 text-success border-success/30 font-semibold' 
   },
   inactive: { 
     defaultLabel: 'Inactive', 
@@ -19,15 +19,15 @@ const statusConfig: Record<StatusType, { defaultLabel: string; className: string
   },
   pending: { 
     defaultLabel: 'Pending', 
-    className: 'bg-warning/10 text-warning border-warning/20' 
+    className: 'bg-warning/15 text-warning-foreground border-warning/30' 
   },
   completed: { 
     defaultLabel: 'Completed', 
-    className: 'bg-primary/10 text-primary border-primary/20' 
+    className: 'bg-primary/15 text-primary border-primary/30 font-semibold' 
   },
   cancelled: { 
     defaultLabel: 'Cancelled', 
-    className: 'bg-destructive/10 text-destructive border-destructive/20' 
+    className: 'bg-destructive/15 text-destructive border-destructive/30' 
   },
 };
 
