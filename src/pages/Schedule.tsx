@@ -662,6 +662,7 @@ const Schedule = () => {
         }}
         onSave={editingJob ? handleUpdateJob : handleAddJob}
         job={editingJob || undefined}
+        preselectedDate={selectedDate}
       />
 
       {/* Job Completion Modal */}

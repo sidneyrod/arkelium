@@ -24,9 +24,23 @@ interface AddEstimateModalProps {
 
 const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateModalProps) => {
   const { t } = useLanguage();
-  const { estimateConfig: settings } = useCompanyStore();
+  const { estimateConfig } = useCompanyStore();
   const isEditing = !!estimate;
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // Get fee amounts from store
+  const getFeeAmount = (name: string, fallback: number) => {
+    const fee = estimateConfig.extraFees.find(f => f.name.toLowerCase().includes(name.toLowerCase()));
+    return fee?.amount || fallback;
+  };
+
+  const petsFee = getFeeAmount('pets', 15);
+  const childrenFee = getFeeAmount('children', 10);
+  const greenCleaningFee = getFeeAmount('green', 20);
+  const cleanFridgeFee = getFeeAmount('fridge', 25);
+  const cleanOvenFee = getFeeAmount('oven', 30);
+  const cleanCabinetsFee = getFeeAmount('cabinet', 40);
+  const cleanWindowsFee = getFeeAmount('window', 35);
   
   const [formData, setFormData] = useState({
     clientName: estimate?.clientName || '',
@@ -50,14 +64,41 @@ const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateM
     status: estimate?.status || 'draft' as const,
   });
 
+  // Reset form when modal opens/closes
+  useEffect(() => {
+    if (open) {
+      if (estimate) {
+        setFormData({
+          clientName: estimate.clientName,
+          clientEmail: estimate.clientEmail,
+          clientPhone: estimate.clientPhone,
+          squareFootage: estimate.squareFootage,
+          bedrooms: estimate.bedrooms,
+          bathrooms: estimate.bathrooms,
+          livingAreas: estimate.livingAreas,
+          hasKitchen: estimate.hasKitchen,
+          serviceType: estimate.serviceType,
+          frequency: estimate.frequency,
+          includePets: estimate.includePets,
+          includeChildren: estimate.includeChildren,
+          includeGreen: estimate.includeGreen,
+          includeFridge: estimate.includeFridge,
+          includeOven: estimate.includeOven,
+          includeCabinets: estimate.includeCabinets,
+          includeWindows: estimate.includeWindows,
+          notes: estimate.notes || '',
+          status: estimate.status,
+        });
+      }
+      setErrors({});
+    }
+  }, [open, estimate]);
+
   // Calculate total in real-time
   const calculateTotal = () => {
-    const hourlyRate = settings.defaultHourlyRate;
+    const hourlyRate = estimateConfig.defaultHourlyRate;
+    const baseHours = formData.squareFootage / 400;
     
-    // Base calculation based on square footage
-    const baseHours = formData.squareFootage / 400; // ~400 sqft per hour
-    
-    // Service type multipliers
     const serviceMultipliers = {
       standard: 1,
       deep: 1.5,
@@ -65,7 +106,6 @@ const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateM
       commercial: 1.3,
     };
     
-    // Frequency discounts
     const frequencyDiscounts = {
       oneTime: 1,
       monthly: 0.95,
@@ -73,22 +113,19 @@ const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateM
       weekly: 0.85,
     };
     
-    // Room adjustments
     const roomHours = (formData.bedrooms * 0.5) + (formData.bathrooms * 0.75) + (formData.livingAreas * 0.5) + (formData.hasKitchen ? 0.75 : 0);
     
-    // Calculate base price
     let totalHours = (baseHours + roomHours) * serviceMultipliers[formData.serviceType];
     let basePrice = totalHours * hourlyRate * frequencyDiscounts[formData.frequency];
     
-    // Add extras
     let extras = 0;
-    if (formData.includePets) extras += settings.petsFee;
-    if (formData.includeChildren) extras += settings.childrenFee;
-    if (formData.includeGreen) extras += settings.greenCleaningFee;
-    if (formData.includeFridge) extras += settings.cleanFridgeFee;
-    if (formData.includeOven) extras += settings.cleanOvenFee;
-    if (formData.includeCabinets) extras += settings.cleanCabinetsFee;
-    if (formData.includeWindows) extras += settings.cleanWindowsFee;
+    if (formData.includePets) extras += petsFee;
+    if (formData.includeChildren) extras += childrenFee;
+    if (formData.includeGreen) extras += greenCleaningFee;
+    if (formData.includeFridge) extras += cleanFridgeFee;
+    if (formData.includeOven) extras += cleanOvenFee;
+    if (formData.includeCabinets) extras += cleanCabinetsFee;
+    if (formData.includeWindows) extras += cleanWindowsFee;
     
     return Math.round(basePrice + extras);
   };
@@ -98,7 +135,6 @@ const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateM
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate form data
     const validationData = {
       clientName: formData.clientName,
       clientEmail: formData.clientEmail,
@@ -108,7 +144,7 @@ const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateM
       squareFootage: formData.squareFootage,
       bedrooms: formData.bedrooms,
       bathrooms: formData.bathrooms,
-      hourlyRate: settings.defaultHourlyRate,
+      hourlyRate: estimateConfig.defaultHourlyRate,
     };
 
     const result = validateForm(estimateSchema, validationData);
@@ -120,7 +156,7 @@ const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateM
     setErrors({});
     onSave({
       ...formData,
-      hourlyRate: settings.defaultHourlyRate,
+      hourlyRate: estimateConfig.defaultHourlyRate,
       totalAmount,
     });
     onOpenChange(false);
@@ -128,7 +164,7 @@ const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateM
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calculator className="h-5 w-5 text-primary" />
@@ -136,55 +172,55 @@ const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateM
           </DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+        <form onSubmit={handleSubmit} className="space-y-4 mt-3">
           {/* Client Information */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-muted-foreground">{t.calculator.clientInfo}</h3>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>{t.calculator.clientName}</Label>
+          <div className="space-y-3">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t.calculator.clientInfo}</h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t.calculator.clientName}</Label>
                 <Input
                   value={formData.clientName}
                   onChange={(e) => { setFormData(prev => ({ ...prev, clientName: e.target.value })); setErrors(prev => ({ ...prev, clientName: '' })); }}
                   maxLength={100}
-                  className={errors.clientName ? 'border-destructive' : ''}
+                  className={`h-9 ${errors.clientName ? 'border-destructive' : ''}`}
                 />
-                {errors.clientName && <p className="text-sm text-destructive">{errors.clientName}</p>}
+                {errors.clientName && <p className="text-xs text-destructive">{errors.clientName}</p>}
               </div>
-              <div className="space-y-2">
-                <Label>{t.calculator.email}</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t.calculator.email}</Label>
                 <Input
                   type="email"
                   value={formData.clientEmail}
                   onChange={(e) => { setFormData(prev => ({ ...prev, clientEmail: e.target.value })); setErrors(prev => ({ ...prev, clientEmail: '' })); }}
                   maxLength={255}
-                  className={errors.clientEmail ? 'border-destructive' : ''}
+                  className={`h-9 ${errors.clientEmail ? 'border-destructive' : ''}`}
                 />
-                {errors.clientEmail && <p className="text-sm text-destructive">{errors.clientEmail}</p>}
+                {errors.clientEmail && <p className="text-xs text-destructive">{errors.clientEmail}</p>}
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>{t.calculator.phone}</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t.calculator.phone}</Label>
               <Input
                 value={formData.clientPhone}
                 onChange={(e) => { setFormData(prev => ({ ...prev, clientPhone: e.target.value })); setErrors(prev => ({ ...prev, clientPhone: '' })); }}
                 maxLength={20}
-                className={errors.clientPhone ? 'border-destructive' : ''}
+                className={`h-9 sm:max-w-[50%] ${errors.clientPhone ? 'border-destructive' : ''}`}
               />
-              {errors.clientPhone && <p className="text-sm text-destructive">{errors.clientPhone}</p>}
+              {errors.clientPhone && <p className="text-xs text-destructive">{errors.clientPhone}</p>}
             </div>
           </div>
           
           <Separator />
           
           {/* Property Details */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-muted-foreground">{t.calculator.roomConfiguration}</h3>
+          <div className="space-y-3">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t.calculator.roomConfiguration}</h3>
             
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label>{t.calculator.squareFootage}</Label>
-                <span className="text-sm font-medium text-primary">{formData.squareFootage.toLocaleString()} sq ft</span>
+                <Label className="text-xs">{t.calculator.squareFootage}</Label>
+                <span className="text-xs font-medium text-primary">{formData.squareFootage.toLocaleString()} sq ft</span>
               </div>
               <Slider
                 value={[formData.squareFootage]}
@@ -195,14 +231,14 @@ const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateM
               />
             </div>
             
-            <div className="grid gap-4 sm:grid-cols-4">
-              <div className="space-y-2">
-                <Label>{t.calculator.bedrooms}</Label>
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t.calculator.bedrooms}</Label>
                 <Select 
                   value={formData.bedrooms.toString()} 
                   onValueChange={(v) => setFormData(prev => ({ ...prev, bedrooms: parseInt(v) }))}
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {[0, 1, 2, 3, 4, 5, 6].map(n => (
                       <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
@@ -211,13 +247,13 @@ const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateM
                 </Select>
               </div>
               
-              <div className="space-y-2">
-                <Label>{t.calculator.bathrooms}</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t.calculator.bathrooms}</Label>
                 <Select 
                   value={formData.bathrooms.toString()} 
                   onValueChange={(v) => setFormData(prev => ({ ...prev, bathrooms: parseInt(v) }))}
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {[1, 2, 3, 4, 5].map(n => (
                       <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
@@ -226,13 +262,13 @@ const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateM
                 </Select>
               </div>
               
-              <div className="space-y-2">
-                <Label>{t.calculator.livingAreas}</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t.calculator.livingAreas}</Label>
                 <Select 
                   value={formData.livingAreas.toString()} 
                   onValueChange={(v) => setFormData(prev => ({ ...prev, livingAreas: parseInt(v) }))}
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {[0, 1, 2, 3, 4].map(n => (
                       <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
@@ -241,14 +277,14 @@ const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateM
                 </Select>
               </div>
               
-              <div className="flex items-end pb-2">
+              <div className="flex items-end pb-1">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="kitchen"
                     checked={formData.hasKitchen}
                     onCheckedChange={(checked) => setFormData(prev => ({ ...prev, hasKitchen: !!checked }))}
                   />
-                  <Label htmlFor="kitchen" className="cursor-pointer">{t.calculator.kitchen}</Label>
+                  <Label htmlFor="kitchen" className="cursor-pointer text-xs">{t.calculator.kitchen}</Label>
                 </div>
               </div>
             </div>
@@ -257,16 +293,16 @@ const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateM
           <Separator />
           
           {/* Service Options */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-muted-foreground">{t.calculator.serviceOptions}</h3>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>{t.calculator.serviceType}</Label>
+          <div className="space-y-3">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t.calculator.serviceOptions}</h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t.calculator.serviceType}</Label>
                 <Select 
                   value={formData.serviceType} 
                   onValueChange={(v: any) => setFormData(prev => ({ ...prev, serviceType: v }))}
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="standard">Standard Clean</SelectItem>
                     <SelectItem value="deep">Deep Clean (+50%)</SelectItem>
@@ -276,13 +312,13 @@ const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateM
                 </Select>
               </div>
               
-              <div className="space-y-2">
-                <Label>{t.calculator.cleaningFrequency}</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t.calculator.cleaningFrequency}</Label>
                 <Select 
                   value={formData.frequency} 
                   onValueChange={(v: any) => setFormData(prev => ({ ...prev, frequency: v }))}
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="oneTime">One-time</SelectItem>
                     <SelectItem value="monthly">Monthly (-5%)</SelectItem>
@@ -297,129 +333,128 @@ const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateM
           <Separator />
           
           {/* Extras */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-muted-foreground">{t.calculator.extras}</h3>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+          <div className="space-y-3">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t.calculator.extras}</h3>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/50">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="pets"
                     checked={formData.includePets}
                     onCheckedChange={(checked) => setFormData(prev => ({ ...prev, includePets: !!checked }))}
                   />
-                  <Label htmlFor="pets" className="cursor-pointer">{t.calculator.includePets}</Label>
+                  <Label htmlFor="pets" className="cursor-pointer text-xs">{t.calculator.includePets}</Label>
                 </div>
-                <span className="text-sm text-muted-foreground">+${settings.petsFee}</span>
+                <span className="text-xs text-muted-foreground">+${petsFee}</span>
               </div>
               
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/50">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="children"
                     checked={formData.includeChildren}
                     onCheckedChange={(checked) => setFormData(prev => ({ ...prev, includeChildren: !!checked }))}
                   />
-                  <Label htmlFor="children" className="cursor-pointer">{t.calculator.includeChildren}</Label>
+                  <Label htmlFor="children" className="cursor-pointer text-xs">{t.calculator.includeChildren}</Label>
                 </div>
-                <span className="text-sm text-muted-foreground">+${settings.childrenFee}</span>
+                <span className="text-xs text-muted-foreground">+${childrenFee}</span>
               </div>
               
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/50">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="green"
                     checked={formData.includeGreen}
                     onCheckedChange={(checked) => setFormData(prev => ({ ...prev, includeGreen: !!checked }))}
                   />
-                  <Label htmlFor="green" className="cursor-pointer">{t.calculator.includeGreen}</Label>
+                  <Label htmlFor="green" className="cursor-pointer text-xs">{t.calculator.includeGreen}</Label>
                 </div>
-                <span className="text-sm text-muted-foreground">+${settings.greenCleaningFee}</span>
+                <span className="text-xs text-muted-foreground">+${greenCleaningFee}</span>
               </div>
               
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/50">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="fridge"
                     checked={formData.includeFridge}
                     onCheckedChange={(checked) => setFormData(prev => ({ ...prev, includeFridge: !!checked }))}
                   />
-                  <Label htmlFor="fridge" className="cursor-pointer">{t.calculator.includeFridge}</Label>
+                  <Label htmlFor="fridge" className="cursor-pointer text-xs">{t.calculator.includeFridge}</Label>
                 </div>
-                <span className="text-sm text-muted-foreground">+${settings.cleanFridgeFee}</span>
+                <span className="text-xs text-muted-foreground">+${cleanFridgeFee}</span>
               </div>
               
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/50">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="oven"
                     checked={formData.includeOven}
                     onCheckedChange={(checked) => setFormData(prev => ({ ...prev, includeOven: !!checked }))}
                   />
-                  <Label htmlFor="oven" className="cursor-pointer">{t.calculator.includeOven}</Label>
+                  <Label htmlFor="oven" className="cursor-pointer text-xs">{t.calculator.includeOven}</Label>
                 </div>
-                <span className="text-sm text-muted-foreground">+${settings.cleanOvenFee}</span>
+                <span className="text-xs text-muted-foreground">+${cleanOvenFee}</span>
               </div>
               
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/50">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="cabinets"
                     checked={formData.includeCabinets}
                     onCheckedChange={(checked) => setFormData(prev => ({ ...prev, includeCabinets: !!checked }))}
                   />
-                  <Label htmlFor="cabinets" className="cursor-pointer">{t.calculator.includeCabinets}</Label>
+                  <Label htmlFor="cabinets" className="cursor-pointer text-xs">{t.calculator.includeCabinets}</Label>
                 </div>
-                <span className="text-sm text-muted-foreground">+${settings.cleanCabinetsFee}</span>
+                <span className="text-xs text-muted-foreground">+${cleanCabinetsFee}</span>
               </div>
               
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 sm:col-span-2">
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/50 sm:col-span-2">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="windows"
                     checked={formData.includeWindows}
                     onCheckedChange={(checked) => setFormData(prev => ({ ...prev, includeWindows: !!checked }))}
                   />
-                  <Label htmlFor="windows" className="cursor-pointer">{t.calculator.includeWindows}</Label>
+                  <Label htmlFor="windows" className="cursor-pointer text-xs">{t.calculator.includeWindows}</Label>
                 </div>
-                <span className="text-sm text-muted-foreground">+${settings.cleanWindowsFee}</span>
+                <span className="text-xs text-muted-foreground">+${cleanWindowsFee}</span>
               </div>
             </div>
           </div>
           
-          <div className="space-y-2">
-            <Label>{t.common.notes}</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs">{t.common.notes}</Label>
             <Textarea
               value={formData.notes}
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
               placeholder={t.calculator.notesPlaceholder}
               rows={2}
               maxLength={1000}
+              className="text-sm"
             />
           </div>
           
           {/* Total */}
-          <Card className="border-primary/30 bg-primary/5">
-            <CardContent className="py-4">
+          <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+            <CardContent className="py-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center">
-                    <DollarSign className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">{t.calculator.totalEstimate}</p>
-                    <p className="text-3xl font-bold text-primary">${totalAmount}</p>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-primary" />
+                  <span className="font-medium">{t.calculator.totalEstimate}</span>
                 </div>
-                <span className="text-sm text-muted-foreground">{t.calculator.perVisit}</span>
+                <div className="text-right">
+                  <span className="text-2xl font-bold text-primary">${totalAmount}</span>
+                  <span className="text-xs text-muted-foreground ml-1">/ {t.calculator.perVisit}</span>
+                </div>
               </div>
             </CardContent>
           </Card>
           
-          <DialogFooter className="pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <DialogFooter className="pt-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} size="sm">
               {t.common.cancel}
             </Button>
-            <Button type="submit">
+            <Button type="submit" size="sm">
               {isEditing ? t.common.update : t.common.create}
             </Button>
           </DialogFooter>

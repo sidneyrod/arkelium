@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ interface AddJobModalProps {
   onOpenChange: (open: boolean) => void;
   onSave: (job: Omit<ScheduledJob, 'id'>) => void;
   job?: ScheduledJob;
+  preselectedDate?: Date | null;
 }
 
 // Mock data - replace with actual data from stores
@@ -35,7 +36,7 @@ const mockEmployees = [
   { id: '4', name: 'David C.' },
 ];
 
-const AddJobModal = ({ open, onOpenChange, onSave, job }: AddJobModalProps) => {
+const AddJobModal = ({ open, onOpenChange, onSave, job, preselectedDate }: AddJobModalProps) => {
   const { t } = useLanguage();
   const isEditing = !!job;
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -44,7 +45,7 @@ const AddJobModal = ({ open, onOpenChange, onSave, job }: AddJobModalProps) => {
     clientId: job?.clientId || '',
     clientName: job?.clientName || '',
     address: job?.address || '',
-    date: job?.date ? new Date(job.date) : new Date(),
+    date: job?.date ? new Date(job.date) : preselectedDate || new Date(),
     time: job?.time || '09:00',
     duration: job?.duration || '2h',
     employeeId: job?.employeeId || '',
@@ -53,6 +54,49 @@ const AddJobModal = ({ open, onOpenChange, onSave, job }: AddJobModalProps) => {
     notes: job?.notes || '',
     status: job?.status || 'scheduled' as const,
   });
+
+  // Update date when preselectedDate changes
+  useEffect(() => {
+    if (preselectedDate && !job) {
+      setFormData(prev => ({ ...prev, date: preselectedDate }));
+    }
+  }, [preselectedDate, job]);
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (open) {
+      if (job) {
+        setFormData({
+          clientId: job.clientId,
+          clientName: job.clientName,
+          address: job.address,
+          date: new Date(job.date),
+          time: job.time,
+          duration: job.duration,
+          employeeId: job.employeeId,
+          employeeName: job.employeeName,
+          services: job.services,
+          notes: job.notes || '',
+          status: job.status,
+        });
+      } else {
+        setFormData({
+          clientId: '',
+          clientName: '',
+          address: '',
+          date: preselectedDate || new Date(),
+          time: '09:00',
+          duration: '2h',
+          employeeId: '',
+          employeeName: '',
+          services: ['Standard Clean'],
+          notes: '',
+          status: 'scheduled',
+        });
+      }
+      setErrors({});
+    }
+  }, [open, job, preselectedDate]);
 
   const handleClientChange = (clientId: string) => {
     const client = mockClients.find(c => c.id === clientId);
@@ -80,7 +124,6 @@ const AddJobModal = ({ open, onOpenChange, onSave, job }: AddJobModalProps) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate form data
     const validationData = {
       clientId: formData.clientId,
       employeeId: formData.employeeId,
@@ -107,16 +150,16 @@ const AddJobModal = ({ open, onOpenChange, onSave, job }: AddJobModalProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? t.schedule.editJob : t.schedule.addJob}</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <Label>{t.job.client}</Label>
+        <form onSubmit={handleSubmit} className="space-y-3 mt-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs">{t.job.client}</Label>
             <Select value={formData.clientId} onValueChange={(v) => { handleClientChange(v); setErrors(prev => ({ ...prev, clientId: '' })); }}>
-              <SelectTrigger className={errors.clientId ? 'border-destructive' : ''}>
+              <SelectTrigger className={`h-9 ${errors.clientId ? 'border-destructive' : ''}`}>
                 <SelectValue placeholder={t.job.selectClient} />
               </SelectTrigger>
               <SelectContent>
@@ -125,24 +168,24 @@ const AddJobModal = ({ open, onOpenChange, onSave, job }: AddJobModalProps) => {
                 ))}
               </SelectContent>
             </Select>
-            {errors.clientId && <p className="text-sm text-destructive">{errors.clientId}</p>}
+            {errors.clientId && <p className="text-xs text-destructive">{errors.clientId}</p>}
           </div>
           
           {formData.address && (
-            <div className="space-y-2">
-              <Label>{t.job.address}</Label>
-              <Input value={formData.address} disabled className="bg-muted" />
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t.job.address}</Label>
+              <Input value={formData.address} disabled className="bg-muted h-9" />
             </div>
           )}
           
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>{t.job.date}</Label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t.job.date}</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal")}>
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(formData.date, 'PPP')}
+                  <Button variant="outline" className={cn("w-full h-9 justify-start text-left font-normal text-sm")}>
+                    <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                    {format(formData.date, 'MMM d, yyyy')}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -157,10 +200,10 @@ const AddJobModal = ({ open, onOpenChange, onSave, job }: AddJobModalProps) => {
               </Popover>
             </div>
             
-            <div className="space-y-2">
-              <Label>{t.job.time}</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t.job.time}</Label>
               <Select value={formData.time} onValueChange={(time) => setFormData(prev => ({ ...prev, time }))}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -172,11 +215,11 @@ const AddJobModal = ({ open, onOpenChange, onSave, job }: AddJobModalProps) => {
             </div>
           </div>
           
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>{t.job.duration}</Label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t.job.duration}</Label>
               <Select value={formData.duration} onValueChange={(duration) => setFormData(prev => ({ ...prev, duration }))}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -187,10 +230,10 @@ const AddJobModal = ({ open, onOpenChange, onSave, job }: AddJobModalProps) => {
               </Select>
             </div>
             
-            <div className="space-y-2">
-              <Label>{t.job.assignedEmployee}</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t.job.assignedEmployee}</Label>
               <Select value={formData.employeeId} onValueChange={(v) => { handleEmployeeChange(v); setErrors(prev => ({ ...prev, employeeId: '' })); }}>
-                <SelectTrigger className={errors.employeeId ? 'border-destructive' : ''}>
+                <SelectTrigger className={`h-9 ${errors.employeeId ? 'border-destructive' : ''}`}>
                   <SelectValue placeholder={t.job.selectEmployee} />
                 </SelectTrigger>
                 <SelectContent>
@@ -199,17 +242,17 @@ const AddJobModal = ({ open, onOpenChange, onSave, job }: AddJobModalProps) => {
                   ))}
                 </SelectContent>
               </Select>
-              {errors.employeeId && <p className="text-sm text-destructive">{errors.employeeId}</p>}
+              {errors.employeeId && <p className="text-xs text-destructive">{errors.employeeId}</p>}
             </div>
           </div>
           
-          <div className="space-y-2">
-            <Label>{t.job.serviceType}</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs">{t.job.serviceType}</Label>
             <Select 
               value={formData.services[0]} 
               onValueChange={(service) => setFormData(prev => ({ ...prev, services: [service] }))}
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-9">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -222,21 +265,22 @@ const AddJobModal = ({ open, onOpenChange, onSave, job }: AddJobModalProps) => {
             </Select>
           </div>
           
-          <div className="space-y-2">
-            <Label>{t.job.notes}</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs">{t.job.notes}</Label>
             <Textarea
               value={formData.notes}
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
               placeholder={t.job.notesPlaceholder}
-              rows={3}
+              rows={2}
+              className="text-sm"
             />
           </div>
           
-          <DialogFooter className="pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <DialogFooter className="pt-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} size="sm">
               {t.common.cancel}
             </Button>
-            <Button type="submit">
+            <Button type="submit" size="sm">
               {isEditing ? t.common.update : t.common.create}
             </Button>
           </DialogFooter>

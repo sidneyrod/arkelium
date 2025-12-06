@@ -20,8 +20,7 @@ import {
   DollarSign, 
   Clock, 
   MapPin, 
-  FileDown,
-  Send
+  FileDown
 } from 'lucide-react';
 
 interface AddContractModalProps {
@@ -92,7 +91,6 @@ const AddContractModal = ({ open, onOpenChange, onSubmit, editContract, clients 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate form data
     const validationData = {
       clientId: formData.clientId,
       status: formData.status,
@@ -141,7 +139,7 @@ const AddContractModal = ({ open, onOpenChange, onSubmit, editContract, clients 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
@@ -149,16 +147,16 @@ const AddContractModal = ({ open, onOpenChange, onSubmit, editContract, clients 
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+        <form onSubmit={handleSubmit} className="space-y-4 mt-3">
           {/* Client & Status */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>{t.contracts.client}</Label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t.contracts.client}</Label>
               <Select 
                 value={formData.clientId} 
                 onValueChange={(value) => { updateField('clientId', value); setErrors(prev => ({ ...prev, clientId: '' })); }}
               >
-                <SelectTrigger className={errors.clientId ? 'border-destructive' : ''}>
+                <SelectTrigger className={`h-9 ${errors.clientId ? 'border-destructive' : ''}`}>
                   <SelectValue placeholder={t.contracts.selectClient} />
                 </SelectTrigger>
                 <SelectContent>
@@ -167,16 +165,16 @@ const AddContractModal = ({ open, onOpenChange, onSubmit, editContract, clients 
                   ))}
                 </SelectContent>
               </Select>
-              {errors.clientId && <p className="text-sm text-destructive">{errors.clientId}</p>}
+              {errors.clientId && <p className="text-xs text-destructive">{errors.clientId}</p>}
             </div>
 
-            <div className="space-y-2">
-              <Label>{t.contracts.status}</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t.contracts.status}</Label>
               <Select 
                 value={formData.status} 
                 onValueChange={(value: ContractFormData['status']) => updateField('status', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -191,14 +189,14 @@ const AddContractModal = ({ open, onOpenChange, onSubmit, editContract, clients 
           </div>
 
           {/* Contract Type & Dates */}
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-2">
-              <Label>{t.contracts.contractType}</Label>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t.contracts.contractType}</Label>
               <Select 
                 value={formData.type} 
                 onValueChange={(value: ContractFormData['type']) => updateField('type', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -208,19 +206,19 @@ const AddContractModal = ({ open, onOpenChange, onSubmit, editContract, clients 
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>{t.contracts.startDate}</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t.contracts.startDate}</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal",
+                      "w-full h-9 justify-start text-left font-normal text-sm",
                       !formData.startDate && "text-muted-foreground"
                     )}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.startDate ? format(formData.startDate, "PPP") : t.contracts.pickDate}
+                    <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                    {formData.startDate ? format(formData.startDate, "MMM d, yyyy") : t.contracts.pickDate}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -235,19 +233,19 @@ const AddContractModal = ({ open, onOpenChange, onSubmit, editContract, clients 
               </Popover>
             </div>
 
-            <div className="space-y-2">
-              <Label>{t.contracts.endDate}</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t.contracts.endDate}</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal",
+                      "w-full h-9 justify-start text-left font-normal text-sm",
                       !formData.endDate && "text-muted-foreground"
                     )}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.endDate ? format(formData.endDate, "PPP") : t.contracts.pickDate}
+                    <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                    {formData.endDate ? format(formData.endDate, "MMM d, yyyy") : t.contracts.pickDate}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -264,10 +262,10 @@ const AddContractModal = ({ open, onOpenChange, onSubmit, editContract, clients 
           </div>
 
           {/* Hours & Rate */}
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5 text-xs">
+                <Clock className="h-3 w-3 text-muted-foreground" />
                 {t.contracts.hoursPerWeek}
               </Label>
               <Input
@@ -275,33 +273,34 @@ const AddContractModal = ({ open, onOpenChange, onSubmit, editContract, clients 
                 min="1"
                 value={formData.hoursPerWeek}
                 onChange={(e) => updateField('hoursPerWeek', parseFloat(e.target.value) || 0)}
+                className="h-9"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5 text-xs">
+                <DollarSign className="h-3 w-3 text-muted-foreground" />
                 {t.contracts.hourlyRate}
               </Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
                 <Input
                   type="number"
                   step="0.01"
                   value={formData.hourlyRate}
                   onChange={(e) => updateField('hourlyRate', parseFloat(e.target.value) || 0)}
-                  className="pl-8"
+                  className="pl-6 h-9"
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>{t.contracts.billingFrequency}</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t.contracts.billingFrequency}</Label>
               <Select 
                 value={formData.billingFrequency} 
                 onValueChange={(value: ContractFormData['billingFrequency']) => updateField('billingFrequency', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -314,9 +313,9 @@ const AddContractModal = ({ open, onOpenChange, onSubmit, editContract, clients 
           </div>
 
           {/* Cleaning Days */}
-          <div className="space-y-2">
-            <Label>{t.contracts.cleaningDays}</Label>
-            <div className="flex flex-wrap gap-2">
+          <div className="space-y-1.5">
+            <Label className="text-xs">{t.contracts.cleaningDays}</Label>
+            <div className="flex flex-wrap gap-1.5">
               {weekDays.map(day => (
                 <Button
                   key={day}
@@ -324,6 +323,7 @@ const AddContractModal = ({ open, onOpenChange, onSubmit, editContract, clients 
                   variant={formData.cleaningDays.includes(day) ? "default" : "outline"}
                   size="sm"
                   onClick={() => toggleDay(day)}
+                  className="h-7 px-2.5 text-xs"
                 >
                   {day.slice(0, 3)}
                 </Button>
@@ -332,65 +332,69 @@ const AddContractModal = ({ open, onOpenChange, onSubmit, editContract, clients 
           </div>
 
           {/* Time Window & Location */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>{t.contracts.timeWindow}</Label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t.contracts.timeWindow}</Label>
               <Input
                 value={formData.timeWindow}
                 onChange={(e) => updateField('timeWindow', e.target.value)}
                 placeholder="09:00 - 17:00"
+                className="h-9"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5 text-xs">
+                <MapPin className="h-3 w-3 text-muted-foreground" />
                 {t.contracts.serviceLocation}
               </Label>
               <Input
                 value={formData.serviceLocation}
                 onChange={(e) => updateField('serviceLocation', e.target.value)}
                 placeholder="Service address"
+                className="h-9"
               />
             </div>
           </div>
 
           {/* Cleaning Scope */}
-          <div className="space-y-2">
-            <Label>{t.contracts.cleaningScope}</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs">{t.contracts.cleaningScope}</Label>
             <Textarea
               value={formData.cleaningScope}
               onChange={(e) => updateField('cleaningScope', e.target.value)}
               placeholder="Describe the cleaning scope and services included..."
-              rows={3}
+              rows={2}
+              className="text-sm"
             />
           </div>
 
           {/* Special Notes */}
-          <div className="space-y-2">
-            <Label>{t.contracts.specialNotes}</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs">{t.contracts.specialNotes}</Label>
             <Textarea
               value={formData.specialNotes}
               onChange={(e) => updateField('specialNotes', e.target.value)}
               placeholder="Any special instructions or notes..."
               rows={2}
+              className="text-sm"
             />
           </div>
 
           {/* PDF Options */}
-          <div className="space-y-3 p-4 rounded-lg bg-muted/50">
-            <h4 className="text-sm font-medium flex items-center gap-2">
-              <FileDown className="h-4 w-4 text-primary" />
+          <div className="space-y-2 p-3 rounded-lg bg-muted/50">
+            <h4 className="text-xs font-medium flex items-center gap-2">
+              <FileDown className="h-3.5 w-3.5 text-primary" />
               {t.contracts.pdfOptions}
             </h4>
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="generatePdf"
                   checked={formData.generatePdfAutomatically}
                   onCheckedChange={(checked) => updateField('generatePdfAutomatically', !!checked)}
                 />
-                <Label htmlFor="generatePdf" className="text-sm font-normal cursor-pointer">
+                <Label htmlFor="generatePdf" className="text-xs font-normal cursor-pointer">
                   {t.contracts.generatePdfAutomatically}
                 </Label>
               </div>
@@ -400,18 +404,18 @@ const AddContractModal = ({ open, onOpenChange, onSubmit, editContract, clients 
                   checked={formData.allowPdfDownload}
                   onCheckedChange={(checked) => updateField('allowPdfDownload', !!checked)}
                 />
-                <Label htmlFor="allowDownload" className="text-sm font-normal cursor-pointer">
+                <Label htmlFor="allowDownload" className="text-xs font-normal cursor-pointer">
                   {t.contracts.allowPdfDownload}
                 </Label>
               </div>
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <DialogFooter className="gap-2 sm:gap-0 pt-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} size="sm">
               {t.common.cancel}
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading} size="sm">
               {isLoading ? t.common.loading : t.common.save}
             </Button>
           </DialogFooter>

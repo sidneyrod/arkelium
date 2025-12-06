@@ -47,7 +47,6 @@ const AddClientModal = ({ open, onOpenChange, onSubmit, editClient }: AddClientM
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
 
-  // Reset form when modal opens/closes or editClient changes
   useEffect(() => {
     if (open) {
       setFormData(editClient || initialFormData);
@@ -58,7 +57,6 @@ const AddClientModal = ({ open, onOpenChange, onSubmit, editClient }: AddClientM
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate form data
     const validation = validateForm(clientSchema, formData);
     
     if (!validation.success) {
@@ -82,7 +80,6 @@ const AddClientModal = ({ open, onOpenChange, onSubmit, editClient }: AddClientM
 
   const updateField = (field: keyof ClientFormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error for this field when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
@@ -90,7 +87,7 @@ const AddClientModal = ({ open, onOpenChange, onSubmit, editClient }: AddClientM
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {formData.type === 'commercial' ? (
@@ -102,28 +99,28 @@ const AddClientModal = ({ open, onOpenChange, onSubmit, editClient }: AddClientM
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="name">{t.clients.name}</Label>
+        <form onSubmit={handleSubmit} className="space-y-3 mt-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="name" className="text-xs">{t.clients.name}</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => updateField('name', e.target.value)}
                 placeholder={t.clients.name}
-                className={errors.name ? 'border-destructive' : ''}
+                className={`h-9 ${errors.name ? 'border-destructive' : ''}`}
                 maxLength={100}
               />
               {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="type">{t.clients.type}</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="type" className="text-xs">{t.clients.type}</Label>
               <Select 
                 value={formData.type} 
                 onValueChange={(value: ClientFormData['type']) => updateField('type', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -144,9 +141,9 @@ const AddClientModal = ({ open, onOpenChange, onSubmit, editClient }: AddClientM
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="address" className="flex items-center gap-2">
-              <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+          <div className="space-y-1.5">
+            <Label htmlFor="address" className="flex items-center gap-1.5 text-xs">
+              <MapPin className="h-3 w-3 text-muted-foreground" />
               {t.company.address}
             </Label>
             <Input
@@ -154,15 +151,15 @@ const AddClientModal = ({ open, onOpenChange, onSubmit, editClient }: AddClientM
               value={formData.address}
               onChange={(e) => updateField('address', e.target.value)}
               placeholder="123 Main Street, Toronto, ON"
-              className={errors.address ? 'border-destructive' : ''}
+              className={`h-9 ${errors.address ? 'border-destructive' : ''}`}
               maxLength={255}
             />
             {errors.address && <p className="text-xs text-destructive">{errors.address}</p>}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="contact" className="flex items-center gap-2">
-              <User className="h-3.5 w-3.5 text-muted-foreground" />
+          <div className="space-y-1.5">
+            <Label htmlFor="contact" className="flex items-center gap-1.5 text-xs">
+              <User className="h-3 w-3 text-muted-foreground" />
               {t.clients.companyContact}
             </Label>
             <Input
@@ -170,14 +167,15 @@ const AddClientModal = ({ open, onOpenChange, onSubmit, editClient }: AddClientM
               value={formData.contactPerson}
               onChange={(e) => updateField('contactPerson', e.target.value)}
               placeholder={t.clients.companyContact}
+              className="h-9"
               maxLength={100}
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="flex items-center gap-2">
-                <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="phone" className="flex items-center gap-1.5 text-xs">
+                <Phone className="h-3 w-3 text-muted-foreground" />
                 {t.clients.phone}
               </Label>
               <Input
@@ -186,15 +184,15 @@ const AddClientModal = ({ open, onOpenChange, onSubmit, editClient }: AddClientM
                 value={formData.phone}
                 onChange={(e) => updateField('phone', e.target.value)}
                 placeholder="(416) 555-0100"
-                className={errors.phone ? 'border-destructive' : ''}
+                className={`h-9 ${errors.phone ? 'border-destructive' : ''}`}
                 maxLength={20}
               />
               {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email" className="flex items-center gap-2">
-                <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="flex items-center gap-1.5 text-xs">
+                <Mail className="h-3 w-3 text-muted-foreground" />
                 {t.auth.email}
               </Label>
               <Input
@@ -203,29 +201,30 @@ const AddClientModal = ({ open, onOpenChange, onSubmit, editClient }: AddClientM
                 value={formData.email}
                 onChange={(e) => updateField('email', e.target.value)}
                 placeholder="contact@client.com"
-                className={errors.email ? 'border-destructive' : ''}
+                className={`h-9 ${errors.email ? 'border-destructive' : ''}`}
                 maxLength={255}
               />
               {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="notes">{t.clients.notes}</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="notes" className="text-xs">{t.clients.notes}</Label>
             <Textarea
               id="notes"
               value={formData.notes}
               onChange={(e) => updateField('notes', e.target.value)}
               placeholder={t.clients.notes}
-              rows={3}
+              rows={2}
               maxLength={1000}
+              className="text-sm"
             />
           </div>
 
-          <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
             <div className="space-y-0.5">
-              <Label htmlFor="active" className="cursor-pointer">{t.clients.activeClient}</Label>
-              <p className="text-sm text-muted-foreground">{t.clients.activeClientDescription}</p>
+              <Label htmlFor="active" className="cursor-pointer text-sm">{t.clients.activeClient}</Label>
+              <p className="text-xs text-muted-foreground">{t.clients.activeClientDescription}</p>
             </div>
             <Switch
               id="active"
@@ -234,11 +233,11 @@ const AddClientModal = ({ open, onOpenChange, onSubmit, editClient }: AddClientM
             />
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <DialogFooter className="gap-2 sm:gap-0 pt-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} size="sm">
               {t.common.cancel}
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading} size="sm">
               {isLoading ? t.common.loading : t.common.save}
             </Button>
           </DialogFooter>
