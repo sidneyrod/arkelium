@@ -20,14 +20,13 @@ import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ActivityLog from "./pages/ActivityLog";
+import Invoices from "./pages/Invoices";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// Protected route wrapper component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -35,18 +34,14 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       </div>
     );
   }
-
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-
   return <>{children}</>;
 };
 
-// Public route wrapper - redirects to dashboard if already authenticated
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -54,41 +49,26 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
       </div>
     );
   }
-
   if (isAuthenticated) {
     return <Navigate to="/" replace />;
   }
-
   return <>{children}</>;
 };
 
 const AppRoutes = () => {
   return (
     <Routes>
-      {/* Public routes */}
-      <Route path="/login" element={
-        <PublicRoute>
-          <Login />
-        </PublicRoute>
-      } />
-      <Route path="/forgot-password" element={
-        <PublicRoute>
-          <ForgotPassword />
-        </PublicRoute>
-      } />
+      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+      <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
       
-      {/* Protected routes */}
-      <Route element={
-        <ProtectedRoute>
-          <AppLayout />
-        </ProtectedRoute>
-      }>
+      <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/company" element={<Company />} />
         <Route path="/users" element={<Users />} />
         <Route path="/clients" element={<Clients />} />
         <Route path="/contracts" element={<Contracts />} />
         <Route path="/schedule" element={<Schedule />} />
+        <Route path="/invoices" element={<Invoices />} />
         <Route path="/calculator" element={<Calculator />} />
         <Route path="/payroll" element={<Payroll />} />
         <Route path="/activity-log" element={<ActivityLog />} />

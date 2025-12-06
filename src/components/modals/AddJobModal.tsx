@@ -40,6 +40,7 @@ const AddJobModal = ({ open, onOpenChange, onSave, job, preselectedDate }: AddJo
   const { t } = useLanguage();
   const isEditing = !!job;
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [calendarOpen, setCalendarOpen] = useState(false);
   
   const [formData, setFormData] = useState({
     clientId: job?.clientId || '',
@@ -121,6 +122,14 @@ const AddJobModal = ({ open, onOpenChange, onSave, job, preselectedDate }: AddJo
     }
   };
 
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      setFormData(prev => ({ ...prev, date }));
+      // Auto-close calendar after selection
+      setCalendarOpen(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -141,10 +150,14 @@ const AddJobModal = ({ open, onOpenChange, onSave, job, preselectedDate }: AddJo
     }
 
     setErrors({});
-    onSave({
+    
+    // Use the exact date from formData, formatted consistently
+    const jobData = {
       ...formData,
       date: format(formData.date, 'yyyy-MM-dd'),
-    });
+    };
+    
+    onSave(jobData);
     onOpenChange(false);
   };
 
@@ -181,7 +194,7 @@ const AddJobModal = ({ open, onOpenChange, onSave, job, preselectedDate }: AddJo
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label className="text-xs">{t.job.date}</Label>
-              <Popover>
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className={cn("w-full h-9 justify-start text-left font-normal text-sm")}>
                     <CalendarIcon className="mr-2 h-3.5 w-3.5" />
@@ -192,7 +205,7 @@ const AddJobModal = ({ open, onOpenChange, onSave, job, preselectedDate }: AddJo
                   <Calendar
                     mode="single"
                     selected={formData.date}
-                    onSelect={(date) => date && setFormData(prev => ({ ...prev, date }))}
+                    onSelect={handleDateSelect}
                     initialFocus
                     className="pointer-events-auto"
                   />

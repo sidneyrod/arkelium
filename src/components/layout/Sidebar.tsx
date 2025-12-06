@@ -15,7 +15,8 @@ import {
   ClipboardList,
   ChevronLeft,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Receipt
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -50,6 +51,7 @@ const Sidebar = () => {
     { path: '/clients', label: t.nav.clients, icon: UserCircle },
     { path: '/contracts', label: t.nav.contracts, icon: FileText },
     { path: '/schedule', label: t.nav.schedule, icon: Calendar },
+    { path: '/invoices', label: 'Invoices', icon: Receipt },
     { path: '/calculator', label: t.nav.calculator, icon: Calculator },
     { path: '/payroll', label: t.nav.payroll, icon: Wallet },
     ...(isManagerOrAdmin ? [{ path: '/activity-log', label: t.nav.activityLog, icon: ClipboardList }] : []),
