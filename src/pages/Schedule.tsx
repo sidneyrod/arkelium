@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useNavigate } from 'react-router-dom';
 import PageHeader from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,12 +26,15 @@ import {
   Trash2,
   FileText,
   Mail,
-  MessageSquare
+  MessageSquare,
+  Receipt
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useScheduleStore, JobStatus, ScheduledJob } from '@/stores/scheduleStore';
 import { logActivity } from '@/stores/activityStore';
+import { useInvoiceStore } from '@/stores/invoiceStore';
+import { useCompanyStore } from '@/stores/companyStore';
 import AddJobModal from '@/components/modals/AddJobModal';
 import JobCompletionModal from '@/components/modals/JobCompletionModal';
 import AbsenceRequestModal from '@/components/modals/AbsenceRequestModal';
@@ -49,7 +53,10 @@ const statusConfig: Record<JobStatus, { color: string; bgColor: string; label: s
 
 const Schedule = () => {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const { jobs, addJob, updateJob, deleteJob, completeJob, addAbsenceRequest, absenceRequests } = useScheduleStore();
+  const { addInvoice, getInvoiceByJobId } = useInvoiceStore();
+  const { estimateConfig } = useCompanyStore();
   
   const [view, setView] = useState<ViewType>('week');
   const [selectedJob, setSelectedJob] = useState<ScheduledJob | null>(null);
@@ -150,6 +157,48 @@ const Schedule = () => {
     const job = jobs.find(j => j.id === jobId);
     if (job) {
       logActivity('job_completed', `Job completed for ${job.clientName}`, jobId, job.clientName);
+      
+      // Auto-generate invoice for completed job
+      const existingInvoice = getInvoiceByJobId(jobId);
+      if (!existingInvoice) {
+        const durationHours = parseFloat(job.duration.replace(/[^0-9.]/g, '')) || 2;
+        const hourlyRate = estimateConfig.defaultHourlyRate || 35;
+        const subtotal = durationHours * hourlyRate;
+        const taxRate = estimateConfig.taxRate || 13;
+        const taxAmount = subtotal * (taxRate / 100);
+        const total = subtotal + taxAmount;
+
+        const invoice = addInvoice({
+          clientId: job.clientId || crypto.randomUUID(),
+          clientName: job.clientName,
+          clientAddress: job.address,
+          serviceAddress: job.address,
+          jobId: jobId,
+          cleanerName: job.employeeName,
+          cleanerId: job.employeeId,
+          serviceDate: job.date,
+          serviceDuration: job.duration,
+          dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          lineItems: [
+            {
+              id: crypto.randomUUID(),
+              description: `Cleaning Service - ${job.clientName}`,
+              quantity: durationHours,
+              unitPrice: hourlyRate,
+              total: subtotal
+            }
+          ],
+          subtotal,
+          taxRate,
+          taxAmount,
+          total,
+          status: 'draft',
+          notes: notes || ''
+        });
+        
+        logActivity('job_completed', `Invoice ${invoice.invoiceNumber} generated for ${job.clientName}`, invoice.id, job.clientName);
+        toast.success(`Invoice ${invoice.invoiceNumber} generated`);
+      }
     }
     toast.success(t.job.jobCompleted);
     setSelectedJob(null);
@@ -170,19 +219,29 @@ const Schedule = () => {
   };
 
   // Invoice actions for completed jobs
-  const handleGenerateInvoice = (job: ScheduledJob) => {
-    toast.success('Invoice generated successfully');
-    logActivity('job_completed', `Invoice generated for ${job.clientName}`, job.id, job.clientName);
+  const handleViewInvoice = (job: ScheduledJob) => {
+    const invoice = getInvoiceByJobId(job.id);
+    if (invoice) {
+      navigate(`/invoices?highlight=${invoice.id}`);
+    } else {
+      toast.error('No invoice found for this job');
+    }
   };
 
   const handleSendInvoiceEmail = (job: ScheduledJob) => {
-    toast.success('Invoice sent via email');
-    logActivity('job_completed', `Invoice sent via email to ${job.clientName}`, job.id, job.clientName);
+    const invoice = getInvoiceByJobId(job.id);
+    if (invoice) {
+      toast.success(`Invoice ${invoice.invoiceNumber} sent via email`);
+      logActivity('job_completed', `Invoice sent via email to ${job.clientName}`, job.id, job.clientName);
+    }
   };
 
   const handleSendInvoiceSms = (job: ScheduledJob) => {
-    toast.success('Invoice sent via SMS');
-    logActivity('job_completed', `Invoice sent via SMS to ${job.clientName}`, job.id, job.clientName);
+    const invoice = getInvoiceByJobId(job.id);
+    if (invoice) {
+      toast.success(`Invoice ${invoice.invoiceNumber} sent via SMS`);
+      logActivity('job_completed', `Invoice sent via SMS to ${job.clientName}`, job.id, job.clientName);
+    }
   };
 
   // Get jobs for a specific date
@@ -665,9 +724,9 @@ const Schedule = () => {
                 {/* Invoice actions for completed jobs */}
                 {selectedJob.status === 'completed' && (
                   <>
-                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => handleGenerateInvoice(selectedJob)}>
-                      <FileText className="h-4 w-4" />
-                      Invoice
+                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => handleViewInvoice(selectedJob)}>
+                      <Receipt className="h-4 w-4" />
+                      View Invoice
                     </Button>
                     <Button variant="outline" size="sm" className="gap-1.5" onClick={() => handleSendInvoiceEmail(selectedJob)}>
                       <Mail className="h-4 w-4" />
