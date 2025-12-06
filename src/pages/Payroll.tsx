@@ -4,17 +4,20 @@ import PageHeader from '@/components/ui/page-header';
 import DataTable, { Column } from '@/components/ui/data-table';
 import StatusBadge from '@/components/ui/status-badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, Clock, Calendar, FileText, Download, CheckCircle, Settings } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
+import { DollarSign, Clock, Calendar, FileText, Download, CheckCircle, Settings, Building2, MapPin, Percent } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { usePayrollStore, PayrollPeriod, EmployeePayrollEntry, provincialOvertimeRules, CanadianProvince } from '@/stores/payrollStore';
+import { usePayrollStore, PayrollPeriod, EmployeePayrollEntry, provincialOvertimeRules, provinceNames, CanadianProvince, PayPeriodType } from '@/stores/payrollStore';
 import { logActivity } from '@/stores/activityStore';
 import { useCompanyStore } from '@/stores/companyStore';
 import { generatePayrollReportPdf, openPdfPreview, exportToCsv } from '@/utils/pdfGenerator';
@@ -26,19 +29,13 @@ const statusColors: Record<string, { label: string; variant: 'active' | 'pending
   paid: { label: 'Paid', variant: 'completed' },
 };
 
-const provinceNames: Record<CanadianProvince, string> = {
-  ON: 'Ontario', QC: 'Quebec', BC: 'British Columbia', AB: 'Alberta',
-  MB: 'Manitoba', SK: 'Saskatchewan', NS: 'Nova Scotia', NB: 'New Brunswick',
-  NL: 'Newfoundland', PE: 'Prince Edward Island', NT: 'Northwest Territories',
-  YT: 'Yukon', NU: 'Nunavut',
-};
-
 const Payroll = () => {
   const { t } = useLanguage();
-  const { periods, defaultPayPeriod, defaultProvince, setDefaultPayPeriod, setDefaultProvince, approvePeriod, markAsPaid } = usePayrollStore();
+  const { periods, defaultPayPeriod, defaultProvince, companySettings, setDefaultPayPeriod, setDefaultProvince, updateCompanySettings, approvePeriod, markAsPaid } = usePayrollStore();
   const { profile, branding } = useCompanyStore();
   const [selectedPeriod, setSelectedPeriod] = useState<PayrollPeriod | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [settingsTab, setSettingsTab] = useState('general');
 
   const currentPeriod = periods.find(p => p.status === 'pending' || p.status === 'in-progress');
 
@@ -167,13 +164,206 @@ const Payroll = () => {
       </Dialog>
 
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>{t.settings.companyPreferences}</DialogTitle></DialogHeader>
-          <div className="space-y-4 mt-4">
-            <div className="space-y-2"><Label>{t.payroll.payPeriod}</Label><Select value={defaultPayPeriod} onValueChange={(v: any) => setDefaultPayPeriod(v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="weekly">{t.payroll.weeklyPay}</SelectItem><SelectItem value="biweekly">{t.payroll.biweeklyPay}</SelectItem><SelectItem value="semimonthly">{t.payroll.semiMonthlyPay}</SelectItem><SelectItem value="monthly">{t.payroll.monthlyPay}</SelectItem></SelectContent></Select></div>
-            <div className="space-y-2"><Label>{t.payroll.selectProvince}</Label><Select value={defaultProvince} onValueChange={(v: any) => setDefaultProvince(v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(provinceNames).map(([code, name]) => <SelectItem key={code} value={code}>{name}</SelectItem>)}</SelectContent></Select></div>
-            <Card className="border-border/50 bg-muted/30"><CardContent className="pt-4"><p className="text-sm font-medium mb-2">{t.payroll.overtimeRules} - {provinceNames[defaultProvince]}</p><p className="text-xs text-muted-foreground">{t.payroll.overtimeThreshold}: {provincialOvertimeRules[defaultProvince].weeklyThreshold}h</p><p className="text-xs text-muted-foreground">{t.payroll.overtimeMultiplier}: {provincialOvertimeRules[defaultProvince].overtimeMultiplier}x</p></CardContent></Card>
-          </div>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5 text-primary" />
+              Payroll Settings
+            </DialogTitle>
+          </DialogHeader>
+          
+          <Tabs value={settingsTab} onValueChange={setSettingsTab} className="mt-4">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="general" className="gap-2">
+                <Building2 className="h-4 w-4" />
+                General
+              </TabsTrigger>
+              <TabsTrigger value="provinces" className="gap-2">
+                <MapPin className="h-4 w-4" />
+                Provinces
+              </TabsTrigger>
+              <TabsTrigger value="contributions" className="gap-2">
+                <Percent className="h-4 w-4" />
+                Contributions
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="general" className="space-y-4 mt-4">
+              <Card className="border-border/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">Pay Frequency</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>{t.payroll.payPeriod}</Label>
+                    <Select 
+                      value={companySettings.payFrequency} 
+                      onValueChange={(v: PayPeriodType) => {
+                        updateCompanySettings({ payFrequency: v });
+                        setDefaultPayPeriod(v);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="weekly">{t.payroll.weeklyPay}</SelectItem>
+                        <SelectItem value="biweekly">{t.payroll.biweeklyPay}</SelectItem>
+                        <SelectItem value="semimonthly">{t.payroll.semiMonthlyPay}</SelectItem>
+                        <SelectItem value="monthly">{t.payroll.monthlyPay}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      This determines how often employees are paid
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Default Vacation Pay (%)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="10"
+                      step="0.5"
+                      value={companySettings.vacationPayDefault}
+                      onChange={(e) => updateCompanySettings({ vacationPayDefault: parseFloat(e.target.value) || 4 })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Minimum 4% required in most provinces
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+                    <div className="space-y-0.5">
+                      <Label>Statutory Holiday Pay</Label>
+                      <p className="text-sm text-muted-foreground">Enable automatic holiday pay calculations</p>
+                    </div>
+                    <Switch
+                      checked={companySettings.statutoryHolidayPayEnabled}
+                      onCheckedChange={(checked) => updateCompanySettings({ statutoryHolidayPayEnabled: checked })}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="provinces" className="space-y-4 mt-4">
+              <Card className="border-border/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">Primary Province</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>{t.payroll.selectProvince}</Label>
+                    <Select 
+                      value={companySettings.primaryProvince} 
+                      onValueChange={(v: CanadianProvince) => {
+                        updateCompanySettings({ primaryProvince: v });
+                        setDefaultProvince(v);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(provinceNames).map(([code, name]) => (
+                          <SelectItem key={code} value={code}>{name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Main province for tax calculations and labor laws
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">
+                    Overtime Rules - {provinceNames[companySettings.primaryProvince]}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 rounded-lg bg-muted/50">
+                      <p className="text-xs text-muted-foreground">Daily Threshold</p>
+                      <p className="text-lg font-semibold">
+                        {provincialOvertimeRules[companySettings.primaryProvince].dailyThreshold === 24 
+                          ? 'No daily OT' 
+                          : `${provincialOvertimeRules[companySettings.primaryProvince].dailyThreshold}h`}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/50">
+                      <p className="text-xs text-muted-foreground">Weekly Threshold</p>
+                      <p className="text-lg font-semibold">{provincialOvertimeRules[companySettings.primaryProvince].weeklyThreshold}h</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/50 col-span-2">
+                      <p className="text-xs text-muted-foreground">Overtime Multiplier</p>
+                      <p className="text-lg font-semibold">{provincialOvertimeRules[companySettings.primaryProvince].overtimeMultiplier}x regular rate</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="contributions" className="space-y-4 mt-4">
+              <Card className="border-border/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">Employer Contributions</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>CPP Employer Rate (%)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="10"
+                        step="0.01"
+                        value={companySettings.cppEmployerContribution}
+                        onChange={(e) => updateCompanySettings({ cppEmployerContribution: parseFloat(e.target.value) || 0 })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        2024 rate: 5.95%
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>EI Employer Rate (%)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="5"
+                        step="0.01"
+                        value={companySettings.eiEmployerContribution}
+                        onChange={(e) => updateCompanySettings({ eiEmployerContribution: parseFloat(e.target.value) || 0 })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        2024 rate: 2.21% (1.4x employee rate)
+                      </p>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="p-4 rounded-lg bg-primary/5 border border-primary/10">
+                    <p className="text-sm font-medium text-primary mb-2">Note on Tax Calculations</p>
+                    <p className="text-xs text-muted-foreground">
+                      These rates are used for employer cost estimation. Actual employee deductions 
+                      will be calculated based on CRA tables when backend is connected. Each employee's 
+                      province setting determines their specific tax treatment.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setShowSettings(false)}>
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

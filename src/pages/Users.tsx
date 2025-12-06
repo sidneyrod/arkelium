@@ -15,6 +15,8 @@ import ConfirmDialog from '@/components/modals/ConfirmDialog';
 import { toast } from '@/hooks/use-toast';
 import { UserPlus, Briefcase, Clock, Star, Phone, Mail, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 
+import { CanadianProvince, EmploymentType, provinceNames } from '@/stores/payrollStore';
+
 interface User {
   id: string;
   name: string;
@@ -28,14 +30,20 @@ interface User {
   jobsCompleted?: number;
   hoursWorked?: number;
   performance?: number;
+  // Payroll fields
+  hourlyRate?: number;
+  salary?: number;
+  province?: CanadianProvince;
+  employmentType?: EmploymentType;
+  vacationPayPercent?: number;
 }
 
 const initialUsers: User[] = [
-  { id: '1', name: 'John Doe', email: 'john@cleanpro.com', phone: '(416) 555-0101', address: '123 Main St, Toronto', role: 'admin', status: 'active', lastLogin: '2 min ago', jobsCompleted: 0, hoursWorked: 160, performance: 95 },
-  { id: '2', name: 'Maria Garcia', email: 'maria@cleanpro.com', phone: '(416) 555-0102', address: '456 Oak Ave, Toronto', role: 'cleaner', status: 'active', lastLogin: '1 hour ago', jobsCompleted: 156, hoursWorked: 148, performance: 92 },
-  { id: '3', name: 'Ana Rodriguez', email: 'ana@cleanpro.com', phone: '(416) 555-0103', address: '789 Pine Rd, Toronto', role: 'cleaner', status: 'active', lastLogin: '3 hours ago', jobsCompleted: 142, hoursWorked: 152, performance: 88 },
-  { id: '4', name: 'James Wilson', email: 'james@cleanpro.com', phone: '(416) 555-0104', address: '321 Elm St, Toronto', role: 'manager', status: 'active', lastLogin: '1 day ago', jobsCompleted: 28, hoursWorked: 160, performance: 94 },
-  { id: '5', name: 'Sophie Martin', email: 'sophie@cleanpro.com', phone: '(416) 555-0105', address: '654 Cedar Ln, Toronto', role: 'supervisor', status: 'inactive', lastLogin: '5 days ago', jobsCompleted: 89, hoursWorked: 120, performance: 78 },
+  { id: '1', name: 'John Doe', email: 'john@cleanpro.com', phone: '(416) 555-0101', address: '123 Main St, Toronto', role: 'admin', status: 'active', lastLogin: '2 min ago', jobsCompleted: 0, hoursWorked: 160, performance: 95, salary: 65000, province: 'ON', employmentType: 'full-time' },
+  { id: '2', name: 'Maria Garcia', email: 'maria@cleanpro.com', phone: '(416) 555-0102', address: '456 Oak Ave, Toronto', role: 'cleaner', status: 'active', lastLogin: '1 hour ago', jobsCompleted: 156, hoursWorked: 148, performance: 92, hourlyRate: 22, province: 'ON', employmentType: 'full-time', vacationPayPercent: 4 },
+  { id: '3', name: 'Ana Rodriguez', email: 'ana@cleanpro.com', phone: '(416) 555-0103', address: '789 Pine Rd, Toronto', role: 'cleaner', status: 'active', lastLogin: '3 hours ago', jobsCompleted: 142, hoursWorked: 152, performance: 88, hourlyRate: 20, province: 'ON', employmentType: 'full-time', vacationPayPercent: 4 },
+  { id: '4', name: 'James Wilson', email: 'james@cleanpro.com', phone: '(416) 555-0104', address: '321 Elm St, Toronto', role: 'manager', status: 'active', lastLogin: '1 day ago', jobsCompleted: 28, hoursWorked: 160, performance: 94, salary: 55000, province: 'ON', employmentType: 'full-time' },
+  { id: '5', name: 'Sophie Martin', email: 'sophie@cleanpro.com', phone: '(416) 555-0105', address: '654 Cedar Ln, Toronto', role: 'supervisor', status: 'inactive', lastLogin: '5 days ago', jobsCompleted: 89, hoursWorked: 120, performance: 78, hourlyRate: 28, province: 'QC', employmentType: 'part-time', vacationPayPercent: 4 },
 ];
 
 const roleColors: Record<string, string> = {
@@ -266,6 +274,43 @@ const Users = () => {
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Payroll Information */}
+              <Card className="border-border/50 bg-muted/30">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Payroll Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Province:</span>
+                      <p className="font-medium">{provinceNames[selectedUser.province || 'ON']}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Employment:</span>
+                      <p className="font-medium capitalize">{selectedUser.employmentType || 'Full-time'}</p>
+                    </div>
+                    {(selectedUser.role === 'cleaner' || selectedUser.role === 'supervisor') && (
+                      <>
+                        <div>
+                          <span className="text-muted-foreground">Hourly Rate:</span>
+                          <p className="font-medium">${selectedUser.hourlyRate?.toFixed(2) || '0.00'}/hr</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Vacation Pay:</span>
+                          <p className="font-medium">{selectedUser.vacationPayPercent || 4}%</p>
+                        </div>
+                      </>
+                    )}
+                    {(selectedUser.role === 'admin' || selectedUser.role === 'manager') && selectedUser.salary && (
+                      <div className="col-span-2">
+                        <span className="text-muted-foreground">Annual Salary:</span>
+                        <p className="font-medium">${selectedUser.salary.toLocaleString()}</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
         </DialogContent>
@@ -284,6 +329,11 @@ const Users = () => {
           address: editUser.address,
           role: editUser.role,
           isActive: editUser.status === 'active',
+          hourlyRate: editUser.hourlyRate,
+          salary: editUser.salary,
+          province: editUser.province,
+          employmentType: editUser.employmentType,
+          vacationPayPercent: editUser.vacationPayPercent,
         } : null}
       />
 
