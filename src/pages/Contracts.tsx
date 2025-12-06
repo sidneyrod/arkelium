@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useCompanyStore } from '@/stores/companyStore';
 import PageHeader from '@/components/ui/page-header';
 import SearchInput from '@/components/ui/search-input';
 import DataTable, { Column } from '@/components/ui/data-table';
@@ -12,6 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import AddContractModal, { ContractFormData } from '@/components/modals/AddContractModal';
 import ConfirmDialog from '@/components/modals/ConfirmDialog';
 import { toast } from '@/hooks/use-toast';
+import { generateContractPdf, openPdfPreview, ContractPdfData } from '@/utils/pdfGenerator';
 import { 
   FilePlus, 
   MapPin, 
@@ -25,7 +27,8 @@ import {
   FileText,
   Mail,
   MessageSquare,
-  Download
+  Download,
+  Loader2
 } from 'lucide-react';
 
 interface Contract {
@@ -75,13 +78,16 @@ const statusColors: Record<string, string> = {
 };
 
 const Contracts = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const { profile, branding } = useCompanyStore();
   const [search, setSearch] = useState('');
   const [contracts, setContracts] = useState<Contract[]>(initialContracts);
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editContract, setEditContract] = useState<Contract | null>(null);
   const [deleteContract, setDeleteContract] = useState<Contract | null>(null);
+  const [isSendingEmail, setIsSendingEmail] = useState<string | null>(null);
+  const [isSendingSms, setIsSendingSms] = useState<string | null>(null);
 
   const filteredContracts = contracts.filter(contract =>
     contract.clientName.toLowerCase().includes(search.toLowerCase()) ||
@@ -145,24 +151,79 @@ const Contracts = () => {
     setIsAddModalOpen(true);
   };
 
-  const handleViewPdf = (contract: Contract) => {
-    toast({
-      title: 'PDF Generated',
-      description: `Contract PDF for ${contract.clientName} is ready for download.`,
-    });
+  const buildContractPdfData = (contract: Contract): ContractPdfData => {
+    return {
+      contractId: contract.id,
+      clientName: contract.clientName,
+      clientAddress: contract.location,
+      clientEmail: undefined,
+      clientPhone: undefined,
+      contractType: contract.frequency === 'oneTime' ? 'one-time' : 'recurring',
+      startDate: contract.startDate,
+      endDate: undefined,
+      hoursPerWeek: contract.hoursPerWeek,
+      hourlyRate: contract.hourlyRate,
+      billingFrequency: contract.frequency === 'biweekly' ? 'Bi-Weekly' : 
+                        contract.frequency === 'monthly' ? 'Monthly' : 
+                        contract.frequency === 'weekly' ? 'Weekly' : 'One-Time',
+      cleaningDays: [],
+      timeWindow: '09:00 - 17:00',
+      serviceLocation: contract.location,
+      cleaningScope: contract.services.join(', '),
+      specialNotes: undefined,
+      totalValue: contract.value,
+    };
   };
 
-  const handleSendEmail = (contract: Contract) => {
+  const handleViewPdf = (contract: Contract) => {
+    try {
+      const pdfData = buildContractPdfData(contract);
+      const htmlContent = generateContractPdf(pdfData, profile, branding, language);
+      openPdfPreview(htmlContent, `contract-${contract.id}-${contract.clientName}`);
+      
+      toast({
+        title: t.common.success,
+        description: `Contract PDF for ${contract.clientName} is ready.`,
+      });
+    } catch (error) {
+      toast({
+        title: t.common.error,
+        description: 'Failed to generate PDF. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleSendEmail = async (contract: Contract) => {
+    setIsSendingEmail(contract.id);
+    
+    // Simulate API call - in production, this would call a backend endpoint
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // TODO: Replace with actual backend API call
+    // const pdfData = buildContractPdfData(contract);
+    // await sendContractEmail(contract.clientEmail, pdfData);
+    
+    setIsSendingEmail(null);
     toast({
       title: t.common.success,
       description: `Contract sent to ${contract.clientName} via email.`,
     });
   };
 
-  const handleSendSms = (contract: Contract) => {
+  const handleSendSms = async (contract: Contract) => {
+    setIsSendingSms(contract.id);
+    
+    // Simulate API call - in production, this would call a backend endpoint
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // TODO: Replace with actual backend API call
+    // await sendContractSms(contract.clientPhone, contract.id);
+    
+    setIsSendingSms(null);
     toast({
       title: t.common.success,
-      description: `Contract sent to ${contract.clientName} via SMS.`,
+      description: `Contract link sent to ${contract.clientName} via SMS.`,
     });
   };
 
@@ -234,12 +295,26 @@ const Contracts = () => {
               <FileText className="h-4 w-4 mr-2" />
               {t.contracts.viewPdf}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleSendEmail(contract); }}>
-              <Mail className="h-4 w-4 mr-2" />
+            <DropdownMenuItem 
+              onClick={(e) => { e.stopPropagation(); handleSendEmail(contract); }}
+              disabled={isSendingEmail === contract.id}
+            >
+              {isSendingEmail === contract.id ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Mail className="h-4 w-4 mr-2" />
+              )}
               {t.contracts.sendEmail}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleSendSms(contract); }}>
-              <MessageSquare className="h-4 w-4 mr-2" />
+            <DropdownMenuItem 
+              onClick={(e) => { e.stopPropagation(); handleSendSms(contract); }}
+              disabled={isSendingSms === contract.id}
+            >
+              {isSendingSms === contract.id ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <MessageSquare className="h-4 w-4 mr-2" />
+              )}
               {t.contracts.sendSms}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditModal(contract); }}>
