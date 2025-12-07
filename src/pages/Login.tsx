@@ -133,7 +133,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-background via-background to-muted/20">
+    <div className="min-h-screen h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-background via-background to-muted/20 py-6">
       {/* Subtle gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/3 via-transparent to-primary/5 dark:from-primary/5 dark:via-transparent dark:to-primary/8" />
       
@@ -181,11 +181,11 @@ const Login = () => {
 
       {/* Centered Login Card */}
       <div className="w-full max-w-[420px] mx-8 z-10">
-        <div className="rounded-2xl bg-card/95 dark:bg-card/90 backdrop-blur-xl border border-border/40 shadow-2xl shadow-primary/5 dark:shadow-primary/10 p-8">
+        <div className="rounded-2xl bg-card/95 dark:bg-card/90 backdrop-blur-xl border border-border/40 shadow-2xl shadow-primary/5 dark:shadow-primary/10 p-6">
           {/* Avatar / Logo at top - Circular */}
-          <div className="flex justify-center mb-5">
+          <div className="flex justify-center mb-4">
             {branding.logoUrl ? (
-              <div className="h-20 w-20 rounded-full overflow-hidden flex items-center justify-center bg-muted/30 border-2 border-border/30 shadow-lg">
+              <div className="h-16 w-16 rounded-full overflow-hidden flex items-center justify-center bg-muted/30 border-2 border-border/30 shadow-lg">
                 <img 
                   src={branding.logoUrl} 
                   alt={profile.companyName} 
@@ -193,29 +193,29 @@ const Login = () => {
                 />
               </div>
             ) : (
-              <div className="h-20 w-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 border-2 border-primary/20 flex items-center justify-center shadow-lg">
-                <Building2 className="h-9 w-9 text-primary/70" />
+              <div className="h-16 w-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 border-2 border-primary/20 flex items-center justify-center shadow-lg">
+                <Building2 className="h-7 w-7 text-primary/70" />
               </div>
             )}
           </div>
 
           {/* Company Name Header - Simple */}
-          <div className="text-center mb-6">
-            <h1 className="text-xl font-semibold text-foreground tracking-tight">
+          <div className="text-center mb-4">
+            <h1 className="text-lg font-semibold text-foreground tracking-tight">
               {profile.companyName}
             </h1>
           </div>
 
           {/* Tabs for Sign In / Sign Up */}
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'signin' | 'signup')} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsList className="grid w-full grid-cols-2 mb-3">
               <TabsTrigger value="signin">{t.auth.signIn}</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
             </TabsList>
 
             {/* Sign In Tab */}
             <TabsContent value="signin">
-              <form onSubmit={handleSignIn} className="space-y-4">
+              <form onSubmit={handleSignIn} className="space-y-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="email" className="text-sm font-medium text-foreground/90">
                     {t.auth.email}
@@ -328,7 +328,7 @@ const Login = () => {
 
             {/* Sign Up Tab */}
             <TabsContent value="signup">
-              <form onSubmit={handleSignUp} className="space-y-4">
+              <form onSubmit={handleSignUp} className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label htmlFor="firstName" className="text-sm font-medium text-foreground/90">
@@ -464,7 +464,7 @@ const Login = () => {
           </Tabs>
 
           {/* Footer info */}
-          <div className="mt-5 pt-4 border-t border-border/20">
+          <div className="mt-4 pt-3 border-t border-border/20">
             <p className="text-center text-xs text-muted-foreground/50">
               Protected by enterprise-grade security
             </p>
