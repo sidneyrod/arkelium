@@ -32,6 +32,13 @@ const TopBar = () => {
     navigate('/login');
   };
 
+  const getUserDisplayName = () => {
+    if (user?.profile?.first_name || user?.profile?.last_name) {
+      return `${user.profile.first_name || ''} ${user.profile.last_name || ''}`.trim();
+    }
+    return user?.email?.split('@')[0] || 'User';
+  };
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -40,6 +47,8 @@ const TopBar = () => {
       .toUpperCase()
       .slice(0, 2);
   };
+  
+  const displayName = getUserDisplayName();
 
   return (
     <header className="sticky top-0 z-50 w-full h-14 border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -87,7 +96,7 @@ const TopBar = () => {
             <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
               <Avatar className="h-9 w-9">
                 <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground text-sm font-medium">
-                  {user?.name ? getInitials(user.name) : 'U'}
+                  {getInitials(displayName)}
                 </AvatarFallback>
               </Avatar>
             </Button>
@@ -96,11 +105,11 @@ const TopBar = () => {
             <div className="flex items-center gap-2 p-2">
               <Avatar className="h-8 w-8">
                 <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground text-xs">
-                  {user?.name ? getInitials(user.name) : 'U'}
+                  {getInitials(displayName)}
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-col space-y-0.5">
-                <p className="text-sm font-medium">{user?.name || 'User'}</p>
+                <p className="text-sm font-medium">{displayName}</p>
                 <p className="text-xs text-muted-foreground">{user?.email || ''}</p>
               </div>
             </div>

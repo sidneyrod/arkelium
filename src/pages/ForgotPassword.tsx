@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyStore } from '@/stores/companyStore';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,27 +10,46 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { Sun, Moon, ArrowLeft, Mail, CheckCircle, Building2 } from 'lucide-react';
+import { z } from 'zod';
+
+const emailSchema = z.string().email('Please enter a valid email address');
 
 const ForgotPassword = () => {
   const { t, language, setLanguage } = useLanguage();
   const { theme, toggleTheme } = useTheme();
+  const { resetPassword } = useAuth();
   const { branding, profile } = useCompanyStore();
   
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    
+    // Validate email
+    try {
+      emailSchema.parse(email);
+    } catch (e: any) {
+      setError(e.errors?.[0]?.message || 'Invalid email');
+      return;
+    }
+    
     setIsLoading(true);
     
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    const result = await resetPassword(email);
     
-    setIsSubmitted(true);
-    toast({
-      title: t.common.success,
-      description: t.auth.resetEmailSent,
-    });
+    if (result.success) {
+      setIsSubmitted(true);
+      toast({
+        title: t.common.success,
+        description: t.auth.resetEmailSent,
+      });
+    } else {
+      setError(result.error || 'Failed to send reset email');
+    }
     
     setIsLoading(false);
   };
@@ -97,7 +117,7 @@ const ForgotPassword = () => {
             ) : (
               <div className="h-20 w-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 border-2 border-primary/20 flex items-center justify-center shadow-lg">
                 {isSubmitted ? (
-                  <CheckCircle className="h-9 w-9 text-success" />
+                  <CheckCircle className="h-9 w-9 text-primary" />
                 ) : (
                   <Mail className="h-9 w-9 text-primary/70" />
                 )}
@@ -134,6 +154,12 @@ const ForgotPassword = () => {
                   required
                   className="h-10 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50"
                 />
+                {error && (
+                  <p className="text-sm text-destructive mt-1.5 flex items-center gap-1.5">
+                    <span className="w-1 h-1 rounded-full bg-destructive" />
+                    {error}
+                  </p>
+                )}
               </div>
 
               <Button 
