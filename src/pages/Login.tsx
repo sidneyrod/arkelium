@@ -133,7 +133,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-background via-background to-muted/20 py-6">
+    <div className="min-h-screen flex items-center justify-center relative bg-gradient-to-br from-background via-background to-muted/20 py-8 overflow-y-auto">
       {/* Subtle gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/3 via-transparent to-primary/5 dark:from-primary/5 dark:via-transparent dark:to-primary/8" />
       
