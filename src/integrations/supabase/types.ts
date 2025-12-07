@@ -179,6 +179,7 @@ export type Database = {
           end_time: string | null
           id: string
           is_available: boolean | null
+          monthly_exceptions: Json | null
           start_time: string | null
           updated_at: string
         }
@@ -190,6 +191,7 @@ export type Database = {
           end_time?: string | null
           id?: string
           is_available?: boolean | null
+          monthly_exceptions?: Json | null
           start_time?: string | null
           updated_at?: string
         }
@@ -201,6 +203,7 @@ export type Database = {
           end_time?: string | null
           id?: string
           is_available?: boolean | null
+          monthly_exceptions?: Json | null
           start_time?: string | null
           updated_at?: string
         }
@@ -1064,6 +1067,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tax_configurations: {
+        Row: {
+          company_id: string
+          cpp_employee_rate: number | null
+          cpp_employer_rate: number | null
+          cpp_max_contribution: number | null
+          created_at: string
+          ei_employee_rate: number | null
+          ei_employer_rate: number | null
+          ei_max_contribution: number | null
+          id: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          company_id: string
+          cpp_employee_rate?: number | null
+          cpp_employer_rate?: number | null
+          cpp_max_contribution?: number | null
+          created_at?: string
+          ei_employee_rate?: number | null
+          ei_employer_rate?: number | null
+          ei_max_contribution?: number | null
+          id?: string
+          updated_at?: string
+          year?: number
+        }
+        Update: {
+          company_id?: string
+          cpp_employee_rate?: number | null
+          cpp_employer_rate?: number | null
+          cpp_max_contribution?: number | null
+          created_at?: string
+          ei_employee_rate?: number | null
+          ei_employer_rate?: number | null
+          ei_max_contribution?: number | null
+          id?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tax_configurations_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"

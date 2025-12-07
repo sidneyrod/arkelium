@@ -2,7 +2,6 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import StatCard from '@/components/ui/stat-card';
 import AlertCard from '@/components/ui/alert-card';
-import JobCard from '@/components/ui/job-card';
 import { 
   Briefcase, 
   Users, 
@@ -27,6 +26,7 @@ import {
   Bar,
 } from 'recharts';
 
+// Empty chart data - will be populated from real data
 const weeklyJobsData = [
   { name: 'Mon', jobs: 0 },
   { name: 'Tue', jobs: 0 },
@@ -46,8 +46,6 @@ const revenueData = [
   { name: 'Jun', revenue: 0 },
 ];
 
-const recentJobs: { client: string; address: string; time: string; employee: string; status: 'completed' | 'in-progress' | 'scheduled'; hasPhotos?: boolean }[] = [];
-
 const Dashboard = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
@@ -66,35 +64,32 @@ const Dashboard = () => {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard 
           title={t.dashboard.todayJobs} 
-          value="12" 
+          value="0" 
           icon={Briefcase}
-          trend={{ value: 8, isPositive: true }}
         />
         <StatCard 
           title={t.dashboard.activeEmployees} 
-          value="8" 
+          value="0" 
           icon={Users}
         />
         <StatCard 
           title={t.dashboard.activeClients} 
-          value="142" 
+          value="0" 
           icon={UserCircle}
-          trend={{ value: 12, isPositive: true }}
         />
         <StatCard 
           title={t.dashboard.monthlyRevenue} 
-          value="$42,580" 
+          value="$0" 
           icon={DollarSign}
-          trend={{ value: 15, isPositive: true }}
         />
         <StatCard 
           title={t.dashboard.pendingPayments} 
-          value="$8,240" 
+          value="$0" 
           icon={CreditCard}
         />
         <StatCard 
           title={t.dashboard.upcomingSchedule} 
-          value="28" 
+          value="0" 
           icon={Calendar}
         />
       </div>
@@ -210,15 +205,13 @@ const Dashboard = () => {
               <Clock className="h-5 w-5 text-primary" />
               {t.dashboard.recentJobs}
             </h2>
-            <button className="text-sm text-primary hover:underline">
-              {t.dashboard.viewAll}
-            </button>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {recentJobs.map((job, index) => (
-              <JobCard key={index} {...job} />
-            ))}
-          </div>
+          <Card className="border-border/50">
+            <CardContent className="py-12 text-center text-muted-foreground">
+              <p>{t.common.noData}</p>
+              <p className="text-sm mt-1">Create jobs in Schedule to see them here</p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Alerts */}
@@ -228,22 +221,22 @@ const Dashboard = () => {
             <AlertCard 
               type="delayed" 
               title={t.dashboard.delayedJobs} 
-              count={3} 
+              count={0} 
             />
             <AlertCard 
               type="churn" 
               title={t.dashboard.churnRisk} 
-              count={2} 
+              count={0} 
             />
             <AlertCard 
               type="invoice" 
               title={t.dashboard.pendingInvoices} 
-              count={7} 
+              count={0} 
             />
             <AlertCard 
               type="conflict" 
               title={t.dashboard.scheduleConflicts} 
-              count={1} 
+              count={0} 
             />
           </div>
         </div>

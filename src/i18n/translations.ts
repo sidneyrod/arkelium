@@ -8,7 +8,7 @@ export const translations = {
       clients: 'Clients',
       contracts: 'Contracts',
       schedule: 'Schedule',
-      calculator: 'Calculator',
+      calculator: 'Estimate',
       payroll: 'Payroll',
       settings: 'Settings',
       activityLog: 'Activity Log',
