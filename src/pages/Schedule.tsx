@@ -425,15 +425,16 @@ const Schedule = () => {
           {view === 'week' && (
             <Card className="border-border/50 overflow-hidden">
               <CardContent className="p-0">
-                <div className="grid grid-cols-8 border-b border-border/50">
-                  <div className="p-2 text-center text-sm text-muted-foreground border-r border-border/50">
-                    <Clock className="h-4 w-4 mx-auto" />
+                {/* Week header with days */}
+                <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border/50">
+                  <div className="p-2 text-center text-sm text-muted-foreground border-r border-border/50 flex items-center justify-center">
+                    <Clock className="h-4 w-4" />
                   </div>
                   {getWeekDays().map((day) => (
                     <div 
                       key={day.toISOString()} 
                       className={cn(
-                        "p-2 text-center border-r border-border/50 last:border-r-0 cursor-pointer hover:bg-muted/30",
+                        "p-2 text-center border-r border-border/30 last:border-r-0 cursor-pointer hover:bg-muted/30",
                         isToday(day) && "bg-primary/5"
                       )}
                       onClick={() => handleDayClick(day)}
@@ -447,10 +448,11 @@ const Schedule = () => {
                   ))}
                 </div>
                 
+                {/* Time slots grid */}
                 <div className="max-h-[400px] overflow-y-auto">
                   {timeSlots.map((time) => (
-                    <div key={time} className="grid grid-cols-8 border-b border-border/30 last:border-b-0">
-                      <div className="p-2 text-xs text-muted-foreground border-r border-border/50 bg-muted/30">
+                    <div key={time} className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border/20 last:border-b-0">
+                      <div className="p-2 text-xs text-muted-foreground border-r border-border/30 bg-muted/20 flex items-start justify-center">
                         {time}
                       </div>
                       {getWeekDays().map((day) => {
@@ -458,7 +460,7 @@ const Schedule = () => {
                         return (
                           <div 
                             key={`${day.toISOString()}-${time}`} 
-                            className="p-1 border-r border-border/30 last:border-r-0 min-h-[50px] hover:bg-muted/30 transition-colors cursor-pointer"
+                            className="p-1 border-r border-border/20 last:border-r-0 min-h-[48px] hover:bg-muted/30 transition-colors cursor-pointer"
                             onClick={() => handleDayClick(day)}
                           >
                             {dayJobs.map((job) => (
@@ -471,7 +473,7 @@ const Schedule = () => {
                                 onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
                               >
                                 <p className="font-medium truncate">{job.clientName}</p>
-                                <p className="text-muted-foreground text-[10px]">{job.duration}</p>
+                                <p className="text-muted-foreground text-[10px] truncate">{job.employeeName}</p>
                               </div>
                             ))}
                           </div>

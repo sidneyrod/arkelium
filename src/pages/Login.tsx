@@ -47,15 +47,15 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-background via-background to-muted/30">
+    <div className="min-h-screen h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-background via-background to-muted/20">
       {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/3 dark:from-primary/8 dark:via-transparent dark:to-primary/5" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/3 via-transparent to-primary/5 dark:from-primary/5 dark:via-transparent dark:to-primary/8" />
       
       {/* Decorative plus pattern - very subtle */}
       <div 
-        className="absolute inset-0 opacity-[0.02] dark:opacity-[0.03]"
+        className="absolute inset-0 opacity-[0.015] dark:opacity-[0.025]"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M21 19v-2h-2v2h-2v2h2v2h2v-2h2v-2h-2z'/%3E%3C/g%3E%3C/svg%3E")`
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M31 29v-2h-2v2h-2v2h2v2h2v-2h2v-2h-2z'/%3E%3C/g%3E%3C/svg%3E")`
         }}
       />
 
@@ -65,7 +65,8 @@ const Login = () => {
           <img 
             src={branding.logoUrl} 
             alt=""
-            className="w-[40%] max-w-[500px] h-auto object-contain opacity-[0.03] dark:opacity-[0.02] select-none blur-[1px]"
+            className="w-[50%] max-w-[600px] h-auto object-contain opacity-[0.02] dark:opacity-[0.015] select-none"
+            style={{ filter: 'blur(2px)' }}
           />
         </div>
       )}
@@ -93,35 +94,35 @@ const Login = () => {
       </div>
 
       {/* Centered Login Card */}
-      <div className="w-full max-w-md mx-4 z-10">
-        <div className="rounded-2xl bg-card/90 dark:bg-card/80 backdrop-blur-xl border border-border/50 shadow-2xl shadow-primary/5 dark:shadow-primary/10 p-8 sm:p-10">
-          {/* Avatar / Logo at top */}
-          <div className="flex justify-center mb-6">
+      <div className="w-full max-w-[420px] mx-8 z-10">
+        <div className="rounded-2xl bg-card/95 dark:bg-card/90 backdrop-blur-xl border border-border/40 shadow-2xl shadow-primary/5 dark:shadow-primary/10 p-8">
+          {/* Avatar / Logo at top - Circular */}
+          <div className="flex justify-center mb-5">
             {branding.logoUrl ? (
-              <div className="h-20 w-20 rounded-2xl overflow-hidden flex items-center justify-center bg-muted/30 border border-border/30 shadow-lg">
+              <div className="h-20 w-20 rounded-full overflow-hidden flex items-center justify-center bg-muted/30 border-2 border-border/30 shadow-lg">
                 <img 
                   src={branding.logoUrl} 
                   alt={profile.companyName} 
-                  className="h-full w-full object-contain p-2"
+                  className="h-full w-full object-cover"
                 />
               </div>
             ) : (
-              <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20 flex items-center justify-center shadow-lg">
-                <Building2 className="h-10 w-10 text-primary/70" />
+              <div className="h-20 w-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 border-2 border-primary/20 flex items-center justify-center shadow-lg">
+                <Building2 className="h-9 w-9 text-primary/70" />
               </div>
             )}
           </div>
 
-          {/* Company Name Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-semibold text-foreground tracking-tight">
+          {/* Company Name Header - Simple */}
+          <div className="text-center mb-6">
+            <h1 className="text-xl font-semibold text-foreground tracking-tight">
               {profile.companyName}
             </h1>
           </div>
           
           {/* Form */}
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div className="space-y-2">
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-1.5">
               <Label htmlFor="email" className="text-sm font-medium text-foreground/90">
                 {t.auth.email}
               </Label>
@@ -132,11 +133,11 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="h-11 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50"
+                className="h-10 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50"
               />
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="password" className="text-sm font-medium text-foreground/90">
                 {t.auth.password}
               </Label>
@@ -148,7 +149,7 @@ const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="pr-10 h-11 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50"
+                  className="pr-10 h-10 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50"
                 />
                 <button
                   type="button"
@@ -159,7 +160,7 @@ const Login = () => {
                 </button>
               </div>
               {error && (
-                <p className="text-sm text-destructive mt-2 flex items-center gap-1.5">
+                <p className="text-sm text-destructive mt-1.5 flex items-center gap-1.5">
                   <span className="w-1 h-1 rounded-full bg-destructive" />
                   {error}
                 </p>
@@ -189,7 +190,7 @@ const Login = () => {
 
             <Button 
               type="submit" 
-              className="w-full h-11 text-sm font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-primary/35 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+              className="w-full h-10 text-sm font-semibold bg-[hsl(156,55%,40%)] hover:bg-[hsl(156,55%,35%)] dark:bg-[hsl(156,50%,45%)] dark:hover:bg-[hsl(156,50%,40%)] text-white shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -205,15 +206,15 @@ const Login = () => {
           </form>
 
           {/* Footer info */}
-          <div className="mt-6 pt-5 border-t border-border/30">
-            <p className="text-center text-xs text-muted-foreground/60">
+          <div className="mt-5 pt-4 border-t border-border/20">
+            <p className="text-center text-xs text-muted-foreground/50">
               Protected by enterprise-grade security
             </p>
           </div>
         </div>
 
         {/* Copyright below card */}
-        <p className="text-center text-xs text-muted-foreground/40 mt-6">
+        <p className="text-center text-xs text-muted-foreground/40 mt-4">
           © {new Date().getFullYear()} {profile.companyName}
         </p>
       </div>
