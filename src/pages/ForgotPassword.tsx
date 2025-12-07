@@ -3,14 +3,14 @@ import { Link } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCompanyStore } from '@/stores/companyStore';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Sun, Moon, ArrowLeft, Mail, CheckCircle, Building2 } from 'lucide-react';
+import { Sun, Moon, ArrowLeft, CheckCircle } from 'lucide-react';
 import { z } from 'zod';
+import ArkeliumIcon from '@/components/ArkeliumIcon';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 
@@ -18,7 +18,6 @@ const ForgotPassword = () => {
   const { t, language, setLanguage } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const { resetPassword } = useAuth();
-  const { branding, profile } = useCompanyStore();
   
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -55,7 +54,7 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20">
+    <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 px-6 lg:px-12">
       {/* Subtle gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/3 via-transparent to-primary/5 dark:from-primary/5 dark:via-transparent dark:to-primary/8" />
       
@@ -67,20 +66,8 @@ const ForgotPassword = () => {
         }}
       />
 
-      {/* Subtle watermark */}
-      {branding.logoUrl && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <img 
-            src={branding.logoUrl} 
-            alt=""
-            className="w-[40%] max-w-[500px] h-auto object-contain opacity-[0.02] dark:opacity-[0.015] select-none"
-            style={{ filter: 'blur(2px)' }}
-          />
-        </div>
-      )}
-
       {/* Theme & Language Controls */}
-      <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+      <div className="absolute top-4 right-6 lg:right-12 flex items-center gap-2 z-10">
         <Select value={language} onValueChange={(val: 'en' | 'fr') => setLanguage(val)}>
           <SelectTrigger className="w-16 h-8 bg-background/60 backdrop-blur-sm border-border/50 hover:bg-background/80 transition-colors text-xs">
             <SelectValue />
@@ -101,36 +88,26 @@ const ForgotPassword = () => {
         </Button>
       </div>
 
-      {/* Centered Card - Standardized dimensions (same as Login) */}
-      <div className="w-full max-w-[320px] mx-auto z-10">
-        <div className="rounded-2xl bg-card/95 dark:bg-card/90 backdrop-blur-xl border border-border/40 shadow-2xl shadow-primary/5 dark:shadow-primary/10 px-6 py-5">
-          {/* Avatar / Logo at top - Perfectly Circular */}
-          <div className="flex justify-center mb-3">
-            {branding.logoUrl ? (
-              <div className="h-14 w-14 rounded-full overflow-hidden flex items-center justify-center bg-muted/30 border border-border/30 shadow-md">
-                <img 
-                  src={branding.logoUrl} 
-                  alt={profile.companyName} 
-                  className="h-full w-full object-cover"
-                />
+      {/* Centered Card - IDENTICAL dimensions to Login (max-w-[360px], px-8 py-6) */}
+      <div className="w-full max-w-[360px] mx-auto z-10">
+        <div className="rounded-2xl bg-card/95 dark:bg-card/90 backdrop-blur-xl border border-border/40 shadow-2xl shadow-primary/5 dark:shadow-primary/10 px-8 py-6">
+          {/* Arkelium Icon - Perfectly Centered, Circular, No Container Box */}
+          <div className="flex justify-center mb-4">
+            {isSubmitted ? (
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20 flex items-center justify-center">
+                <CheckCircle className="h-7 w-7 text-primary" />
               </div>
             ) : (
-              <div className="h-14 w-14 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20 flex items-center justify-center shadow-md">
-                {isSubmitted ? (
-                  <CheckCircle className="h-6 w-6 text-primary" />
-                ) : (
-                  <Mail className="h-6 w-6 text-primary/70" />
-                )}
-              </div>
+              <ArkeliumIcon size="lg" />
             )}
           </div>
 
-          {/* Header */}
-          <div className="text-center mb-4">
-            <h1 className="text-base font-semibold text-foreground tracking-tight">
+          {/* Platform Name Header - Small secondary text */}
+          <div className="text-center mb-5">
+            <h1 className="text-lg font-semibold text-foreground tracking-tight">
               {isSubmitted ? t.auth.checkEmail : t.auth.resetPassword}
             </h1>
-            <p className="text-xs text-muted-foreground mt-1.5">
+            <p className="text-xs text-muted-foreground mt-1">
               {isSubmitted 
                 ? t.auth.resetInstructions 
                 : t.auth.enterEmailToReset
@@ -212,7 +189,7 @@ const ForgotPassword = () => {
 
         {/* Copyright below card */}
         <p className="text-center text-[10px] text-muted-foreground/40 mt-3">
-          © {new Date().getFullYear()} {profile.companyName}
+          © {new Date().getFullYear()} Arkelium. All rights reserved.
         </p>
       </div>
     </div>
