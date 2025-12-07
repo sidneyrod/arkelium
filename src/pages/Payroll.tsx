@@ -310,7 +310,7 @@ const Payroll = () => {
             <TabsContent value="contributions" className="space-y-4 mt-4">
               <Card className="border-border/50">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium">Employer Contributions</CardTitle>
+                  <CardTitle className="text-sm font-medium">Tax Configuration ({companySettings.taxConfig?.year || new Date().getFullYear()})</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -321,11 +321,16 @@ const Payroll = () => {
                         min="0"
                         max="10"
                         step="0.01"
-                        value={companySettings.cppEmployerContribution}
-                        onChange={(e) => updateCompanySettings({ cppEmployerContribution: parseFloat(e.target.value) || 0 })}
+                        value={companySettings.taxConfig?.cppEmployerRate || 5.95}
+                        onChange={(e) => updateCompanySettings({ 
+                          taxConfig: { 
+                            ...companySettings.taxConfig, 
+                            cppEmployerRate: parseFloat(e.target.value) || 0 
+                          } 
+                        })}
                       />
                       <p className="text-xs text-muted-foreground">
-                        2024 rate: 5.95%
+                        {new Date().getFullYear()} rate (configure annually)
                       </p>
                     </div>
                     <div className="space-y-2">
@@ -335,23 +340,60 @@ const Payroll = () => {
                         min="0"
                         max="5"
                         step="0.01"
-                        value={companySettings.eiEmployerContribution}
-                        onChange={(e) => updateCompanySettings({ eiEmployerContribution: parseFloat(e.target.value) || 0 })}
+                        value={companySettings.taxConfig?.eiEmployerRate || 2.21}
+                        onChange={(e) => updateCompanySettings({ 
+                          taxConfig: { 
+                            ...companySettings.taxConfig, 
+                            eiEmployerRate: parseFloat(e.target.value) || 0 
+                          } 
+                        })}
                       />
                       <p className="text-xs text-muted-foreground">
-                        2024 rate: 2.21% (1.4x employee rate)
+                        {new Date().getFullYear()} rate (1.4x employee rate)
                       </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>CPP Max Contribution ($)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={companySettings.taxConfig?.cppMaxContribution || 3867.50}
+                        onChange={(e) => updateCompanySettings({ 
+                          taxConfig: { 
+                            ...companySettings.taxConfig, 
+                            cppMaxContribution: parseFloat(e.target.value) || 0 
+                          } 
+                        })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>EI Max Contribution ($)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={companySettings.taxConfig?.eiMaxContribution || 1049.12}
+                        onChange={(e) => updateCompanySettings({ 
+                          taxConfig: { 
+                            ...companySettings.taxConfig, 
+                            eiMaxContribution: parseFloat(e.target.value) || 0 
+                          } 
+                        })}
+                      />
                     </div>
                   </div>
 
                   <Separator />
 
                   <div className="p-4 rounded-lg bg-primary/5 border border-primary/10">
-                    <p className="text-sm font-medium text-primary mb-2">Note on Tax Calculations</p>
+                    <p className="text-sm font-medium text-primary mb-2">Annual Tax Configuration</p>
                     <p className="text-xs text-muted-foreground">
-                      These rates are used for employer cost estimation. Actual employee deductions 
-                      will be calculated based on CRA tables when backend is connected. Each employee's 
-                      province setting determines their specific tax treatment.
+                      Update these rates annually based on CRA guidelines. These rates apply to employer 
+                      cost estimation. Each employee's province setting determines their specific tax treatment.
                     </p>
                   </div>
                 </CardContent>

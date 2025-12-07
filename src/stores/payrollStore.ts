@@ -51,17 +51,26 @@ export interface PayrollPeriod {
   paidAt?: string;
 }
 
+export interface TaxConfiguration {
+  year: number;
+  cppEmployerRate: number;
+  cppEmployeeRate: number;
+  cppMaxContribution: number;
+  eiEmployerRate: number;
+  eiEmployeeRate: number;
+  eiMaxContribution: number;
+}
+
 export interface CompanyPayrollSettings {
   payFrequency: PayPeriodType;
   primaryProvince: CanadianProvince;
   additionalProvinces: CanadianProvince[];
-  cppEmployerContribution: number;
-  eiEmployerContribution: number;
   vacationPayDefault: number;
   statutoryHolidayPayEnabled: boolean;
+  taxConfig: TaxConfiguration;
 }
 
-// Canadian provincial overtime rules (hours before overtime kicks in)
+// Canadian provincial overtime rules
 export const provincialOvertimeRules: Record<CanadianProvince, { dailyThreshold: number; weeklyThreshold: number; overtimeMultiplier: number }> = {
   ON: { dailyThreshold: 24, weeklyThreshold: 44, overtimeMultiplier: 1.5 },
   QC: { dailyThreshold: 24, weeklyThreshold: 40, overtimeMultiplier: 1.5 },
@@ -76,23 +85,6 @@ export const provincialOvertimeRules: Record<CanadianProvince, { dailyThreshold:
   NT: { dailyThreshold: 8, weeklyThreshold: 40, overtimeMultiplier: 1.5 },
   YT: { dailyThreshold: 8, weeklyThreshold: 40, overtimeMultiplier: 1.5 },
   NU: { dailyThreshold: 24, weeklyThreshold: 40, overtimeMultiplier: 1.5 },
-};
-
-// Canadian statutory holidays by province
-export const provincialHolidays: Record<CanadianProvince, string[]> = {
-  ON: ['New Year\'s Day', 'Family Day', 'Good Friday', 'Victoria Day', 'Canada Day', 'Labour Day', 'Thanksgiving', 'Christmas Day', 'Boxing Day'],
-  QC: ['New Year\'s Day', 'Good Friday', 'Easter Monday', 'Victoria Day', 'St-Jean-Baptiste', 'Canada Day', 'Labour Day', 'Thanksgiving', 'Christmas Day'],
-  BC: ['New Year\'s Day', 'Family Day', 'Good Friday', 'Victoria Day', 'Canada Day', 'BC Day', 'Labour Day', 'Thanksgiving', 'Remembrance Day', 'Christmas Day'],
-  AB: ['New Year\'s Day', 'Family Day', 'Good Friday', 'Victoria Day', 'Canada Day', 'Heritage Day', 'Labour Day', 'Thanksgiving', 'Remembrance Day', 'Christmas Day'],
-  MB: ['New Year\'s Day', 'Louis Riel Day', 'Good Friday', 'Victoria Day', 'Canada Day', 'Terry Fox Day', 'Labour Day', 'Thanksgiving', 'Remembrance Day', 'Christmas Day'],
-  SK: ['New Year\'s Day', 'Family Day', 'Good Friday', 'Victoria Day', 'Canada Day', 'Saskatchewan Day', 'Labour Day', 'Thanksgiving', 'Remembrance Day', 'Christmas Day'],
-  NS: ['New Year\'s Day', 'Heritage Day', 'Good Friday', 'Victoria Day', 'Canada Day', 'Labour Day', 'Thanksgiving', 'Remembrance Day', 'Christmas Day'],
-  NB: ['New Year\'s Day', 'Family Day', 'Good Friday', 'Victoria Day', 'Canada Day', 'New Brunswick Day', 'Labour Day', 'Thanksgiving', 'Remembrance Day', 'Christmas Day'],
-  NL: ['New Year\'s Day', 'St. Patrick\'s Day', 'Good Friday', 'St. George\'s Day', 'Victoria Day', 'Canada Day', 'Orangemen\'s Day', 'Labour Day', 'Thanksgiving', 'Remembrance Day', 'Christmas Day'],
-  PE: ['New Year\'s Day', 'Islander Day', 'Good Friday', 'Victoria Day', 'Canada Day', 'Labour Day', 'Thanksgiving', 'Remembrance Day', 'Christmas Day'],
-  NT: ['New Year\'s Day', 'Good Friday', 'Victoria Day', 'National Indigenous Peoples Day', 'Canada Day', 'Labour Day', 'Thanksgiving', 'Remembrance Day', 'Christmas Day'],
-  YT: ['New Year\'s Day', 'Heritage Day', 'Good Friday', 'Victoria Day', 'Canada Day', 'Discovery Day', 'Labour Day', 'Thanksgiving', 'Remembrance Day', 'Christmas Day'],
-  NU: ['New Year\'s Day', 'Good Friday', 'Victoria Day', 'Canada Day', 'Nunavut Day', 'Labour Day', 'Thanksgiving', 'Remembrance Day', 'Christmas Day'],
 };
 
 export const provinceNames: Record<CanadianProvince, string> = {
@@ -111,14 +103,23 @@ export const provinceNames: Record<CanadianProvince, string> = {
   NU: 'Nunavut',
 };
 
+const defaultTaxConfig: TaxConfiguration = {
+  year: new Date().getFullYear(),
+  cppEmployerRate: 5.95,
+  cppEmployeeRate: 5.95,
+  cppMaxContribution: 3867.50,
+  eiEmployerRate: 2.21,
+  eiEmployeeRate: 1.58,
+  eiMaxContribution: 1049.12,
+};
+
 const defaultCompanyPayrollSettings: CompanyPayrollSettings = {
   payFrequency: 'biweekly',
   primaryProvince: 'ON',
   additionalProvinces: [],
-  cppEmployerContribution: 5.95,
-  eiEmployerContribution: 2.21,
   vacationPayDefault: 4,
   statutoryHolidayPayEnabled: true,
+  taxConfig: defaultTaxConfig,
 };
 
 interface PayrollState {
@@ -129,56 +130,20 @@ interface PayrollState {
   setDefaultPayPeriod: (period: PayPeriodType) => void;
   setDefaultProvince: (province: CanadianProvince) => void;
   updateCompanySettings: (settings: Partial<CompanyPayrollSettings>) => void;
+  updateTaxConfig: (config: Partial<TaxConfiguration>) => void;
   addPeriod: (period: Omit<PayrollPeriod, 'id' | 'createdAt'>) => void;
   updatePeriod: (id: string, updates: Partial<PayrollPeriod>) => void;
   deletePeriod: (id: string) => void;
   approvePeriod: (id: string) => void;
   markAsPaid: (id: string) => void;
   updateEntry: (periodId: string, entryId: string, updates: Partial<EmployeePayrollEntry>) => void;
+  runPayroll: (startDate: string, endDate: string, entries: EmployeePayrollEntry[]) => string;
 }
 
 export const usePayrollStore = create<PayrollState>()(
   persist(
-    (set) => ({
-      periods: [
-        {
-          id: '1',
-          periodType: 'biweekly',
-          startDate: '2024-12-01',
-          endDate: '2024-12-15',
-          status: 'pending',
-          province: 'ON',
-          entries: [
-            { id: '1', employeeId: '1', employeeName: 'Maria Garcia', role: 'cleaner', regularHours: 80, overtimeHours: 8, hourlyRate: 22, overtimeRate: 33, bonus: 150, deductions: 320, holidayPay: 0, vacationPay: 100, grossPay: 2500, netPay: 2180, jobsCompleted: 24, province: 'ON' },
-            { id: '2', employeeId: '2', employeeName: 'Ana Rodriguez', role: 'cleaner', regularHours: 76, overtimeHours: 4, hourlyRate: 20, overtimeRate: 30, bonus: 100, deductions: 290, holidayPay: 0, vacationPay: 90, grossPay: 2250, netPay: 1960, jobsCompleted: 22, province: 'ON' },
-            { id: '3', employeeId: '3', employeeName: 'John Davis', role: 'supervisor', regularHours: 80, overtimeHours: 12, hourlyRate: 28, overtimeRate: 42, bonus: 200, deductions: 380, holidayPay: 0, vacationPay: 117, grossPay: 2920, netPay: 2540, jobsCompleted: 18, province: 'ON' },
-            { id: '4', employeeId: '4', employeeName: 'Sophie Martin', role: 'cleaner', regularHours: 60, overtimeHours: 0, hourlyRate: 20, overtimeRate: 30, bonus: 0, deductions: 220, holidayPay: 0, vacationPay: 60, grossPay: 1500, netPay: 1280, jobsCompleted: 15, province: 'QC' },
-            { id: '5', employeeId: '5', employeeName: 'David Chen', role: 'manager', regularHours: 80, overtimeHours: 0, hourlyRate: 35, overtimeRate: 52.5, bonus: 0, deductions: 350, holidayPay: 0, vacationPay: 112, grossPay: 2400, netPay: 2050, jobsCompleted: 0, province: 'ON' },
-          ],
-          totalGross: 11570,
-          totalNet: 10010,
-          totalHours: 400,
-          createdAt: '2024-12-01T00:00:00Z',
-        },
-        {
-          id: '2',
-          periodType: 'biweekly',
-          startDate: '2024-11-16',
-          endDate: '2024-11-30',
-          status: 'paid',
-          province: 'ON',
-          entries: [
-            { id: '1', employeeId: '1', employeeName: 'Maria Garcia', role: 'cleaner', regularHours: 80, overtimeHours: 6, hourlyRate: 22, overtimeRate: 33, bonus: 100, deductions: 310, holidayPay: 0, vacationPay: 98, grossPay: 2458, netPay: 2148, jobsCompleted: 22, province: 'ON' },
-            { id: '2', employeeId: '2', employeeName: 'Ana Rodriguez', role: 'cleaner', regularHours: 80, overtimeHours: 0, hourlyRate: 20, overtimeRate: 30, bonus: 50, deductions: 280, holidayPay: 0, vacationPay: 66, grossPay: 1650, netPay: 1370, jobsCompleted: 20, province: 'ON' },
-          ],
-          totalGross: 4108,
-          totalNet: 3518,
-          totalHours: 166,
-          createdAt: '2024-11-16T00:00:00Z',
-          approvedAt: '2024-11-29T10:00:00Z',
-          paidAt: '2024-12-01T09:00:00Z',
-        },
-      ],
+    (set, get) => ({
+      periods: [],
       companySettings: defaultCompanyPayrollSettings,
       defaultPayPeriod: 'biweekly',
       defaultProvince: 'ON',
@@ -188,6 +153,13 @@ export const usePayrollStore = create<PayrollState>()(
       
       updateCompanySettings: (settings) => set((state) => ({
         companySettings: { ...state.companySettings, ...settings }
+      })),
+
+      updateTaxConfig: (config) => set((state) => ({
+        companySettings: { 
+          ...state.companySettings, 
+          taxConfig: { ...state.companySettings.taxConfig, ...config }
+        }
       })),
       
       addPeriod: (period) => set((state) => ({
@@ -228,6 +200,35 @@ export const usePayrollStore = create<PayrollState>()(
           return { ...p, entries: updatedEntries, totalGross, totalNet, totalHours };
         })
       })),
+
+      runPayroll: (startDate, endDate, entries) => {
+        const state = get();
+        const { companySettings } = state;
+        
+        const totalGross = entries.reduce((sum, e) => sum + e.grossPay, 0);
+        const totalNet = entries.reduce((sum, e) => sum + e.netPay, 0);
+        const totalHours = entries.reduce((sum, e) => sum + e.regularHours + e.overtimeHours, 0);
+        
+        const periodId = crypto.randomUUID();
+        
+        set((state) => ({
+          periods: [...state.periods, {
+            id: periodId,
+            periodType: companySettings.payFrequency,
+            startDate,
+            endDate,
+            status: 'pending',
+            province: companySettings.primaryProvince,
+            entries,
+            totalGross,
+            totalNet,
+            totalHours,
+            createdAt: new Date().toISOString(),
+          }]
+        }));
+        
+        return periodId;
+      },
     }),
     { name: 'payroll-store' }
   )

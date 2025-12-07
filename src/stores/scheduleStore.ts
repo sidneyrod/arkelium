@@ -31,6 +31,7 @@ export interface CleanerAvailability {
   startTime: string;
   endTime: string;
   exceptions: { date: string; reason: string }[];
+  monthlyAvailability?: { date: string; available: boolean }[];
 }
 
 export interface AbsenceRequest {
@@ -42,6 +43,8 @@ export interface AbsenceRequest {
   reason: string;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
+  approvedAt?: string;
+  approvedBy?: string;
 }
 
 interface ScheduleState {
@@ -55,24 +58,15 @@ interface ScheduleState {
   setAvailability: (availability: Omit<CleanerAvailability, 'id'>) => void;
   updateAvailability: (id: string, availability: Partial<CleanerAvailability>) => void;
   addAbsenceRequest: (request: Omit<AbsenceRequest, 'id' | 'status' | 'createdAt'>) => void;
-  updateAbsenceRequest: (id: string, status: 'approved' | 'rejected') => void;
+  updateAbsenceRequest: (id: string, status: 'approved' | 'rejected', approvedBy?: string) => void;
+  isEmployeeAvailable: (employeeId: string, date: string) => boolean;
 }
 
 export const useScheduleStore = create<ScheduleState>()(
   persist(
-    (set) => ({
-      jobs: [
-        { id: '1', clientId: '1', clientName: 'Sarah Mitchell', address: '245 Oak Street', date: '2024-12-05', time: '09:00', duration: '3h', employeeId: '1', employeeName: 'Maria G.', status: 'completed', services: ['Deep Clean'], checklist: [{ item: 'Vacuum', completed: true }, { item: 'Mop', completed: true }] },
-        { id: '2', clientId: '2', clientName: 'Thompson Corp', address: '890 Business Ave', date: '2024-12-05', time: '13:00', duration: '4h', employeeId: '2', employeeName: 'John D.', status: 'in-progress', services: ['Office Clean'] },
-        { id: '3', clientId: '3', clientName: 'Emily Chen', address: '112 Maple Drive', date: '2024-12-05', time: '14:00', duration: '2h', employeeId: '3', employeeName: 'Ana R.', status: 'scheduled', services: ['Standard Clean'] },
-        { id: '4', clientId: '4', clientName: 'Metro Office', address: '456 Tower Blvd', date: '2024-12-05', time: '16:00', duration: '3h', employeeId: '4', employeeName: 'David C.', status: 'scheduled', services: ['Daily Clean'] },
-        { id: '5', clientId: '5', clientName: 'Robert Johnson', address: '78 Pine Avenue', date: '2024-12-06', time: '10:00', duration: '2.5h', employeeId: '5', employeeName: 'Sophie M.', status: 'scheduled', services: ['Move-out Clean'] },
-      ],
-      availabilities: [
-        { id: '1', employeeId: '1', employeeName: 'Maria G.', availableDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'], startTime: '08:00', endTime: '17:00', exceptions: [] },
-        { id: '2', employeeId: '2', employeeName: 'John D.', availableDays: ['monday', 'tuesday', 'wednesday', 'friday'], startTime: '09:00', endTime: '18:00', exceptions: [] },
-        { id: '3', employeeId: '3', employeeName: 'Ana R.', availableDays: ['monday', 'wednesday', 'thursday', 'saturday'], startTime: '08:00', endTime: '16:00', exceptions: [] },
-      ],
+    (set, get) => ({
+      jobs: [],
+      availabilities: [],
       absenceRequests: [],
       
       addJob: (job) => set((state) => ({
@@ -122,9 +116,45 @@ export const useScheduleStore = create<ScheduleState>()(
         }]
       })),
       
-      updateAbsenceRequest: (id, status) => set((state) => ({
-        absenceRequests: state.absenceRequests.map((r) => r.id === id ? { ...r, status } : r)
+      updateAbsenceRequest: (id, status, approvedBy) => set((state) => ({
+        absenceRequests: state.absenceRequests.map((r) => 
+          r.id === id 
+            ? { ...r, status, approvedAt: new Date().toISOString(), approvedBy } 
+            : r
+        )
       })),
+
+      isEmployeeAvailable: (employeeId: string, date: string) => {
+        const state = get();
+        
+        // Check if there's an approved absence request for this date
+        const hasApprovedAbsence = state.absenceRequests.some(req => {
+          if (req.employeeId !== employeeId || req.status !== 'approved') return false;
+          const start = new Date(req.startDate);
+          const end = new Date(req.endDate);
+          const checkDate = new Date(date);
+          return checkDate >= start && checkDate <= end;
+        });
+        
+        if (hasApprovedAbsence) return false;
+
+        // Check weekly availability
+        const availability = state.availabilities.find(a => a.employeeId === employeeId);
+        if (!availability) return true; // If no availability set, assume available
+
+        const dayOfWeek = new Date(date).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() as DayOfWeek;
+        if (!availability.availableDays.includes(dayOfWeek)) return false;
+
+        // Check monthly exceptions
+        const exception = availability.exceptions?.find(e => e.date === date);
+        if (exception) return false;
+
+        // Check monthly availability overrides
+        const monthlyEntry = availability.monthlyAvailability?.find(m => m.date === date);
+        if (monthlyEntry) return monthlyEntry.available;
+
+        return true;
+      },
     }),
     { name: 'schedule-store' }
   )

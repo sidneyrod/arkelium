@@ -9,7 +9,7 @@ import {
   UserCircle, 
   FileText, 
   Calendar, 
-  Calculator, 
+  FileSpreadsheet, 
   Wallet,
   Settings,
   ClipboardList,
@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { useState, useEffect } from 'react';
-import ArkeliumIcon from '@/components/ArkeliumIcon';
+import arkeliumLogo from '@/assets/arkelium-logo.png';
 
 const Sidebar = () => {
   const { t } = useLanguage();
@@ -52,7 +52,7 @@ const Sidebar = () => {
     { path: '/contracts', label: t.nav.contracts, icon: FileText },
     { path: '/schedule', label: t.nav.schedule, icon: Calendar },
     { path: '/invoices', label: 'Invoices', icon: Receipt },
-    { path: '/calculator', label: t.nav.calculator, icon: Calculator },
+    { path: '/calculator', label: 'Estimate', icon: FileSpreadsheet },
     { path: '/payroll', label: t.nav.payroll, icon: Wallet },
     ...(isManagerOrAdmin ? [{ path: '/activity-log', label: t.nav.activityLog, icon: ClipboardList }] : []),
     { path: '/settings', label: t.nav.settings, icon: Settings },
@@ -69,20 +69,26 @@ const Sidebar = () => {
         "hidden lg:flex flex-col h-screen sticky top-0 border-r border-border/50 bg-sidebar-background transition-all duration-300 ease-in-out",
         collapsed ? "w-[68px]" : "w-56"
       )}>
-        {/* Platform Logo - ARKELIUM (Platform Owner) */}
+        {/* Platform Logo - ARKELIUM */}
         <div className={cn(
           "flex items-center h-14 px-3 border-b border-sidebar-border shrink-0",
           collapsed ? "justify-center" : "gap-2.5"
         )}>
-          <ArkeliumIcon size="sm" className="shrink-0" />
+          <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 flex items-center justify-center">
+            <img 
+              src={arkeliumLogo} 
+              alt="Arkelium" 
+              className="w-full h-full object-contain"
+            />
+          </div>
           {!collapsed && (
-            <span className="text-sm font-semibold tracking-tight text-sidebar-foreground truncate">
+            <span className="text-sm font-semibold tracking-tight text-[#D4A84B] truncate">
               ARKELIUM
             </span>
           )}
         </div>
 
-        {/* Current Company Context - Shows which company the user belongs to */}
+        {/* Current Company Context */}
         {!collapsed && (profile.companyName || branding.logoUrl) && (
           <div className="px-3 py-2 border-b border-sidebar-border/50">
             <div className="flex items-center gap-2">

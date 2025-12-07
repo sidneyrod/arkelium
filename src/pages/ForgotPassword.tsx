@@ -8,9 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Sun, Moon, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Sun, Moon, ArrowLeft, Mail } from 'lucide-react';
 import { z } from 'zod';
-import ArkeliumIcon from '@/components/ArkeliumIcon';
+import arkeliumLogo from '@/assets/arkelium-logo.png';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 
@@ -28,7 +28,6 @@ const ForgotPassword = () => {
     e.preventDefault();
     setError('');
     
-    // Validate email
     try {
       emailSchema.parse(email);
     } catch (e: any) {
@@ -54,25 +53,20 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 px-6 lg:px-12">
-      {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/3 via-transparent to-primary/5 dark:from-primary/5 dark:via-transparent dark:to-primary/8" />
+    <div className="fixed inset-0 flex items-center justify-center bg-[#0a0a0a] overflow-hidden">
+      {/* Subtle gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#111111] to-[#0a0a0a]" />
       
-      {/* Decorative plus pattern - very subtle */}
-      <div 
-        className="absolute inset-0 opacity-[0.015] dark:opacity-[0.025]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M31 29v-2h-2v2h-2v2h2v2h2v-2h2v-2h-2z'/%3E%3C/g%3E%3C/svg%3E")`
-        }}
-      />
+      {/* Decorative gold accent */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#D4A84B]/5 via-transparent to-transparent" />
 
       {/* Theme & Language Controls */}
-      <div className="absolute top-4 right-6 lg:right-12 flex items-center gap-2 z-10">
+      <div className="absolute top-6 right-8 lg:right-16 flex items-center gap-3 z-10">
         <Select value={language} onValueChange={(val: 'en' | 'fr') => setLanguage(val)}>
-          <SelectTrigger className="w-16 h-8 bg-background/60 backdrop-blur-sm border-border/50 hover:bg-background/80 transition-colors text-xs">
+          <SelectTrigger className="w-16 h-9 bg-[#1a1a1a]/80 backdrop-blur-sm border-[#333] hover:bg-[#222] transition-colors text-xs text-[#999]">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-popover/95 backdrop-blur-sm">
+          <SelectContent className="bg-[#1a1a1a] border-[#333]">
             <SelectItem value="en">EN</SelectItem>
             <SelectItem value="fr">FR</SelectItem>
           </SelectContent>
@@ -82,115 +76,127 @@ const ForgotPassword = () => {
           variant="outline" 
           size="icon" 
           onClick={toggleTheme} 
-          className="h-8 w-8 bg-background/60 backdrop-blur-sm border-border/50 hover:bg-background/80 transition-all hover:scale-105"
+          className="h-9 w-9 bg-[#1a1a1a]/80 backdrop-blur-sm border-[#333] hover:bg-[#222] transition-all text-[#999]"
         >
-          {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+          {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
       </div>
 
-      {/* Centered Card - IDENTICAL dimensions to Login (max-w-[360px], px-8 py-6) */}
-      <div className="w-full max-w-[360px] mx-auto z-10">
-        <div className="rounded-2xl bg-card/95 dark:bg-card/90 backdrop-blur-xl border border-border/40 shadow-2xl shadow-primary/5 dark:shadow-primary/10 px-8 py-6">
-          {/* Arkelium Icon - Perfectly Centered, Circular, No Container Box */}
-          <div className="flex justify-center mb-4">
-            {isSubmitted ? (
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20 flex items-center justify-center">
-                <CheckCircle className="h-7 w-7 text-primary" />
-              </div>
-            ) : (
-              <ArkeliumIcon size="lg" />
-            )}
+      {/* Card */}
+      <div className="w-full max-w-[380px] mx-8 lg:mx-16 z-10">
+        <div className="rounded-2xl bg-[#111111]/95 backdrop-blur-xl border border-[#222] shadow-2xl shadow-black/50 p-8 lg:p-10">
+          {/* Logo */}
+          <div className="flex justify-center mb-6">
+            <div className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center">
+              <img 
+                src={arkeliumLogo} 
+                alt="Arkelium" 
+                className="w-full h-full object-contain"
+              />
+            </div>
           </div>
 
-          {/* Platform Name Header - Small secondary text */}
-          <div className="text-center mb-5">
-            <h1 className="text-lg font-semibold text-foreground tracking-tight">
-              {isSubmitted ? t.auth.checkEmail : t.auth.resetPassword}
+          {/* Platform Name */}
+          <div className="text-center mb-8">
+            <h1 className="text-xl font-semibold text-[#D4A84B] tracking-widest">
+              ARKELIUM
             </h1>
-            <p className="text-xs text-muted-foreground mt-1">
-              {isSubmitted 
-                ? t.auth.resetInstructions 
-                : t.auth.enterEmailToReset
-              }
+            <p className="text-xs text-[#666] mt-2 tracking-wide">
+              Cleaning Management Platform
             </p>
           </div>
-          
-          {/* Form */}
-          {!isSubmitted ? (
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-xs font-medium text-foreground/90">
-                  {t.auth.email}
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="name@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="h-9 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50 text-sm"
-                />
-                {error && (
-                  <p className="text-xs text-destructive mt-1 flex items-center gap-1">
-                    <span className="w-1 h-1 rounded-full bg-destructive" />
-                    {error}
-                  </p>
-                )}
+
+          {isSubmitted ? (
+            <div className="text-center space-y-6">
+              <div className="w-14 h-14 mx-auto rounded-full bg-[#D4A84B]/10 flex items-center justify-center">
+                <Mail className="h-7 w-7 text-[#D4A84B]" />
               </div>
-
+              <div>
+                <h2 className="text-base font-medium text-[#ccc] mb-2">
+                  {t.auth.checkEmail}
+                </h2>
+                <p className="text-xs text-[#666]">
+                  {t.auth.resetInstructions}
+                </p>
+                <p className="text-xs text-[#D4A84B] mt-2 font-medium">
+                  {email}
+                </p>
+              </div>
               <Button 
-                type="submit" 
-                className="w-full h-9 text-xs font-semibold bg-[hsl(156,55%,40%)] hover:bg-[hsl(156,55%,35%)] dark:bg-[hsl(156,50%,45%)] dark:hover:bg-[hsl(156,50%,40%)] text-white shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200"
-                disabled={isLoading}
-              >
-                {isLoading ? t.common.loading : t.auth.sendResetLink}
-              </Button>
-
-              <Link 
-                to="/login" 
-                className="flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors pt-2"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" />
-                {t.auth.backToLogin}
-              </Link>
-            </form>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-center text-xs text-muted-foreground">
-                {t.auth.resetEmailSentTo} <span className="font-medium text-foreground">{email}</span>
-              </p>
-              
-              <Button 
-                variant="outline" 
-                className="w-full h-9 text-xs" 
+                variant="outline"
                 onClick={() => setIsSubmitted(false)}
+                className="w-full h-11 text-sm border-[#333] bg-transparent hover:bg-[#222] text-[#888]"
               >
                 {t.auth.tryDifferentEmail}
               </Button>
-
               <Link 
                 to="/login" 
-                className="flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                className="flex items-center justify-center gap-2 text-xs text-[#D4A84B]/80 hover:text-[#D4A84B] transition-colors"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
                 {t.auth.backToLogin}
               </Link>
             </div>
+          ) : (
+            <>
+              <div className="text-center mb-6">
+                <h2 className="text-base font-medium text-[#ccc] mb-2">
+                  {t.auth.resetPassword}
+                </h2>
+                <p className="text-xs text-[#666]">
+                  {t.auth.enterEmailToReset}
+                </p>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-xs font-medium text-[#888]">
+                    {t.auth.email}
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="name@company.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="h-11 bg-[#0a0a0a] border-[#333] focus:border-[#D4A84B]/50 focus:ring-[#D4A84B]/20 transition-all placeholder:text-[#444] text-[#ccc]"
+                  />
+                  {error && (
+                    <p className="text-xs text-red-400 mt-2 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                      {error}
+                    </p>
+                  )}
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full h-11 text-sm font-semibold bg-gradient-to-r from-[#D4A84B] to-[#B08A30] hover:from-[#C49A3C] hover:to-[#9A7A28] text-[#0a0a0a] shadow-lg shadow-[#D4A84B]/20 hover:shadow-[#D4A84B]/30 transition-all duration-200"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      {t.common.loading}
+                    </span>
+                  ) : t.auth.sendResetLink}
+                </Button>
+
+                <Link 
+                  to="/login" 
+                  className="flex items-center justify-center gap-2 text-xs text-[#D4A84B]/80 hover:text-[#D4A84B] transition-colors"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  {t.auth.backToLogin}
+                </Link>
+              </form>
+            </>
           )}
-
-          {/* Footer info */}
-          <div className="mt-4 pt-3 border-t border-border/20">
-            <p className="text-center text-[10px] text-muted-foreground/50">
-              Protected by enterprise-grade security
-            </p>
-          </div>
         </div>
-
-        {/* Copyright below card */}
-        <p className="text-center text-[10px] text-muted-foreground/40 mt-3">
-          © {new Date().getFullYear()} Arkelium. All rights reserved.
-        </p>
       </div>
     </div>
   );
