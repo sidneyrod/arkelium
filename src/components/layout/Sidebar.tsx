@@ -15,13 +15,13 @@ import {
   ClipboardList,
   ChevronLeft,
   ChevronRight,
-  Sparkles,
   Receipt
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { useState, useEffect } from 'react';
+import ArkeliumIcon from '@/components/ArkeliumIcon';
 
 const Sidebar = () => {
   const { t } = useLanguage();
@@ -69,30 +69,42 @@ const Sidebar = () => {
         "hidden lg:flex flex-col h-screen sticky top-0 border-r border-border/50 bg-sidebar-background transition-all duration-300 ease-in-out",
         collapsed ? "w-[68px]" : "w-56"
       )}>
-        {/* Logo */}
+        {/* Platform Logo - ARKELIUM (Platform Owner) */}
         <div className={cn(
           "flex items-center h-14 px-3 border-b border-sidebar-border shrink-0",
           collapsed ? "justify-center" : "gap-2.5"
         )}>
-          {branding.logoUrl ? (
-            <div className="h-8 w-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
-              <img 
-                src={branding.logoUrl} 
-                alt="Company logo" 
-                className="h-full w-full object-contain"
-              />
-            </div>
-          ) : (
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shrink-0">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
-            </div>
-          )}
+          <ArkeliumIcon size="sm" className="shrink-0" />
           {!collapsed && (
             <span className="text-sm font-semibold tracking-tight text-sidebar-foreground truncate">
-              {profile.companyName}
+              ARKELIUM
             </span>
           )}
         </div>
+
+        {/* Current Company Context - Shows which company the user belongs to */}
+        {!collapsed && (profile.companyName || branding.logoUrl) && (
+          <div className="px-3 py-2 border-b border-sidebar-border/50">
+            <div className="flex items-center gap-2">
+              {branding.logoUrl ? (
+                <div className="h-6 w-6 rounded overflow-hidden flex items-center justify-center shrink-0">
+                  <img 
+                    src={branding.logoUrl} 
+                    alt="Company logo" 
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+              ) : (
+                <div className="h-6 w-6 rounded bg-muted flex items-center justify-center shrink-0">
+                  <Building2 className="h-3 w-3 text-muted-foreground" />
+                </div>
+              )}
+              <span className="text-xs text-muted-foreground truncate">
+                {profile.companyName || 'Your Company'}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-3 px-2">

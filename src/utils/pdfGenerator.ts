@@ -1,6 +1,12 @@
 /**
- * PDF Generation Utilities for TidyOut Cleaning Management
- * Generates professional PDF contracts and reports with company watermark
+ * PDF Generation Utilities for Multi-Tenant Cleaning Management Platform
+ * 
+ * CRITICAL MULTI-TENANT BRANDING RULE:
+ * - All generated documents (Contracts, Invoices, Reports) MUST use CLIENT COMPANY branding
+ * - The platform owner (ARKELIUM) MUST NEVER appear on client documents
+ * - Branding (logo, colors, company name) is dynamically loaded from Company Branding table
+ * - Logo appears at TOP HEADER and as WATERMARK in background
+ * - If no company logo exists, use neutral placeholder (never fallback to ARKELIUM)
  */
 
 import { CompanyProfile, CompanyBranding } from '@/stores/companyStore';
@@ -58,8 +64,141 @@ export interface PayrollReportData {
 }
 
 /**
+ * Generate common PDF styles with company branding
+ * Uses COMPANY branding (not platform branding)
+ */
+const getCommonStyles = (branding: CompanyBranding) => `
+  @page { size: A4; margin: 2cm; }
+  body { 
+    font-family: 'Outfit', 'Segoe UI', sans-serif; 
+    color: #1a1a1a; 
+    line-height: 1.6; 
+    position: relative;
+  }
+  .header { 
+    text-align: center; 
+    margin-bottom: 40px; 
+    position: relative; 
+  }
+  .watermark { 
+    position: fixed; 
+    top: 50%; 
+    left: 50%; 
+    transform: translate(-50%, -50%);
+    opacity: 0.06;
+    z-index: -1;
+    pointer-events: none;
+  }
+  .watermark img {
+    max-width: 400px;
+    max-height: 400px;
+    object-fit: contain;
+  }
+  .watermark-text {
+    font-size: 100px;
+    font-weight: bold;
+    color: ${branding.primaryColor || '#1a3d2e'};
+    transform: rotate(-30deg);
+    opacity: 0.04;
+  }
+  .logo { 
+    max-width: 180px; 
+    max-height: 80px;
+    margin-bottom: 16px; 
+    object-fit: contain;
+  }
+  .company-name { 
+    font-size: 24px; 
+    font-weight: 600; 
+    color: ${branding.primaryColor || '#1a3d2e'}; 
+  }
+  .company-info { 
+    font-size: 12px; 
+    color: #666; 
+    margin-top: 8px; 
+  }
+  .title { 
+    font-size: 20px; 
+    font-weight: 600; 
+    margin: 40px 0 30px; 
+    border-bottom: 2px solid ${branding.primaryColor || '#1a3d2e'}; 
+    padding-bottom: 10px; 
+  }
+  .section { margin-bottom: 25px; }
+  .section-title { 
+    font-size: 14px; 
+    font-weight: 600; 
+    color: ${branding.primaryColor || '#1a3d2e'}; 
+    margin-bottom: 10px; 
+  }
+  .field { display: flex; margin-bottom: 8px; }
+  .field-label { width: 150px; font-weight: 500; color: #555; }
+  .field-value { flex: 1; }
+  .total-box { 
+    background: linear-gradient(135deg, ${branding.primaryColor || '#1a3d2e'}15, ${branding.primaryColor || '#1a3d2e'}08);
+    border: 1px solid ${branding.primaryColor || '#1a3d2e'}30;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    margin: 30px 0;
+  }
+  .total-label { font-size: 12px; color: #666; }
+  .total-value { font-size: 32px; font-weight: 700; color: ${branding.primaryColor || '#1a3d2e'}; }
+  .terms { font-size: 11px; color: #666; margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; }
+  .signature-section { margin-top: 60px; display: flex; justify-content: space-between; }
+  .signature-box { width: 45%; }
+  .signature-line { border-bottom: 1px solid #333; margin-bottom: 8px; height: 50px; }
+  .signature-label { font-size: 12px; color: #666; }
+  .footer { 
+    position: fixed; 
+    bottom: 2cm; 
+    left: 2cm; 
+    right: 2cm; 
+    text-align: center; 
+    font-size: 10px; 
+    color: #999; 
+  }
+`;
+
+/**
+ * Generate watermark HTML based on company branding
+ * Uses company logo if available, otherwise neutral text watermark
+ * NEVER uses ARKELIUM branding
+ */
+const getWatermarkHtml = (company: CompanyProfile, branding: CompanyBranding) => {
+  if (branding.logoUrl) {
+    return `
+      <div class="watermark">
+        <img src="${branding.logoUrl}" alt="" />
+      </div>
+    `;
+  }
+  // Neutral watermark with company name (no ARKELIUM branding)
+  return `
+    <div class="watermark">
+      <div class="watermark-text">${company.companyName || ''}</div>
+    </div>
+  `;
+};
+
+/**
+ * Generate header HTML with company logo and info
+ * Uses CLIENT COMPANY branding (from company settings)
+ */
+const getHeaderHtml = (company: CompanyProfile, branding: CompanyBranding) => `
+  <div class="header">
+    ${branding.logoUrl ? `<img src="${branding.logoUrl}" class="logo" alt="${company.companyName}" />` : ''}
+    <div class="company-name">${company.companyName || 'Company Name'}</div>
+    <div class="company-info">
+      ${company.address ? `${company.address}, ` : ''}${company.city || ''}, ${company.province || ''} ${company.postalCode || ''}<br>
+      ${company.phone ? `${company.phone} | ` : ''}${company.email || ''}
+    </div>
+  </div>
+`;
+
+/**
  * Generate a contract PDF document
- * In a production environment, this would use a library like jsPDF or pdfmake
+ * Uses CLIENT COMPANY branding - NEVER ARKELIUM
  */
 export const generateContractPdf = (
   data: ContractPdfData,
@@ -93,65 +232,16 @@ export const generateContractPdf = (
     signature: 'Signature',
   };
 
-  // Generate HTML template for the PDF
   const html = `
 <!DOCTYPE html>
 <html lang="${language}">
 <head>
   <meta charset="UTF-8">
-  <style>
-    @page { size: A4; margin: 2cm; }
-    body { font-family: 'Outfit', 'Segoe UI', sans-serif; color: #1a1a1a; line-height: 1.6; }
-    .header { text-align: center; margin-bottom: 40px; position: relative; }
-    .watermark { 
-      position: fixed; 
-      top: 50%; 
-      left: 50%; 
-      transform: translate(-50%, -50%) rotate(-45deg);
-      opacity: 0.05;
-      font-size: 120px;
-      font-weight: bold;
-      color: ${branding.primaryColor};
-      z-index: -1;
-    }
-    .logo { max-width: 200px; margin-bottom: 20px; }
-    .company-name { font-size: 24px; font-weight: 600; color: ${branding.primaryColor}; }
-    .company-info { font-size: 12px; color: #666; margin-top: 8px; }
-    .title { font-size: 20px; font-weight: 600; margin: 40px 0 30px; border-bottom: 2px solid ${branding.primaryColor}; padding-bottom: 10px; }
-    .section { margin-bottom: 25px; }
-    .section-title { font-size: 14px; font-weight: 600; color: ${branding.primaryColor}; margin-bottom: 10px; }
-    .field { display: flex; margin-bottom: 8px; }
-    .field-label { width: 150px; font-weight: 500; color: #555; }
-    .field-value { flex: 1; }
-    .total-box { 
-      background: linear-gradient(135deg, ${branding.primaryColor}15, ${branding.primaryColor}08);
-      border: 1px solid ${branding.primaryColor}30;
-      border-radius: 8px;
-      padding: 20px;
-      text-align: center;
-      margin: 30px 0;
-    }
-    .total-label { font-size: 12px; color: #666; }
-    .total-value { font-size: 32px; font-weight: 700; color: ${branding.primaryColor}; }
-    .terms { font-size: 11px; color: #666; margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; }
-    .signature-section { margin-top: 60px; display: flex; justify-content: space-between; }
-    .signature-box { width: 45%; }
-    .signature-line { border-bottom: 1px solid #333; margin-bottom: 8px; height: 50px; }
-    .signature-label { font-size: 12px; color: #666; }
-    .footer { position: fixed; bottom: 2cm; left: 2cm; right: 2cm; text-align: center; font-size: 10px; color: #999; }
-  </style>
+  <style>${getCommonStyles(branding)}</style>
 </head>
 <body>
-  <div class="watermark">${company.companyName}</div>
-  
-  <div class="header">
-    ${branding.logoUrl ? `<img src="${branding.logoUrl}" class="logo" alt="Logo" />` : ''}
-    <div class="company-name">${company.companyName}</div>
-    <div class="company-info">
-      ${company.address}, ${company.city}, ${company.province} ${company.postalCode}<br>
-      ${company.phone} | ${company.email}
-    </div>
-  </div>
+  ${getWatermarkHtml(company, branding)}
+  ${getHeaderHtml(company, branding)}
   
   <h1 class="title">${labels.title}</h1>
   
@@ -238,7 +328,7 @@ export const generateContractPdf = (
   </div>
   
   <div class="footer">
-    Contract #${data.contractId} | Generated on ${new Date().toLocaleDateString()} | ${company.website}
+    Contract #${data.contractId} | Generated on ${new Date().toLocaleDateString()}
   </div>
 </body>
 </html>
@@ -249,6 +339,7 @@ export const generateContractPdf = (
 
 /**
  * Generate an estimate PDF document
+ * Uses CLIENT COMPANY branding - NEVER ARKELIUM
  */
 export const generateEstimatePdf = (
   data: EstimatePdfData,
@@ -269,44 +360,27 @@ export const generateEstimatePdf = (
 <html lang="${language}">
 <head>
   <meta charset="UTF-8">
-  <style>
-    @page { size: A4; margin: 2cm; }
-    body { font-family: 'Outfit', 'Segoe UI', sans-serif; color: #1a1a1a; line-height: 1.6; }
-    .watermark { 
-      position: fixed; 
-      top: 50%; 
-      left: 50%; 
-      transform: translate(-50%, -50%) rotate(-45deg);
-      opacity: 0.05;
-      font-size: 120px;
-      font-weight: bold;
-      color: ${branding.primaryColor};
-      z-index: -1;
-    }
-    .header { text-align: center; margin-bottom: 40px; }
-    .company-name { font-size: 24px; font-weight: 600; color: ${branding.primaryColor}; }
-    .title { font-size: 20px; font-weight: 600; color: ${branding.primaryColor}; margin: 30px 0; }
-    .estimate-box { background: ${branding.primaryColor}; color: white; padding: 30px; border-radius: 12px; text-align: center; margin: 30px 0; }
-    .estimate-amount { font-size: 48px; font-weight: 700; }
-    .estimate-label { font-size: 14px; opacity: 0.9; }
-  </style>
+  <style>${getCommonStyles(branding)}</style>
 </head>
 <body>
-  <div class="watermark">${company.companyName}</div>
-  <div class="header">
-    <div class="company-name">${company.companyName}</div>
-  </div>
+  ${getWatermarkHtml(company, branding)}
+  ${getHeaderHtml(company, branding)}
+  
   <h1 class="title">${labels.title} #${data.estimateId}</h1>
   <p><strong>Client:</strong> ${data.clientName}</p>
   <p><strong>Service:</strong> ${data.serviceType} (${data.frequency})</p>
   <p><strong>Property:</strong> ${data.squareFootage} sq ft - ${data.roomDetails}</p>
   ${data.extras.length > 0 ? `<p><strong>Extras:</strong> ${data.extras.join(', ')}</p>` : ''}
-  <div class="estimate-box">
-    <div class="estimate-label">Total Estimate</div>
-    <div class="estimate-amount">$${data.totalAmount}</div>
-    <div class="estimate-label">per visit</div>
+  <div class="total-box">
+    <div class="total-label">Total Estimate</div>
+    <div class="total-value">$${data.totalAmount}</div>
+    <div class="total-label">per visit</div>
   </div>
   <p>${labels.validUntil}: ${data.validUntil}</p>
+  
+  <div class="footer">
+    Estimate #${data.estimateId} | Generated on ${new Date().toLocaleDateString()}
+  </div>
 </body>
 </html>
   `;
@@ -316,6 +390,7 @@ export const generateEstimatePdf = (
 
 /**
  * Generate a payroll report PDF
+ * Uses CLIENT COMPANY branding - NEVER ARKELIUM
  */
 export const generatePayrollReportPdf = (
   data: PayrollReportData,
@@ -339,15 +414,27 @@ export const generatePayrollReportPdf = (
   <meta charset="UTF-8">
   <style>
     body { font-family: 'Outfit', sans-serif; }
-    .header { text-align: center; color: ${branding.primaryColor}; }
+    .header { text-align: center; color: ${branding.primaryColor || '#1a3d2e'}; margin-bottom: 30px; }
+    .header img { max-width: 150px; margin-bottom: 10px; }
     table { width: 100%; border-collapse: collapse; margin: 20px 0; }
     th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
-    th { background: ${branding.primaryColor}; color: white; }
+    th { background: ${branding.primaryColor || '#1a3d2e'}; color: white; }
     .total-row { background: #f5f5f5; font-weight: bold; }
+    .watermark { 
+      position: fixed; 
+      top: 50%; 
+      left: 50%; 
+      transform: translate(-50%, -50%);
+      opacity: 0.05;
+      z-index: -1;
+    }
+    .watermark img { max-width: 350px; }
   </style>
 </head>
 <body>
+  ${branding.logoUrl ? `<div class="watermark"><img src="${branding.logoUrl}" alt="" /></div>` : ''}
   <div class="header">
+    ${branding.logoUrl ? `<img src="${branding.logoUrl}" alt="${company.companyName}" />` : ''}
     <h1>${company.companyName}</h1>
     <h2>Payroll Report</h2>
     <p>${data.periodStart} - ${data.periodEnd} | Province: ${data.province}</p>

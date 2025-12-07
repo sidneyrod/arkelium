@@ -1,4 +1,5 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import StatCard from '@/components/ui/stat-card';
 import AlertCard from '@/components/ui/alert-card';
 import JobCard from '@/components/ui/job-card';
@@ -27,38 +28,37 @@ import {
 } from 'recharts';
 
 const weeklyJobsData = [
-  { name: 'Mon', jobs: 12 },
-  { name: 'Tue', jobs: 18 },
-  { name: 'Wed', jobs: 15 },
-  { name: 'Thu', jobs: 22 },
-  { name: 'Fri', jobs: 28 },
-  { name: 'Sat', jobs: 8 },
-  { name: 'Sun', jobs: 5 },
+  { name: 'Mon', jobs: 0 },
+  { name: 'Tue', jobs: 0 },
+  { name: 'Wed', jobs: 0 },
+  { name: 'Thu', jobs: 0 },
+  { name: 'Fri', jobs: 0 },
+  { name: 'Sat', jobs: 0 },
+  { name: 'Sun', jobs: 0 },
 ];
 
 const revenueData = [
-  { name: 'Jan', revenue: 24000 },
-  { name: 'Feb', revenue: 28000 },
-  { name: 'Mar', revenue: 32000 },
-  { name: 'Apr', revenue: 29000 },
-  { name: 'May', revenue: 38000 },
-  { name: 'Jun', revenue: 42000 },
+  { name: 'Jan', revenue: 0 },
+  { name: 'Feb', revenue: 0 },
+  { name: 'Mar', revenue: 0 },
+  { name: 'Apr', revenue: 0 },
+  { name: 'May', revenue: 0 },
+  { name: 'Jun', revenue: 0 },
 ];
 
-const recentJobs = [
-  { client: 'Sarah Mitchell', address: '245 Oak Street, Toronto', time: '09:00 - 11:30', employee: 'Maria G.', status: 'completed' as const, hasPhotos: true },
-  { client: 'Thompson Corp', address: '890 Business Ave', time: '13:00 - 16:00', employee: 'John D.', status: 'in-progress' as const },
-  { client: 'Emily Chen', address: '112 Maple Drive', time: '14:00 - 16:00', employee: 'Ana R.', status: 'scheduled' as const },
-];
+const recentJobs: { client: string; address: string; time: string; employee: string; status: 'completed' | 'in-progress' | 'scheduled'; hasPhotos?: boolean }[] = [];
 
 const Dashboard = () => {
   const { t } = useLanguage();
+  const { user } = useAuth();
+
+  const userName = user?.profile?.first_name || 'User';
 
   return (
-    <div className="container px-4 py-8 lg:px-8 space-y-8">
+    <div className="container px-6 lg:px-10 py-8 space-y-8">
       {/* Welcome Section */}
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{t.dashboard.welcome}, John</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t.dashboard.welcome}, {userName}</h1>
         <p className="text-muted-foreground">{t.dashboard.subtitle}</p>
       </div>
 
