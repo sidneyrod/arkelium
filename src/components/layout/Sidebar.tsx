@@ -125,8 +125,9 @@ const Sidebar = () => {
                       </TooltipTrigger>
                       <TooltipContent 
                         side="right" 
-                        sideOffset={8}
-                        className="font-medium z-50"
+                        sideOffset={12}
+                        align="center"
+                        className="font-medium z-[100] bg-popover border border-border shadow-lg"
                       >
                         {item.label}
                       </TooltipContent>
