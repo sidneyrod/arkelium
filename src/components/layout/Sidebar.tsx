@@ -16,7 +16,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Receipt,
-  CalendarOff
+  CalendarOff,
+  CheckCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -53,6 +54,7 @@ const Sidebar = () => {
     { path: '/contracts', label: t.nav.contracts, icon: FileText },
     { path: '/schedule', label: t.nav.schedule, icon: Calendar },
     { path: '/invoices', label: 'Invoices', icon: Receipt },
+    ...(isManagerOrAdmin ? [{ path: '/completed-services', label: 'Completed Services', icon: CheckCircle }] : []),
     { path: '/calculator', label: 'Estimate', icon: FileSpreadsheet },
     { path: '/payroll', label: t.nav.payroll, icon: Wallet },
     ...(isManagerOrAdmin ? [{ path: '/activity-log', label: t.nav.activityLog, icon: ClipboardList }] : []),

@@ -11,8 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/hooks/use-toast';
 import { Sun, Moon, Eye, EyeOff } from 'lucide-react';
 import { z } from 'zod';
-import ArkeliumIcon from '@/components/ArkeliumIcon';
 import cleaningWatermark from '@/assets/cleaning-watermark.png';
+import arkeliumLogo from '@/assets/arkelium-logo.png';
 
 // Validation schemas
 const emailSchema = z.string().email('Please enter a valid email address');
@@ -151,9 +151,18 @@ const Login = () => {
             : 'bg-white/80 border border-emerald-200/50 shadow-emerald-900/10'
         }`}>
           
-          {/* Logo - Arkelium Symbol */}
+          {/* Logo - Arkelium Symbol with transparent background */}
           <div className="flex flex-col items-center mb-6">
-            <ArkeliumIcon size="xl" />
+            <div className="w-20 h-20 flex items-center justify-center">
+              <img 
+                src={arkeliumLogo} 
+                alt="Arkelium" 
+                className="w-16 h-16 object-contain"
+                style={{ 
+                  background: 'transparent'
+                }}
+              />
+            </div>
             
             {/* Platform Name - Close to logo */}
             <h1 className="text-lg font-semibold tracking-[0.25em] bg-gradient-to-r from-[#D4A84B] to-[#B08A30] bg-clip-text text-transparent mt-2">

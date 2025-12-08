@@ -14,7 +14,8 @@ import {
   Menu,
   ClipboardList,
   CalendarOff,
-  Receipt
+  Receipt,
+  CheckCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -36,6 +37,7 @@ const MobileNavigation = () => {
     { path: '/contracts', label: t.nav.contracts, icon: FileText },
     { path: '/schedule', label: t.nav.schedule, icon: Calendar },
     { path: '/invoices', label: 'Invoices', icon: Receipt },
+    ...(isManagerOrAdmin ? [{ path: '/completed-services', label: 'Completed Services', icon: CheckCircle }] : []),
     { path: '/calculator', label: 'Estimate', icon: Calculator },
     { path: '/payroll', label: t.nav.payroll, icon: Wallet },
     ...(isManagerOrAdmin ? [{ path: '/activity-log', label: t.nav.activityLog, icon: ClipboardList }] : []),

@@ -7,8 +7,8 @@ interface ArkeliumIconProps {
 }
 
 /**
- * Arkelium platform icon - Golden logo used for both themes.
- * Single image eliminates delay when switching themes.
+ * Arkelium platform icon - Golden logo with transparent background.
+ * Single image works for both themes.
  */
 const ArkeliumIcon = ({ className, size = 'md' }: ArkeliumIconProps) => {
   const sizeClasses = {
@@ -19,11 +19,17 @@ const ArkeliumIcon = ({ className, size = 'md' }: ArkeliumIconProps) => {
   };
 
   return (
-    <img
-      src={arkeliumLogo}
-      alt="Arkelium"
-      className={cn(sizeClasses[size], 'object-contain', className)}
-    />
+    <div className={cn(sizeClasses[size], 'flex items-center justify-center', className)}>
+      <img
+        src={arkeliumLogo}
+        alt="Arkelium"
+        className="w-full h-full object-contain"
+        style={{ 
+          mixBlendMode: 'multiply',
+          filter: 'none'
+        }}
+      />
+    </div>
   );
 };
 

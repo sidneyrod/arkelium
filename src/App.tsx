@@ -21,6 +21,7 @@ import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ActivityLog from "./pages/ActivityLog";
 import Invoices from "./pages/Invoices";
+import CompletedServices from "./pages/CompletedServices";
 import NotFound from "./pages/NotFound";
 import AbsenceApproval from "./pages/AbsenceApproval";
 
@@ -70,6 +71,7 @@ const AppRoutes = () => {
         <Route path="/contracts" element={<Contracts />} />
         <Route path="/schedule" element={<Schedule />} />
         <Route path="/invoices" element={<Invoices />} />
+        <Route path="/completed-services" element={<CompletedServices />} />
         <Route path="/calculator" element={<Calculator />} />
         <Route path="/payroll" element={<Payroll />} />
         <Route path="/activity-log" element={<ActivityLog />} />
