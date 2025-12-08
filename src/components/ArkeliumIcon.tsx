@@ -24,16 +24,15 @@ const ArkeliumIcon = ({ className, size = 'md' }: ArkeliumIconProps) => {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={cn(sizeClasses[size], className)}
-      style={{ background: 'transparent' }}
     >
-      {/* Circle border - elegant gold/amber gradient */}
+      {/* Circle background - matches theme */}
       <circle
         cx="50"
         cy="50"
         r="46"
         stroke="url(#arkeliumGradient)"
         strokeWidth="4"
-        fill="transparent"
+        className="fill-background"
       />
       
       {/* Letter A - stylized with elegant proportions */}
