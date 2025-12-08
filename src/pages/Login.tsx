@@ -151,23 +151,13 @@ const Login = () => {
             : 'bg-white/80 border border-emerald-200/50 shadow-emerald-900/10'
         }`}>
           
-          {/* Logo - Arkelium Symbol with transparent background */}
-          <div className="flex flex-col items-center mb-6">
-            <div className="w-20 h-20 flex items-center justify-center">
-              <img 
-                src={arkeliumLogo} 
-                alt="Arkelium" 
-                className="w-16 h-16 object-contain"
-                style={{ 
-                  background: 'transparent'
-                }}
-              />
-            </div>
-            
-            {/* Platform Name - Close to logo */}
-            <h1 className="text-lg font-semibold tracking-[0.25em] bg-gradient-to-r from-[#D4A84B] to-[#B08A30] bg-clip-text text-transparent mt-2">
-              ARKELIUM
-            </h1>
+          {/* Logo - Arkelium Symbol only, larger for prominence */}
+          <div className="flex items-center justify-center mb-8 mt-2">
+            <img 
+              src={arkeliumLogo} 
+              alt="Arkelium" 
+              className="w-32 h-32 object-contain"
+            />
           </div>
 
           {/* Sign In Form */}

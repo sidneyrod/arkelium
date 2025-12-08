@@ -3,9 +3,9 @@
   <path d="M50 18L28 78H36L41 64H59L64 78H72L50 18ZM44 56L50 38L56 56H44Z" fill="url(#arkeliumGradient)"/>
   <defs>
     <linearGradient id="arkeliumGradient" x1="0" y1="0" x2="100" y2="100">
-      <stop offset="0%" stop-color="#D4A84B"/>
-      <stop offset="50%" stop-color="#C49A3C"/>
-      <stop offset="100%" stop-color="#B08A30"/>
+      <stop offset="0%" stop-color="#C9A227"/>
+      <stop offset="50%" stop-color="#B8942A"/>
+      <stop offset="100%" stop-color="#A68523"/>
     </linearGradient>
   </defs>
 </svg>
