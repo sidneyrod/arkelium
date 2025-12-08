@@ -22,6 +22,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ActivityLog from "./pages/ActivityLog";
 import Invoices from "./pages/Invoices";
 import NotFound from "./pages/NotFound";
+import AbsenceApproval from "./pages/AbsenceApproval";
 
 const queryClient = new QueryClient();
 
@@ -72,6 +73,7 @@ const AppRoutes = () => {
         <Route path="/calculator" element={<Calculator />} />
         <Route path="/payroll" element={<Payroll />} />
         <Route path="/activity-log" element={<ActivityLog />} />
+        <Route path="/absence-approval" element={<AbsenceApproval />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
       
