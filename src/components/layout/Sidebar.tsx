@@ -87,29 +87,6 @@ const Sidebar = () => {
           </div>
         </div>
 
-        {/* Current Company Context */}
-        {!collapsed && (profile.companyName || branding.logoUrl) && (
-          <div className="px-3 py-2 border-b border-sidebar-border/50">
-            <div className="flex items-center gap-2">
-              {branding.logoUrl ? (
-                <div className="h-6 w-6 rounded overflow-hidden flex items-center justify-center shrink-0">
-                  <img 
-                    src={branding.logoUrl} 
-                    alt="Company logo" 
-                    className="h-full w-full object-contain"
-                  />
-                </div>
-              ) : (
-                <div className="h-6 w-6 rounded bg-muted flex items-center justify-center shrink-0">
-                  <Building2 className="h-3 w-3 text-muted-foreground" />
-                </div>
-              )}
-              <span className="text-xs text-muted-foreground truncate">
-                {profile.companyName || 'Your Company'}
-              </span>
-            </div>
-          </div>
-        )}
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-3 px-2">
