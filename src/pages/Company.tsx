@@ -24,8 +24,7 @@ import {
   Pencil,
   Trash2,
   GripVertical,
-  Calendar,
-  Eye
+  Calendar
 } from 'lucide-react';
 
 const canadianProvinces = [
@@ -67,8 +66,6 @@ const Company = () => {
   const [editingChecklist, setEditingChecklist] = useState<ChecklistItem | null>(null);
   const [checklistForm, setChecklistForm] = useState({ name: '' });
   
-  // Login preview state
-  const [previewLoginOpen, setPreviewLoginOpen] = useState(false);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -409,18 +406,6 @@ const Company = () => {
                 </div>
               </div>
               
-              {/* Login Preview */}
-              <Separator className="my-4" />
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-sm font-medium">Login Screen Preview</h4>
-                  <p className="text-xs text-muted-foreground">See how your logo appears on the login page</p>
-                </div>
-                <Button variant="outline" size="sm" onClick={() => setPreviewLoginOpen(true)} className="gap-2">
-                  <Eye className="h-4 w-4" />
-                  Preview
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -701,56 +686,6 @@ const Company = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Login Preview Modal - Matches actual login page exactly */}
-      <Dialog open={previewLoginOpen} onOpenChange={setPreviewLoginOpen}>
-        <DialogContent className="sm:max-w-4xl h-[70vh] p-0 overflow-hidden">
-          <div className="flex h-full">
-            {/* Left side preview - matches actual login watermark style */}
-            <div className="flex-1 relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent dark:from-primary/10 dark:via-primary/3 dark:to-background" />
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_40%,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent dark:from-primary/8" />
-              <div 
-                className="absolute inset-0 opacity-[0.025] dark:opacity-[0.04]"
-                style={{
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M21 19v-2h-2v2h-2v2h2v2h2v-2h2v-2h-2z'/%3E%3C/g%3E%3C/svg%3E")`
-                }}
-              />
-              <div className="absolute inset-0 flex items-center justify-center">
-                {branding.logoUrl ? (
-                  <img 
-                    src={branding.logoUrl} 
-                    alt={profile.companyName}
-                    className="w-[50%] max-w-[200px] h-auto object-contain opacity-[0.08] dark:opacity-[0.06]"
-                    style={{ filter: 'grayscale(20%)' }}
-                  />
-                ) : (
-                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/10 flex items-center justify-center opacity-50">
-                    <Building2 className="w-10 h-10 text-primary/30" strokeWidth={1} />
-                  </div>
-                )}
-              </div>
-              <div className="absolute inset-x-0 bottom-1/4 flex flex-col items-center pointer-events-none px-6">
-                <h3 className="text-lg font-semibold text-foreground/70 text-center">{profile.companyName}</h3>
-                <p className="text-xs text-muted-foreground/60 mt-1">Professional Workspace</p>
-              </div>
-            </div>
-            {/* Right side form preview */}
-            <div className="flex-1 flex items-center justify-center p-6 bg-background">
-              <div className="w-full max-w-[220px] space-y-3">
-                <div className="text-center">
-                  <h2 className="text-sm font-semibold">{profile.companyName} <span className="text-primary">Workspace</span></h2>
-                  <p className="text-xs text-muted-foreground mt-1">Welcome back!</p>
-                </div>
-                <div className="space-y-2">
-                  <div className="h-8 bg-muted rounded-md" />
-                  <div className="h-8 bg-muted rounded-md" />
-                  <div className="h-8 bg-primary rounded-md" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
