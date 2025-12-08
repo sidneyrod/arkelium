@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/hooks/use-toast';
 import { Sun, Moon, ArrowLeft, Mail } from 'lucide-react';
 import { z } from 'zod';
-import arkeliumLogo from '@/assets/arkelium-logo.png';
+import ArkeliumIcon from '@/components/ArkeliumIcon';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 
@@ -52,21 +52,37 @@ const ForgotPassword = () => {
     setIsLoading(false);
   };
 
+  const isDark = theme === 'dark';
+
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-[#0a0a0a] overflow-hidden">
-      {/* Subtle gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#111111] to-[#0a0a0a]" />
+    <div className={`fixed inset-0 flex items-center justify-center overflow-hidden ${
+      isDark ? 'bg-[#071a12]' : 'bg-gradient-to-br from-emerald-50 via-white to-emerald-50'
+    }`}>
+      {/* Background gradient overlay */}
+      <div className={`absolute inset-0 ${
+        isDark 
+          ? 'bg-gradient-to-br from-[#071a12] via-[#0a2318] to-[#071a12]' 
+          : 'bg-gradient-to-br from-emerald-100/30 via-transparent to-emerald-100/30'
+      }`} />
       
-      {/* Decorative gold accent */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#D4A84B]/5 via-transparent to-transparent" />
+      {/* Decorative accent */}
+      <div className={`absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] ${
+        isDark 
+          ? 'from-emerald-600/5 via-transparent to-transparent' 
+          : 'from-emerald-200/40 via-transparent to-transparent'
+      }`} />
 
       {/* Theme & Language Controls */}
       <div className="absolute top-6 right-8 lg:right-16 flex items-center gap-3 z-10">
         <Select value={language} onValueChange={(val: 'en' | 'fr') => setLanguage(val)}>
-          <SelectTrigger className="w-16 h-9 bg-[#1a1a1a]/80 backdrop-blur-sm border-[#333] hover:bg-[#222] transition-colors text-xs text-[#999]">
+          <SelectTrigger className={`w-16 h-9 backdrop-blur-sm transition-colors text-xs ${
+            isDark 
+              ? 'bg-[#0d1a15]/80 border-emerald-800/30 hover:bg-[#112920] text-emerald-300/70' 
+              : 'bg-white/80 border-emerald-200 hover:bg-emerald-50 text-emerald-700'
+          }`}>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-[#1a1a1a] border-[#333]">
+          <SelectContent className={isDark ? 'bg-[#0d1a15] border-emerald-800/30' : 'bg-white border-emerald-200'}>
             <SelectItem value="en">EN</SelectItem>
             <SelectItem value="fr">FR</SelectItem>
           </SelectContent>
@@ -76,46 +92,45 @@ const ForgotPassword = () => {
           variant="outline" 
           size="icon" 
           onClick={toggleTheme} 
-          className="h-9 w-9 bg-[#1a1a1a]/80 backdrop-blur-sm border-[#333] hover:bg-[#222] transition-all text-[#999]"
+          className={`h-9 w-9 backdrop-blur-sm transition-all ${
+            isDark 
+              ? 'bg-[#0d1a15]/80 border-emerald-800/30 hover:bg-[#112920] text-emerald-300/70' 
+              : 'bg-white/80 border-emerald-200 hover:bg-emerald-50 text-emerald-700'
+          }`}
         >
-          {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
       </div>
 
       {/* Card */}
-      <div className="w-full max-w-[380px] mx-8 lg:mx-16 z-10">
-        <div className="rounded-2xl bg-[#111111]/95 backdrop-blur-xl border border-[#222] shadow-2xl shadow-black/50 p-8 lg:p-10">
+      <div className="w-full max-w-[420px] mx-12 lg:mx-20 xl:mx-32 z-10">
+        <div className={`rounded-2xl backdrop-blur-xl shadow-2xl p-8 lg:p-10 ${
+          isDark 
+            ? 'bg-[#0d1a15]/90 border border-emerald-800/20 shadow-black/50' 
+            : 'bg-white/80 border border-emerald-200/50 shadow-emerald-900/10'
+        }`}>
           {/* Logo */}
-          <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center">
-              <img 
-                src={arkeliumLogo} 
-                alt="Arkelium" 
-                className="w-full h-full object-contain"
-              />
-            </div>
-          </div>
-
-          {/* Platform Name */}
-          <div className="text-center mb-8">
-            <h1 className="text-xl font-semibold text-[#D4A84B] tracking-widest">
+          <div className="flex flex-col items-center mb-6">
+            <ArkeliumIcon size="xl" />
+            
+            {/* Platform Name - Close to logo */}
+            <h1 className="text-lg font-semibold tracking-[0.25em] bg-gradient-to-r from-[#D4A84B] to-[#B08A30] bg-clip-text text-transparent mt-2">
               ARKELIUM
             </h1>
-            <p className="text-xs text-[#666] mt-2 tracking-wide">
-              Cleaning Management Platform
-            </p>
           </div>
 
           {isSubmitted ? (
             <div className="text-center space-y-6">
-              <div className="w-14 h-14 mx-auto rounded-full bg-[#D4A84B]/10 flex items-center justify-center">
-                <Mail className="h-7 w-7 text-[#D4A84B]" />
+              <div className={`w-14 h-14 mx-auto rounded-full flex items-center justify-center ${
+                isDark ? 'bg-emerald-500/10' : 'bg-emerald-100'
+              }`}>
+                <Mail className={`h-7 w-7 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`} />
               </div>
               <div>
-                <h2 className="text-base font-medium text-[#ccc] mb-2">
+                <h2 className={`text-base font-medium mb-2 ${isDark ? 'text-emerald-100' : 'text-emerald-900'}`}>
                   {t.auth.checkEmail}
                 </h2>
-                <p className="text-xs text-[#666]">
+                <p className={`text-xs ${isDark ? 'text-emerald-300/60' : 'text-emerald-600/70'}`}>
                   {t.auth.resetInstructions}
                 </p>
                 <p className="text-xs text-[#D4A84B] mt-2 font-medium">
@@ -125,7 +140,11 @@ const ForgotPassword = () => {
               <Button 
                 variant="outline"
                 onClick={() => setIsSubmitted(false)}
-                className="w-full h-11 text-sm border-[#333] bg-transparent hover:bg-[#222] text-[#888]"
+                className={`w-full h-11 text-sm ${
+                  isDark 
+                    ? 'border-emerald-800/30 bg-transparent hover:bg-emerald-900/30 text-emerald-300/70' 
+                    : 'border-emerald-200 bg-transparent hover:bg-emerald-50 text-emerald-700'
+                }`}
               >
                 {t.auth.tryDifferentEmail}
               </Button>
@@ -140,17 +159,19 @@ const ForgotPassword = () => {
           ) : (
             <>
               <div className="text-center mb-6">
-                <h2 className="text-base font-medium text-[#ccc] mb-2">
+                <h2 className={`text-base font-medium mb-2 ${isDark ? 'text-emerald-100' : 'text-emerald-900'}`}>
                   {t.auth.resetPassword}
                 </h2>
-                <p className="text-xs text-[#666]">
+                <p className={`text-xs ${isDark ? 'text-emerald-300/60' : 'text-emerald-600/70'}`}>
                   {t.auth.enterEmailToReset}
                 </p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-xs font-medium text-[#888]">
+                  <Label htmlFor="email" className={`text-xs font-medium ${
+                    isDark ? 'text-emerald-300/70' : 'text-emerald-700'
+                  }`}>
                     {t.auth.email}
                   </Label>
                   <Input
@@ -160,7 +181,11 @@ const ForgotPassword = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="h-11 bg-[#0a0a0a] border-[#333] focus:border-[#D4A84B]/50 focus:ring-[#D4A84B]/20 transition-all placeholder:text-[#444] text-[#ccc]"
+                    className={`h-11 transition-all ${
+                      isDark 
+                        ? 'bg-[#071a12] border-emerald-800/30 focus:border-emerald-500/50 focus:ring-emerald-500/20 placeholder:text-emerald-700/40 text-emerald-100' 
+                        : 'bg-white border-emerald-200 focus:border-emerald-400 focus:ring-emerald-400/20 placeholder:text-emerald-400 text-emerald-900'
+                    }`}
                   />
                   {error && (
                     <p className="text-xs text-red-400 mt-2 flex items-center gap-1.5">
@@ -172,7 +197,7 @@ const ForgotPassword = () => {
 
                 <Button 
                   type="submit" 
-                  className="w-full h-11 text-sm font-semibold bg-gradient-to-r from-[#D4A84B] to-[#B08A30] hover:from-[#C49A3C] hover:to-[#9A7A28] text-[#0a0a0a] shadow-lg shadow-[#D4A84B]/20 hover:shadow-[#D4A84B]/30 transition-all duration-200"
+                  className="w-full h-11 text-sm font-semibold bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white shadow-lg shadow-emerald-900/30 hover:shadow-emerald-900/40 transition-all duration-200"
                   disabled={isLoading}
                 >
                   {isLoading ? (
