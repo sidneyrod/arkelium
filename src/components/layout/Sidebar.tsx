@@ -112,18 +112,17 @@ const Sidebar = () => {
 
               if (collapsed) {
                 return (
-                  <li key={item.path}>
-                    <Tooltip>
+                  <li key={item.path} className="relative">
+                    <Tooltip delayDuration={0}>
                       <TooltipTrigger asChild>
                         {linkContent}
                       </TooltipTrigger>
                       <TooltipContent 
                         side="right" 
-                        sideOffset={12}
-                        align="center"
-                        className="font-medium z-[100] bg-popover border border-border shadow-lg"
+                        sideOffset={8}
+                        className="font-medium z-[9999] bg-popover border border-border shadow-lg px-3 py-1.5"
                       >
-                        {item.label}
+                        <span>{item.label}</span>
                       </TooltipContent>
                     </Tooltip>
                   </li>
