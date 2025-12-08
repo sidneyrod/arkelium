@@ -165,7 +165,7 @@ const Login = () => {
           <form onSubmit={handleSignIn} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="email" className={`text-xs font-medium ${
-                isDark ? 'text-emerald-300/70' : 'text-emerald-700'
+                isDark ? 'text-white' : 'text-black'
               }`}>
                 {t.auth.email}
               </Label>
@@ -186,7 +186,7 @@ const Login = () => {
             
             <div className="space-y-2">
               <Label htmlFor="password" className={`text-xs font-medium ${
-                isDark ? 'text-emerald-300/70' : 'text-emerald-700'
+                isDark ? 'text-white' : 'text-black'
               }`}>
                 {t.auth.password}
               </Label>
@@ -238,8 +238,8 @@ const Login = () => {
                 />
                 <Label htmlFor="remember" className={`text-xs font-normal cursor-pointer transition-colors ${
                   isDark 
-                    ? 'text-emerald-400/60 hover:text-emerald-300'
-                    : 'text-emerald-600 hover:text-emerald-700'
+                    ? 'text-white hover:text-white/80'
+                    : 'text-black hover:text-black/80'
                 }`}>
                   {t.auth.rememberMe}
                 </Label>
@@ -249,8 +249,8 @@ const Login = () => {
                 to="/forgot-password" 
                 className={`text-xs transition-colors ${
                   isDark 
-                    ? 'text-[#D4A84B]/80 hover:text-[#D4A84B]'
-                    : 'text-[#B08A30] hover:text-[#D4A84B]'
+                    ? 'text-white hover:text-white/80'
+                    : 'text-black hover:text-black/80'
                 }`}
               >
                 {t.auth.forgotPassword}

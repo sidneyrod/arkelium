@@ -108,28 +108,62 @@ const Contracts = () => {
   // Fetch clients from database
   useEffect(() => {
     const fetchClients = async () => {
-      if (!user?.profile?.company_id) return;
+      // Get company_id from user profile or from database function
+      let companyId = user?.profile?.company_id;
+      
+      if (!companyId) {
+        // Try to get company_id from database function
+        const { data: companyIdData, error: companyIdError } = await supabase.rpc('get_user_company_id');
+        if (companyIdError) {
+          console.error('Error getting company_id:', companyIdError);
+          return;
+        }
+        companyId = companyIdData;
+      }
+      
+      if (!companyId) {
+        console.log('No company_id available for fetching clients');
+        return;
+      }
       
       const { data, error } = await supabase
         .from('clients')
         .select('id, name, email, phone')
-        .eq('company_id', user.profile.company_id);
+        .eq('company_id', companyId);
       
       if (error) {
         console.error('Error fetching clients:', error);
         return;
       }
       
+      console.log('Clients fetched:', data);
       setClients(data || []);
     };
 
-    fetchClients();
-  }, [user?.profile?.company_id]);
+    if (user) {
+      fetchClients();
+    }
+  }, [user]);
 
   // Fetch contracts from database
   useEffect(() => {
     const fetchContracts = async () => {
-      if (!user?.profile?.company_id) return;
+      let companyId = user?.profile?.company_id;
+      
+      if (!companyId) {
+        const { data: companyIdData, error: companyIdError } = await supabase.rpc('get_user_company_id');
+        if (companyIdError) {
+          console.error('Error getting company_id:', companyIdError);
+          setIsLoading(false);
+          return;
+        }
+        companyId = companyIdData;
+      }
+      
+      if (!companyId) {
+        setIsLoading(false);
+        return;
+      }
       
       setIsLoading(true);
       
@@ -146,7 +180,7 @@ const Contracts = () => {
           clients(id, name, email, phone),
           client_locations(address, city)
         `)
-        .eq('company_id', user.profile.company_id);
+        .eq('company_id', companyId);
       
       if (error) {
         console.error('Error fetching contracts:', error);
@@ -177,19 +211,32 @@ const Contracts = () => {
       setIsLoading(false);
     };
 
-    fetchContracts();
-  }, [user?.profile?.company_id]);
+    if (user) {
+      fetchContracts();
+    }
+  }, [user]);
 
   // Fetch company and branding data for PDF generation
   useEffect(() => {
     const fetchCompanyData = async () => {
-      if (!user?.profile?.company_id) return;
+      let companyId = user?.profile?.company_id;
+      
+      if (!companyId) {
+        const { data: companyIdData, error: companyIdError } = await supabase.rpc('get_user_company_id');
+        if (companyIdError) {
+          console.error('Error getting company_id:', companyIdError);
+          return;
+        }
+        companyId = companyIdData;
+      }
+      
+      if (!companyId) return;
       
       const { data: company, error: companyError } = await supabase
         .from('companies')
         .select('id, trade_name, legal_name, email, phone, address, city, province, postal_code')
-        .eq('id', user.profile.company_id)
-        .single();
+        .eq('id', companyId)
+        .maybeSingle();
       
       if (companyError) {
         console.error('Error fetching company:', companyError);
@@ -201,16 +248,18 @@ const Contracts = () => {
       const { data: branding, error: brandingError } = await supabase
         .from('company_branding')
         .select('logo_url, primary_color, secondary_color, accent_color')
-        .eq('company_id', user.profile.company_id)
-        .single();
+        .eq('company_id', companyId)
+        .maybeSingle();
       
       if (!brandingError && branding) {
         setBrandingData(branding);
       }
     };
 
-    fetchCompanyData();
-  }, [user?.profile?.company_id]);
+    if (user) {
+      fetchCompanyData();
+    }
+  }, [user]);
 
   const filteredContracts = contracts.filter(contract =>
     contract.clientName.toLowerCase().includes(search.toLowerCase()) ||

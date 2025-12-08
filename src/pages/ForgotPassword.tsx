@@ -162,7 +162,7 @@ const ForgotPassword = () => {
                 <h2 className={`text-base font-medium mb-2 ${isDark ? 'text-emerald-100' : 'text-emerald-900'}`}>
                   {t.auth.resetPassword}
                 </h2>
-                <p className={`text-xs ${isDark ? 'text-emerald-300/60' : 'text-emerald-600/70'}`}>
+                <p className={`text-xs ${isDark ? 'text-white/70' : 'text-black/70'}`}>
                   {t.auth.enterEmailToReset}
                 </p>
               </div>
@@ -170,7 +170,7 @@ const ForgotPassword = () => {
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
                   <Label htmlFor="email" className={`text-xs font-medium ${
-                    isDark ? 'text-emerald-300/70' : 'text-emerald-700'
+                    isDark ? 'text-white' : 'text-black'
                   }`}>
                     {t.auth.email}
                   </Label>
@@ -213,7 +213,9 @@ const ForgotPassword = () => {
 
                 <Link 
                   to="/login" 
-                  className="flex items-center justify-center gap-2 text-xs text-[#D4A84B]/80 hover:text-[#D4A84B] transition-colors"
+                  className={`flex items-center justify-center gap-2 text-xs transition-colors ${
+                    isDark ? 'text-white hover:text-white/80' : 'text-black hover:text-black/80'
+                  }`}
                 >
                   <ArrowLeft className="h-3.5 w-3.5" />
                   {t.auth.backToLogin}
