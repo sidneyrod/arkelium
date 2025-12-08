@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { cn } from '@/lib/utils';
-import { X } from 'lucide-react';
+import { X, Circle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   ContextMenu,
@@ -9,6 +9,11 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const WorkspaceTabs = () => {
   const navigate = useNavigate();
@@ -52,13 +57,24 @@ const WorkspaceTabs = () => {
                     : 'text-muted-foreground hover:bg-background/50 hover:text-foreground'
                 )}
               >
+                {/* Unsaved changes indicator */}
+                {tab.hasUnsavedChanges && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Circle className="h-2 w-2 fill-amber-500 text-amber-500 flex-shrink-0" />
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-xs">
+                      Unsaved changes
+                    </TooltipContent>
+                  </Tooltip>
+                )}
                 <span className="truncate flex-1">{tab.label}</span>
                 {tabs.length > 1 && (
                   <Button
                     variant="ghost"
                     size="icon"
                     className={cn(
-                      'h-4 w-4 p-0 opacity-0 group-hover:opacity-100 transition-opacity',
+                      'h-4 w-4 p-0 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0',
                       'hover:bg-destructive/10 hover:text-destructive'
                     )}
                     onClick={(e) => handleCloseTab(e, tab.id)}

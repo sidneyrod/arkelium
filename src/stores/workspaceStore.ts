@@ -8,6 +8,8 @@ export interface WorkspaceTab {
   icon?: string;
   isActive: boolean;
   scrollPosition?: number;
+  hasUnsavedChanges?: boolean;
+  formState?: Record<string, any>;
 }
 
 interface WorkspaceState {
@@ -19,6 +21,8 @@ interface WorkspaceState {
   closeTab: (id: string) => void;
   setActiveTab: (id: string) => void;
   updateTabScrollPosition: (id: string, scrollPosition: number) => void;
+  setTabUnsavedChanges: (id: string, hasUnsavedChanges: boolean) => void;
+  updateTabFormState: (id: string, formState: Record<string, any>) => void;
   closeAllTabs: () => void;
   closeOtherTabs: (id: string) => void;
 }
@@ -111,6 +115,22 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         set(state => ({
           tabs: state.tabs.map(tab =>
             tab.id === id ? { ...tab, scrollPosition } : tab
+          ),
+        }));
+      },
+
+      setTabUnsavedChanges: (id: string, hasUnsavedChanges: boolean) => {
+        set(state => ({
+          tabs: state.tabs.map(tab =>
+            tab.id === id ? { ...tab, hasUnsavedChanges } : tab
+          ),
+        }));
+      },
+
+      updateTabFormState: (id: string, formState: Record<string, any>) => {
+        set(state => ({
+          tabs: state.tabs.map(tab =>
+            tab.id === id ? { ...tab, formState } : tab
           ),
         }));
       },

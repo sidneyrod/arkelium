@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/hooks/use-toast';
 import { Sun, Moon, ArrowLeft, Mail } from 'lucide-react';
 import { z } from 'zod';
-import ArkeliumIcon from '@/components/ArkeliumIcon';
+import cleaningWatermark from '@/assets/cleaning-watermark.png';
+import arkeliumLogo from '@/assets/arkelium-logo.png';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 
@@ -56,20 +57,32 @@ const ForgotPassword = () => {
 
   return (
     <div className={`fixed inset-0 flex items-center justify-center overflow-hidden ${
-      isDark ? 'bg-[#071a12]' : 'bg-gradient-to-br from-emerald-50 via-white to-emerald-50'
+      isDark 
+        ? 'bg-gradient-to-br from-[#0a1210] via-[#0d1a15] to-[#081410]' 
+        : 'bg-gradient-to-br from-[#f0f7f4] via-[#e8f4ed] to-[#f5faf7]'
     }`}>
-      {/* Background gradient overlay */}
+      
+      {/* Watermark Background - Cleaning Professional Image */}
+      <div 
+        className="absolute inset-0 bg-no-repeat bg-center bg-cover pointer-events-none"
+        style={{
+          backgroundImage: `url(${cleaningWatermark})`,
+          opacity: isDark ? 0.04 : 0.06,
+          filter: isDark ? 'grayscale(30%)' : 'grayscale(20%)',
+        }}
+      />
+      
+      {/* Green gradient overlay */}
       <div className={`absolute inset-0 ${
         isDark 
-          ? 'bg-gradient-to-br from-[#071a12] via-[#0a2318] to-[#071a12]' 
-          : 'bg-gradient-to-br from-emerald-100/30 via-transparent to-emerald-100/30'
+          ? 'bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-900/10 via-transparent to-transparent'
+          : 'bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-200/30 via-transparent to-transparent'
       }`} />
       
-      {/* Decorative accent */}
-      <div className={`absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] ${
+      <div className={`absolute inset-0 ${
         isDark 
-          ? 'from-emerald-600/5 via-transparent to-transparent' 
-          : 'from-emerald-200/40 via-transparent to-transparent'
+          ? 'bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-emerald-950/20 via-transparent to-transparent'
+          : 'bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-emerald-100/40 via-transparent to-transparent'
       }`} />
 
       {/* Theme & Language Controls */}
@@ -109,14 +122,13 @@ const ForgotPassword = () => {
             ? 'bg-[#0d1a15]/90 border border-emerald-800/20 shadow-black/50' 
             : 'bg-white/80 border border-emerald-200/50 shadow-emerald-900/10'
         }`}>
-          {/* Logo */}
-          <div className="flex flex-col items-center mb-6">
-            <ArkeliumIcon size="xl" />
-            
-            {/* Platform Name - Close to logo */}
-            <h1 className="text-lg font-semibold tracking-[0.25em] bg-gradient-to-r from-[#D4A84B] to-[#B08A30] bg-clip-text text-transparent mt-2">
-              ARKELIUM
-            </h1>
+          {/* Logo - Arkelium Symbol only, larger for prominence */}
+          <div className="flex items-center justify-center mb-8 mt-2">
+            <img 
+              src={arkeliumLogo} 
+              alt="Arkelium" 
+              className="w-32 h-32 object-contain"
+            />
           </div>
 
           {isSubmitted ? (
