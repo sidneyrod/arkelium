@@ -74,7 +74,7 @@ const Sidebar = () => {
         collapsed ? "w-[68px]" : "w-56"
       )}>
         {/* Platform Logo - ARKELIUM Symbol Only */}
-        <div className="flex items-center justify-center h-28 px-3 border-b border-sidebar-border shrink-0">
+        <div className="flex items-center justify-center h-28 px-3 shrink-0">
           <div className={cn(
             "rounded-full overflow-hidden shrink-0 flex items-center justify-center",
             collapsed ? "w-14 h-14" : "w-24 h-24"

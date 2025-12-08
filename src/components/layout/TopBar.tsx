@@ -51,7 +51,7 @@ const TopBar = () => {
   const displayName = getUserDisplayName();
 
   return (
-    <header className="sticky top-0 z-50 w-full h-14 border-b border-border/50 bg-background/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 w-full h-14 bg-background/80 backdrop-blur-xl">
       <div className="flex h-full items-center justify-end px-4 lg:px-6 gap-2">
         {/* Language Switcher */}
         <DropdownMenu>
