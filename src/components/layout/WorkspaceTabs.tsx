@@ -1,0 +1,92 @@
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
+import { cn } from '@/lib/utils';
+import { X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
+
+const WorkspaceTabs = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { tabs, activeTabId, closeTab, setActiveTab, closeAllTabs, closeOtherTabs } = useWorkspaceStore();
+
+  const handleTabClick = (tab: { id: string; path: string }) => {
+    if (tab.id !== activeTabId) {
+      setActiveTab(tab.id);
+      navigate(tab.path);
+    }
+  };
+
+  const handleCloseTab = (e: React.MouseEvent, tabId: string) => {
+    e.stopPropagation();
+    const tab = tabs.find(t => t.id === tabId);
+    closeTab(tabId);
+    
+    // Navigate to the new active tab after closing
+    const remainingTabs = tabs.filter(t => t.id !== tabId);
+    if (remainingTabs.length > 0 && tab?.id === activeTabId) {
+      const newActiveTab = remainingTabs[remainingTabs.length - 1];
+      navigate(newActiveTab.path);
+    }
+  };
+
+  if (tabs.length === 0) return null;
+
+  return (
+    <div className="flex items-center bg-muted/30 border-b border-border overflow-x-auto scrollbar-hide">
+      <div className="flex items-center min-w-0">
+        {tabs.map((tab) => (
+          <ContextMenu key={tab.id}>
+            <ContextMenuTrigger>
+              <div
+                onClick={() => handleTabClick(tab)}
+                className={cn(
+                  'group relative flex items-center gap-2 px-4 py-2 text-sm cursor-pointer border-r border-border min-w-[120px] max-w-[200px] transition-colors',
+                  tab.isActive
+                    ? 'bg-background text-foreground border-b-2 border-b-primary'
+                    : 'text-muted-foreground hover:bg-background/50 hover:text-foreground'
+                )}
+              >
+                <span className="truncate flex-1">{tab.label}</span>
+                {tabs.length > 1 && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      'h-4 w-4 p-0 opacity-0 group-hover:opacity-100 transition-opacity',
+                      'hover:bg-destructive/10 hover:text-destructive'
+                    )}
+                    onClick={(e) => handleCloseTab(e, tab.id)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+                {tab.isActive && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                )}
+              </div>
+            </ContextMenuTrigger>
+            <ContextMenuContent>
+              <ContextMenuItem onClick={() => closeTab(tab.id)} disabled={tabs.length === 1}>
+                Close
+              </ContextMenuItem>
+              <ContextMenuItem onClick={() => closeOtherTabs(tab.id)} disabled={tabs.length === 1}>
+                Close Others
+              </ContextMenuItem>
+              <ContextMenuItem onClick={closeAllTabs} disabled={tabs.length === 1}>
+                Close All
+              </ContextMenuItem>
+            </ContextMenuContent>
+          </ContextMenu>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default WorkspaceTabs;

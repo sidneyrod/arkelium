@@ -1,7 +1,8 @@
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyStore } from '@/stores/companyStore';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { 
   Home, 
   Building2, 
@@ -29,7 +30,9 @@ const Sidebar = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
   const { branding, profile } = useCompanyStore();
+  const { openTab } = useWorkspaceStore();
   const location = useLocation();
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
 
   // Auto-collapse on smaller desktop screens
@@ -93,12 +96,19 @@ const Sidebar = () => {
           <ul className="space-y-0.5">
             {navItems.map((item) => {
               const active = isActive(item.path);
+              
+              const handleClick = (e: React.MouseEvent) => {
+                e.preventDefault();
+                openTab(item.path, item.label);
+                navigate(item.path);
+              };
+              
               const linkContent = (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
+                <a
+                  href={item.path}
+                  onClick={handleClick}
                   className={cn(
-                    "flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm font-medium transition-all duration-200",
+                    "flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm font-medium transition-all duration-200 cursor-pointer",
                     active 
                       ? "bg-sidebar-accent text-sidebar-accent-foreground" 
                       : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
@@ -107,7 +117,7 @@ const Sidebar = () => {
                 >
                   <item.icon className={cn("h-4 w-4 shrink-0", active && "text-primary")} />
                   {!collapsed && <span className="truncate">{item.label}</span>}
-                </NavLink>
+                </a>
               );
 
               if (collapsed) {
