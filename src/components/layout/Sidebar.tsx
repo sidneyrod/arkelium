@@ -16,7 +16,8 @@ import {
   ClipboardList,
   ChevronLeft,
   ChevronRight,
-  Receipt
+  Receipt,
+  CalendarOff
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -59,6 +60,7 @@ const Sidebar = () => {
     { path: '/calculator', label: 'Estimate', icon: FileSpreadsheet },
     { path: '/payroll', label: t.nav.payroll, icon: Wallet },
     ...(isManagerOrAdmin ? [{ path: '/activity-log', label: t.nav.activityLog, icon: ClipboardList }] : []),
+    ...(isManagerOrAdmin ? [{ path: '/absence-approval', label: 'Absences', icon: CalendarOff }] : []),
     { path: '/settings', label: t.nav.settings, icon: Settings },
   ];
 

@@ -12,7 +12,9 @@ import {
   Wallet,
   Settings,
   Menu,
-  ClipboardList
+  ClipboardList,
+  CalendarOff,
+  Receipt
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -33,9 +35,11 @@ const MobileNavigation = () => {
     { path: '/clients', label: t.nav.clients, icon: UserCircle },
     { path: '/contracts', label: t.nav.contracts, icon: FileText },
     { path: '/schedule', label: t.nav.schedule, icon: Calendar },
-    { path: '/calculator', label: t.nav.calculator, icon: Calculator },
+    { path: '/invoices', label: 'Invoices', icon: Receipt },
+    { path: '/calculator', label: 'Estimate', icon: Calculator },
     { path: '/payroll', label: t.nav.payroll, icon: Wallet },
     ...(isManagerOrAdmin ? [{ path: '/activity-log', label: t.nav.activityLog, icon: ClipboardList }] : []),
+    ...(isManagerOrAdmin ? [{ path: '/absence-approval', label: 'Absences', icon: CalendarOff }] : []),
     { path: '/settings', label: t.nav.settings, icon: Settings },
   ];
 
