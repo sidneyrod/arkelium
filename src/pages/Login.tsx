@@ -151,13 +151,16 @@ const Login = () => {
             : 'bg-white/80 border border-emerald-200/50 shadow-emerald-900/10'
         }`}>
           
-          {/* Logo - Arkelium Symbol only, larger for prominence */}
-          <div className="flex items-center justify-center mb-8 mt-2">
+          {/* Logo - Arkelium Symbol with immediate loading */}
+          <div className="flex flex-col items-center justify-center mb-8 mt-2">
             <img 
               src={arkeliumLogo} 
               alt="Arkelium" 
-              className="w-32 h-32 object-contain"
+              className="w-28 h-28 object-contain"
+              loading="eager"
+              fetchPriority="high"
             />
+            <span className="text-[hsl(45,70%,55%)] text-sm font-semibold tracking-wider mt-2">ARKELIUM</span>
           </div>
 
           {/* Sign In Form */}
@@ -177,8 +180,8 @@ const Login = () => {
                 required
                 className={`h-11 transition-all ${
                   isDark 
-                    ? 'bg-emerald-950/50 border-emerald-700/30 focus:border-emerald-500/50 focus:ring-emerald-500/20 placeholder:text-emerald-700/50 text-emerald-100'
-                    : 'bg-white border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500/20 placeholder:text-emerald-400 text-emerald-900'
+                    ? 'bg-emerald-950/50 border-emerald-700/40 focus:border-emerald-500/50 focus:ring-emerald-500/20 placeholder:text-emerald-500/70 text-emerald-100'
+                    : 'bg-white border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500/20 placeholder:text-emerald-500 text-emerald-900'
                 }`}
               />
             </div>
@@ -224,21 +227,21 @@ const Login = () => {
             </div>
 
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-3">
                 <Checkbox 
                   id="remember" 
                   checked={rememberMe}
                   onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                  className={`h-4 w-4 ${
+                  className={`h-5 w-5 rounded ${
                     isDark 
-                      ? 'border-emerald-600 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600'
+                      ? 'border-emerald-500/70 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-500'
                       : 'border-emerald-400 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600'
                   }`}
                 />
-                <Label htmlFor="remember" className={`text-xs font-normal cursor-pointer transition-colors ${
+                <Label htmlFor="remember" className={`text-sm font-normal cursor-pointer transition-colors ${
                   isDark 
-                    ? 'text-white hover:text-white/80'
-                    : 'text-black hover:text-black/80'
+                    ? 'text-emerald-200/90 hover:text-white'
+                    : 'text-emerald-800 hover:text-black'
                 }`}>
                   {t.auth.rememberMe}
                 </Label>
@@ -274,10 +277,11 @@ const Login = () => {
           </form>
 
           {/* Footer Note */}
-          <p className={`text-[10px] text-center mt-8 ${
-            isDark ? 'text-emerald-700/50' : 'text-emerald-500/70'
+          <p className={`text-[11px] text-center mt-8 flex items-center justify-center gap-1.5 ${
+            isDark ? 'text-emerald-400/60' : 'text-emerald-600/80'
           }`}>
-            Access is controlled by your administrator
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/50" />
+            Secure access for authorized users only
           </p>
         </div>
       </div>

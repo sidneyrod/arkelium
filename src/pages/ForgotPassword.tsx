@@ -122,13 +122,16 @@ const ForgotPassword = () => {
             ? 'bg-[#0d1a15]/90 border border-emerald-800/20 shadow-black/50' 
             : 'bg-white/80 border border-emerald-200/50 shadow-emerald-900/10'
         }`}>
-          {/* Logo - Arkelium Symbol only, larger for prominence */}
-          <div className="flex items-center justify-center mb-8 mt-2">
+          {/* Logo - Arkelium Symbol with immediate loading */}
+          <div className="flex flex-col items-center justify-center mb-8 mt-2">
             <img 
               src={arkeliumLogo} 
               alt="Arkelium" 
-              className="w-32 h-32 object-contain"
+              className="w-28 h-28 object-contain"
+              loading="eager"
+              fetchPriority="high"
             />
+            <span className="text-[hsl(45,70%,55%)] text-sm font-semibold tracking-wider mt-2">ARKELIUM</span>
           </div>
 
           {isSubmitted ? (
@@ -195,8 +198,8 @@ const ForgotPassword = () => {
                     required
                     className={`h-11 transition-all ${
                       isDark 
-                        ? 'bg-[#071a12] border-emerald-800/30 focus:border-emerald-500/50 focus:ring-emerald-500/20 placeholder:text-emerald-700/40 text-emerald-100' 
-                        : 'bg-white border-emerald-200 focus:border-emerald-400 focus:ring-emerald-400/20 placeholder:text-emerald-400 text-emerald-900'
+                        ? 'bg-emerald-950/50 border-emerald-700/40 focus:border-emerald-500/50 focus:ring-emerald-500/20 placeholder:text-emerald-500/70 text-emerald-100' 
+                        : 'bg-white border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500/20 placeholder:text-emerald-500 text-emerald-900'
                     }`}
                   />
                   {error && (
