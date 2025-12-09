@@ -188,16 +188,20 @@ const TopBar = () => {
 
     setIsSearching(true);
     const results: SearchResult[] = [];
-    const searchTerm = `%${query.toLowerCase()}%`;
+    const searchTerm = query.toLowerCase();
 
     try {
-      // Search clients
-      const { data: clients } = await supabase
+      // Search clients - use text search pattern
+      const { data: clients, error: clientsError } = await supabase
         .from('clients')
         .select('id, name, email')
         .eq('company_id', user.profile.company_id)
-        .or(`name.ilike.${searchTerm},email.ilike.${searchTerm}`)
+        .or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
         .limit(5);
+
+      if (clientsError) {
+        console.error('Clients search error:', clientsError);
+      }
 
       if (clients) {
         clients.forEach(client => {
@@ -210,13 +214,17 @@ const TopBar = () => {
         });
       }
 
-      // Search contracts
-      const { data: contracts } = await supabase
+      // Search contracts - search by contract number or client name
+      const { data: contracts, error: contractsError } = await supabase
         .from('contracts')
         .select('id, contract_number, clients(name)')
         .eq('company_id', user.profile.company_id)
-        .ilike('contract_number', searchTerm)
+        .or(`contract_number.ilike.%${searchTerm}%`)
         .limit(5);
+
+      if (contractsError) {
+        console.error('Contracts search error:', contractsError);
+      }
 
       if (contracts) {
         contracts.forEach(contract => {
@@ -230,12 +238,16 @@ const TopBar = () => {
       }
 
       // Search invoices
-      const { data: invoices } = await supabase
+      const { data: invoices, error: invoicesError } = await supabase
         .from('invoices')
         .select('id, invoice_number, clients(name)')
         .eq('company_id', user.profile.company_id)
-        .ilike('invoice_number', searchTerm)
+        .or(`invoice_number.ilike.%${searchTerm}%`)
         .limit(5);
+
+      if (invoicesError) {
+        console.error('Invoices search error:', invoicesError);
+      }
 
       if (invoices) {
         invoices.forEach(invoice => {
@@ -293,9 +305,9 @@ const TopBar = () => {
   return (
     <header className="sticky top-0 z-50 w-full h-14 bg-card/95 dark:bg-[hsl(160,18%,8%)]/95 backdrop-blur-xl border-b border-border dark:border-[hsl(160,12%,14%)]">
       <div className="flex h-full items-center justify-between px-4 lg:px-6">
-        {/* Left: Breadcrumbs */}
+        {/* Left: Breadcrumbs - only show when not on home/dashboard and there are multiple crumbs */}
         <div className="flex items-center gap-2 min-w-0">
-          {breadcrumbs.map((crumb, index) => (
+          {breadcrumbs.length > 1 && breadcrumbs.slice(1).map((crumb, index) => (
             <div key={crumb.path} className="flex items-center gap-2">
               {index > 0 && (
                 <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 flex-shrink-0" />
@@ -304,7 +316,7 @@ const TopBar = () => {
                 onClick={() => navigate(crumb.path)}
                 className={cn(
                   'text-sm transition-colors truncate max-w-[120px]',
-                  index === breadcrumbs.length - 1
+                  index === breadcrumbs.slice(1).length - 1
                     ? 'text-foreground font-medium'
                     : 'text-muted-foreground hover:text-foreground'
                 )}

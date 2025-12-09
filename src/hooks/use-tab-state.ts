@@ -1,15 +1,16 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 
 /**
- * Hook to manage tab scroll position and form state persistence
+ * Hook to manage tab scroll position, form state persistence, and unsaved changes detection
  */
 export const useTabState = (containerId?: string) => {
   const location = useLocation();
   const { tabs, activeTabId, updateTabScrollPosition, setTabUnsavedChanges, updateTabFormState } = useWorkspaceStore();
   const scrollContainerRef = useRef<HTMLElement | null>(null);
   const isRestoringScroll = useRef(false);
+  const [initialFormState, setInitialFormState] = useState<Record<string, any>>({});
 
   const getTabIdFromPath = (path: string) => path.replace(/^\//, '') || 'dashboard';
   const currentTabId = getTabIdFromPath(location.pathname);
@@ -69,10 +70,29 @@ export const useTabState = (containerId?: string) => {
     return currentTab?.formState || {};
   }, [currentTab?.formState]);
 
+  // Track form changes - compares current state to initial state
+  const trackFormChanges = useCallback((currentFormState: Record<string, any>) => {
+    const hasChanges = JSON.stringify(currentFormState) !== JSON.stringify(initialFormState);
+    setUnsavedChanges(hasChanges);
+  }, [initialFormState, setUnsavedChanges]);
+
+  // Set initial form state for comparison
+  const setInitialState = useCallback((state: Record<string, any>) => {
+    setInitialFormState(state);
+  }, []);
+
+  // Reset unsaved changes when component unmounts or saves
+  const clearUnsavedChanges = useCallback(() => {
+    setUnsavedChanges(false);
+  }, [setUnsavedChanges]);
+
   return {
     setUnsavedChanges,
     saveFormState,
     getFormState,
     currentTab,
+    trackFormChanges,
+    setInitialState,
+    clearUnsavedChanges,
   };
 };

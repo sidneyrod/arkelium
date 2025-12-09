@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 
 const WorkspaceTabs = () => {
   const navigate = useNavigate();
@@ -34,6 +34,9 @@ const WorkspaceTabs = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
 
   // Handle horizontal scroll with mouse wheel
   useEffect(() => {
@@ -49,6 +52,35 @@ const WorkspaceTabs = () => {
 
     container.addEventListener('wheel', handleWheel, { passive: false });
     return () => container.removeEventListener('wheel', handleWheel);
+  }, []);
+
+  // Drag-to-scroll handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    
+    setIsDragging(true);
+    setStartX(e.pageX - container.offsetLeft);
+    setScrollLeft(container.scrollLeft);
+  }, []);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDragging) return;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    
+    e.preventDefault();
+    const x = e.pageX - container.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    container.scrollLeft = scrollLeft - walk;
+  }, [isDragging, startX, scrollLeft]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsDragging(false);
   }, []);
 
   // Update fade indicators based on scroll position
@@ -115,11 +147,18 @@ const WorkspaceTabs = () => {
           <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-sidebar-background dark:from-[hsl(160,18%,8%)] to-transparent z-10 pointer-events-none" />
         )}
         
-        {/* Scrollable tabs container */}
+        {/* Scrollable tabs container with drag-to-scroll */}
         <div 
           ref={scrollContainerRef}
-          className="flex items-center overflow-x-auto scrollbar-hide scroll-smooth"
-          style={{ scrollBehavior: 'smooth' }}
+          className={cn(
+            "flex items-center overflow-x-auto scrollbar-hide scroll-smooth select-none",
+            isDragging && "cursor-grabbing"
+          )}
+          style={{ scrollBehavior: isDragging ? 'auto' : 'smooth' }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
         >
           <div className="flex items-center min-w-0 whitespace-nowrap">
             {tabs.map((tab) => (
