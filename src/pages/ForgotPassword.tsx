@@ -131,7 +131,6 @@ const ForgotPassword = () => {
               loading="eager"
               fetchPriority="high"
             />
-            <span className="text-[hsl(45,70%,55%)] text-sm font-semibold tracking-wider mt-2">ARKELIUM</span>
           </div>
 
           {isSubmitted ? (
