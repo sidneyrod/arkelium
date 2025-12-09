@@ -45,7 +45,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 interface CompanyInfo {
   name: string;

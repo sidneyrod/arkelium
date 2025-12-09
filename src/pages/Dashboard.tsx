@@ -1,5 +1,7 @@
+import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 import StatCard from '@/components/ui/stat-card';
 import AlertCard from '@/components/ui/alert-card';
 import { 
@@ -25,37 +27,148 @@ import {
   BarChart,
   Bar,
 } from 'recharts';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 
-// Empty chart data - will be populated from real data
-const weeklyJobsData = [
-  { name: 'Mon', jobs: 0 },
-  { name: 'Tue', jobs: 0 },
-  { name: 'Wed', jobs: 0 },
-  { name: 'Thu', jobs: 0 },
-  { name: 'Fri', jobs: 0 },
-  { name: 'Sat', jobs: 0 },
-  { name: 'Sun', jobs: 0 },
-];
-
-const revenueData = [
-  { name: 'Jan', revenue: 0 },
-  { name: 'Feb', revenue: 0 },
-  { name: 'Mar', revenue: 0 },
-  { name: 'Apr', revenue: 0 },
-  { name: 'May', revenue: 0 },
-  { name: 'Jun', revenue: 0 },
-];
+interface DashboardStats {
+  todayJobs: number;
+  activeEmployees: number;
+  activeClients: number;
+  monthlyRevenue: number;
+  pendingPayments: number;
+  upcomingSchedule: number;
+}
 
 const Dashboard = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const [stats, setStats] = useState<DashboardStats>({
+    todayJobs: 0,
+    activeEmployees: 0,
+    activeClients: 0,
+    monthlyRevenue: 0,
+    pendingPayments: 0,
+    upcomingSchedule: 0,
+  });
+  const [weeklyJobsData, setWeeklyJobsData] = useState([
+    { name: 'Mon', jobs: 0 },
+    { name: 'Tue', jobs: 0 },
+    { name: 'Wed', jobs: 0 },
+    { name: 'Thu', jobs: 0 },
+    { name: 'Fri', jobs: 0 },
+    { name: 'Sat', jobs: 0 },
+    { name: 'Sun', jobs: 0 },
+  ]);
+  const [revenueData, setRevenueData] = useState([
+    { name: 'Jan', revenue: 0 },
+    { name: 'Feb', revenue: 0 },
+    { name: 'Mar', revenue: 0 },
+    { name: 'Apr', revenue: 0 },
+    { name: 'May', revenue: 0 },
+    { name: 'Jun', revenue: 0 },
+  ]);
 
-  // Get user's real name from profile (first_name + last_name)
   const firstName = user?.profile?.first_name || '';
   const lastName = user?.profile?.last_name || '';
   const userName = firstName && lastName 
     ? `${firstName} ${lastName}` 
     : firstName || lastName || 'User';
+
+  const fetchDashboardData = useCallback(async () => {
+    if (!user?.profile?.company_id) return;
+
+    const companyId = user.profile.company_id;
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const weekStart = format(startOfWeek(new Date()), 'yyyy-MM-dd');
+    const weekEnd = format(endOfWeek(new Date()), 'yyyy-MM-dd');
+    const monthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+    const monthEnd = format(endOfMonth(new Date()), 'yyyy-MM-dd');
+
+    try {
+      // Fetch today's jobs
+      const { data: todayJobs } = await supabase
+        .from('jobs')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('scheduled_date', today);
+
+      // Fetch active employees (profiles with roles)
+      const { data: employees } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('company_id', companyId);
+
+      // Fetch active clients
+      const { data: clients } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('company_id', companyId);
+
+      // Fetch monthly revenue from paid invoices
+      const { data: paidInvoices } = await supabase
+        .from('invoices')
+        .select('total')
+        .eq('company_id', companyId)
+        .eq('status', 'paid')
+        .gte('paid_at', monthStart)
+        .lte('paid_at', monthEnd);
+
+      // Fetch pending payments
+      const { data: pendingInvoices } = await supabase
+        .from('invoices')
+        .select('total')
+        .eq('company_id', companyId)
+        .in('status', ['draft', 'sent']);
+
+      // Fetch upcoming jobs
+      const { data: upcomingJobs } = await supabase
+        .from('jobs')
+        .select('id')
+        .eq('company_id', companyId)
+        .gte('scheduled_date', today)
+        .eq('status', 'scheduled');
+
+      // Calculate stats
+      const monthlyRevenue = paidInvoices?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0;
+      const pendingPayments = pendingInvoices?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0;
+
+      setStats({
+        todayJobs: todayJobs?.length || 0,
+        activeEmployees: employees?.length || 0,
+        activeClients: clients?.length || 0,
+        monthlyRevenue,
+        pendingPayments,
+        upcomingSchedule: upcomingJobs?.length || 0,
+      });
+
+      // Fetch weekly jobs for chart
+      const { data: weekJobs } = await supabase
+        .from('jobs')
+        .select('scheduled_date')
+        .eq('company_id', companyId)
+        .gte('scheduled_date', weekStart)
+        .lte('scheduled_date', weekEnd);
+
+      if (weekJobs) {
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const weeklyData = dayNames.map((name, index) => {
+          const count = weekJobs.filter(job => {
+            const jobDay = new Date(job.scheduled_date).getDay();
+            return jobDay === index;
+          }).length;
+          return { name, jobs: count };
+        });
+        // Reorder to start from Monday
+        setWeeklyJobsData([...weeklyData.slice(1), weeklyData[0]]);
+      }
+
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+    }
+  }, [user?.profile?.company_id]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   return (
     <div className="container px-6 lg:px-10 py-8 space-y-8">
@@ -69,32 +182,32 @@ const Dashboard = () => {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard 
           title={t.dashboard.todayJobs} 
-          value="0" 
+          value={stats.todayJobs.toString()} 
           icon={Briefcase}
         />
         <StatCard 
           title={t.dashboard.activeEmployees} 
-          value="0" 
+          value={stats.activeEmployees.toString()} 
           icon={Users}
         />
         <StatCard 
           title={t.dashboard.activeClients} 
-          value="0" 
+          value={stats.activeClients.toString()} 
           icon={UserCircle}
         />
         <StatCard 
           title={t.dashboard.monthlyRevenue} 
-          value="$0" 
+          value={`$${stats.monthlyRevenue.toLocaleString()}`} 
           icon={DollarSign}
         />
         <StatCard 
           title={t.dashboard.pendingPayments} 
-          value="$0" 
+          value={`$${stats.pendingPayments.toLocaleString()}`} 
           icon={CreditCard}
         />
         <StatCard 
           title={t.dashboard.upcomingSchedule} 
-          value="0" 
+          value={stats.upcomingSchedule.toString()} 
           icon={Calendar}
         />
       </div>
