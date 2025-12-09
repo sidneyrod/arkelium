@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import PageHeader from '@/components/ui/page-header';
 import DataTable, { Column } from '@/components/ui/data-table';
@@ -14,10 +14,14 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { DollarSign, Clock, Calendar, FileText, Download, CheckCircle, Settings, Building2, MapPin, Percent } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { DollarSign, Clock, Calendar, FileText, Download, CheckCircle, Settings, Building2, MapPin, Percent, Play, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { usePayrollStore, PayrollPeriod, EmployeePayrollEntry, provincialOvertimeRules, provinceNames, CanadianProvince, PayPeriodType } from '@/stores/payrollStore';
+import { usePayrollStore, provincialOvertimeRules, provinceNames, CanadianProvince, PayPeriodType } from '@/stores/payrollStore';
+import { usePayroll, PayrollPeriod, PayrollEntry } from '@/hooks/usePayroll';
+import { PayrollNotification } from '@/components/payroll/PayrollNotification';
+import { GeneratePayrollDialog } from '@/components/payroll/GeneratePayrollDialog';
 import { logActivity } from '@/stores/activityStore';
 import { useCompanyStore } from '@/stores/companyStore';
 import { generatePayrollReportPdf, openPdfPreview, exportToCsv } from '@/utils/pdfGenerator';
@@ -31,48 +35,85 @@ const statusColors: Record<string, { label: string; variant: 'active' | 'pending
 
 const Payroll = () => {
   const { t } = useLanguage();
-  const { periods, defaultPayPeriod, defaultProvince, companySettings, setDefaultPayPeriod, setDefaultProvince, updateCompanySettings, approvePeriod, markAsPaid } = usePayrollStore();
+  const { companySettings, setDefaultPayPeriod, setDefaultProvince, updateCompanySettings } = usePayrollStore();
   const { profile, branding } = useCompanyStore();
+  
+  // Use the new Supabase-integrated hook
+  const {
+    periods,
+    currentPeriod,
+    entries,
+    employees,
+    isLoading,
+    isGenerating,
+    fetchPeriods,
+    generatePayrollPeriod,
+    approvePeriod,
+    markAsPaid,
+    checkPeriodNotifications,
+  } = usePayroll();
+
   const [selectedPeriod, setSelectedPeriod] = useState<PayrollPeriod | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showGenerateDialog, setShowGenerateDialog] = useState(false);
   const [settingsTab, setSettingsTab] = useState('general');
+  const [notification, setNotification] = useState<{ periodEnded: boolean; daysOverdue: number } | null>(null);
 
-  const currentPeriod = periods.find(p => p.status === 'pending' || p.status === 'in-progress');
+  // Check for notifications
+  useEffect(() => {
+    const checkNotifications = async () => {
+      const notif = await checkPeriodNotifications();
+      setNotification(notif);
+    };
+    checkNotifications();
+  }, [currentPeriod, checkPeriodNotifications]);
 
-  const handleApprove = (periodId: string) => {
-    approvePeriod(periodId);
+  const handleApprove = async (periodId: string) => {
+    await approvePeriod(periodId);
     logActivity('payroll_approved', 'Payroll period approved', periodId);
-    toast.success(t.payroll.payrollApproved);
   };
 
-  const handleMarkPaid = (periodId: string) => {
-    markAsPaid(periodId);
+  const handleMarkPaid = async (periodId: string) => {
+    await markAsPaid(periodId);
     logActivity('payroll_paid', 'Payroll marked as paid', periodId);
-    toast.success('Payroll marked as paid');
+  };
+
+  const handleGeneratePayroll = async (startDate: string, endDate: string) => {
+    const period = await generatePayrollPeriod(startDate, endDate);
+    if (period) {
+      logActivity('payroll_created', 'Payroll period generated', period.id);
+    }
   };
 
   const handleExportPdf = (period: PayrollPeriod) => {
+    // Map entries to the expected format
+    const mappedEntries = entries.map(e => ({
+      name: e.employee ? `${e.employee.first_name} ${e.employee.last_name}` : 'Unknown',
+      regularHours: e.regular_hours,
+      overtimeHours: e.overtime_hours,
+      grossPay: e.gross_pay,
+      netPay: e.net_pay,
+    }));
+
     const pdfHtml = generatePayrollReportPdf({
-      periodStart: period.startDate,
-      periodEnd: period.endDate,
-      province: provinceNames[period.province],
-      employees: period.entries.map(e => ({
-        name: e.employeeName,
-        regularHours: e.regularHours,
-        overtimeHours: e.overtimeHours,
-        grossPay: e.grossPay,
-        netPay: e.netPay,
-      })),
-      totals: { hours: period.totalHours, gross: period.totalGross, net: period.totalNet },
+      periodStart: period.start_date,
+      periodEnd: period.end_date,
+      province: companySettings.primaryProvince ? provinceNames[companySettings.primaryProvince] : 'Ontario',
+      employees: mappedEntries,
+      totals: { hours: period.total_hours, gross: period.total_gross, net: period.total_net },
     }, profile, branding);
-    openPdfPreview(pdfHtml, `Payroll-${period.startDate}`);
+    openPdfPreview(pdfHtml, `Payroll-${period.start_date}`);
   };
 
   const handleExportCsv = (period: PayrollPeriod) => {
-    exportToCsv(period.entries.map(e => ({
-      Employee: e.employeeName, Role: e.role, 'Regular Hours': e.regularHours,
-      'Overtime Hours': e.overtimeHours, 'Gross Pay': e.grossPay, 'Net Pay': e.netPay,
-    })), `payroll-${period.startDate}`);
+    const csvData = entries.map(e => ({
+      Employee: e.employee ? `${e.employee.first_name} ${e.employee.last_name}` : 'Unknown',
+      'Regular Hours': e.regular_hours,
+      'Overtime Hours': e.overtime_hours,
+      'Gross Pay': e.gross_pay,
+      'Net Pay': e.net_pay,
+    }));
+    exportToCsv(csvData, `payroll-${period.start_date}`);
     toast.success('CSV exported successfully');
   };
 
@@ -83,86 +124,240 @@ const Payroll = () => {
           <Calendar className="h-5 w-5 text-primary" />
         </div>
         <div>
-          <p className="font-medium">{p.startDate} - {p.endDate}</p>
-          <p className="text-xs text-muted-foreground">{p.entries.length} employees</p>
+          <p className="font-medium">{p.start_date} - {p.end_date}</p>
+          <p className="text-xs text-muted-foreground">{p.period_name}</p>
         </div>
       </div>
     )},
-    { key: 'totalAmount', header: 'Total', render: (p) => <span className="font-semibold">${p.totalNet.toLocaleString()}</span> },
-    { key: 'province', header: 'Province', render: (p) => <Badge variant="outline">{p.province}</Badge> },
-    { key: 'status', header: 'Status', render: (p) => <StatusBadge status={statusColors[p.status].variant} label={statusColors[p.status].label} /> },
+    { key: 'totalAmount', header: 'Total', render: (p) => <span className="font-semibold">${p.total_net?.toLocaleString() || 0}</span> },
+    { key: 'status', header: 'Status', render: (p) => <StatusBadge status={statusColors[p.status]?.variant || 'pending'} label={statusColors[p.status]?.label || p.status} /> },
   ];
 
-  const employeeColumns: Column<EmployeePayrollEntry>[] = [
+  const employeeColumns: Column<PayrollEntry>[] = [
     { key: 'name', header: t.payroll.employee, render: (emp) => (
       <div className="flex items-center gap-3">
-        <Avatar className="h-8 w-8"><AvatarFallback className="bg-primary/10 text-primary text-xs">{emp.employeeName.split(' ').map(n => n[0]).join('')}</AvatarFallback></Avatar>
-        <div><span className="font-medium">{emp.employeeName}</span><p className="text-xs text-muted-foreground capitalize">{emp.role}</p></div>
+        <Avatar className="h-8 w-8">
+          <AvatarFallback className="bg-primary/10 text-primary text-xs">
+            {emp.employee ? `${emp.employee.first_name?.[0] || ''}${emp.employee.last_name?.[0] || ''}` : '?'}
+          </AvatarFallback>
+        </Avatar>
+        <div>
+          <span className="font-medium">
+            {emp.employee ? `${emp.employee.first_name} ${emp.employee.last_name}` : 'Unknown'}
+          </span>
+          <p className="text-xs text-muted-foreground capitalize">{emp.employee?.employment_type || 'Employee'}</p>
+        </div>
       </div>
     )},
-    { key: 'regularHours', header: t.payroll.regularHours, render: (emp) => <span>{emp.regularHours}h</span> },
-    { key: 'overtime', header: t.payroll.overtime, render: (emp) => <span className={cn(emp.overtimeHours > 0 && "text-warning font-medium")}>{emp.overtimeHours}h</span> },
-    { key: 'bonus', header: t.payroll.bonus, render: (emp) => <span className={cn(emp.bonus > 0 && "text-success font-medium")}>${emp.bonus}</span> },
-    { key: 'deductions', header: t.payroll.deductions, render: (emp) => <span className="text-muted-foreground">-${emp.deductions}</span> },
-    { key: 'netPay', header: t.payroll.netPay, render: (emp) => <span className="font-semibold text-primary">${emp.netPay.toLocaleString()}</span> },
+    { key: 'regularHours', header: t.payroll.regularHours, render: (emp) => <span>{emp.regular_hours}h</span> },
+    { key: 'overtime', header: t.payroll.overtime, render: (emp) => <span className={cn(emp.overtime_hours > 0 && "text-warning font-medium")}>{emp.overtime_hours}h</span> },
+    { key: 'grossPay', header: 'Gross Pay', render: (emp) => <span>${emp.gross_pay?.toLocaleString() || 0}</span> },
+    { key: 'deductions', header: t.payroll.deductions, render: (emp) => <span className="text-muted-foreground">-${(emp.cpp_deduction + emp.ei_deduction + emp.tax_deduction + emp.other_deductions).toFixed(2)}</span> },
+    { key: 'netPay', header: t.payroll.netPay, render: (emp) => <span className="font-semibold text-primary">${emp.net_pay?.toLocaleString() || 0}</span> },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="container px-4 py-8 lg:px-8 space-y-8">
+        <Skeleton className="h-10 w-48" />
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+        </div>
+        <Skeleton className="h-64" />
+      </div>
+    );
+  }
 
   return (
     <div className="container px-4 py-8 lg:px-8 space-y-8">
       <PageHeader title={t.payroll.title} description="Manage employee payroll and compensation">
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2" onClick={() => setShowSettings(true)}><Settings className="h-4 w-4" />Settings</Button>
-          <Button variant="outline" className="gap-2" onClick={() => currentPeriod && handleExportCsv(currentPeriod)}><Download className="h-4 w-4" />{t.payroll.exportCsv}</Button>
+          <Button variant="outline" className="gap-2" onClick={() => fetchPeriods()}>
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={() => setShowSettings(true)}>
+            <Settings className="h-4 w-4" />
+            Settings
+          </Button>
+          <Button className="gap-2" onClick={() => setShowGenerateDialog(true)}>
+            <Play className="h-4 w-4" />
+            Generate Payroll
+          </Button>
         </div>
       </PageHeader>
 
+      {/* Notification for period end */}
+      {notification?.periodEnded && currentPeriod && (
+        <PayrollNotification
+          periodEnded={notification.periodEnded}
+          daysOverdue={notification.daysOverdue}
+          periodName={currentPeriod.period_name}
+          status={currentPeriod.status}
+          onGenerateClick={() => setShowGenerateDialog(true)}
+          onApproveClick={() => handleApprove(currentPeriod.id)}
+          isGenerating={isGenerating}
+        />
+      )}
+
+      {!currentPeriod && periods.length === 0 && (
+        <PayrollNotification
+          periodEnded={false}
+          daysOverdue={0}
+          periodName=""
+          status="not_created"
+          onGenerateClick={() => setShowGenerateDialog(true)}
+          onApproveClick={() => {}}
+          isGenerating={isGenerating}
+        />
+      )}
+
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="border-border/50"><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center"><DollarSign className="h-6 w-6 text-primary" /></div><div><p className="text-sm text-muted-foreground">Current Period Total</p><p className="text-2xl font-bold">${currentPeriod?.totalNet.toLocaleString() || 0}</p></div></div></CardContent></Card>
-        <Card className="border-border/50"><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="h-12 w-12 rounded-xl bg-info/10 flex items-center justify-center"><Clock className="h-6 w-6 text-info" /></div><div><p className="text-sm text-muted-foreground">Total Hours</p><p className="text-2xl font-bold">{currentPeriod?.totalHours || 0}h</p></div></div></CardContent></Card>
-        <Card className="border-border/50"><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="h-12 w-12 rounded-xl bg-success/10 flex items-center justify-center"><CheckCircle className="h-6 w-6 text-success" /></div><div><p className="text-sm text-muted-foreground">Jobs Completed</p><p className="text-2xl font-bold">{currentPeriod?.entries.reduce((sum, e) => sum + e.jobsCompleted, 0) || 0}</p></div></div></CardContent></Card>
+        <Card className="border-border/50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <DollarSign className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Current Period Total</p>
+                <p className="text-2xl font-bold">${currentPeriod?.total_net?.toLocaleString() || 0}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-xl bg-info/10 flex items-center justify-center">
+                <Clock className="h-6 w-6 text-info" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Hours</p>
+                <p className="text-2xl font-bold">{currentPeriod?.total_hours || 0}h</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-xl bg-success/10 flex items-center justify-center">
+                <CheckCircle className="h-6 w-6 text-success" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Employees</p>
+                <p className="text-2xl font-bold">{entries.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Tabs defaultValue="current" className="space-y-6">
-        <TabsList><TabsTrigger value="current">Current Period</TabsTrigger><TabsTrigger value="history">History</TabsTrigger></TabsList>
+        <TabsList>
+          <TabsTrigger value="current">Current Period</TabsTrigger>
+          <TabsTrigger value="history">History</TabsTrigger>
+        </TabsList>
+        
         <TabsContent value="current" className="space-y-6">
           {currentPeriod ? (
             <Card className="border-border/50 border-l-4 border-l-primary">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-medium flex items-center gap-2"><Calendar className="h-4 w-4 text-primary" />{currentPeriod.startDate} - {currentPeriod.endDate}</CardTitle>
+                  <CardTitle className="text-base font-medium flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-primary" />
+                    {currentPeriod.start_date} - {currentPeriod.end_date}
+                  </CardTitle>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">{currentPeriod.province} - OT after {provincialOvertimeRules[currentPeriod.province].weeklyThreshold}h/week</Badge>
-                    <StatusBadge status={statusColors[currentPeriod.status].variant} label={statusColors[currentPeriod.status].label} />
-                    {currentPeriod.status === 'pending' && <Button size="sm" onClick={() => handleApprove(currentPeriod.id)}>{t.payroll.approvePayroll}</Button>}
-                    {currentPeriod.status === 'approved' && <Button size="sm" onClick={() => handleMarkPaid(currentPeriod.id)}>{t.payroll.paid}</Button>}
+                    <StatusBadge 
+                      status={statusColors[currentPeriod.status]?.variant || 'pending'} 
+                      label={statusColors[currentPeriod.status]?.label || currentPeriod.status} 
+                    />
+                    {currentPeriod.status === 'pending' && (
+                      <Button size="sm" onClick={() => handleApprove(currentPeriod.id)}>
+                        {t.payroll.approvePayroll}
+                      </Button>
+                    )}
+                    {currentPeriod.status === 'approved' && (
+                      <Button size="sm" onClick={() => handleMarkPaid(currentPeriod.id)}>
+                        {t.payroll.paid}
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardHeader>
-              <CardContent><DataTable columns={employeeColumns} data={currentPeriod.entries} emptyMessage={t.common.noData} /></CardContent>
+              <CardContent>
+                <DataTable columns={employeeColumns} data={entries} emptyMessage={t.common.noData} />
+              </CardContent>
             </Card>
-          ) : <p className="text-center text-muted-foreground py-8">{t.common.noData}</p>}
+          ) : (
+            <Card className="border-border/50 border-dashed">
+              <CardContent className="py-12 text-center">
+                <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground mb-4">No active payroll period</p>
+                <Button onClick={() => setShowGenerateDialog(true)}>
+                  <Play className="h-4 w-4 mr-2" />
+                  Generate Payroll Period
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
-        <TabsContent value="history"><DataTable columns={periodColumns} data={periods.filter(p => p.status === 'paid')} onRowClick={setSelectedPeriod} emptyMessage={t.common.noData} /></TabsContent>
+        
+        <TabsContent value="history">
+          <DataTable 
+            columns={periodColumns} 
+            data={periods.filter(p => p.status === 'paid' || p.status === 'approved')} 
+            onRowClick={setSelectedPeriod} 
+            emptyMessage={t.common.noData} 
+          />
+        </TabsContent>
       </Tabs>
 
+      {/* Period Detail Dialog */}
       <Dialog open={!!selectedPeriod} onOpenChange={() => setSelectedPeriod(null)}>
         <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="flex items-center gap-3"><Calendar className="h-5 w-5 text-primary" />{selectedPeriod?.startDate} - {selectedPeriod?.endDate}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <Calendar className="h-5 w-5 text-primary" />
+              {selectedPeriod?.start_date} - {selectedPeriod?.end_date}
+            </DialogTitle>
+          </DialogHeader>
           {selectedPeriod && (
             <div className="space-y-6 mt-4">
               <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
-                <div><p className="text-sm text-muted-foreground">{t.payroll.totalAmount}</p><p className="text-2xl font-bold">${selectedPeriod.totalNet.toLocaleString()}</p></div>
+                <div>
+                  <p className="text-sm text-muted-foreground">{t.payroll.totalAmount}</p>
+                  <p className="text-2xl font-bold">${selectedPeriod.total_net?.toLocaleString() || 0}</p>
+                </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" className="gap-2" onClick={() => handleExportPdf(selectedPeriod)}><FileText className="h-4 w-4" />{t.payroll.exportPdf}</Button>
-                  <Button variant="outline" className="gap-2" onClick={() => handleExportCsv(selectedPeriod)}><Download className="h-4 w-4" />{t.payroll.exportCsv}</Button>
+                  <Button variant="outline" className="gap-2" onClick={() => handleExportPdf(selectedPeriod)}>
+                    <FileText className="h-4 w-4" />{t.payroll.exportPdf}
+                  </Button>
+                  <Button variant="outline" className="gap-2" onClick={() => handleExportCsv(selectedPeriod)}>
+                    <Download className="h-4 w-4" />{t.payroll.exportCsv}
+                  </Button>
                 </div>
               </div>
-              <DataTable columns={employeeColumns} data={selectedPeriod.entries} emptyMessage={t.common.noData} />
+              <DataTable columns={employeeColumns} data={entries} emptyMessage={t.common.noData} />
             </div>
           )}
         </DialogContent>
       </Dialog>
 
+      {/* Generate Payroll Dialog */}
+      <GeneratePayrollDialog
+        open={showGenerateDialog}
+        onOpenChange={setShowGenerateDialog}
+        onGenerate={handleGeneratePayroll}
+        isGenerating={isGenerating}
+        employeeCount={employees.length}
+      />
+
+      {/* Settings Dialog */}
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -329,9 +524,6 @@ const Payroll = () => {
                           } 
                         })}
                       />
-                      <p className="text-xs text-muted-foreground">
-                        {new Date().getFullYear()} rate (configure annually)
-                      </p>
                     </div>
                     <div className="space-y-2">
                       <Label>EI Employer Rate (%)</Label>
@@ -348,9 +540,6 @@ const Payroll = () => {
                           } 
                         })}
                       />
-                      <p className="text-xs text-muted-foreground">
-                        {new Date().getFullYear()} rate (1.4x employee rate)
-                      </p>
                     </div>
                   </div>
 

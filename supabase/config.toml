@@ -1,1 +1,4 @@
 project_id = "uynvypfkwwkoxchaghui"
+
+[functions.check-payroll-periods]
+verify_jwt = false

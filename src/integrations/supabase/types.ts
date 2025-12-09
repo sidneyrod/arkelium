@@ -960,6 +960,8 @@ export type Database = {
           created_at: string
           end_date: string
           id: string
+          notification_sent: boolean | null
+          notification_sent_at: string | null
           pay_date: string | null
           period_name: string
           start_date: string
@@ -977,6 +979,8 @@ export type Database = {
           created_at?: string
           end_date: string
           id?: string
+          notification_sent?: boolean | null
+          notification_sent_at?: string | null
           pay_date?: string | null
           period_name: string
           start_date: string
@@ -994,6 +998,8 @@ export type Database = {
           created_at?: string
           end_date?: string
           id?: string
+          notification_sent?: boolean | null
+          notification_sent_at?: string | null
           pay_date?: string | null
           period_name?: string
           start_date?: string
@@ -1164,6 +1170,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_next_payroll_period: {
+        Args: { p_frequency: string; p_reference_date?: string }
+        Returns: {
+          end_date: string
+          start_date: string
+        }[]
+      }
       get_user_company_id: { Args: never; Returns: string }
       has_role: {
         Args: { _role: Database["public"]["Enums"]["app_role"] }
