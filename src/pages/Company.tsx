@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useCompanyStore, ExtraFee, ChecklistItem } from '@/stores/companyStore';
+import { useAuth } from '@/contexts/AuthContext';
 import PageHeader from '@/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 import { 
   Building2, 
   Upload, 
@@ -24,7 +25,8 @@ import {
   Pencil,
   Trash2,
   GripVertical,
-  Calendar
+  Calendar,
+  Loader2
 } from 'lucide-react';
 
 const canadianProvinces = [
@@ -34,27 +36,86 @@ const canadianProvinces = [
   'Northwest Territories', 'Nunavut', 'Yukon'
 ];
 
+interface CompanyProfile {
+  trade_name: string;
+  legal_name: string;
+  address: string;
+  city: string;
+  province: string;
+  postal_code: string;
+  email: string;
+  phone: string;
+}
+
+interface CompanyBranding {
+  id?: string;
+  logo_url: string | null;
+  primary_color: string;
+  secondary_color: string;
+  accent_color: string;
+}
+
+interface EstimateConfig {
+  id?: string;
+  default_hourly_rate: number;
+  tax_rate: number;
+}
+
+interface ExtraFee {
+  id: string;
+  name: string;
+  amount: number;
+  is_active: boolean;
+  is_percentage: boolean;
+  display_order: number;
+}
+
+interface ChecklistItem {
+  id: string;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  display_order: number;
+}
+
 const Company = () => {
   const { t } = useLanguage();
-  const { 
-    profile, 
-    branding, 
-    estimateConfig, 
-    scheduleConfig,
-    updateProfile, 
-    updateBranding, 
-    updateEstimateConfig,
-    addExtraFee,
-    updateExtraFee,
-    deleteExtraFee,
-    addChecklistItem,
-    updateChecklistItem,
-    deleteChecklistItem,
-    reorderChecklistItems
-  } = useCompanyStore();
+  const { user } = useAuth();
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
+  const [hasChanges, setHasChanges] = useState(false);
+  
+  // Company data from database
+  const [profile, setProfile] = useState<CompanyProfile>({
+    trade_name: '',
+    legal_name: '',
+    address: '',
+    city: '',
+    province: 'Ontario',
+    postal_code: '',
+    email: '',
+    phone: ''
+  });
+  const [initialProfile, setInitialProfile] = useState<CompanyProfile | null>(null);
+  
+  const [branding, setBranding] = useState<CompanyBranding>({
+    logo_url: null,
+    primary_color: '#1a3d2e',
+    secondary_color: '#2d5a45',
+    accent_color: '#4ade80'
+  });
+  const [initialBranding, setInitialBranding] = useState<CompanyBranding | null>(null);
+  
+  const [estimateConfig, setEstimateConfig] = useState<EstimateConfig>({
+    default_hourly_rate: 35,
+    tax_rate: 13
+  });
+  const [initialEstimateConfig, setInitialEstimateConfig] = useState<EstimateConfig | null>(null);
+  
+  const [extraFees, setExtraFees] = useState<ExtraFee[]>([]);
+  const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
   
   // Fee modal state
   const [feeModalOpen, setFeeModalOpen] = useState(false);
@@ -65,31 +126,251 @@ const Company = () => {
   const [checklistModalOpen, setChecklistModalOpen] = useState(false);
   const [editingChecklist, setEditingChecklist] = useState<ChecklistItem | null>(null);
   const [checklistForm, setChecklistForm] = useState({ name: '' });
-  
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        updateBranding({ logoUrl: reader.result as string });
+  const companyId = user?.profile?.company_id;
+
+  // Check if there are changes
+  const checkForChanges = useCallback(() => {
+    if (!initialProfile || !initialBranding || !initialEstimateConfig) return false;
+    
+    const profileChanged = JSON.stringify(profile) !== JSON.stringify(initialProfile);
+    const brandingChanged = JSON.stringify({
+      logo_url: branding.logo_url,
+      primary_color: branding.primary_color,
+      secondary_color: branding.secondary_color,
+      accent_color: branding.accent_color
+    }) !== JSON.stringify({
+      logo_url: initialBranding.logo_url,
+      primary_color: initialBranding.primary_color,
+      secondary_color: initialBranding.secondary_color,
+      accent_color: initialBranding.accent_color
+    });
+    const estimateChanged = JSON.stringify({
+      default_hourly_rate: estimateConfig.default_hourly_rate,
+      tax_rate: estimateConfig.tax_rate
+    }) !== JSON.stringify({
+      default_hourly_rate: initialEstimateConfig.default_hourly_rate,
+      tax_rate: initialEstimateConfig.tax_rate
+    });
+    
+    return profileChanged || brandingChanged || estimateChanged;
+  }, [profile, branding, estimateConfig, initialProfile, initialBranding, initialEstimateConfig]);
+
+  useEffect(() => {
+    setHasChanges(checkForChanges());
+  }, [checkForChanges]);
+
+  // Fetch all company data
+  useEffect(() => {
+    const fetchCompanyData = async () => {
+      if (!companyId) {
+        setIsFetching(false);
+        return;
+      }
+
+      try {
+        // Fetch company profile
+        const { data: companyData, error: companyError } = await supabase
+          .from('companies')
+          .select('*')
+          .eq('id', companyId)
+          .single();
+
+        if (companyError) throw companyError;
+
+        if (companyData) {
+          const profileData: CompanyProfile = {
+            trade_name: companyData.trade_name || '',
+            legal_name: companyData.legal_name || '',
+            address: companyData.address || '',
+            city: companyData.city || '',
+            province: companyData.province || 'Ontario',
+            postal_code: companyData.postal_code || '',
+            email: companyData.email || '',
+            phone: companyData.phone || ''
+          };
+          setProfile(profileData);
+          setInitialProfile(profileData);
+        }
+
+        // Fetch branding
+        const { data: brandingData } = await supabase
+          .from('company_branding')
+          .select('*')
+          .eq('company_id', companyId)
+          .maybeSingle();
+
+        if (brandingData) {
+          const brandData: CompanyBranding = {
+            id: brandingData.id,
+            logo_url: brandingData.logo_url,
+            primary_color: brandingData.primary_color || '#1a3d2e',
+            secondary_color: brandingData.secondary_color || '#2d5a45',
+            accent_color: brandingData.accent_color || '#4ade80'
+          };
+          setBranding(brandData);
+          setInitialBranding(brandData);
+        } else {
+          setInitialBranding(branding);
+        }
+
+        // Fetch estimate config
+        const { data: estimateData } = await supabase
+          .from('company_estimate_config')
+          .select('*')
+          .eq('company_id', companyId)
+          .maybeSingle();
+
+        if (estimateData) {
+          const estConfig: EstimateConfig = {
+            id: estimateData.id,
+            default_hourly_rate: estimateData.default_hourly_rate || 35,
+            tax_rate: estimateData.tax_rate || 13
+          };
+          setEstimateConfig(estConfig);
+          setInitialEstimateConfig(estConfig);
+        } else {
+          setInitialEstimateConfig(estimateConfig);
+        }
+
+        // Fetch extra fees
+        const { data: feesData } = await supabase
+          .from('extra_fees')
+          .select('*')
+          .eq('company_id', companyId)
+          .order('display_order');
+
+        if (feesData) {
+          setExtraFees(feesData);
+        }
+
+        // Fetch checklist items
+        const { data: checklistData } = await supabase
+          .from('checklist_items')
+          .select('*')
+          .eq('company_id', companyId)
+          .order('display_order');
+
+        if (checklistData) {
+          setChecklistItems(checklistData);
+        }
+
+      } catch (error) {
+        console.error('Error fetching company data:', error);
         toast({
-          title: t.common.success,
-          description: 'Logo uploaded successfully',
+          title: 'Error',
+          description: 'Failed to load company data',
+          variant: 'destructive'
         });
-      };
-      reader.readAsDataURL(file);
+      } finally {
+        setIsFetching(false);
+      }
+    };
+
+    fetchCompanyData();
+  }, [companyId]);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !companyId) return;
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${companyId}/logo.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('company-assets')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('company-assets')
+        .getPublicUrl(fileName);
+
+      setBranding(prev => ({ ...prev, logo_url: publicUrl }));
+      toast({
+        title: t.common.success,
+        description: 'Logo uploaded successfully',
+      });
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to upload logo',
+        variant: 'destructive'
+      });
     }
   };
 
   const handleSave = async () => {
+    if (!companyId || !hasChanges) return;
+    
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    toast({
-      title: t.common.success,
-      description: t.company.saved,
-    });
-    setIsLoading(false);
+    try {
+      // Update company profile
+      const { error: profileError } = await supabase
+        .from('companies')
+        .update({
+          trade_name: profile.trade_name,
+          legal_name: profile.legal_name,
+          address: profile.address,
+          city: profile.city,
+          province: profile.province,
+          postal_code: profile.postal_code,
+          email: profile.email,
+          phone: profile.phone
+        })
+        .eq('id', companyId);
+
+      if (profileError) throw profileError;
+
+      // Upsert branding
+      const { error: brandingError } = await supabase
+        .from('company_branding')
+        .upsert({
+          id: branding.id,
+          company_id: companyId,
+          logo_url: branding.logo_url,
+          primary_color: branding.primary_color,
+          secondary_color: branding.secondary_color,
+          accent_color: branding.accent_color
+        }, { onConflict: 'company_id' });
+
+      if (brandingError) throw brandingError;
+
+      // Upsert estimate config
+      const { error: estimateError } = await supabase
+        .from('company_estimate_config')
+        .upsert({
+          id: estimateConfig.id,
+          company_id: companyId,
+          default_hourly_rate: estimateConfig.default_hourly_rate,
+          tax_rate: estimateConfig.tax_rate
+        }, { onConflict: 'company_id' });
+
+      if (estimateError) throw estimateError;
+
+      // Update initial states to match current
+      setInitialProfile({ ...profile });
+      setInitialBranding({ ...branding });
+      setInitialEstimateConfig({ ...estimateConfig });
+      setHasChanges(false);
+
+      toast({
+        title: t.common.success,
+        description: t.company.saved,
+      });
+    } catch (error) {
+      console.error('Error saving company data:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save company data',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Fee handlers
@@ -104,34 +385,83 @@ const Company = () => {
     setFeeModalOpen(true);
   };
 
-  const handleSaveFee = () => {
-    if (!feeForm.name.trim()) {
+  const handleSaveFee = async () => {
+    if (!feeForm.name.trim() || !companyId) {
       toast({ title: 'Error', description: 'Fee name is required', variant: 'destructive' });
       return;
     }
-    
-    // Check for duplicates
-    const exists = estimateConfig.extraFees.some(
-      f => f.name.toLowerCase() === feeForm.name.toLowerCase() && f.id !== editingFee?.id
-    );
-    if (exists) {
-      toast({ title: 'Error', description: 'A fee with this name already exists', variant: 'destructive' });
-      return;
-    }
 
-    if (editingFee) {
-      updateExtraFee(editingFee.id, feeForm);
-      toast({ title: t.common.success, description: 'Fee updated successfully' });
-    } else {
-      addExtraFee({ ...feeForm, isActive: true });
-      toast({ title: t.common.success, description: 'Fee created successfully' });
+    try {
+      if (editingFee) {
+        const { error } = await supabase
+          .from('extra_fees')
+          .update({ name: feeForm.name, amount: feeForm.amount })
+          .eq('id', editingFee.id);
+
+        if (error) throw error;
+
+        setExtraFees(prev => prev.map(f => 
+          f.id === editingFee.id ? { ...f, name: feeForm.name, amount: feeForm.amount } : f
+        ));
+        toast({ title: t.common.success, description: 'Fee updated successfully' });
+      } else {
+        const maxOrder = extraFees.length > 0 ? Math.max(...extraFees.map(f => f.display_order)) + 1 : 0;
+        
+        const { data, error } = await supabase
+          .from('extra_fees')
+          .insert({
+            company_id: companyId,
+            name: feeForm.name,
+            amount: feeForm.amount,
+            is_active: true,
+            is_percentage: false,
+            display_order: maxOrder
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        setExtraFees(prev => [...prev, data]);
+        toast({ title: t.common.success, description: 'Fee created successfully' });
+      }
+      setFeeModalOpen(false);
+    } catch (error) {
+      console.error('Error saving fee:', error);
+      toast({ title: 'Error', description: 'Failed to save fee', variant: 'destructive' });
     }
-    setFeeModalOpen(false);
   };
 
-  const handleDeleteFee = (id: string) => {
-    deleteExtraFee(id);
-    toast({ title: t.common.success, description: 'Fee deleted successfully' });
+  const handleDeleteFee = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('extra_fees')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setExtraFees(prev => prev.filter(f => f.id !== id));
+      toast({ title: t.common.success, description: 'Fee deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting fee:', error);
+      toast({ title: 'Error', description: 'Failed to delete fee', variant: 'destructive' });
+    }
+  };
+
+  const handleToggleFee = async (id: string, isActive: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('extra_fees')
+        .update({ is_active: isActive })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setExtraFees(prev => prev.map(f => f.id === id ? { ...f, is_active: isActive } : f));
+    } catch (error) {
+      console.error('Error toggling fee:', error);
+    }
   };
 
   // Checklist handlers
@@ -146,36 +476,117 @@ const Company = () => {
     setChecklistModalOpen(true);
   };
 
-  const handleSaveChecklist = () => {
-    if (!checklistForm.name.trim()) {
+  const handleSaveChecklist = async () => {
+    if (!checklistForm.name.trim() || !companyId) {
       toast({ title: 'Error', description: 'Item name is required', variant: 'destructive' });
       return;
     }
 
-    if (editingChecklist) {
-      updateChecklistItem(editingChecklist.id, checklistForm);
-      toast({ title: t.common.success, description: 'Item updated successfully' });
-    } else {
-      addChecklistItem({ ...checklistForm, isActive: true });
-      toast({ title: t.common.success, description: 'Item created successfully' });
+    try {
+      if (editingChecklist) {
+        const { error } = await supabase
+          .from('checklist_items')
+          .update({ name: checklistForm.name })
+          .eq('id', editingChecklist.id);
+
+        if (error) throw error;
+
+        setChecklistItems(prev => prev.map(i => 
+          i.id === editingChecklist.id ? { ...i, name: checklistForm.name } : i
+        ));
+        toast({ title: t.common.success, description: 'Item updated successfully' });
+      } else {
+        const maxOrder = checklistItems.length > 0 ? Math.max(...checklistItems.map(i => i.display_order || 0)) + 1 : 0;
+        
+        const { data, error } = await supabase
+          .from('checklist_items')
+          .insert({
+            company_id: companyId,
+            name: checklistForm.name,
+            is_active: true,
+            display_order: maxOrder
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        setChecklistItems(prev => [...prev, data]);
+        toast({ title: t.common.success, description: 'Item created successfully' });
+      }
+      setChecklistModalOpen(false);
+    } catch (error) {
+      console.error('Error saving checklist item:', error);
+      toast({ title: 'Error', description: 'Failed to save item', variant: 'destructive' });
     }
-    setChecklistModalOpen(false);
   };
 
-  const handleDeleteChecklist = (id: string) => {
-    deleteChecklistItem(id);
-    toast({ title: t.common.success, description: 'Item deleted successfully' });
+  const handleDeleteChecklist = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('checklist_items')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setChecklistItems(prev => prev.filter(i => i.id !== id));
+      toast({ title: t.common.success, description: 'Item deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting checklist item:', error);
+      toast({ title: 'Error', description: 'Failed to delete item', variant: 'destructive' });
+    }
   };
 
-  const moveChecklistItem = (index: number, direction: 'up' | 'down') => {
-    const items = [...scheduleConfig.checklistItems].sort((a, b) => a.order - b.order);
+  const handleToggleChecklist = async (id: string, isActive: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('checklist_items')
+        .update({ is_active: isActive })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setChecklistItems(prev => prev.map(i => i.id === id ? { ...i, is_active: isActive } : i));
+    } catch (error) {
+      console.error('Error toggling checklist item:', error);
+    }
+  };
+
+  const moveChecklistItem = async (index: number, direction: 'up' | 'down') => {
+    const items = [...checklistItems].sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
     const newIndex = direction === 'up' ? index - 1 : index + 1;
     if (newIndex < 0 || newIndex >= items.length) return;
     
-    [items[index], items[newIndex]] = [items[newIndex], items[index]];
-    const reordered = items.map((item, i) => ({ ...item, order: i + 1 }));
-    reorderChecklistItems(reordered);
+    const currentItem = items[index];
+    const swapItem = items[newIndex];
+    
+    try {
+      await supabase
+        .from('checklist_items')
+        .update({ display_order: newIndex })
+        .eq('id', currentItem.id);
+        
+      await supabase
+        .from('checklist_items')
+        .update({ display_order: index })
+        .eq('id', swapItem.id);
+
+      [items[index], items[newIndex]] = [items[newIndex], items[index]];
+      const reordered = items.map((item, i) => ({ ...item, display_order: i }));
+      setChecklistItems(reordered);
+    } catch (error) {
+      console.error('Error reordering items:', error);
+    }
   };
+
+  if (isFetching) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 lg:p-6 max-w-6xl mx-auto space-y-4">
@@ -222,8 +633,8 @@ const Company = () => {
                   <Label htmlFor="companyName" className="text-xs">{t.company.companyName}</Label>
                   <Input 
                     id="companyName" 
-                    value={profile.companyName}
-                    onChange={(e) => updateProfile({ companyName: e.target.value })}
+                    value={profile.trade_name}
+                    onChange={(e) => setProfile(prev => ({ ...prev, trade_name: e.target.value }))}
                     className="h-8 text-sm"
                   />
                 </div>
@@ -231,8 +642,8 @@ const Company = () => {
                   <Label htmlFor="legalName" className="text-xs">{t.company.legalName}</Label>
                   <Input 
                     id="legalName" 
-                    value={profile.legalName}
-                    onChange={(e) => updateProfile({ legalName: e.target.value })}
+                    value={profile.legal_name}
+                    onChange={(e) => setProfile(prev => ({ ...prev, legal_name: e.target.value }))}
                     className="h-8 text-sm"
                   />
                 </div>
@@ -241,7 +652,7 @@ const Company = () => {
                   <Input 
                     id="address" 
                     value={profile.address}
-                    onChange={(e) => updateProfile({ address: e.target.value })}
+                    onChange={(e) => setProfile(prev => ({ ...prev, address: e.target.value }))}
                     className="h-8 text-sm"
                   />
                 </div>
@@ -253,7 +664,7 @@ const Company = () => {
                   <Input 
                     id="city" 
                     value={profile.city}
-                    onChange={(e) => updateProfile({ city: e.target.value })}
+                    onChange={(e) => setProfile(prev => ({ ...prev, city: e.target.value }))}
                     className="h-8 text-sm"
                   />
                 </div>
@@ -261,7 +672,7 @@ const Company = () => {
                   <Label htmlFor="province" className="text-xs">{t.company.province}</Label>
                   <Select 
                     value={profile.province} 
-                    onValueChange={(value) => updateProfile({ province: value })}
+                    onValueChange={(value) => setProfile(prev => ({ ...prev, province: value }))}
                   >
                     <SelectTrigger className="h-8 text-sm">
                       <SelectValue placeholder="Select province" />
@@ -277,41 +688,8 @@ const Company = () => {
                   <Label htmlFor="postalCode" className="text-xs">{t.company.postalCode}</Label>
                   <Input 
                     id="postalCode" 
-                    value={profile.postalCode}
-                    onChange={(e) => updateProfile({ postalCode: e.target.value })}
-                    className="h-8 text-sm"
-                  />
-                </div>
-              </div>
-
-              <Separator className="my-2" />
-
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="space-y-1">
-                  <Label htmlFor="email" className="text-xs">{t.auth.email}</Label>
-                  <Input 
-                    id="email" 
-                    type="email"
-                    value={profile.email}
-                    onChange={(e) => updateProfile({ email: e.target.value })}
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="phone" className="text-xs">{t.company.phone}</Label>
-                  <Input 
-                    id="phone" 
-                    value={profile.phone}
-                    onChange={(e) => updateProfile({ phone: e.target.value })}
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="website" className="text-xs">{t.company.website}</Label>
-                  <Input 
-                    id="website" 
-                    value={profile.website}
-                    onChange={(e) => updateProfile({ website: e.target.value })}
+                    value={profile.postal_code}
+                    onChange={(e) => setProfile(prev => ({ ...prev, postal_code: e.target.value }))}
                     className="h-8 text-sm"
                   />
                 </div>
@@ -321,20 +699,21 @@ const Company = () => {
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <Label htmlFor="bn" className="text-xs">{t.company.businessNumber}</Label>
+                  <Label htmlFor="email" className="text-xs">{t.auth.email}</Label>
                   <Input 
-                    id="bn" 
-                    value={profile.businessNumber}
-                    onChange={(e) => updateProfile({ businessNumber: e.target.value })}
+                    id="email" 
+                    type="email"
+                    value={profile.email}
+                    onChange={(e) => setProfile(prev => ({ ...prev, email: e.target.value }))}
                     className="h-8 text-sm"
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="gst" className="text-xs">{t.company.gstHst}</Label>
+                  <Label htmlFor="phone" className="text-xs">{t.company.phone}</Label>
                   <Input 
-                    id="gst" 
-                    value={profile.gstHstNumber}
-                    onChange={(e) => updateProfile({ gstHstNumber: e.target.value })}
+                    id="phone" 
+                    value={profile.phone}
+                    onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
                     className="h-8 text-sm"
                   />
                 </div>
@@ -358,9 +737,9 @@ const Company = () => {
             <CardContent>
               <div className="flex items-start gap-4">
                 <div className="h-20 w-20 rounded-lg bg-muted flex items-center justify-center overflow-hidden border-2 border-dashed border-border shrink-0">
-                  {branding.logoUrl ? (
+                  {branding.logo_url ? (
                     <img 
-                      src={branding.logoUrl} 
+                      src={branding.logo_url} 
                       alt="Company logo" 
                       className="h-full w-full object-contain"
                     />
@@ -389,12 +768,12 @@ const Company = () => {
                       <Upload className="h-3.5 w-3.5" />
                       {t.company.uploadLogo}
                     </Button>
-                    {branding.logoUrl && (
+                    {branding.logo_url && (
                       <Button 
                         variant="ghost" 
                         size="sm"
                         className="text-destructive hover:text-destructive h-8"
-                        onClick={() => updateBranding({ logoUrl: null })}
+                        onClick={() => setBranding(prev => ({ ...prev, logo_url: null }))}
                       >
                         Remove
                       </Button>
@@ -405,14 +784,12 @@ const Company = () => {
                   </p>
                 </div>
               </div>
-              
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* Estimate Configuration Tab */}
         <TabsContent value="estimates" className="space-y-4 mt-4">
-          {/* Pricing & Taxes */}
           <Card className="border-border/50">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -433,8 +810,8 @@ const Company = () => {
                       id="defaultRate" 
                       type="number"
                       step="0.01"
-                      value={estimateConfig.defaultHourlyRate}
-                      onChange={(e) => updateEstimateConfig({ defaultHourlyRate: parseFloat(e.target.value) || 0 })}
+                      value={estimateConfig.default_hourly_rate}
+                      onChange={(e) => setEstimateConfig(prev => ({ ...prev, default_hourly_rate: parseFloat(e.target.value) || 0 }))}
                       className="pl-6 h-8 text-sm" 
                     />
                   </div>
@@ -446,39 +823,11 @@ const Company = () => {
                       id="taxRate" 
                       type="number"
                       step="0.01"
-                      value={estimateConfig.taxRate}
-                      onChange={(e) => updateEstimateConfig({ taxRate: parseFloat(e.target.value) || 0 })}
+                      value={estimateConfig.tax_rate}
+                      onChange={(e) => setEstimateConfig(prev => ({ ...prev, tax_rate: parseFloat(e.target.value) || 0 }))}
                       className="pr-6 h-8 text-sm" 
                     />
                     <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="overtimeRate" className="text-xs">{t.company.overtimeRate}</Label>
-                  <div className="relative">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
-                    <Input 
-                      id="overtimeRate" 
-                      type="number"
-                      step="0.01"
-                      value={estimateConfig.overtimeRate}
-                      onChange={(e) => updateEstimateConfig({ overtimeRate: parseFloat(e.target.value) || 0 })}
-                      className="pl-6 h-8 text-sm" 
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="holidayRate" className="text-xs">{t.company.holidayRate}</Label>
-                  <div className="relative">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
-                    <Input 
-                      id="holidayRate" 
-                      type="number"
-                      step="0.01"
-                      value={estimateConfig.holidayRate}
-                      onChange={(e) => updateEstimateConfig({ holidayRate: parseFloat(e.target.value) || 0 })}
-                      className="pl-6 h-8 text-sm" 
-                    />
                   </div>
                 </div>
               </div>
@@ -506,17 +855,17 @@ const Company = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {estimateConfig.extraFees.map((fee) => (
+                {extraFees.map((fee) => (
                   <div 
                     key={fee.id} 
                     className="flex items-center justify-between p-2.5 rounded-lg border border-border/50 bg-muted/30"
                   >
                     <div className="flex items-center gap-3">
                       <Switch
-                        checked={fee.isActive}
-                        onCheckedChange={(checked) => updateExtraFee(fee.id, { isActive: checked })}
+                        checked={fee.is_active}
+                        onCheckedChange={(checked) => handleToggleFee(fee.id, checked)}
                       />
-                      <span className={`text-sm ${!fee.isActive && 'text-muted-foreground'}`}>{fee.name}</span>
+                      <span className={`text-sm ${!fee.is_active && 'text-muted-foreground'}`}>{fee.name}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium">${fee.amount.toFixed(2)}</span>
@@ -534,7 +883,7 @@ const Company = () => {
                     </div>
                   </div>
                 ))}
-                {estimateConfig.extraFees.length === 0 && (
+                {extraFees.length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-4">No extra fees configured</p>
                 )}
               </div>
@@ -564,8 +913,8 @@ const Company = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-1.5">
-                {scheduleConfig.checklistItems
-                  .sort((a, b) => a.order - b.order)
+                {checklistItems
+                  .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
                   .map((item, index) => (
                     <div 
                       key={item.id} 
@@ -587,16 +936,16 @@ const Company = () => {
                             size="icon"
                             className="h-4 w-4 p-0"
                             onClick={() => moveChecklistItem(index, 'down')}
-                            disabled={index === scheduleConfig.checklistItems.length - 1}
+                            disabled={index === checklistItems.length - 1}
                           >
                             <GripVertical className="h-3 w-3 -rotate-90" />
                           </Button>
                         </div>
                         <Switch
-                          checked={item.isActive}
-                          onCheckedChange={(checked) => updateChecklistItem(item.id, { isActive: checked })}
+                          checked={item.is_active}
+                          onCheckedChange={(checked) => handleToggleChecklist(item.id, checked)}
                         />
-                        <span className={`text-sm ${!item.isActive && 'text-muted-foreground'}`}>{item.name}</span>
+                        <span className={`text-sm ${!item.is_active && 'text-muted-foreground'}`}>{item.name}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openChecklistModal(item)}>
@@ -613,7 +962,7 @@ const Company = () => {
                       </div>
                     </div>
                   ))}
-                {scheduleConfig.checklistItems.length === 0 && (
+                {checklistItems.length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-4">No checklist items configured</p>
                 )}
               </div>
@@ -624,8 +973,8 @@ const Company = () => {
 
       {/* Save Button */}
       <div className="flex justify-end pt-2">
-        <Button onClick={handleSave} disabled={isLoading} className="gap-2">
-          <Save className="h-4 w-4" />
+        <Button onClick={handleSave} disabled={isLoading || !hasChanges} className="gap-2">
+          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           {isLoading ? t.common.loading : t.common.save}
         </Button>
       </div>
@@ -685,7 +1034,6 @@ const Company = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 };

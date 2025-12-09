@@ -10,7 +10,6 @@ import {
   LogOut,
   Settings,
   Search,
-  ChevronRight,
   Building2,
   Mail,
   Phone,
@@ -305,27 +304,8 @@ const TopBar = () => {
   return (
     <header className="sticky top-0 z-50 w-full h-14 bg-card/95 dark:bg-[hsl(160,18%,8%)]/95 backdrop-blur-xl border-b border-border dark:border-[hsl(160,12%,14%)]">
       <div className="flex h-full items-center justify-between px-4 lg:px-6">
-        {/* Left: Breadcrumbs - only show when not on home/dashboard and there are multiple crumbs */}
-        <div className="flex items-center gap-2 min-w-0">
-          {breadcrumbs.length > 1 && breadcrumbs.slice(1).map((crumb, index) => (
-            <div key={crumb.path} className="flex items-center gap-2">
-              {index > 0 && (
-                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 flex-shrink-0" />
-              )}
-              <button
-                onClick={() => navigate(crumb.path)}
-                className={cn(
-                  'text-sm transition-colors truncate max-w-[120px]',
-                  index === breadcrumbs.slice(1).length - 1
-                    ? 'text-foreground font-medium'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                {crumb.label}
-              </button>
-            </div>
-          ))}
-        </div>
+        {/* Left: Empty space for layout balance */}
+        <div className="flex items-center gap-2 min-w-0" />
 
         {/* Center: Global Search */}
         <div className="hidden md:flex flex-1 max-w-md mx-8">
