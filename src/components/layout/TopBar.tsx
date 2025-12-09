@@ -2,6 +2,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { 
   Moon,
   Sun,
@@ -23,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { supabase } from '@/integrations/supabase/client';
 
 const TopBar = () => {
   const { language, setLanguage, t } = useLanguage();
@@ -75,7 +77,61 @@ const TopBar = () => {
 
   const breadcrumbs = getBreadcrumbs();
   const displayName = getUserDisplayName();
-  const companyName = user?.profile?.company_id ? 'Arkelium' : 'No Company';
+  
+  // Dynamic company name from database
+  const [companyName, setCompanyName] = useState<string>('Loading...');
+  
+  useEffect(() => {
+    const fetchCompanyName = async () => {
+      if (!user?.profile?.company_id) {
+        setCompanyName('No Company');
+        return;
+      }
+      
+      try {
+        const { data, error } = await supabase
+          .from('companies')
+          .select('trade_name, legal_name')
+          .eq('id', user.profile.company_id)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching company:', error);
+          setCompanyName('Unknown');
+          return;
+        }
+        
+        setCompanyName(data?.trade_name || data?.legal_name || 'Unknown');
+      } catch (err) {
+        console.error('Error fetching company name:', err);
+        setCompanyName('Unknown');
+      }
+    };
+    
+    fetchCompanyName();
+    
+    // Subscribe to realtime updates for company name changes
+    const channel = supabase
+      .channel('company-name-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'companies',
+          filter: `id=eq.${user?.profile?.company_id}`
+        },
+        (payload) => {
+          const newData = payload.new as { trade_name?: string; legal_name?: string };
+          setCompanyName(newData.trade_name || newData.legal_name || 'Unknown');
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.profile?.company_id]);
 
   return (
     <header className="sticky top-0 z-50 w-full h-14 bg-[hsl(160,18%,8%)]/95 backdrop-blur-xl border-b border-[hsl(160,12%,14%)]">
