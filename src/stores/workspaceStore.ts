@@ -77,15 +77,27 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         const newTabs = tabs.filter(tab => tab.id !== id);
         
         if (newTabs.length === 0) {
-          // Don't close the last tab, just return
+          // If closing the last tab, navigate to home/dashboard
+          set({
+            tabs: [{
+              id: 'dashboard',
+              path: '/',
+              label: 'Home',
+              isActive: true,
+            }],
+            activeTabId: 'dashboard',
+          });
           return;
         }
         
         let newActiveId = activeTabId;
         
         if (activeTabId === id) {
-          // Need to activate another tab
-          if (tabIndex > 0) {
+          // If closing active tab, go to previous tab or first available, prefer Home
+          const homeTab = newTabs.find(t => t.id === 'dashboard' || t.path === '/');
+          if (homeTab) {
+            newActiveId = homeTab.id;
+          } else if (tabIndex > 0) {
             newActiveId = newTabs[tabIndex - 1].id;
           } else {
             newActiveId = newTabs[0].id;

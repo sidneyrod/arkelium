@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
 import PageHeader from '@/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -26,7 +27,8 @@ import {
   Trash2,
   GripVertical,
   Calendar,
-  Loader2
+  Loader2,
+  Globe
 } from 'lucide-react';
 
 const canadianProvinces = [
@@ -45,6 +47,7 @@ interface CompanyProfile {
   postal_code: string;
   email: string;
   phone: string;
+  website: string;
 }
 
 interface CompanyBranding {
@@ -96,7 +99,8 @@ const Company = () => {
     province: 'Ontario',
     postal_code: '',
     email: '',
-    phone: ''
+    phone: '',
+    website: ''
   });
   const [initialProfile, setInitialProfile] = useState<CompanyProfile | null>(null);
   
@@ -156,9 +160,14 @@ const Company = () => {
     return profileChanged || brandingChanged || estimateChanged;
   }, [profile, branding, estimateConfig, initialProfile, initialBranding, initialEstimateConfig]);
 
+  const { setTabUnsavedChanges } = useWorkspaceStore();
+
   useEffect(() => {
-    setHasChanges(checkForChanges());
-  }, [checkForChanges]);
+    const changed = checkForChanges();
+    setHasChanges(changed);
+    // Update workspace tab to show unsaved indicator
+    setTabUnsavedChanges('company', changed);
+  }, [checkForChanges, setTabUnsavedChanges]);
 
   // Fetch all company data
   useEffect(() => {
@@ -187,7 +196,8 @@ const Company = () => {
             province: companyData.province || 'Ontario',
             postal_code: companyData.postal_code || '',
             email: companyData.email || '',
-            phone: companyData.phone || ''
+            phone: companyData.phone || '',
+            website: companyData.website || ''
           };
           setProfile(profileData);
           setInitialProfile(profileData);
@@ -319,7 +329,8 @@ const Company = () => {
           province: profile.province,
           postal_code: profile.postal_code,
           email: profile.email,
-          phone: profile.phone
+          phone: profile.phone,
+          website: profile.website
         })
         .eq('id', companyId);
 
@@ -697,7 +708,7 @@ const Company = () => {
 
               <Separator className="my-2" />
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-3">
                 <div className="space-y-1">
                   <Label htmlFor="email" className="text-xs">{t.auth.email}</Label>
                   <Input 
@@ -714,6 +725,17 @@ const Company = () => {
                     id="phone" 
                     value={profile.phone}
                     onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="website" className="text-xs">Website</Label>
+                  <Input 
+                    id="website" 
+                    type="url"
+                    value={profile.website}
+                    onChange={(e) => setProfile(prev => ({ ...prev, website: e.target.value }))}
+                    placeholder="www.company.com"
                     className="h-8 text-sm"
                   />
                 </div>

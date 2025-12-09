@@ -126,13 +126,26 @@ const WorkspaceTabs = () => {
 
   const performCloseTab = (tabId: string) => {
     const tab = tabs.find(t => t.id === tabId);
+    const remainingTabs = tabs.filter(t => t.id !== tabId);
+    
     closeTab(tabId);
     
-    // Navigate to the new active tab after closing
-    const remainingTabs = tabs.filter(t => t.id !== tabId);
-    if (remainingTabs.length > 0 && tab?.id === activeTabId) {
-      const newActiveTab = remainingTabs[remainingTabs.length - 1];
-      navigate(newActiveTab.path);
+    // Navigate after closing
+    if (tab?.id === activeTabId) {
+      if (remainingTabs.length === 0) {
+        // If no tabs remain, store will create Home tab, navigate to home
+        navigate('/');
+      } else {
+        // Find home tab or use previous/first tab
+        const homeTab = remainingTabs.find(t => t.id === 'dashboard' || t.path === '/');
+        if (homeTab) {
+          navigate(homeTab.path);
+        } else {
+          const tabIndex = tabs.findIndex(t => t.id === tabId);
+          const newActiveTab = tabIndex > 0 ? remainingTabs[tabIndex - 1] : remainingTabs[0];
+          navigate(newActiveTab.path);
+        }
+      }
     }
     setConfirmClose(null);
   };
