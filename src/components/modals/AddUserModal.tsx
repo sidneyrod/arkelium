@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { User, Mail, Phone, MapPin, Shield, DollarSign, Briefcase, Loader2 } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Shield, DollarSign, Briefcase, Loader2, Lock } from 'lucide-react';
 import { userSchema, validateForm } from '@/lib/validations';
 import { CanadianProvince, EmploymentType, provinceNames } from '@/stores/payrollStore';
 
@@ -36,6 +36,8 @@ export interface UserFormData {
   province?: CanadianProvince;
   employmentType?: EmploymentType;
   vacationPayPercent?: number;
+  // Password for new users
+  password?: string;
 }
 
 const initialFormData: UserFormData = {
@@ -49,6 +51,7 @@ const initialFormData: UserFormData = {
   province: 'ON',
   employmentType: 'full-time',
   vacationPayPercent: 4,
+  password: '',
 };
 
 const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalProps) => {
@@ -78,6 +81,13 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
       const validationErrors = (validation as { success: false; errors: Record<string, string> }).errors;
       setErrors(validationErrors);
       toast({ title: t.common.error, description: Object.values(validationErrors)[0], variant: 'destructive' });
+      return;
+    }
+
+    // For new users, password is required
+    if (!editUser?.id && (!formData.password || formData.password.length < 6)) {
+      setErrors({ password: 'Password must be at least 6 characters' });
+      toast({ title: t.common.error, description: 'Password must be at least 6 characters', variant: 'destructive' });
       return;
     }
     
@@ -126,17 +136,46 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
 
         toast({ title: t.common.success, description: t.users.userUpdated });
       } else {
-        // For new users, we need admin to create via Supabase Auth admin API
-        // For now, just create profile and role (user already exists in auth)
-        toast({ title: 'Note', description: 'User must already exist in authentication system. Profile updated.' });
+        // Create new user via edge function
+        const { data: session } = await supabase.auth.getSession();
+        
+        if (!session.session?.access_token) {
+          throw new Error('Not authenticated');
+        }
+
+        const response = await supabase.functions.invoke('create-user', {
+          body: {
+            email: formData.email,
+            password: formData.password,
+            firstName,
+            lastName,
+            phone: formData.phone,
+            role: formData.role === 'supervisor' ? 'cleaner' : formData.role,
+            companyId,
+            hourlyRate: formData.hourlyRate,
+            salary: formData.salary,
+            province: formData.province,
+            employmentType: formData.employmentType,
+          },
+        });
+
+        if (response.error) {
+          throw new Error(response.error.message || 'Failed to create user');
+        }
+
+        if (response.data?.error) {
+          throw new Error(response.data.error);
+        }
+
+        toast({ title: t.common.success, description: 'User created successfully' });
       }
 
       onSubmit(formData);
       setFormData(initialFormData);
       onOpenChange(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving user:', err);
-      toast({ title: 'Error', description: 'Failed to save user', variant: 'destructive' });
+      toast({ title: 'Error', description: err.message || 'Failed to save user', variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
@@ -151,6 +190,7 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
   };
 
   const showPayrollFields = formData.role === 'cleaner' || formData.role === 'supervisor';
+  const isNewUser = !editUser?.id;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -227,6 +267,7 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
                     placeholder="john@company.com"
                     className={errors.email ? 'border-destructive' : ''}
                     maxLength={255}
+                    disabled={!!editUser?.id}
                   />
                   {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
                 </div>
@@ -246,6 +287,29 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
                   />
                 </div>
               </div>
+
+              {/* Password field for new users */}
+              {isNewUser && (
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="flex items-center gap-2">
+                    <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                    Password
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={formData.password || ''}
+                    onChange={(e) => updateField('password', e.target.value)}
+                    placeholder="Minimum 6 characters"
+                    className={errors.password ? 'border-destructive' : ''}
+                    minLength={6}
+                  />
+                  {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
+                  <p className="text-xs text-muted-foreground">
+                    User will use this password to login. They can change it later.
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="address" className="flex items-center gap-2">
@@ -409,7 +473,14 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
               {t.common.cancel}
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? t.common.loading : t.common.save}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {t.common.loading}
+                </>
+              ) : (
+                t.common.save
+              )}
             </Button>
           </DialogFooter>
         </form>
