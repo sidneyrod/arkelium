@@ -410,6 +410,7 @@ export type Database = {
           province: string | null
           trade_name: string
           updated_at: string
+          website: string | null
         }
         Insert: {
           address?: string | null
@@ -423,6 +424,7 @@ export type Database = {
           province?: string | null
           trade_name: string
           updated_at?: string
+          website?: string | null
         }
         Update: {
           address?: string | null
@@ -436,6 +438,7 @@ export type Database = {
           province?: string | null
           trade_name?: string
           updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }

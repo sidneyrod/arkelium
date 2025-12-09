@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyStore } from '@/stores/companyStore';
+import { supabase } from '@/lib/supabase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,9 +13,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Slider } from '@/components/ui/slider';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { DollarSign, Calculator } from 'lucide-react';
+import { DollarSign, Calculator, Loader2 } from 'lucide-react';
 import { Estimate } from '@/stores/estimateStore';
 import { estimateSchema, validateForm } from '@/lib/validations';
+
+interface Client {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+}
 
 interface AddEstimateModalProps {
   open: boolean;
@@ -24,9 +33,13 @@ interface AddEstimateModalProps {
 
 const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateModalProps) => {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const { estimateConfig } = useCompanyStore();
   const isEditing = !!estimate;
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [clients, setClients] = useState<Client[]>([]);
+  const [isLoadingClients, setIsLoadingClients] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<string>('');
   
   // Get fee amounts from store
   const getFeeAmount = (name: string, fallback: number) => {
@@ -64,6 +77,48 @@ const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateM
     status: estimate?.status || 'draft' as const,
   });
 
+  // Fetch clients from Supabase
+  const fetchClients = useCallback(async () => {
+    if (!user?.profile?.company_id) return;
+    
+    setIsLoadingClients(true);
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('id, name, email, phone')
+        .eq('company_id', user.profile.company_id)
+        .order('name');
+      
+      if (error) throw error;
+      setClients(data || []);
+    } catch (err) {
+      console.error('Error fetching clients:', err);
+    } finally {
+      setIsLoadingClients(false);
+    }
+  }, [user?.profile?.company_id]);
+
+  // Load clients when modal opens
+  useEffect(() => {
+    if (open) {
+      fetchClients();
+    }
+  }, [open, fetchClients]);
+
+  // Handle client selection
+  const handleClientSelect = (clientId: string) => {
+    setSelectedClientId(clientId);
+    const client = clients.find(c => c.id === clientId);
+    if (client) {
+      setFormData(prev => ({
+        ...prev,
+        clientName: client.name,
+        clientEmail: client.email || '',
+        clientPhone: client.phone || '',
+      }));
+    }
+  };
+
   // Reset form when modal opens/closes
   useEffect(() => {
     if (open) {
@@ -89,7 +144,31 @@ const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateM
           notes: estimate.notes || '',
           status: estimate.status,
         });
+      } else {
+        // Reset to defaults for new estimate
+        setFormData({
+          clientName: '',
+          clientEmail: '',
+          clientPhone: '',
+          squareFootage: 1500,
+          bedrooms: 2,
+          bathrooms: 1,
+          livingAreas: 1,
+          hasKitchen: true,
+          serviceType: 'standard',
+          frequency: 'biweekly',
+          includePets: false,
+          includeChildren: false,
+          includeGreen: false,
+          includeFridge: false,
+          includeOven: false,
+          includeCabinets: false,
+          includeWindows: false,
+          notes: '',
+          status: 'draft',
+        });
       }
+      setSelectedClientId('');
       setErrors({});
     }
   }, [open, estimate]);
@@ -176,12 +255,41 @@ const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateM
           {/* Client Information */}
           <div className="space-y-3">
             <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t.calculator.clientInfo}</h3>
+            
+            {/* Client Selector */}
+            <div className="space-y-1.5">
+              <Label className="text-xs">Select Existing Client (Optional)</Label>
+              <Select value={selectedClientId} onValueChange={handleClientSelect}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder={isLoadingClients ? "Loading clients..." : "Select a client to auto-fill..."} />
+                </SelectTrigger>
+                <SelectContent>
+                  {isLoadingClients ? (
+                    <div className="flex items-center justify-center p-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : clients.length === 0 ? (
+                    <div className="p-2 text-sm text-muted-foreground text-center">No clients found</div>
+                  ) : (
+                    clients.map(client => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name} {client.email && `(${client.email})`}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Or enter client details manually below</p>
+            </div>
+            
+            <Separator className="my-2" />
+            
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label className="text-xs">{t.calculator.clientName}</Label>
                 <Input
                   value={formData.clientName}
-                  onChange={(e) => { setFormData(prev => ({ ...prev, clientName: e.target.value })); setErrors(prev => ({ ...prev, clientName: '' })); }}
+                  onChange={(e) => { setFormData(prev => ({ ...prev, clientName: e.target.value })); setSelectedClientId(''); setErrors(prev => ({ ...prev, clientName: '' })); }}
                   maxLength={100}
                   className={`h-9 ${errors.clientName ? 'border-destructive' : ''}`}
                 />
