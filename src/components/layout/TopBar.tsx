@@ -31,14 +31,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -309,73 +301,99 @@ const TopBar = () => {
 
         {/* Center: Global Search */}
         <div className="hidden md:flex flex-1 max-w-md mx-8">
-          <Popover open={searchOpen} onOpenChange={setSearchOpen}>
-            <PopoverTrigger asChild>
-              <div className="relative w-full">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search clients, contracts, invoices..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    if (e.target.value) setSearchOpen(true);
-                  }}
-                  onFocus={() => searchQuery && setSearchOpen(true)}
-                  className="pl-9 h-9 bg-muted/50 dark:bg-[hsl(160,12%,12%)] border-border dark:border-[hsl(160,12%,18%)] text-sm placeholder:text-muted-foreground/70 focus:border-primary/50 focus:ring-primary/20"
-                />
-                {isSearching && (
-                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              type="text"
+              placeholder="Search clients, contracts, invoices..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                if (e.target.value) setSearchOpen(true);
+              }}
+              onFocus={() => searchQuery && setSearchOpen(true)}
+              className="pl-9 h-9 bg-muted/50 dark:bg-[hsl(160,12%,12%)] border-border dark:border-[hsl(160,12%,18%)] text-sm placeholder:text-muted-foreground/70 focus:border-primary/50 focus:ring-primary/20"
+            />
+            {isSearching && (
+              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
+            )}
+            
+            {/* Search Results Dropdown */}
+            {searchOpen && searchQuery && (
+              <div className="absolute top-full left-0 right-0 mt-1 w-full bg-card dark:bg-[hsl(160,18%,10%)] border border-border dark:border-[hsl(160,12%,16%)] rounded-md shadow-lg z-50 max-h-80 overflow-y-auto">
+                {searchResults.length === 0 ? (
+                  <div className="py-6 text-center text-sm text-muted-foreground">
+                    {isSearching ? 'Searching...' : 'No results found.'}
+                  </div>
+                ) : (
+                  <div className="py-2">
+                    {searchResults.filter(r => r.type === 'client').length > 0 && (
+                      <div className="px-2 py-1">
+                        <p className="text-xs font-medium text-muted-foreground px-2 py-1">Clients</p>
+                        {searchResults.filter(r => r.type === 'client').map(result => (
+                          <button
+                            key={result.id}
+                            onClick={() => handleSearchSelect(result)}
+                            className="w-full flex items-center gap-2 px-2 py-2 text-sm hover:bg-accent rounded cursor-pointer text-left"
+                          >
+                            <span>👤</span>
+                            <div className="flex flex-col">
+                              <span>{result.title}</span>
+                              {result.subtitle && <span className="text-xs text-muted-foreground">{result.subtitle}</span>}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {searchResults.filter(r => r.type === 'contract').length > 0 && (
+                      <div className="px-2 py-1">
+                        <p className="text-xs font-medium text-muted-foreground px-2 py-1">Contracts</p>
+                        {searchResults.filter(r => r.type === 'contract').map(result => (
+                          <button
+                            key={result.id}
+                            onClick={() => handleSearchSelect(result)}
+                            className="w-full flex items-center gap-2 px-2 py-2 text-sm hover:bg-accent rounded cursor-pointer text-left"
+                          >
+                            <span>📄</span>
+                            <div className="flex flex-col">
+                              <span>{result.title}</span>
+                              {result.subtitle && <span className="text-xs text-muted-foreground">{result.subtitle}</span>}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {searchResults.filter(r => r.type === 'invoice').length > 0 && (
+                      <div className="px-2 py-1">
+                        <p className="text-xs font-medium text-muted-foreground px-2 py-1">Invoices</p>
+                        {searchResults.filter(r => r.type === 'invoice').map(result => (
+                          <button
+                            key={result.id}
+                            onClick={() => handleSearchSelect(result)}
+                            className="w-full flex items-center gap-2 px-2 py-2 text-sm hover:bg-accent rounded cursor-pointer text-left"
+                          >
+                            <span>🧾</span>
+                            <div className="flex flex-col">
+                              <span>{result.title}</span>
+                              {result.subtitle && <span className="text-xs text-muted-foreground">{result.subtitle}</span>}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
-            </PopoverTrigger>
-            <PopoverContent className="w-[400px] p-0 bg-card dark:bg-[hsl(160,18%,10%)] border-border dark:border-[hsl(160,12%,16%)]" align="start">
-              <Command className="bg-transparent">
-                <CommandList>
-                  <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
-                    {searchQuery ? 'No results found.' : 'Type to search...'}
-                  </CommandEmpty>
-                  {searchResults.length > 0 && (
-                    <>
-                      <CommandGroup heading="Clients">
-                        {searchResults.filter(r => r.type === 'client').map(result => (
-                          <CommandItem key={result.id} onSelect={() => handleSearchSelect(result)} className="cursor-pointer">
-                            <span className="mr-2">{getResultIcon(result.type)}</span>
-                            <div className="flex flex-col">
-                              <span>{result.title}</span>
-                              {result.subtitle && <span className="text-xs text-muted-foreground">{result.subtitle}</span>}
-                            </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                      <CommandGroup heading="Contracts">
-                        {searchResults.filter(r => r.type === 'contract').map(result => (
-                          <CommandItem key={result.id} onSelect={() => handleSearchSelect(result)} className="cursor-pointer">
-                            <span className="mr-2">{getResultIcon(result.type)}</span>
-                            <div className="flex flex-col">
-                              <span>{result.title}</span>
-                              {result.subtitle && <span className="text-xs text-muted-foreground">{result.subtitle}</span>}
-                            </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                      <CommandGroup heading="Invoices">
-                        {searchResults.filter(r => r.type === 'invoice').map(result => (
-                          <CommandItem key={result.id} onSelect={() => handleSearchSelect(result)} className="cursor-pointer">
-                            <span className="mr-2">{getResultIcon(result.type)}</span>
-                            <div className="flex flex-col">
-                              <span>{result.title}</span>
-                              {result.subtitle && <span className="text-xs text-muted-foreground">{result.subtitle}</span>}
-                            </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </>
-                  )}
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
+            )}
+          </div>
+          
+          {/* Click outside handler */}
+          {searchOpen && (
+            <div 
+              className="fixed inset-0 z-40" 
+              onClick={() => setSearchOpen(false)}
+            />
+          )}
         </div>
 
         {/* Right: Company indicator + Controls */}
@@ -467,11 +485,6 @@ const TopBar = () => {
                   <p className="text-xs text-muted-foreground">{user?.email || ''}</p>
                 </div>
               </div>
-              <DropdownMenuSeparator className="bg-border dark:bg-[hsl(160,12%,16%)]" />
-              <DropdownMenuItem onClick={() => navigate('/settings')}>
-                <Settings className="h-4 w-4 mr-2" />
-                {t.nav.settings}
-              </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-border dark:bg-[hsl(160,12%,16%)]" />
               <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
                 <LogOut className="h-4 w-4 mr-2" />

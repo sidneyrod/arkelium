@@ -266,9 +266,15 @@ const AddJobModal = ({ open, onOpenChange, onSave, job, preselectedDate, presele
 
     setErrors({});
     
+    // Use local date formatting to avoid timezone issues
+    const year = formData.date.getFullYear();
+    const month = String(formData.date.getMonth() + 1).padStart(2, '0');
+    const day = String(formData.date.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
+    
     const jobData = {
       ...formData,
-      date: format(formData.date, 'yyyy-MM-dd'),
+      date: dateString,
     };
     
     onSave(jobData);

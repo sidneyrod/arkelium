@@ -34,24 +34,37 @@ const MobileNavigation = () => {
   const isAdmin = hasRole(['admin']);
   const isAdminOrManager = hasRole(['admin', 'manager']);
 
+  // Menu items ordered as per specification:
+  // 1. Home, 2. Schedule, 3. Clients, 4. Contracts, 5. Completed Services, 
+  // 6. Estimate, 7. Invoices, 8. Payroll, 9. Absences, 10. Activity Log,
+  // 11. Company, 12. Users, 13. Settings
   const navItems = [
+    // 1. Home - all users
     { path: '/', label: t.nav.home, icon: Home },
+    // 2. Schedule - all users
     { path: '/schedule', label: t.nav.schedule, icon: Calendar },
-    ...(isAdmin ? [
-      { path: '/company', label: t.nav.company, icon: Building2 },
-      { path: '/users', label: t.nav.users, icon: Users },
-      { path: '/payroll', label: t.nav.payroll, icon: Wallet },
-      { path: '/settings', label: t.nav.settings, icon: Settings },
-    ] : []),
-    ...(isAdminOrManager ? [
-      { path: '/clients', label: t.nav.clients, icon: UserCircle },
-      { path: '/contracts', label: t.nav.contracts, icon: FileText },
-      { path: '/invoices', label: 'Invoices', icon: Receipt },
-      { path: '/completed-services', label: 'Completed Services', icon: CheckCircle },
-      { path: '/calculator', label: 'Estimate', icon: Calculator },
-      { path: '/activity-log', label: t.nav.activityLog, icon: ClipboardList },
-      { path: '/absence-approval', label: 'Absences', icon: CalendarOff },
-    ] : []),
+    // 3. Clients - Admin/Manager
+    ...(isAdminOrManager ? [{ path: '/clients', label: t.nav.clients, icon: UserCircle }] : []),
+    // 4. Contracts - Admin/Manager
+    ...(isAdminOrManager ? [{ path: '/contracts', label: t.nav.contracts, icon: FileText }] : []),
+    // 5. Completed Services - Admin/Manager
+    ...(isAdminOrManager ? [{ path: '/completed-services', label: 'Completed Services', icon: CheckCircle }] : []),
+    // 6. Estimate - Admin/Manager
+    ...(isAdminOrManager ? [{ path: '/calculator', label: 'Estimate', icon: Calculator }] : []),
+    // 7. Invoices - Admin/Manager
+    ...(isAdminOrManager ? [{ path: '/invoices', label: 'Invoices', icon: Receipt }] : []),
+    // 8. Payroll - Admin only
+    ...(isAdmin ? [{ path: '/payroll', label: t.nav.payroll, icon: Wallet }] : []),
+    // 9. Absences - Admin/Manager
+    ...(isAdminOrManager ? [{ path: '/absence-approval', label: 'Absences', icon: CalendarOff }] : []),
+    // 10. Activity Log - Admin/Manager
+    ...(isAdminOrManager ? [{ path: '/activity-log', label: t.nav.activityLog, icon: ClipboardList }] : []),
+    // 11. Company - Admin only
+    ...(isAdmin ? [{ path: '/company', label: t.nav.company, icon: Building2 }] : []),
+    // 12. Users - Admin only
+    ...(isAdmin ? [{ path: '/users', label: t.nav.users, icon: Users }] : []),
+    // 13. Settings - Admin only
+    ...(isAdmin ? [{ path: '/settings', label: t.nav.settings, icon: Settings }] : []),
   ];
 
   const isActive = (path: string) => {

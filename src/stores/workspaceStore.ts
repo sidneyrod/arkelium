@@ -43,11 +43,13 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         const existingTab = tabs.find(tab => tab.id === id);
         
         if (existingTab) {
-          // Just activate the existing tab
+          // Just activate the existing tab and update the path (for proper restoration)
           set({
             tabs: tabs.map(tab => ({
               ...tab,
               isActive: tab.id === id,
+              // Update path in case it changed
+              path: tab.id === id ? path : tab.path,
             })),
             activeTabId: id,
           });
