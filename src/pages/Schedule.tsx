@@ -38,7 +38,7 @@ import { useInvoiceStore } from '@/stores/invoiceStore';
 import { useCompanyStore } from '@/stores/companyStore';
 import AddJobModal from '@/components/modals/AddJobModal';
 import JobCompletionModal, { PaymentData } from '@/components/modals/JobCompletionModal';
-import AbsenceRequestModal from '@/components/modals/AbsenceRequestModal';
+import OffRequestModal, { OffRequestType } from '@/components/modals/OffRequestModal';
 import AvailabilityManager from '@/components/schedule/AvailabilityManager';
 import ConfirmDialog from '@/components/modals/ConfirmDialog';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, startOfWeek, endOfWeek, addWeeks, subWeeks, isSameDay, addDays, subDays, parseISO } from 'date-fns';
@@ -675,7 +675,7 @@ const Schedule = () => {
     }
   };
 
-  const handleAbsenceRequest = async (request: { startDate: string; endDate: string; reason: string }) => {
+  const handleAbsenceRequest = async (request: { startDate: string; endDate: string; reason: string; requestType?: string }) => {
     try {
       let companyId = user?.profile?.company_id;
       if (!companyId) {
@@ -696,6 +696,7 @@ const Schedule = () => {
           start_date: request.startDate,
           end_date: request.endDate,
           reason: request.reason,
+          request_type: request.requestType || 'time_off',
           status: 'pending',
         });
       
@@ -1245,11 +1246,11 @@ const Schedule = () => {
         onComplete={handleCompleteJob}
       />
 
-      {/* Absence Request Modal */}
-      <AbsenceRequestModal
+      {/* Off Request Modal */}
+      <OffRequestModal
         open={showAbsenceRequest}
         onOpenChange={setShowAbsenceRequest}
-        onSubmit={handleAbsenceRequest}
+        onSubmit={(data) => handleAbsenceRequest({ ...data, startDate: data.startDate, endDate: data.endDate, reason: data.reason })}
       />
 
       {/* Delete Confirmation Dialog */}

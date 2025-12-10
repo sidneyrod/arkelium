@@ -85,7 +85,7 @@ const Sidebar = () => {
     ...(isAdmin ? [{ path: '/payroll', label: t.nav.payroll, icon: Wallet }] : []),
     
     // 9. Absences - Admin/Manager
-    ...(isAdminOrManager ? [{ path: '/absence-approval', label: 'Absences', icon: CalendarOff }] : []),
+    ...(isAdminOrManager ? [{ path: '/off-requests', label: 'Off Requests', icon: CalendarOff }] : []),
     
     // 10. Activity Log - Admin/Manager
     ...(isAdminOrManager ? [{ path: '/activity-log', label: t.nav.activityLog, icon: ClipboardList }] : []),

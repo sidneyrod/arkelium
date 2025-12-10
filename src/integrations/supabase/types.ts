@@ -24,6 +24,7 @@ export type Database = {
           end_date: string
           id: string
           reason: string | null
+          request_type: string
           start_date: string
           status: string | null
           updated_at: string
@@ -37,6 +38,7 @@ export type Database = {
           end_date: string
           id?: string
           reason?: string | null
+          request_type?: string
           start_date: string
           status?: string | null
           updated_at?: string
@@ -50,6 +52,7 @@ export type Database = {
           end_date?: string
           id?: string
           reason?: string | null
+          request_type?: string
           start_date?: string
           status?: string | null
           updated_at?: string

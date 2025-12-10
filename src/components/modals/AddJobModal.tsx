@@ -10,12 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Loader2, AlertTriangle } from 'lucide-react';
+import { CalendarIcon, Loader2, AlertTriangle, CalendarOff } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ScheduledJob } from '@/stores/scheduleStore';
 import { jobSchema, validateForm } from '@/lib/validations';
 import { useScheduleValidation } from '@/hooks/useScheduleValidation';
+import { useCleanerBlockCheck } from '@/hooks/useCleanerBlockCheck';
 import { toast } from 'sonner';
 
 interface AddJobModalProps {
@@ -78,7 +79,9 @@ const AddJobModal = ({ open, onOpenChange, onSave, job, preselectedDate, presele
   const [isLoading, setIsLoading] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [unavailableCleaners, setUnavailableCleaners] = useState<string[]>([]);
+  const [blockedCleaners, setBlockedCleaners] = useState<string[]>([]);
   const { validateSchedule, getAvailableCleaners, canScheduleForClient } = useScheduleValidation();
+  const { getBlockedCleanersForDate, validateJobCreation } = useCleanerBlockCheck();
   
   // Data from Supabase
   const [clients, setClients] = useState<Client[]>([]);
@@ -274,7 +277,7 @@ const AddJobModal = ({ open, onOpenChange, onSave, job, preselectedDate, presele
     }
   };
 
-  // Check cleaner availability when date, time, or duration changes
+  // Check cleaner availability and blocks when date, time, or duration changes
   useEffect(() => {
     const checkAvailability = async () => {
       if (!formData.date || !formData.time || !user?.profile?.company_id) return;
@@ -284,6 +287,7 @@ const AddJobModal = ({ open, onOpenChange, onSave, job, preselectedDate, presele
       const day = String(formData.date.getDate()).padStart(2, '0');
       const dateString = `${year}-${month}-${day}`;
       
+      // Get cleaners unavailable due to schedule conflicts
       const unavailable = await getAvailableCleaners(
         dateString,
         formData.time,
@@ -292,10 +296,14 @@ const AddJobModal = ({ open, onOpenChange, onSave, job, preselectedDate, presele
         job?.id
       );
       setUnavailableCleaners(unavailable);
+      
+      // Get cleaners blocked due to approved off requests
+      const blocked = await getBlockedCleanersForDate(dateString, user.profile.company_id);
+      setBlockedCleaners(blocked);
     };
     
     checkAvailability();
-  }, [formData.date, formData.time, formData.duration, user?.profile?.company_id, job?.id, getAvailableCleaners]);
+  }, [formData.date, formData.time, formData.duration, user?.profile?.company_id, job?.id, getAvailableCleaners, getBlockedCleanersForDate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -322,9 +330,22 @@ const AddJobModal = ({ open, onOpenChange, onSave, job, preselectedDate, presele
       return;
     }
 
-    // Validate schedule conflicts and contract status
+    // Validate schedule conflicts, contract status, and cleaner blocks
     if (user?.profile?.company_id) {
       setIsValidating(true);
+      
+      // CRITICAL: Check if cleaner is blocked (approved off request)
+      // This is a BUSINESS RULE that CANNOT be bypassed
+      const blockCheck = await validateJobCreation(
+        formData.employeeId,
+        dateString,
+        user.profile.company_id
+      );
+      if (!blockCheck.canCreate) {
+        setIsValidating(false);
+        toast.error(blockCheck.message || 'Cleaner indisponível nesta data.');
+        return;
+      }
       
       // Check if client has valid (non-expired) contract
       const contractCheck = await canScheduleForClient(formData.clientId, user.profile.company_id);
@@ -483,20 +504,28 @@ const AddJobModal = ({ open, onOpenChange, onSave, job, preselectedDate, presele
                     ) : (
                       employees.map(emp => {
                         const isUnavailable = unavailableCleaners.includes(emp.id);
+                        const isBlocked = blockedCleaners.includes(emp.id);
+                        const isDisabled = isUnavailable || isBlocked;
                         const empName = `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || 'Unknown';
                         return (
                           <SelectItem 
                             key={emp.id} 
                             value={emp.id}
-                            disabled={isUnavailable}
-                            className={isUnavailable ? 'opacity-50' : ''}
+                            disabled={isDisabled}
+                            className={isDisabled ? 'opacity-50' : ''}
                           >
                             <div className="flex items-center gap-2">
                               <span>{empName}</span>
-                              {isUnavailable && (
+                              {isBlocked && (
                                 <span className="text-xs text-destructive flex items-center gap-1">
+                                  <CalendarOff className="h-3 w-3" />
+                                  Off Request
+                                </span>
+                              )}
+                              {isUnavailable && !isBlocked && (
+                                <span className="text-xs text-warning flex items-center gap-1">
                                   <AlertTriangle className="h-3 w-3" />
-                                  Unavailable
+                                  Busy
                                 </span>
                               )}
                             </div>
@@ -507,9 +536,11 @@ const AddJobModal = ({ open, onOpenChange, onSave, job, preselectedDate, presele
                   </SelectContent>
                 </Select>
                 {errors.employeeId && <p className="text-xs text-destructive">{errors.employeeId}</p>}
-                {unavailableCleaners.length > 0 && (
+                {(blockedCleaners.length > 0 || unavailableCleaners.length > 0) && (
                   <p className="text-xs text-muted-foreground">
-                    Some employees are unavailable due to conflicts or absences.
+                    {blockedCleaners.length > 0 
+                      ? 'Some employees are blocked due to approved off requests.' 
+                      : 'Some employees are unavailable due to schedule conflicts.'}
                   </p>
                 )}
               </div>
