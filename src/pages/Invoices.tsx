@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import PageHeader from '@/components/ui/page-header';
 import SearchInput from '@/components/ui/search-input';
@@ -23,9 +24,10 @@ import {
   DollarSign,
   QrCode,
   Printer,
-  Loader2
+  Loader2,
+  Calendar
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
@@ -48,6 +50,7 @@ interface Invoice {
   status: InvoiceStatus;
   createdAt: string;
   dueDate: string;
+  paidAt?: string;
   lineItems: { id: string; description: string; quantity: number; unitPrice: number; total: number }[];
 }
 
@@ -62,13 +65,33 @@ const statusConfig: Record<InvoiceStatus, { color: string; bgColor: string; labe
 const Invoices = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  
+  // Read URL params for filters
+  const urlStatus = searchParams.get('status');
+  const urlFrom = searchParams.get('from');
+  const urlTo = searchParams.get('to');
   
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>(urlStatus || 'all');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [dateRangeLabel, setDateRangeLabel] = useState<string | null>(null);
+  
+  // Set date range label if URL params exist
+  useEffect(() => {
+    if (urlFrom && urlTo) {
+      try {
+        const from = parseISO(urlFrom);
+        const to = parseISO(urlTo);
+        setDateRangeLabel(`${format(from, 'MMM d')} - ${format(to, 'MMM d, yyyy')}`);
+      } catch {
+        setDateRangeLabel(null);
+      }
+    }
+  }, [urlFrom, urlTo]);
   const [companyProfile, setCompanyProfile] = useState<any>(null);
 
   // Fetch invoices from Supabase
@@ -97,7 +120,13 @@ const Invoices = () => {
           due_date,
           notes,
           created_at,
+          paid_at,
           clients (
+            id,
+            name,
+            email,
+            client_locations (address, city)
+          ),
             id,
             name,
             email,
@@ -158,6 +187,7 @@ const Invoices = () => {
           status: inv.status as InvoiceStatus,
           createdAt: inv.created_at,
           dueDate: inv.due_date || inv.created_at,
+          paidAt: inv.paid_at,
           lineItems: (inv.invoice_items || []).map((item: any) => ({
             id: item.id,
             description: item.description,
@@ -214,10 +244,26 @@ const Invoices = () => {
         invoice.invoiceNumber.toLowerCase().includes(search.toLowerCase()) ||
         invoice.clientName.toLowerCase().includes(search.toLowerCase()) ||
         invoice.cleanerName.toLowerCase().includes(search.toLowerCase());
+      
+      // Status filter (from URL or dropdown)
       const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      
+      // Date range filter from URL
+      let matchesDateRange = true;
+      if (urlFrom && urlTo && invoice.paidAt) {
+        try {
+          const from = parseISO(urlFrom);
+          const to = parseISO(urlTo);
+          const paidDate = parseISO(invoice.paidAt);
+          matchesDateRange = isWithinInterval(paidDate, { start: from, end: to });
+        } catch {
+          matchesDateRange = true;
+        }
+      }
+      
+      return matchesSearch && matchesStatus && matchesDateRange;
     });
-  }, [invoices, search, statusFilter]);
+  }, [invoices, search, statusFilter, urlFrom, urlTo]);
 
   const stats = useMemo(() => {
     const total = invoices.length;
@@ -438,6 +484,12 @@ const Invoices = () => {
             <SelectItem value="overdue">Overdue</SelectItem>
           </SelectContent>
         </Select>
+        {dateRangeLabel && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-2 rounded-md">
+            <Calendar className="h-4 w-4" />
+            Period: {dateRangeLabel}
+          </div>
+        )}
       </div>
 
       {/* Table */}

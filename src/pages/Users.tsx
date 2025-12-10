@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import PageHeader from '@/components/ui/page-header';
 import SearchInput from '@/components/ui/search-input';
@@ -12,10 +13,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AddUserModal, { UserFormData } from '@/components/modals/AddUserModal';
 import ConfirmDialog from '@/components/modals/ConfirmDialog';
 import { toast } from '@/hooks/use-toast';
-import { UserPlus, Briefcase, Clock, Star, Phone, Mail, MoreHorizontal, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { UserPlus, Briefcase, Clock, Star, Phone, Mail, MoreHorizontal, Pencil, Trash2, Loader2, Filter } from 'lucide-react';
 import { provinceNames } from '@/stores/payrollStore';
 
 interface User {
@@ -41,6 +43,12 @@ const roleColors: Record<string, string> = {
 const Users = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  
+  // Read URL params for filters
+  const urlFilter = searchParams.get('filter');
+  const urlRoles = searchParams.get('roles');
+  
   const [search, setSearch] = useState('');
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,6 +56,8 @@ const Users = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
   const [deleteUser, setDeleteUser] = useState<User | null>(null);
+  const [roleFilter, setRoleFilter] = useState<string>(urlRoles ? 'filtered' : 'all');
+  const [statusFilterFromUrl] = useState<string>(urlFilter || 'all');
 
   // Fetch users from Supabase
   const fetchUsers = useCallback(async () => {
@@ -124,10 +134,35 @@ const Users = () => {
     fetchUsers();
   }, [fetchUsers]);
 
-  const filteredUsers = users.filter(u =>
-    u.name.toLowerCase().includes(search.toLowerCase()) ||
-    u.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredUsers = useMemo(() => {
+    let result = users;
+    
+    // Filter by search
+    if (search) {
+      result = result.filter(u =>
+        u.name.toLowerCase().includes(search.toLowerCase()) ||
+        u.email.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+    
+    // Filter by roles from URL (cleaner,manager)
+    if (urlRoles) {
+      const allowedRoles = urlRoles.split(',');
+      result = result.filter(u => allowedRoles.includes(u.role));
+    }
+    
+    // Filter by role dropdown
+    if (roleFilter !== 'all' && roleFilter !== 'filtered') {
+      result = result.filter(u => u.role === roleFilter);
+    }
+    
+    // Filter by status from URL
+    if (statusFilterFromUrl === 'active') {
+      result = result.filter(u => u.status === 'active');
+    }
+    
+    return result;
+  }, [users, search, urlRoles, roleFilter, statusFilterFromUrl]);
 
   const handleAddUser = async (userData: UserFormData) => {
     // Refresh the list after modal handles creation/update
@@ -254,12 +289,31 @@ const Users = () => {
         }}
       />
 
-      <SearchInput 
-        placeholder={t.users.searchUsers}
-        value={search}
-        onChange={setSearch}
-        className="max-w-sm"
-      />
+      <div className="flex flex-col sm:flex-row gap-4">
+        <SearchInput 
+          placeholder={t.users.searchUsers}
+          value={search}
+          onChange={setSearch}
+          className="max-w-sm"
+        />
+        <Select value={roleFilter} onValueChange={setRoleFilter}>
+          <SelectTrigger className="w-[160px]">
+            <Filter className="h-4 w-4 mr-2" />
+            <SelectValue placeholder="Filter by role" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Roles</SelectItem>
+            <SelectItem value="admin">Admin</SelectItem>
+            <SelectItem value="manager">Manager</SelectItem>
+            <SelectItem value="cleaner">Cleaner</SelectItem>
+          </SelectContent>
+        </Select>
+        {urlRoles && (
+          <div className="flex items-center text-sm text-muted-foreground bg-muted/50 px-3 py-1 rounded-md">
+            Showing: {urlRoles.split(',').join(', ')}
+          </div>
+        )}
+      </div>
 
       <DataTable 
         columns={columns}

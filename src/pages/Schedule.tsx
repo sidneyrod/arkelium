@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import PageHeader from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
@@ -41,7 +41,7 @@ import JobCompletionModal, { PaymentData } from '@/components/modals/JobCompleti
 import AbsenceRequestModal from '@/components/modals/AbsenceRequestModal';
 import AvailabilityManager from '@/components/schedule/AvailabilityManager';
 import ConfirmDialog from '@/components/modals/ConfirmDialog';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, startOfWeek, endOfWeek, addWeeks, subWeeks, isSameDay, addDays, subDays } from 'date-fns';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, startOfWeek, endOfWeek, addWeeks, subWeeks, isSameDay, addDays, subDays, parseISO } from 'date-fns';
 
 type ViewType = 'day' | 'week' | 'month' | 'timeline';
 type JobStatus = 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
@@ -103,14 +103,28 @@ const Schedule = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { addInvoice, getInvoiceByJobId } = useInvoiceStore();
   const { estimateConfig } = useCompanyStore();
   
-  const [view, setView] = useState<ViewType>('week');
+  // Read URL params for initial state
+  const urlView = searchParams.get('view') as ViewType | null;
+  const urlDate = searchParams.get('date');
+  
+  const [view, setView] = useState<ViewType>(urlView || 'week');
   const [jobs, setJobs] = useState<ScheduledJob[]>([]);
   const [absenceRequests, setAbsenceRequests] = useState<AbsenceRequest[]>([]);
   const [selectedJob, setSelectedJob] = useState<ScheduledJob | null>(null);
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(() => {
+    if (urlDate) {
+      try {
+        return parseISO(urlDate);
+      } catch {
+        return new Date();
+      }
+    }
+    return new Date();
+  });
   const [showAddJob, setShowAddJob] = useState(false);
   const [showCompletion, setShowCompletion] = useState(false);
   const [showAbsenceRequest, setShowAbsenceRequest] = useState(false);
@@ -120,6 +134,20 @@ const Schedule = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Update view and date when URL params change
+  useEffect(() => {
+    if (urlView && ['day', 'week', 'month', 'timeline'].includes(urlView)) {
+      setView(urlView);
+    }
+    if (urlDate) {
+      try {
+        setCurrentDate(parseISO(urlDate));
+      } catch {
+        // Invalid date, ignore
+      }
+    }
+  }, [urlView, urlDate]);
 
   // Fetch jobs from Supabase
   const fetchJobs = useCallback(async () => {
