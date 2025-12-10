@@ -370,32 +370,41 @@ const VisitHistory = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader 
-        title="Visit History"
-        description="Track, manage and convert all business visits"
-      />
+    <div className="space-y-8 p-2">
+      {/* Header Section with more spacing */}
+      <div className="pt-4">
+        <PageHeader 
+          title="Visit History"
+          description="Track, manage and convert all business visits"
+        />
+      </div>
 
       {/* Search and Quick Filters */}
-      <Card className="border-border/50">
-        <CardContent className="p-4 space-y-4">
+      <Card className="border-border/40 shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base font-medium flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            Search & Filters
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
           {/* Search Bar */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by client, employee, address, purpose or status..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-11 h-11 text-sm"
             />
           </div>
 
           {/* Filter Row */}
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {/* Period Filter */}
             <Select value={periodFilter} onValueChange={(v) => setPeriodFilter(v as PeriodFilter)}>
-              <SelectTrigger className="w-[140px]">
-                <Calendar className="h-4 w-4 mr-2" />
+              <SelectTrigger className="w-[150px] h-10">
+                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
                 <SelectValue placeholder="Period" />
               </SelectTrigger>
               <SelectContent>
@@ -413,21 +422,21 @@ const VisitHistory = () => {
                   type="date"
                   value={customStartDate}
                   onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="w-[150px]"
+                  className="w-[150px] h-10"
                 />
                 <Input
                   type="date"
                   value={customEndDate}
                   onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="w-[150px]"
+                  className="w-[150px] h-10"
                 />
               </>
             )}
 
             {/* Client Filter */}
             <Select value={clientFilter} onValueChange={setClientFilter}>
-              <SelectTrigger className="w-[160px]">
-                <Building2 className="h-4 w-4 mr-2" />
+              <SelectTrigger className="w-[170px] h-10">
+                <Building2 className="h-4 w-4 mr-2 text-muted-foreground" />
                 <SelectValue placeholder="Client" />
               </SelectTrigger>
               <SelectContent>
@@ -440,8 +449,8 @@ const VisitHistory = () => {
 
             {/* Employee Filter */}
             <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
-              <SelectTrigger className="w-[160px]">
-                <User className="h-4 w-4 mr-2" />
+              <SelectTrigger className="w-[170px] h-10">
+                <User className="h-4 w-4 mr-2 text-muted-foreground" />
                 <SelectValue placeholder="Employee" />
               </SelectTrigger>
               <SelectContent>
@@ -454,7 +463,7 @@ const VisitHistory = () => {
 
             {/* Status Filter */}
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-[150px] h-10">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -469,7 +478,7 @@ const VisitHistory = () => {
             {/* Purpose Filter */}
             {purposes.length > 0 && (
               <Select value={purposeFilter} onValueChange={setPurposeFilter}>
-                <SelectTrigger className="w-[160px]">
+                <SelectTrigger className="w-[170px] h-10">
                   <SelectValue placeholder="Purpose" />
                 </SelectTrigger>
                 <SelectContent>
@@ -486,9 +495,9 @@ const VisitHistory = () => {
               variant="outline" 
               size="sm" 
               onClick={clearFilters}
-              className="h-10"
+              className="h-10 px-4"
             >
-              <X className="h-4 w-4 mr-1" />
+              <X className="h-4 w-4 mr-1.5" />
               Clear
             </Button>
           </div>
@@ -496,7 +505,7 @@ const VisitHistory = () => {
       </Card>
 
       {/* Results Stats */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between px-1">
         <p className="text-sm text-muted-foreground">
           Showing {paginatedVisits.length} of {filteredVisits.length} visits
         </p>
