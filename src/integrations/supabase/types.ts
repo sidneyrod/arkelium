@@ -558,6 +558,7 @@ export type Database = {
           created_at: string
           default_hourly_rate: number | null
           id: string
+          invoice_generation_mode: string
           tax_rate: number | null
           updated_at: string
         }
@@ -566,6 +567,7 @@ export type Database = {
           created_at?: string
           default_hourly_rate?: number | null
           id?: string
+          invoice_generation_mode?: string
           tax_rate?: number | null
           updated_at?: string
         }
@@ -574,6 +576,7 @@ export type Database = {
           created_at?: string
           default_hourly_rate?: number | null
           id?: string
+          invoice_generation_mode?: string
           tax_rate?: number | null
           updated_at?: string
         }

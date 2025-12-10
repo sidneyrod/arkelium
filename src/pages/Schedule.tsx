@@ -134,6 +134,7 @@ const Schedule = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [invoiceGenerationMode, setInvoiceGenerationMode] = useState<'automatic' | 'manual'>('manual');
   
   // Update view and date when URL params change
   useEffect(() => {
@@ -277,12 +278,38 @@ const Schedule = () => {
     }
   }, [user]);
 
+  // Fetch invoice generation mode setting
+  const fetchInvoiceSettings = useCallback(async () => {
+    try {
+      let companyId = user?.profile?.company_id;
+      if (!companyId) {
+        const { data: companyIdData } = await supabase.rpc('get_user_company_id');
+        companyId = companyIdData;
+      }
+      
+      if (!companyId) return;
+      
+      const { data } = await supabase
+        .from('company_estimate_config')
+        .select('invoice_generation_mode')
+        .eq('company_id', companyId)
+        .maybeSingle();
+      
+      if (data?.invoice_generation_mode) {
+        setInvoiceGenerationMode(data.invoice_generation_mode as 'automatic' | 'manual');
+      }
+    } catch (error) {
+      console.error('Error fetching invoice settings:', error);
+    }
+  }, [user]);
+
   useEffect(() => {
     if (user) {
       fetchJobs();
       fetchAbsenceRequests();
+      fetchInvoiceSettings();
     }
-  }, [user, fetchJobs, fetchAbsenceRequests]);
+  }, [user, fetchJobs, fetchAbsenceRequests, fetchInvoiceSettings]);
 
   const filteredJobs = employeeFilter === 'all' 
     ? jobs 
@@ -584,85 +611,91 @@ const Schedule = () => {
           return;
         }
         
-        // Auto-generate invoice for cleaning jobs
-        const existingInvoice = getInvoiceByJobId(jobId);
-        if (!existingInvoice) {
-          const durationHours = parseFloat(job.duration.replace(/[^0-9.]/g, '')) || 2;
-          const hourlyRate = estimateConfig.defaultHourlyRate || 35;
-          const subtotal = durationHours * hourlyRate;
-          const taxRate = estimateConfig.taxRate || 13;
-          const taxAmount = subtotal * (taxRate / 100);
-          const total = subtotal + taxAmount;
+        // Only auto-generate invoice if mode is 'automatic'
+        // If 'manual', job will appear in Completed Services screen for admin review
+        if (invoiceGenerationMode === 'automatic') {
+          const existingInvoice = getInvoiceByJobId(jobId);
+          if (!existingInvoice) {
+            const durationHours = parseFloat(job.duration.replace(/[^0-9.]/g, '')) || 2;
+            const hourlyRate = estimateConfig.defaultHourlyRate || 35;
+            const subtotal = durationHours * hourlyRate;
+            const taxRate = estimateConfig.taxRate || 13;
+            const taxAmount = subtotal * (taxRate / 100);
+            const total = subtotal + taxAmount;
 
-          const invoice = addInvoice({
-            clientId: job.clientId || crypto.randomUUID(),
-            clientName: job.clientName,
-            clientAddress: job.address,
-            serviceAddress: job.address,
-            jobId: jobId,
-            cleanerName: job.employeeName,
-            cleanerId: job.employeeId,
-            serviceDate: job.date,
-            serviceDuration: job.duration,
-            dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            lineItems: [
-              {
-                id: crypto.randomUUID(),
-                description: `Cleaning Service - ${job.clientName}`,
-                quantity: durationHours,
-                unitPrice: hourlyRate,
-                total: subtotal
-              }
-            ],
-            subtotal,
-            taxRate,
-            taxAmount,
-            total,
-            status: paymentData?.paymentMethod ? 'paid' : 'draft',
-            notes: notes || ''
-          });
-          
-          // Create cleaner payment entry automatically
-          if (job.employeeId && paymentData?.paymentMethod) {
-            await createCleanerPayment(job, total, durationHours, paymentData);
-          }
-          
-          // If payment was recorded, update the invoice with payment info
-          if (paymentData?.paymentMethod) {
-            // Also save payment info to Supabase invoices table
-            const { data: companyIdData } = await supabase.rpc('get_user_company_id');
-            if (companyIdData) {
-              await supabase
-                .from('invoices')
-                .insert({
-                  company_id: companyIdData,
-                  client_id: job.clientId,
-                  cleaner_id: job.employeeId || null,
-                  location_id: null,
-                  job_id: jobId,
-                  invoice_number: invoice.invoiceNumber,
-                  subtotal,
-                  tax_rate: taxRate,
-                  tax_amount: taxAmount,
-                  total,
-                  status: 'paid',
-                  service_date: job.date,
-                  service_duration: job.duration,
-                  due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-                  notes: notes || '',
-                  payment_method: paymentData.paymentMethod,
-                  payment_amount: paymentData.paymentAmount,
-                  payment_date: paymentData.paymentDate.toISOString(),
-                  payment_reference: paymentData.paymentReference || null,
-                  payment_received_by: paymentData.paymentReceivedBy || null,
-                  payment_notes: paymentData.paymentNotes || null,
-                  paid_at: new Date().toISOString(),
-                });
+            const invoice = addInvoice({
+              clientId: job.clientId || crypto.randomUUID(),
+              clientName: job.clientName,
+              clientAddress: job.address,
+              serviceAddress: job.address,
+              jobId: jobId,
+              cleanerName: job.employeeName,
+              cleanerId: job.employeeId,
+              serviceDate: job.date,
+              serviceDuration: job.duration,
+              dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+              lineItems: [
+                {
+                  id: crypto.randomUUID(),
+                  description: `Cleaning Service - ${job.clientName}`,
+                  quantity: durationHours,
+                  unitPrice: hourlyRate,
+                  total: subtotal
+                }
+              ],
+              subtotal,
+              taxRate,
+              taxAmount,
+              total,
+              status: paymentData?.paymentMethod ? 'paid' : 'draft',
+              notes: notes || ''
+            });
+            
+            // Create cleaner payment entry automatically
+            if (job.employeeId && paymentData?.paymentMethod) {
+              await createCleanerPayment(job, total, durationHours, paymentData);
             }
-            toast.success(`Invoice ${invoice.invoiceNumber} generated and marked as paid`);
-          } else {
-            toast.success(`Invoice ${invoice.invoiceNumber} generated`);
+            
+            // If payment was recorded, update the invoice with payment info
+            if (paymentData?.paymentMethod) {
+              // Also save payment info to Supabase invoices table
+              const { data: companyIdData } = await supabase.rpc('get_user_company_id');
+              if (companyIdData) {
+                await supabase
+                  .from('invoices')
+                  .insert({
+                    company_id: companyIdData,
+                    client_id: job.clientId,
+                    cleaner_id: job.employeeId || null,
+                    location_id: null,
+                    job_id: jobId,
+                    invoice_number: invoice.invoiceNumber,
+                    subtotal,
+                    tax_rate: taxRate,
+                    tax_amount: taxAmount,
+                    total,
+                    status: 'paid',
+                    service_date: job.date,
+                    service_duration: job.duration,
+                    due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                    notes: notes || '',
+                    payment_method: paymentData.paymentMethod,
+                    payment_amount: paymentData.paymentAmount,
+                    payment_date: paymentData.paymentDate.toISOString(),
+                    payment_reference: paymentData.paymentReference || null,
+                    payment_received_by: paymentData.paymentReceivedBy || null,
+                    payment_notes: paymentData.paymentNotes || null,
+                    paid_at: new Date().toISOString(),
+                  });
+              }
+              toast.success(`Invoice ${invoice.invoiceNumber} generated and marked as paid`);
+            } else {
+              toast.success(`Invoice ${invoice.invoiceNumber} generated`);
+            }
           }
+        } else {
+          // Manual mode - job will appear in Completed Services
+          toast.success('Job completed. Invoice can be generated from Completed Services.');
         }
       }
       
