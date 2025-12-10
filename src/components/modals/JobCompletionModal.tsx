@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyStore } from '@/stores/companyStore';
+import { supabase } from '@/lib/supabase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -11,10 +13,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Camera, Upload, CheckCircle, Clock, MapPin, User, DollarSign, CreditCard, Banknote, CalendarIcon, AlertTriangle } from 'lucide-react';
+import { Camera, Upload, CheckCircle, Clock, MapPin, User, DollarSign, CreditCard, Banknote, CalendarIcon, AlertTriangle, Loader2, X } from 'lucide-react';
 import { ScheduledJob } from '@/stores/scheduleStore';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 interface JobCompletionModalProps {
   open: boolean;
@@ -39,7 +42,11 @@ interface ChecklistItemState {
 
 const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompletionModalProps) => {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const { scheduleConfig } = useCompanyStore();
+  
+  const beforePhotoRef = useRef<HTMLInputElement>(null);
+  const afterPhotoRef = useRef<HTMLInputElement>(null);
   
   // Build checklist from company config or use job's existing checklist
   const getInitialChecklist = (): ChecklistItemState[] => {
@@ -66,6 +73,8 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
   const [notes, setNotes] = useState('');
   const [beforePhoto, setBeforePhoto] = useState<string | null>(null);
   const [afterPhoto, setAfterPhoto] = useState<string | null>(null);
+  const [uploadingBefore, setUploadingBefore] = useState(false);
+  const [uploadingAfter, setUploadingAfter] = useState(false);
   
   // Payment fields - REQUIRED for job completion
   const [paymentMethod, setPaymentMethod] = useState<'e-transfer' | 'cash' | ''>('');
@@ -101,13 +110,70 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
   const completedItems = checklist.filter(item => item.completed).length;
   const progress = checklist.length > 0 ? Math.round((completedItems / checklist.length) * 100) : 0;
 
-  const handlePhotoUpload = (type: 'before' | 'after') => {
-    // Simulate photo upload - in production this would open file picker
-    const mockPhoto = `https://images.unsplash.com/photo-${type === 'before' ? '1584622650111-993a426fbf0a' : '1558618666-fcd25c85cd64'}?w=400`;
+  const handlePhotoUpload = async (type: 'before' | 'after', file: File) => {
+    if (!job || !user?.profile?.company_id) return;
+    
+    const setUploading = type === 'before' ? setUploadingBefore : setUploadingAfter;
+    const setPhoto = type === 'before' ? setBeforePhoto : setAfterPhoto;
+    
+    setUploading(true);
+    
+    try {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select an image file');
+        return;
+      }
+      
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('File size must be less than 10MB');
+        return;
+      }
+      
+      // Create unique file name
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.profile.company_id}/${job.id}/${type}-${Date.now()}.${fileExt}`;
+      
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('job-photos')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+      
+      if (error) throw error;
+      
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('job-photos')
+        .getPublicUrl(data.path);
+      
+      setPhoto(urlData.publicUrl);
+      toast.success(`${type === 'before' ? 'Before' : 'After'} photo uploaded`);
+    } catch (err) {
+      console.error('Error uploading photo:', err);
+      toast.error('Failed to upload photo');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleFileSelect = (type: 'before' | 'after', event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handlePhotoUpload(type, file);
+    }
+    // Reset input so same file can be selected again
+    event.target.value = '';
+  };
+
+  const removePhoto = (type: 'before' | 'after') => {
     if (type === 'before') {
-      setBeforePhoto(mockPhoto);
+      setBeforePhoto(null);
     } else {
-      setAfterPhoto(mockPhoto);
+      setAfterPhoto(null);
     }
   };
 
@@ -185,17 +251,44 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
               {t.job.photos}
             </h4>
             <div className="grid gap-4 sm:grid-cols-2">
+              {/* Before Photo */}
               <div className="space-y-2">
                 <Label>{t.job.before}</Label>
+                <input
+                  ref={beforePhotoRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleFileSelect('before', e)}
+                />
                 <div 
                   className={cn(
-                    "h-28 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-colors",
-                    beforePhoto ? "border-success bg-success/5" : "border-border hover:border-primary hover:bg-muted/50"
+                    "h-28 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-colors relative overflow-hidden",
+                    beforePhoto ? "border-success bg-success/5" : "border-border hover:border-primary hover:bg-muted/50",
+                    uploadingBefore && "pointer-events-none opacity-70"
                   )}
-                  onClick={() => handlePhotoUpload('before')}
+                  onClick={() => !uploadingBefore && !beforePhoto && beforePhotoRef.current?.click()}
                 >
-                  {beforePhoto ? (
-                    <img src={beforePhoto} alt="Before" className="h-full w-full object-cover rounded-lg" />
+                  {uploadingBefore ? (
+                    <div className="text-center">
+                      <Loader2 className="h-6 w-6 mx-auto text-primary animate-spin" />
+                      <p className="text-xs text-muted-foreground mt-1">Uploading...</p>
+                    </div>
+                  ) : beforePhoto ? (
+                    <>
+                      <img src={beforePhoto} alt="Before" className="h-full w-full object-cover" />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-1 right-1 h-6 w-6"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removePhoto('before');
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </>
                   ) : (
                     <div className="text-center">
                       <Upload className="h-6 w-6 mx-auto text-muted-foreground" />
@@ -205,17 +298,44 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
                 </div>
               </div>
               
+              {/* After Photo */}
               <div className="space-y-2">
                 <Label>{t.job.after}</Label>
+                <input
+                  ref={afterPhotoRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleFileSelect('after', e)}
+                />
                 <div 
                   className={cn(
-                    "h-28 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-colors",
-                    afterPhoto ? "border-success bg-success/5" : "border-border hover:border-primary hover:bg-muted/50"
+                    "h-28 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-colors relative overflow-hidden",
+                    afterPhoto ? "border-success bg-success/5" : "border-border hover:border-primary hover:bg-muted/50",
+                    uploadingAfter && "pointer-events-none opacity-70"
                   )}
-                  onClick={() => handlePhotoUpload('after')}
+                  onClick={() => !uploadingAfter && !afterPhoto && afterPhotoRef.current?.click()}
                 >
-                  {afterPhoto ? (
-                    <img src={afterPhoto} alt="After" className="h-full w-full object-cover rounded-lg" />
+                  {uploadingAfter ? (
+                    <div className="text-center">
+                      <Loader2 className="h-6 w-6 mx-auto text-primary animate-spin" />
+                      <p className="text-xs text-muted-foreground mt-1">Uploading...</p>
+                    </div>
+                  ) : afterPhoto ? (
+                    <>
+                      <img src={afterPhoto} alt="After" className="h-full w-full object-cover" />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-1 right-1 h-6 w-6"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removePhoto('after');
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </>
                   ) : (
                     <div className="text-center">
                       <Upload className="h-6 w-6 mx-auto text-muted-foreground" />
