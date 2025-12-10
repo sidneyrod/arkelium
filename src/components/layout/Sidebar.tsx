@@ -18,7 +18,8 @@ import {
   ChevronRight,
   Receipt,
   CalendarOff,
-  CheckCircle
+  CheckCircle,
+  MapPin
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -70,6 +71,9 @@ const Sidebar = () => {
     
     // 5. Completed Services - Admin/Manager
     ...(isAdminOrManager ? [{ path: '/completed-services', label: 'Completed Services', icon: CheckCircle }] : []),
+    
+    // 5.5 Visit History - All users (cleaners see only their visits via RLS)
+    { path: '/visit-history', label: 'Visit History', icon: MapPin },
     
     // 6. Estimate - Admin/Manager
     ...(isAdminOrManager ? [{ path: '/calculator', label: 'Estimate', icon: FileSpreadsheet }] : []),

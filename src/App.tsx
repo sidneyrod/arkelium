@@ -24,6 +24,7 @@ import Invoices from "./pages/Invoices";
 import CompletedServices from "./pages/CompletedServices";
 import NotFound from "./pages/NotFound";
 import AbsenceApproval from "./pages/AbsenceApproval";
+import VisitHistory from "./pages/VisitHistory";
 
 const queryClient = new QueryClient();
 
@@ -127,6 +128,7 @@ const AppRoutes = () => {
         <Route path="/settings" element={<AdminRoute><Settings /></AdminRoute>} />
         <Route path="/activity-log" element={<AdminManagerRoute><ActivityLog /></AdminManagerRoute>} />
         <Route path="/absence-approval" element={<AdminManagerRoute><AbsenceApproval /></AdminManagerRoute>} />
+        <Route path="/visit-history" element={<ProtectedRoute><VisitHistory /></ProtectedRoute>} />
         
         {/* Admin/Manager routes */}
         <Route path="/clients" element={<AdminManagerRoute><Clients /></AdminManagerRoute>} />
