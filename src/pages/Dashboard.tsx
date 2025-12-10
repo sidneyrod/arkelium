@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -28,6 +29,7 @@ import {
   Bar,
 } from 'recharts';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
 
 interface DashboardStats {
   todayJobs: number;
@@ -41,6 +43,9 @@ interface DashboardStats {
 const Dashboard = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { openTab } = useWorkspaceStore();
+  
   const [stats, setStats] = useState<DashboardStats>({
     todayJobs: 0,
     activeEmployees: 0,
@@ -170,6 +175,40 @@ const Dashboard = () => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
+  // Navigation handlers with smart filters
+  const handleTodayJobsClick = () => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    openTab(`/schedule?view=day&date=${today}`, 'Schedule', 'calendar');
+    navigate(`/schedule?view=day&date=${today}`);
+  };
+
+  const handleActiveEmployeesClick = () => {
+    openTab('/users?filter=active&roles=cleaner,manager', 'Users', 'users');
+    navigate('/users?filter=active&roles=cleaner,manager');
+  };
+
+  const handleActiveClientsClick = () => {
+    openTab('/clients?status=active', 'Clients', 'user-circle');
+    navigate('/clients?status=active');
+  };
+
+  const handleMonthlyRevenueClick = () => {
+    const monthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+    const monthEnd = format(endOfMonth(new Date()), 'yyyy-MM-dd');
+    openTab(`/invoices?status=paid&from=${monthStart}&to=${monthEnd}`, 'Invoices', 'file-text');
+    navigate(`/invoices?status=paid&from=${monthStart}&to=${monthEnd}`);
+  };
+
+  const handlePendingPaymentsClick = () => {
+    openTab('/invoices?status=pending', 'Invoices', 'file-text');
+    navigate('/invoices?status=pending');
+  };
+
+  const handleUpcomingScheduleClick = () => {
+    openTab('/schedule?view=week', 'Schedule', 'calendar');
+    navigate('/schedule?view=week');
+  };
+
   return (
     <div className="container px-6 lg:px-10 py-8 space-y-8">
       {/* Welcome Section */}
@@ -178,37 +217,49 @@ const Dashboard = () => {
         <p className="text-muted-foreground">{t.dashboard.subtitle}</p>
       </div>
 
-      {/* Stats Grid */}
+      {/* Stats Grid - Interactive Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard 
           title={t.dashboard.todayJobs} 
           value={stats.todayJobs.toString()} 
           icon={Briefcase}
+          onClick={handleTodayJobsClick}
+          tooltip="Click to view today's jobs in Schedule (Day view)"
         />
         <StatCard 
           title={t.dashboard.activeEmployees} 
           value={stats.activeEmployees.toString()} 
           icon={Users}
+          onClick={handleActiveEmployeesClick}
+          tooltip="Click to view active employees (Cleaners & Managers)"
         />
         <StatCard 
           title={t.dashboard.activeClients} 
           value={stats.activeClients.toString()} 
           icon={UserCircle}
+          onClick={handleActiveClientsClick}
+          tooltip="Click to view all active clients"
         />
         <StatCard 
           title={t.dashboard.monthlyRevenue} 
           value={`$${stats.monthlyRevenue.toLocaleString()}`} 
           icon={DollarSign}
+          onClick={handleMonthlyRevenueClick}
+          tooltip="Click to view paid invoices for this month"
         />
         <StatCard 
           title={t.dashboard.pendingPayments} 
           value={`$${stats.pendingPayments.toLocaleString()}`} 
           icon={CreditCard}
+          onClick={handlePendingPaymentsClick}
+          tooltip="Click to view pending invoices"
         />
         <StatCard 
           title={t.dashboard.upcomingSchedule} 
           value={stats.upcomingSchedule.toString()} 
           icon={Calendar}
+          onClick={handleUpcomingScheduleClick}
+          tooltip="Click to view upcoming jobs in Schedule (Week view)"
         />
       </div>
 
