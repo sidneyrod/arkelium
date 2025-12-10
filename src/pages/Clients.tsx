@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -45,7 +46,13 @@ interface Client {
 const Clients = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  
+  // Read URL params for filters
+  const urlStatus = searchParams.get('status');
+  
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>(urlStatus || 'all');
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -131,10 +138,18 @@ const Clients = () => {
     fetchClients();
   }, [fetchClients]);
 
-  const filteredClients = clients.filter(client =>
-    client.name.toLowerCase().includes(search.toLowerCase()) ||
-    client.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredClients = useMemo(() => {
+    return clients.filter(client => {
+      // Search filter
+      const matchesSearch = client.name.toLowerCase().includes(search.toLowerCase()) ||
+        client.email.toLowerCase().includes(search.toLowerCase());
+      
+      // Status filter from URL
+      const matchesStatus = statusFilter === 'all' || client.status === statusFilter;
+      
+      return matchesSearch && matchesStatus;
+    });
+  }, [clients, search, statusFilter]);
 
   const handleAddClient = async (clientData: ClientFormData) => {
     if (!user?.profile?.company_id) return;
