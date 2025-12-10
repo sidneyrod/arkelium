@@ -6,9 +6,14 @@ export function Toaster() {
 
   return (
     <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, ...props }) {
+      {toasts.map(function ({ id, title, description, action, variant, ...props }) {
+        // Auto-detect success toasts by title content
+        const isSuccess = !variant && title && typeof title === 'string' && 
+          (title.toLowerCase().includes('success') || title.toLowerCase().includes('sucesso'));
+        const toastVariant = variant || (isSuccess ? 'success' : 'default');
+        
         return (
-          <Toast key={id} {...props}>
+          <Toast key={id} variant={toastVariant as any} {...props}>
             <div className="grid gap-1">
               {title && <ToastTitle>{title}</ToastTitle>}
               {description && <ToastDescription>{description}</ToastDescription>}
