@@ -10,11 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Loader2 } from 'lucide-react';
+import { CalendarIcon, Loader2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ScheduledJob } from '@/stores/scheduleStore';
 import { jobSchema, validateForm } from '@/lib/validations';
+import { useScheduleValidation } from '@/hooks/useScheduleValidation';
+import { toast } from 'sonner';
 
 interface AddJobModalProps {
   open: boolean;
@@ -74,6 +76,9 @@ const AddJobModal = ({ open, onOpenChange, onSave, job, preselectedDate, presele
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
+  const [unavailableCleaners, setUnavailableCleaners] = useState<string[]>([]);
+  const { validateSchedule, getAvailableCleaners } = useScheduleValidation();
   
   // Data from Supabase
   const [clients, setClients] = useState<Client[]>([]);
@@ -245,13 +250,42 @@ const AddJobModal = ({ open, onOpenChange, onSave, job, preselectedDate, presele
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Check cleaner availability when date, time, or duration changes
+  useEffect(() => {
+    const checkAvailability = async () => {
+      if (!formData.date || !formData.time || !user?.profile?.company_id) return;
+      
+      const year = formData.date.getFullYear();
+      const month = String(formData.date.getMonth() + 1).padStart(2, '0');
+      const day = String(formData.date.getDate()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
+      
+      const unavailable = await getAvailableCleaners(
+        dateString,
+        formData.time,
+        formData.duration,
+        user.profile.company_id,
+        job?.id
+      );
+      setUnavailableCleaners(unavailable);
+    };
+    
+    checkAvailability();
+  }, [formData.date, formData.time, formData.duration, user?.profile?.company_id, job?.id, getAvailableCleaners]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Use local date formatting to avoid timezone issues
+    const year = formData.date.getFullYear();
+    const month = String(formData.date.getMonth() + 1).padStart(2, '0');
+    const day = String(formData.date.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
     
     const validationData = {
       clientId: formData.clientId,
       employeeId: formData.employeeId,
-      date: format(formData.date, 'yyyy-MM-dd'),
+      date: dateString,
       time: formData.time,
       duration: formData.duration,
       services: formData.services,
@@ -264,13 +298,29 @@ const AddJobModal = ({ open, onOpenChange, onSave, job, preselectedDate, presele
       return;
     }
 
+    // Validate schedule conflicts
+    if (user?.profile?.company_id) {
+      setIsValidating(true);
+      const conflictCheck = await validateSchedule(
+        {
+          clientId: formData.clientId,
+          employeeId: formData.employeeId,
+          date: dateString,
+          time: formData.time,
+          duration: formData.duration,
+          jobId: job?.id,
+        },
+        user.profile.company_id
+      );
+      setIsValidating(false);
+      
+      if (!conflictCheck.isValid) {
+        toast.error(conflictCheck.message);
+        return;
+      }
+    }
+
     setErrors({});
-    
-    // Use local date formatting to avoid timezone issues
-    const year = formData.date.getFullYear();
-    const month = String(formData.date.getMonth() + 1).padStart(2, '0');
-    const day = String(formData.date.getDate()).padStart(2, '0');
-    const dateString = `${year}-${month}-${day}`;
     
     const jobData = {
       ...formData,
@@ -398,15 +448,37 @@ const AddJobModal = ({ open, onOpenChange, onSave, job, preselectedDate, presele
                         No employees found. Add users first.
                       </div>
                     ) : (
-                      employees.map(emp => (
-                        <SelectItem key={emp.id} value={emp.id}>
-                          {`${emp.first_name || ''} ${emp.last_name || ''}`.trim() || 'Unknown'}
-                        </SelectItem>
-                      ))
+                      employees.map(emp => {
+                        const isUnavailable = unavailableCleaners.includes(emp.id);
+                        const empName = `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || 'Unknown';
+                        return (
+                          <SelectItem 
+                            key={emp.id} 
+                            value={emp.id}
+                            disabled={isUnavailable}
+                            className={isUnavailable ? 'opacity-50' : ''}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span>{empName}</span>
+                              {isUnavailable && (
+                                <span className="text-xs text-destructive flex items-center gap-1">
+                                  <AlertTriangle className="h-3 w-3" />
+                                  Unavailable
+                                </span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        );
+                      })
                     )}
                   </SelectContent>
                 </Select>
                 {errors.employeeId && <p className="text-xs text-destructive">{errors.employeeId}</p>}
+                {unavailableCleaners.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Some employees are unavailable due to conflicts or absences.
+                  </p>
+                )}
               </div>
             </div>
             
