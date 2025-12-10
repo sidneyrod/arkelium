@@ -37,7 +37,7 @@ import { logActivity } from '@/stores/activityStore';
 import { useInvoiceStore } from '@/stores/invoiceStore';
 import { useCompanyStore } from '@/stores/companyStore';
 import AddJobModal from '@/components/modals/AddJobModal';
-import JobCompletionModal from '@/components/modals/JobCompletionModal';
+import JobCompletionModal, { PaymentData } from '@/components/modals/JobCompletionModal';
 import AbsenceRequestModal from '@/components/modals/AbsenceRequestModal';
 import AvailabilityManager from '@/components/schedule/AvailabilityManager';
 import ConfirmDialog from '@/components/modals/ConfirmDialog';
@@ -421,14 +421,27 @@ const Schedule = () => {
     }
   };
 
-  const handleCompleteJob = async (jobId: string, afterPhoto?: string, notes?: string) => {
+  const handleCompleteJob = async (jobId: string, afterPhoto?: string, notes?: string, paymentData?: PaymentData) => {
     try {
+      // Build update object with payment data if provided
+      const updateData: Record<string, any> = {
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+      };
+      
+      // Add payment data if provided
+      if (paymentData && paymentData.paymentMethod) {
+        updateData.payment_method = paymentData.paymentMethod;
+        updateData.payment_amount = paymentData.paymentAmount;
+        updateData.payment_date = paymentData.paymentDate.toISOString();
+        updateData.payment_reference = paymentData.paymentReference || null;
+        updateData.payment_received_by = paymentData.paymentReceivedBy || null;
+        updateData.payment_notes = paymentData.paymentNotes || null;
+      }
+      
       const { error } = await supabase
         .from('jobs')
-        .update({
-          status: 'completed',
-          completed_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', jobId);
       
       if (error) {
@@ -475,11 +488,46 @@ const Schedule = () => {
             taxRate,
             taxAmount,
             total,
-            status: 'draft',
+            status: paymentData?.paymentMethod ? 'paid' : 'draft',
             notes: notes || ''
           });
           
-          toast.success(`Invoice ${invoice.invoiceNumber} generated`);
+          // If payment was recorded, update the invoice with payment info
+          if (paymentData?.paymentMethod) {
+            // Also save payment info to Supabase invoices table
+            const { data: companyIdData } = await supabase.rpc('get_user_company_id');
+            if (companyIdData) {
+              await supabase
+                .from('invoices')
+                .insert({
+                  company_id: companyIdData,
+                  client_id: job.clientId,
+                  cleaner_id: job.employeeId || null,
+                  location_id: null,
+                  job_id: jobId,
+                  invoice_number: invoice.invoiceNumber,
+                  subtotal,
+                  tax_rate: taxRate,
+                  tax_amount: taxAmount,
+                  total,
+                  status: 'paid',
+                  service_date: job.date,
+                  service_duration: job.duration,
+                  due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                  notes: notes || '',
+                  payment_method: paymentData.paymentMethod,
+                  payment_amount: paymentData.paymentAmount,
+                  payment_date: paymentData.paymentDate.toISOString(),
+                  payment_reference: paymentData.paymentReference || null,
+                  payment_received_by: paymentData.paymentReceivedBy || null,
+                  payment_notes: paymentData.paymentNotes || null,
+                  paid_at: new Date().toISOString(),
+                });
+            }
+            toast.success(`Invoice ${invoice.invoiceNumber} generated and marked as paid`);
+          } else {
+            toast.success(`Invoice ${invoice.invoiceNumber} generated`);
+          }
         }
       }
       

@@ -698,6 +698,12 @@ export type Database = {
           location_id: string | null
           notes: string | null
           paid_at: string | null
+          payment_amount: number | null
+          payment_date: string | null
+          payment_method: string | null
+          payment_notes: string | null
+          payment_received_by: string | null
+          payment_reference: string | null
           service_date: string | null
           service_duration: string | null
           status: string
@@ -719,6 +725,12 @@ export type Database = {
           location_id?: string | null
           notes?: string | null
           paid_at?: string | null
+          payment_amount?: number | null
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_notes?: string | null
+          payment_received_by?: string | null
+          payment_reference?: string | null
           service_date?: string | null
           service_duration?: string | null
           status?: string
@@ -740,6 +752,12 @@ export type Database = {
           location_id?: string | null
           notes?: string | null
           paid_at?: string | null
+          payment_amount?: number | null
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_notes?: string | null
+          payment_received_by?: string | null
+          payment_reference?: string | null
           service_date?: string | null
           service_duration?: string | null
           status?: string
@@ -801,10 +819,18 @@ export type Database = {
           job_type: string | null
           location_id: string | null
           notes: string | null
+          payment_amount: number | null
+          payment_date: string | null
+          payment_method: string | null
+          payment_notes: string | null
+          payment_received_by: string | null
+          payment_reference: string | null
           scheduled_date: string
           start_time: string | null
           status: string
           updated_at: string
+          visit_purpose: string | null
+          visit_route: string | null
         }
         Insert: {
           checklist?: Json | null
@@ -819,10 +845,18 @@ export type Database = {
           job_type?: string | null
           location_id?: string | null
           notes?: string | null
+          payment_amount?: number | null
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_notes?: string | null
+          payment_received_by?: string | null
+          payment_reference?: string | null
           scheduled_date: string
           start_time?: string | null
           status?: string
           updated_at?: string
+          visit_purpose?: string | null
+          visit_route?: string | null
         }
         Update: {
           checklist?: Json | null
@@ -837,10 +871,18 @@ export type Database = {
           job_type?: string | null
           location_id?: string | null
           notes?: string | null
+          payment_amount?: number | null
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_notes?: string | null
+          payment_received_by?: string | null
+          payment_reference?: string | null
           scheduled_date?: string
           start_time?: string | null
           status?: string
           updated_at?: string
+          visit_purpose?: string | null
+          visit_route?: string | null
         }
         Relationships: [
           {
