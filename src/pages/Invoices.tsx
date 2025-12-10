@@ -127,11 +127,6 @@ const Invoices = () => {
             email,
             client_locations (address, city)
           ),
-            id,
-            name,
-            email,
-            client_locations (address, city)
-          ),
           profiles:cleaner_id (
             first_name,
             last_name

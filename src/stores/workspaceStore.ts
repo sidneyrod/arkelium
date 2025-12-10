@@ -27,7 +27,11 @@ interface WorkspaceState {
   closeOtherTabs: (id: string) => void;
 }
 
-const getTabIdFromPath = (path: string) => path.replace(/^\//, '') || 'dashboard';
+const getTabIdFromPath = (path: string) => {
+  // Remove query params and leading slash to get consistent tab ID
+  const pathWithoutQuery = path.split('?')[0];
+  return pathWithoutQuery.replace(/^\//, '') || 'dashboard';
+};
 
 export const useWorkspaceStore = create<WorkspaceState>()(
   persist(
