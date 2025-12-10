@@ -24,6 +24,7 @@ import Invoices from "./pages/Invoices";
 import CompletedServices from "./pages/CompletedServices";
 import NotFound from "./pages/NotFound";
 import OffRequests from "./pages/OffRequests";
+import CleanerOffRequests from "./pages/CleanerOffRequests";
 import VisitHistory from "./pages/VisitHistory";
 
 const queryClient = new QueryClient();
@@ -109,6 +110,25 @@ const AdminManagerRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Cleaner-only routes wrapper
+const CleanerRoute = ({ children }: { children: React.ReactNode }) => {
+  const { hasRole, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+  
+  if (!hasRole(['cleaner'])) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
 const AppRoutes = () => {
   return (
     <Routes>
@@ -127,7 +147,14 @@ const AppRoutes = () => {
         <Route path="/users" element={<AdminRoute><Users /></AdminRoute>} />
         <Route path="/settings" element={<AdminRoute><Settings /></AdminRoute>} />
         <Route path="/activity-log" element={<AdminManagerRoute><ActivityLog /></AdminManagerRoute>} />
+        
+        {/* Off Requests - Admin/Manager view */}
         <Route path="/off-requests" element={<AdminManagerRoute><OffRequests /></AdminManagerRoute>} />
+        
+        {/* My Off Requests - Cleaner view */}
+        <Route path="/my-off-requests" element={<CleanerRoute><CleanerOffRequests /></CleanerRoute>} />
+        
+        {/* Visit History - all users (RLS filters by role) */}
         <Route path="/visit-history" element={<ProtectedRoute><VisitHistory /></ProtectedRoute>} />
         
         {/* Admin/Manager routes */}

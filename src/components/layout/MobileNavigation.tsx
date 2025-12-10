@@ -16,7 +16,8 @@ import {
   ClipboardList,
   CalendarOff,
   Receipt,
-  CheckCircle
+  CheckCircle,
+  MapPin
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -33,10 +34,11 @@ const MobileNavigation = () => {
 
   const isAdmin = hasRole(['admin']);
   const isAdminOrManager = hasRole(['admin', 'manager']);
+  const isCleaner = hasRole(['cleaner']);
 
   // Menu items ordered as per specification:
   // 1. Home, 2. Schedule, 3. Clients, 4. Contracts, 5. Completed Services, 
-  // 6. Estimate, 7. Invoices, 8. Payroll, 9. Absences, 10. Activity Log,
+  // 6. Estimate, 7. Invoices, 8. Payroll, 9. Off Requests, 10. Activity Log,
   // 11. Company, 12. Users, 13. Settings
   const navItems = [
     // 1. Home - all users
@@ -49,14 +51,20 @@ const MobileNavigation = () => {
     ...(isAdminOrManager ? [{ path: '/contracts', label: t.nav.contracts, icon: FileText }] : []),
     // 5. Completed Services - Admin/Manager
     ...(isAdminOrManager ? [{ path: '/completed-services', label: 'Completed Services', icon: CheckCircle }] : []),
+    // 5.5 Visit History - All users
+    { path: '/visit-history', label: 'Visit History', icon: MapPin },
     // 6. Estimate - Admin/Manager
     ...(isAdminOrManager ? [{ path: '/calculator', label: 'Estimate', icon: Calculator }] : []),
     // 7. Invoices - Admin/Manager
     ...(isAdminOrManager ? [{ path: '/invoices', label: 'Invoices', icon: Receipt }] : []),
     // 8. Payroll - Admin only
     ...(isAdmin ? [{ path: '/payroll', label: t.nav.payroll, icon: Wallet }] : []),
-    // 9. Absences - Admin/Manager
-    ...(isAdminOrManager ? [{ path: '/absence-approval', label: 'Absences', icon: CalendarOff }] : []),
+    // 9. Off Requests - different routes by role
+    ...(isAdminOrManager 
+      ? [{ path: '/off-requests', label: 'Off Requests', icon: CalendarOff }] 
+      : isCleaner 
+        ? [{ path: '/my-off-requests', label: 'Off Requests', icon: CalendarOff }]
+        : []),
     // 10. Activity Log - Admin/Manager
     ...(isAdminOrManager ? [{ path: '/activity-log', label: t.nav.activityLog, icon: ClipboardList }] : []),
     // 11. Company - Admin only

@@ -51,10 +51,11 @@ const Sidebar = () => {
   // Role checks using hasRole from AuthContext
   const isAdmin = hasRole(['admin']);
   const isAdminOrManager = hasRole(['admin', 'manager']);
+  const isCleaner = hasRole(['cleaner']);
 
   // Build nav items based on user role - ordered as per specification:
   // 1. Home, 2. Schedule, 3. Clients, 4. Contracts, 5. Completed Services, 
-  // 6. Estimate, 7. Invoices, 8. Payroll, 9. Absences, 10. Activity Log,
+  // 6. Estimate, 7. Invoices, 8. Payroll, 9. Off Requests, 10. Activity Log,
   // 11. Company, 12. Users, 13. Settings
   const navItems = [
     // 1. Home - all users
@@ -84,8 +85,12 @@ const Sidebar = () => {
     // 8. Payroll - Admin only
     ...(isAdmin ? [{ path: '/payroll', label: t.nav.payroll, icon: Wallet }] : []),
     
-    // 9. Absences - Admin/Manager
-    ...(isAdminOrManager ? [{ path: '/off-requests', label: 'Off Requests', icon: CalendarOff }] : []),
+    // 9. Off Requests - Admin/Manager see admin view, Cleaner sees own view
+    ...(isAdminOrManager 
+      ? [{ path: '/off-requests', label: 'Off Requests', icon: CalendarOff }] 
+      : isCleaner 
+        ? [{ path: '/my-off-requests', label: 'Off Requests', icon: CalendarOff }]
+        : []),
     
     // 10. Activity Log - Admin/Manager
     ...(isAdminOrManager ? [{ path: '/activity-log', label: t.nav.activityLog, icon: ClipboardList }] : []),
