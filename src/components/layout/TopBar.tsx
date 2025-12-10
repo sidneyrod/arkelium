@@ -46,10 +46,28 @@ interface CompanyInfo {
 
 interface SearchResult {
   id: string;
-  type: 'client' | 'contract' | 'invoice';
+  type: 'client' | 'contract' | 'invoice' | 'navigation';
   title: string;
   subtitle?: string;
+  path?: string;
 }
+
+// Navigation items for search
+const navigationItems = [
+  { id: 'home', title: 'Home', path: '/', keywords: ['home', 'dashboard', 'início', 'painel'] },
+  { id: 'schedule', title: 'Schedule', path: '/schedule', keywords: ['schedule', 'agenda', 'calendar', 'calendário', 'jobs', 'appointments'] },
+  { id: 'clients', title: 'Clients', path: '/clients', keywords: ['clients', 'clientes', 'customers'] },
+  { id: 'contracts', title: 'Contracts', path: '/contracts', keywords: ['contracts', 'contratos', 'agreements'] },
+  { id: 'completed-services', title: 'Completed Services', path: '/completed-services', keywords: ['completed', 'services', 'serviços', 'concluídos', 'finished'] },
+  { id: 'calculator', title: 'Estimate', path: '/calculator', keywords: ['estimate', 'calculator', 'estimativa', 'calculadora', 'quote', 'orçamento'] },
+  { id: 'invoices', title: 'Invoices', path: '/invoices', keywords: ['invoices', 'faturas', 'billing', 'faturamento'] },
+  { id: 'payroll', title: 'Payroll', path: '/payroll', keywords: ['payroll', 'folha', 'pagamento', 'salário', 'salary', 'wages'] },
+  { id: 'absences', title: 'Absences', path: '/absence-approval', keywords: ['absences', 'ausências', 'absence', 'vacation', 'férias', 'leave'] },
+  { id: 'activity-log', title: 'Activity Log', path: '/activity-log', keywords: ['activity', 'log', 'atividade', 'registro', 'history', 'histórico', 'audit'] },
+  { id: 'company', title: 'Company', path: '/company', keywords: ['company', 'empresa', 'organization', 'settings'] },
+  { id: 'users', title: 'Users', path: '/users', keywords: ['users', 'usuários', 'employees', 'funcionários', 'team', 'equipe'] },
+  { id: 'settings', title: 'Settings', path: '/settings', keywords: ['settings', 'configurações', 'preferences', 'preferências'] },
+];
 
 const TopBar = () => {
   const { language, setLanguage, t } = useLanguage();
@@ -170,93 +188,99 @@ const TopBar = () => {
     };
   }, [user?.profile?.company_id]);
 
-  // Global search function
+  // Global search function with navigation items
   const performSearch = useCallback(async (query: string) => {
-    if (!query.trim() || !user?.profile?.company_id) {
+    if (!query.trim()) {
       setSearchResults([]);
       return;
     }
 
     setIsSearching(true);
     const results: SearchResult[] = [];
-    const searchTerm = query.toLowerCase();
+    const searchTerm = query.toLowerCase().trim();
 
-    try {
-      // Search clients - use text search pattern
-      const { data: clients, error: clientsError } = await supabase
-        .from('clients')
-        .select('id, name, email')
-        .eq('company_id', user.profile.company_id)
-        .or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
-        .limit(5);
-
-      if (clientsError) {
-        console.error('Clients search error:', clientsError);
-      }
-
-      if (clients) {
-        clients.forEach(client => {
-          results.push({
-            id: client.id,
-            type: 'client',
-            title: client.name,
-            subtitle: client.email || undefined
-          });
+    // 1. Search navigation items first (always available)
+    for (const navItem of navigationItems) {
+      const matchesTitle = navItem.title.toLowerCase().includes(searchTerm);
+      const matchesKeywords = navItem.keywords.some(kw => kw.includes(searchTerm));
+      
+      if (matchesTitle || matchesKeywords) {
+        results.push({
+          id: navItem.id,
+          type: 'navigation',
+          title: navItem.title,
+          subtitle: 'Page',
+          path: navItem.path,
         });
       }
-
-      // Search contracts - search by contract number or client name
-      const { data: contracts, error: contractsError } = await supabase
-        .from('contracts')
-        .select('id, contract_number, clients(name)')
-        .eq('company_id', user.profile.company_id)
-        .or(`contract_number.ilike.%${searchTerm}%`)
-        .limit(5);
-
-      if (contractsError) {
-        console.error('Contracts search error:', contractsError);
-      }
-
-      if (contracts) {
-        contracts.forEach(contract => {
-          results.push({
-            id: contract.id,
-            type: 'contract',
-            title: `Contract #${contract.contract_number}`,
-            subtitle: (contract.clients as any)?.name || undefined
-          });
-        });
-      }
-
-      // Search invoices
-      const { data: invoices, error: invoicesError } = await supabase
-        .from('invoices')
-        .select('id, invoice_number, clients(name)')
-        .eq('company_id', user.profile.company_id)
-        .or(`invoice_number.ilike.%${searchTerm}%`)
-        .limit(5);
-
-      if (invoicesError) {
-        console.error('Invoices search error:', invoicesError);
-      }
-
-      if (invoices) {
-        invoices.forEach(invoice => {
-          results.push({
-            id: invoice.id,
-            type: 'invoice',
-            title: `Invoice #${invoice.invoice_number}`,
-            subtitle: (invoice.clients as any)?.name || undefined
-          });
-        });
-      }
-
-      setSearchResults(results);
-    } catch (err) {
-      console.error('Search error:', err);
-    } finally {
-      setIsSearching(false);
     }
+
+    // 2. Search database if user has company
+    if (user?.profile?.company_id) {
+      try {
+        // Search clients
+        const { data: clients, error: clientsError } = await supabase
+          .from('clients')
+          .select('id, name, email')
+          .eq('company_id', user.profile.company_id)
+          .or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
+          .limit(5);
+
+        if (!clientsError && clients) {
+          clients.forEach(client => {
+            results.push({
+              id: client.id,
+              type: 'client',
+              title: client.name,
+              subtitle: client.email || undefined
+            });
+          });
+        }
+
+        // Search contracts
+        const { data: contracts, error: contractsError } = await supabase
+          .from('contracts')
+          .select('id, contract_number, clients(name)')
+          .eq('company_id', user.profile.company_id)
+          .or(`contract_number.ilike.%${searchTerm}%`)
+          .limit(5);
+
+        if (!contractsError && contracts) {
+          contracts.forEach(contract => {
+            results.push({
+              id: contract.id,
+              type: 'contract',
+              title: `Contract #${contract.contract_number}`,
+              subtitle: (contract.clients as any)?.name || undefined
+            });
+          });
+        }
+
+        // Search invoices
+        const { data: invoices, error: invoicesError } = await supabase
+          .from('invoices')
+          .select('id, invoice_number, clients(name)')
+          .eq('company_id', user.profile.company_id)
+          .or(`invoice_number.ilike.%${searchTerm}%`)
+          .limit(5);
+
+        if (!invoicesError && invoices) {
+          invoices.forEach(invoice => {
+            results.push({
+              id: invoice.id,
+              type: 'invoice',
+              title: `Invoice #${invoice.invoice_number}`,
+              subtitle: (invoice.clients as any)?.name || undefined
+            });
+          });
+        }
+      } catch (err) {
+        console.error('Search error:', err);
+      }
+    }
+
+    setSearchResults(results);
+    setIsSearching(false);
   }, [user?.profile?.company_id]);
 
   // Debounced search
@@ -273,6 +297,9 @@ const TopBar = () => {
     setSearchQuery('');
     
     switch (result.type) {
+      case 'navigation':
+        navigate(result.path || '/');
+        break;
       case 'client':
         navigate('/clients');
         break;
@@ -287,6 +314,7 @@ const TopBar = () => {
 
   const getResultIcon = (type: SearchResult['type']) => {
     switch (type) {
+      case 'navigation': return '📍';
       case 'client': return '👤';
       case 'contract': return '📄';
       case 'invoice': return '🧾';
@@ -327,6 +355,25 @@ const TopBar = () => {
                   </div>
                 ) : (
                   <div className="py-2">
+                    {/* Navigation Results */}
+                    {searchResults.filter(r => r.type === 'navigation').length > 0 && (
+                      <div className="px-2 py-1">
+                        <p className="text-xs font-medium text-muted-foreground px-2 py-1">Pages</p>
+                        {searchResults.filter(r => r.type === 'navigation').map(result => (
+                          <button
+                            key={result.id}
+                            onClick={() => handleSearchSelect(result)}
+                            className="w-full flex items-center gap-2 px-2 py-2 text-sm hover:bg-accent rounded cursor-pointer text-left"
+                          >
+                            <span>📍</span>
+                            <div className="flex flex-col">
+                              <span>{result.title}</span>
+                              <span className="text-xs text-muted-foreground">Navigate to page</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     {searchResults.filter(r => r.type === 'client').length > 0 && (
                       <div className="px-2 py-1">
                         <p className="text-xs font-medium text-muted-foreground px-2 py-1">Clients</p>

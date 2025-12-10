@@ -16,7 +16,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import AddClientModal, { ClientFormData } from '@/components/modals/AddClientModal';
 import ConfirmDialog from '@/components/modals/ConfirmDialog';
 import { toast } from '@/hooks/use-toast';
-import { UserPlus, Building, Home, MapPin, Phone, MoreHorizontal, Pencil, Trash2, Plus, Loader2 } from 'lucide-react';
+import { UserPlus, Building, Home, MapPin, Phone, MoreHorizontal, Pencil, Trash2, Plus, Loader2, AlertTriangle } from 'lucide-react';
+import { useScheduleValidation } from '@/hooks/useScheduleValidation';
 
 interface Location {
   id: string;
@@ -51,6 +52,9 @@ const Clients = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editClient, setEditClient] = useState<Client | null>(null);
   const [deleteClient, setDeleteClient] = useState<Client | null>(null);
+  const [deleteWarning, setDeleteWarning] = useState<string | null>(null);
+  
+  const { validateClientDuplicate, canDeleteClient } = useScheduleValidation();
 
   // Fetch clients from Supabase
   const fetchClients = useCallback(async () => {
@@ -136,6 +140,22 @@ const Clients = () => {
     if (!user?.profile?.company_id) return;
 
     try {
+      // Validate for duplicates
+      const duplicateCheck = await validateClientDuplicate(
+        {
+          email: clientData.email,
+          name: clientData.name,
+          phone: clientData.phone,
+        },
+        user.profile.company_id,
+        editClient?.id
+      );
+      
+      if (!duplicateCheck.isValid) {
+        toast({ title: 'Erro', description: duplicateCheck.message, variant: 'destructive' });
+        return;
+      }
+
       if (editClient) {
         // Update existing client
         const { error } = await supabase
@@ -178,8 +198,35 @@ const Clients = () => {
     }
   };
 
+  const handleDeleteClick = async (client: Client) => {
+    if (!user?.profile?.company_id) return;
+    
+    // Check if client can be deleted
+    const deleteCheck = await canDeleteClient(client.id, user.profile.company_id);
+    
+    if (!deleteCheck.isValid) {
+      setDeleteWarning(deleteCheck.message || null);
+    } else {
+      setDeleteWarning(null);
+    }
+    
+    setDeleteClient(client);
+  };
+
   const handleDeleteClient = async () => {
     if (!deleteClient) return;
+
+    // If there's a warning, don't allow deletion
+    if (deleteWarning) {
+      toast({ 
+        title: 'Não permitido', 
+        description: deleteWarning, 
+        variant: 'destructive' 
+      });
+      setDeleteClient(null);
+      setDeleteWarning(null);
+      return;
+    }
 
     try {
       const { error } = await supabase
@@ -199,6 +246,7 @@ const Clients = () => {
       toast({ title: 'Error', description: 'Failed to delete client', variant: 'destructive' });
     } finally {
       setDeleteClient(null);
+      setDeleteWarning(null);
     }
   };
 
