@@ -11,16 +11,21 @@ interface RolePermissions {
   canAccessSchedule: boolean;
   canAccessCompletedServices: boolean;
   canAccessEstimate: boolean;
-  canAccessAbsences: boolean;
+  canAccessOffRequests: boolean; // Admin view of all off requests
+  canAccessMyOffRequests: boolean; // Cleaner's own off requests
   canAccessActivityLog: boolean;
   canAccessCompany: boolean;
   canAccessSettings: boolean;
+  canAccessAvailability: boolean; // Admin-only availability management
   
   // Action permissions
   canGenerateInvoices: boolean;
   canEditPayroll: boolean;
   canDeleteRecords: boolean;
-  canApproveAbsences: boolean;
+  canApproveOffRequests: boolean; // Only admin can approve/reject
+  canCreateOffRequests: boolean; // Cleaners can create
+  canEditAvailability: boolean; // Only admin can edit
+  canViewAvailability: boolean; // Everyone can view
   canCreateUsers: boolean;
   canReprocessPayroll: boolean;
   canConfirmCashPayments: boolean;
@@ -39,14 +44,19 @@ const rolePermissions: Record<UserRole, RolePermissions> = {
     canAccessSchedule: true,
     canAccessCompletedServices: true,
     canAccessEstimate: true,
-    canAccessAbsences: true,
+    canAccessOffRequests: true,
+    canAccessMyOffRequests: false, // Admin uses the admin view
     canAccessActivityLog: true,
     canAccessCompany: true,
     canAccessSettings: true,
+    canAccessAvailability: true,
     canGenerateInvoices: true,
     canEditPayroll: true,
     canDeleteRecords: true,
-    canApproveAbsences: true,
+    canApproveOffRequests: true,
+    canCreateOffRequests: false, // Admin doesn't need to request off
+    canEditAvailability: true,
+    canViewAvailability: true,
     canCreateUsers: true,
     canReprocessPayroll: true,
     canConfirmCashPayments: true,
@@ -62,14 +72,19 @@ const rolePermissions: Record<UserRole, RolePermissions> = {
     canAccessSchedule: true,
     canAccessCompletedServices: true,
     canAccessEstimate: true,
-    canAccessAbsences: true,
+    canAccessOffRequests: true, // Can view but not approve
+    canAccessMyOffRequests: false,
     canAccessActivityLog: true,
     canAccessCompany: false,
     canAccessSettings: false,
+    canAccessAvailability: true, // Can view
     canGenerateInvoices: false, // Only admin
     canEditPayroll: false,
     canDeleteRecords: false,
-    canApproveAbsences: true,
+    canApproveOffRequests: false, // Only admin
+    canCreateOffRequests: false,
+    canEditAvailability: false, // Only admin
+    canViewAvailability: true,
     canCreateUsers: false,
     canReprocessPayroll: false,
     canConfirmCashPayments: false,
@@ -85,14 +100,19 @@ const rolePermissions: Record<UserRole, RolePermissions> = {
     canAccessSchedule: true, // View own jobs only
     canAccessCompletedServices: false,
     canAccessEstimate: false,
-    canAccessAbsences: false, // Can only request, not manage
+    canAccessOffRequests: false, // Uses MyOffRequests instead
+    canAccessMyOffRequests: true, // Can view and create own requests
     canAccessActivityLog: false,
     canAccessCompany: false,
     canAccessSettings: false,
+    canAccessAvailability: false, // Cannot access, only view via admin
     canGenerateInvoices: false,
     canEditPayroll: false,
     canDeleteRecords: false,
-    canApproveAbsences: false,
+    canApproveOffRequests: false,
+    canCreateOffRequests: true, // Can create off requests
+    canEditAvailability: false, // Cannot edit
+    canViewAvailability: true, // Can view own availability (read-only)
     canCreateUsers: false,
     canReprocessPayroll: false,
     canConfirmCashPayments: false,
@@ -110,14 +130,19 @@ const defaultPermissions: RolePermissions = {
   canAccessSchedule: false,
   canAccessCompletedServices: false,
   canAccessEstimate: false,
-  canAccessAbsences: false,
+  canAccessOffRequests: false,
+  canAccessMyOffRequests: false,
   canAccessActivityLog: false,
   canAccessCompany: false,
   canAccessSettings: false,
+  canAccessAvailability: false,
   canGenerateInvoices: false,
   canEditPayroll: false,
   canDeleteRecords: false,
-  canApproveAbsences: false,
+  canApproveOffRequests: false,
+  canCreateOffRequests: false,
+  canEditAvailability: false,
+  canViewAvailability: false,
   canCreateUsers: false,
   canReprocessPayroll: false,
   canConfirmCashPayments: false,

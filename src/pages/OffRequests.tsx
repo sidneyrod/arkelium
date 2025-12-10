@@ -3,10 +3,12 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import PageHeader from '@/components/ui/page-header';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   CalendarOff, 
   Check, 
@@ -19,13 +21,15 @@ import {
   Palmtree,
   UserX,
   CalendarDays,
-  ArrowRight
+  ArrowRight,
+  Stethoscope,
+  Search,
+  Filter
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { format, differenceInDays, isPast, isFuture } from 'date-fns';
+import { format, differenceInDays, isPast, isFuture, startOfMonth, endOfMonth } from 'date-fns';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
-import { OffRequestType } from '@/components/modals/OffRequestModal';
 
 interface OffRequest {
   id: string;
@@ -34,7 +38,7 @@ interface OffRequest {
   start_date: string;
   end_date: string;
   reason: string;
-  request_type: OffRequestType;
+  request_type: string;
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
   approved_at?: string;
@@ -80,22 +84,34 @@ const requestTypeConfig = {
   },
   personal: { 
     label: 'Personal', 
-    labelPt: 'Indisponibilidade',
+    labelPt: 'Pessoal',
     icon: UserX, 
     color: 'bg-orange-500/10 text-orange-500 border-orange-500/20' 
+  },
+  medical: {
+    label: 'Medical',
+    labelPt: 'Médico',
+    icon: Stethoscope,
+    color: 'bg-red-500/10 text-red-500 border-red-500/20'
   },
 };
 
 const OffRequests = () => {
   const { language } = useLanguage();
   const { user } = useAuth();
-  const { isAdminOrManager } = useRoleAccess();
+  const { isAdminOrManager, isAdmin } = useRoleAccess();
   const isEnglish = language === 'en';
   
   const [requests, setRequests] = useState<OffRequest[]>([]);
+  const [cleaners, setCleaners] = useState<{ id: string; name: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('pending');
+  
+  // Filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCleaner, setSelectedCleaner] = useState<string>('all');
+  const [selectedType, setSelectedType] = useState<string>('all');
 
   const fetchRequests = useCallback(async () => {
     try {
@@ -110,6 +126,7 @@ const OffRequests = () => {
         return;
       }
       
+      // Fetch all requests
       const { data, error } = await supabase
         .from('absence_requests')
         .select(`
@@ -149,6 +166,12 @@ const OffRequests = () => {
         approved_at: req.approved_at,
         approved_by: req.approved_by,
       }));
+      
+      // Build unique cleaner list
+      const uniqueCleaners = Array.from(new Map(
+        mappedRequests.map(r => [r.cleaner_id, { id: r.cleaner_id, name: r.cleaner_name }])
+      ).values());
+      setCleaners(uniqueCleaners);
       
       setRequests(mappedRequests);
       setIsLoading(false);
@@ -228,6 +251,24 @@ const OffRequests = () => {
         return;
       }
       
+      // Log the action
+      const request = requests.find(r => r.id === id);
+      if (request && user?.profile?.company_id) {
+        await supabase.from('activity_logs').insert({
+          action: 'off_request_rejected',
+          entity_type: 'absence_request',
+          entity_id: id,
+          company_id: user.profile.company_id,
+          user_id: user.id,
+          details: {
+            cleaner_name: request.cleaner_name,
+            start_date: request.start_date,
+            end_date: request.end_date,
+            request_type: request.request_type,
+          },
+        });
+      }
+      
       toast.success(isEnglish ? 'Off request rejected' : 'Solicitação rejeitada');
       await fetchRequests();
     } catch (error) {
@@ -238,19 +279,43 @@ const OffRequests = () => {
     }
   };
 
+  // Apply filters
   const filteredRequests = requests.filter(req => {
-    if (activeTab === 'all') return true;
+    // Tab filter
     if (activeTab === 'active') {
-      // Show approved requests that are currently active or in the future
-      return req.status === 'approved' && !isPast(new Date(req.end_date));
+      if (!(req.status === 'approved' && !isPast(new Date(req.end_date)))) return false;
+    } else if (activeTab !== 'all') {
+      if (req.status !== activeTab) return false;
     }
-    return req.status === activeTab;
+    
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      if (!req.cleaner_name.toLowerCase().includes(query) && 
+          !req.reason?.toLowerCase().includes(query)) {
+        return false;
+      }
+    }
+    
+    // Cleaner filter
+    if (selectedCleaner !== 'all' && req.cleaner_id !== selectedCleaner) {
+      return false;
+    }
+    
+    // Type filter
+    if (selectedType !== 'all' && req.request_type !== selectedType) {
+      return false;
+    }
+    
+    return true;
   });
 
   const pendingCount = requests.filter(r => r.status === 'pending').length;
   const activeBlocksCount = requests.filter(r => 
     r.status === 'approved' && !isPast(new Date(r.end_date))
   ).length;
+  const approvedCount = requests.filter(r => r.status === 'approved').length;
+  const rejectedCount = requests.filter(r => r.status === 'rejected').length;
 
   if (isLoading) {
     return (
@@ -271,7 +336,8 @@ const OffRequests = () => {
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">
-        <Card className="border-border/50">
+        <Card className="border-border/50 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all" 
+              onClick={() => setActiveTab('pending')}>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
@@ -286,7 +352,8 @@ const OffRequests = () => {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-border/50">
+        <Card className="border-border/50 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all"
+              onClick={() => setActiveTab('active')}>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -301,7 +368,8 @@ const OffRequests = () => {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-border/50">
+        <Card className="border-border/50 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all"
+              onClick={() => setActiveTab('approved')}>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
@@ -311,12 +379,13 @@ const OffRequests = () => {
                 <p className="text-sm text-muted-foreground">
                   {isEnglish ? 'Approved' : 'Aprovados'}
                 </p>
-                <p className="text-2xl font-bold">{requests.filter(r => r.status === 'approved').length}</p>
+                <p className="text-2xl font-bold">{approvedCount}</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-border/50">
+        <Card className="border-border/50 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all"
+              onClick={() => setActiveTab('rejected')}>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center">
@@ -326,19 +395,58 @@ const OffRequests = () => {
                 <p className="text-sm text-muted-foreground">
                   {isEnglish ? 'Rejected' : 'Rejeitados'}
                 </p>
-                <p className="text-2xl font-bold">{requests.filter(r => r.status === 'rejected').length}</p>
+                <p className="text-2xl font-bold">{rejectedCount}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
+      {/* Filters */}
+      <Card className="border-border/50">
+        <CardContent className="p-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={isEnglish ? "Search by name or reason..." : "Buscar por nome ou motivo..."}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={selectedCleaner} onValueChange={setSelectedCleaner}>
+              <SelectTrigger className="w-full md:w-[200px]">
+                <SelectValue placeholder={isEnglish ? "All Cleaners" : "Todos os Cleaners"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{isEnglish ? "All Cleaners" : "Todos os Cleaners"}</SelectItem>
+                {cleaners.map(cleaner => (
+                  <SelectItem key={cleaner.id} value={cleaner.id}>{cleaner.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={selectedType} onValueChange={setSelectedType}>
+              <SelectTrigger className="w-full md:w-[180px]">
+                <SelectValue placeholder={isEnglish ? "All Types" : "Todos os Tipos"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{isEnglish ? "All Types" : "Todos os Tipos"}</SelectItem>
+                {Object.entries(requestTypeConfig).map(([key, config]) => (
+                  <SelectItem key={key} value={key}>{isEnglish ? config.label : config.labelPt}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="pending" className="gap-2">
             <Clock className="h-4 w-4" />
-            {isEnglish ? 'Pending' : 'Pendentes'}
+            <span className="hidden sm:inline">{isEnglish ? 'Pending' : 'Pendentes'}</span>
             {pendingCount > 0 && (
               <Badge variant="secondary" className="ml-1 h-5 px-1.5">
                 {pendingCount}
@@ -347,7 +455,7 @@ const OffRequests = () => {
           </TabsTrigger>
           <TabsTrigger value="active" className="gap-2">
             <CalendarOff className="h-4 w-4" />
-            {isEnglish ? 'Active Blocks' : 'Bloqueios Ativos'}
+            <span className="hidden sm:inline">{isEnglish ? 'Active' : 'Ativos'}</span>
             {activeBlocksCount > 0 && (
               <Badge variant="secondary" className="ml-1 h-5 px-1.5">
                 {activeBlocksCount}
@@ -356,15 +464,15 @@ const OffRequests = () => {
           </TabsTrigger>
           <TabsTrigger value="approved" className="gap-2">
             <Check className="h-4 w-4" />
-            {isEnglish ? 'Approved' : 'Aprovados'}
+            <span className="hidden sm:inline">{isEnglish ? 'Approved' : 'Aprovados'}</span>
           </TabsTrigger>
           <TabsTrigger value="rejected" className="gap-2">
             <X className="h-4 w-4" />
-            {isEnglish ? 'Rejected' : 'Rejeitados'}
+            <span className="hidden sm:inline">{isEnglish ? 'Rejected' : 'Rejeitados'}</span>
           </TabsTrigger>
           <TabsTrigger value="all" className="gap-2">
             <CalendarDays className="h-4 w-4" />
-            {isEnglish ? 'All' : 'Todos'}
+            <span className="hidden sm:inline">{isEnglish ? 'All' : 'Todos'}</span>
           </TabsTrigger>
         </TabsList>
 
@@ -374,12 +482,13 @@ const OffRequests = () => {
               {filteredRequests.map((request) => {
                 const statusConf = statusConfig[request.status];
                 const StatusIcon = statusConf.icon;
-                const typeConf = requestTypeConfig[request.request_type] || requestTypeConfig.time_off;
+                const typeConf = requestTypeConfig[request.request_type as keyof typeof requestTypeConfig] || requestTypeConfig.time_off;
                 const TypeIcon = typeConf.icon;
                 const days = differenceInDays(new Date(request.end_date), new Date(request.start_date)) + 1;
                 const isCurrentlyBlocked = request.status === 'approved' && 
                   !isPast(new Date(request.end_date)) &&
                   !isFuture(new Date(request.start_date));
+                const isFullMonth = days >= 28 && days <= 31;
                 
                 return (
                   <Card key={request.id} className={cn(
@@ -397,13 +506,18 @@ const OffRequests = () => {
                             <div className="flex-1 min-w-0">
                               <p className="font-medium truncate">{request.cleaner_name}</p>
                               <p className="text-xs text-muted-foreground">
-                                {isEnglish ? 'Requested' : 'Solicitado em'} {format(new Date(request.created_at), 'MMM d, yyyy')}
+                                {isEnglish ? 'Requested' : 'Solicitado em'} {format(new Date(request.created_at), 'MMM d, yyyy HH:mm')}
                               </p>
                             </div>
                             <Badge className={cn("border", typeConf.color)}>
                               <TypeIcon className="h-3 w-3 mr-1" />
                               {isEnglish ? typeConf.label : typeConf.labelPt}
                             </Badge>
+                            {isFullMonth && (
+                              <Badge variant="destructive">
+                                {isEnglish ? 'Full Month' : 'Mês Inteiro'}
+                              </Badge>
+                            )}
                           </div>
                           
                           {/* Date Range */}
@@ -429,7 +543,7 @@ const OffRequests = () => {
                           {/* Reason if exists */}
                           {request.reason && (
                             <p className="text-sm text-muted-foreground bg-muted/30 p-2 rounded-md">
-                              {request.reason}
+                              "{request.reason}"
                             </p>
                           )}
                           
@@ -451,7 +565,7 @@ const OffRequests = () => {
                             {isEnglish ? statusConf.label : statusConf.labelPt}
                           </Badge>
                           
-                          {request.status === 'pending' && isAdminOrManager && (
+                          {request.status === 'pending' && isAdmin && (
                             <div className="flex gap-2">
                               <Button
                                 size="sm"
@@ -461,9 +575,9 @@ const OffRequests = () => {
                                 disabled={processingId === request.id}
                               >
                                 {processingId === request.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  <Loader2 className="h-3 w-3 animate-spin" />
                                 ) : (
-                                  <X className="h-4 w-4" />
+                                  <X className="h-3 w-3" />
                                 )}
                                 {isEnglish ? 'Reject' : 'Rejeitar'}
                               </Button>
@@ -474,9 +588,9 @@ const OffRequests = () => {
                                 disabled={processingId === request.id}
                               >
                                 {processingId === request.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  <Loader2 className="h-3 w-3 animate-spin" />
                                 ) : (
-                                  <Check className="h-4 w-4" />
+                                  <Check className="h-3 w-3" />
                                 )}
                                 {isEnglish ? 'Approve' : 'Aprovar'}
                               </Button>
@@ -490,18 +604,17 @@ const OffRequests = () => {
               })}
             </div>
           ) : (
-            <Card className="border-border/50">
-              <CardContent className="py-12 text-center">
-                <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-                <p className="text-muted-foreground">
-                  {activeTab === 'pending' 
-                    ? (isEnglish ? 'No pending off requests' : 'Nenhuma solicitação pendente')
-                    : activeTab === 'active'
-                    ? (isEnglish ? 'No active blocks' : 'Nenhum bloqueio ativo')
-                    : (isEnglish ? `No ${activeTab} requests found` : `Nenhuma solicitação ${activeTab === 'approved' ? 'aprovada' : 'rejeitada'}`)}
-                </p>
-              </CardContent>
-            </Card>
+            <div className="flex flex-col items-center justify-center py-12 text-center border rounded-lg border-dashed">
+              <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-lg font-medium text-muted-foreground">
+                {isEnglish ? 'No requests found' : 'Nenhuma solicitação encontrada'}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {activeTab === 'pending' 
+                  ? (isEnglish ? 'No pending requests to review' : 'Nenhuma solicitação pendente para revisar')
+                  : (isEnglish ? 'Try adjusting your filters' : 'Tente ajustar seus filtros')}
+              </p>
+            </div>
           )}
         </TabsContent>
       </Tabs>
