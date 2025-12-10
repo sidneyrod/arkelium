@@ -28,7 +28,9 @@ import {
   GripVertical,
   Calendar,
   Loader2,
-  Globe
+  Globe,
+  FileText,
+  Zap
 } from 'lucide-react';
 
 const canadianProvinces = [
@@ -62,6 +64,7 @@ interface EstimateConfig {
   id?: string;
   default_hourly_rate: number;
   tax_rate: number;
+  invoice_generation_mode: 'automatic' | 'manual';
 }
 
 interface ExtraFee {
@@ -114,7 +117,8 @@ const Company = () => {
   
   const [estimateConfig, setEstimateConfig] = useState<EstimateConfig>({
     default_hourly_rate: 35,
-    tax_rate: 13
+    tax_rate: 13,
+    invoice_generation_mode: 'manual'
   });
   const [initialEstimateConfig, setInitialEstimateConfig] = useState<EstimateConfig | null>(null);
   
@@ -235,7 +239,8 @@ const Company = () => {
           const estConfig: EstimateConfig = {
             id: estimateData.id,
             default_hourly_rate: estimateData.default_hourly_rate || 35,
-            tax_rate: estimateData.tax_rate || 13
+            tax_rate: estimateData.tax_rate || 13,
+            invoice_generation_mode: (estimateData as any).invoice_generation_mode || 'manual'
           };
           setEstimateConfig(estConfig);
           setInitialEstimateConfig(estConfig);
@@ -405,7 +410,8 @@ const Company = () => {
           id: estimateConfig.id,
           company_id: companyId,
           default_hourly_rate: estimateConfig.default_hourly_rate,
-          tax_rate: estimateConfig.tax_rate
+          tax_rate: estimateConfig.tax_rate,
+          invoice_generation_mode: estimateConfig.invoice_generation_mode
         }, { onConflict: 'company_id' });
 
       if (estimateError) throw estimateError;
@@ -963,6 +969,74 @@ const Company = () => {
 
         {/* Schedule Configuration Tab */}
         <TabsContent value="schedule" className="space-y-4 mt-4">
+          {/* Invoice Generation Mode */}
+          <Card className="border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" />
+                Invoice Generation
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Choose how invoices are generated when jobs are completed
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div 
+                  className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    estimateConfig.invoice_generation_mode === 'automatic' 
+                      ? 'border-primary bg-primary/5' 
+                      : 'border-border/50 hover:border-muted-foreground/50'
+                  }`}
+                  onClick={() => setEstimateConfig(prev => ({ ...prev, invoice_generation_mode: 'automatic' }))}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={`p-2 rounded-lg ${
+                      estimateConfig.invoice_generation_mode === 'automatic' 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'bg-muted'
+                    }`}>
+                      <Zap className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium">Automatic</h4>
+                      <p className="text-xs text-muted-foreground">Generate on job completion</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Invoice is automatically created when a job is marked as completed. Best for streamlined operations.
+                  </p>
+                </div>
+                
+                <div 
+                  className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    estimateConfig.invoice_generation_mode === 'manual' 
+                      ? 'border-primary bg-primary/5' 
+                      : 'border-border/50 hover:border-muted-foreground/50'
+                  }`}
+                  onClick={() => setEstimateConfig(prev => ({ ...prev, invoice_generation_mode: 'manual' }))}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={`p-2 rounded-lg ${
+                      estimateConfig.invoice_generation_mode === 'manual' 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'bg-muted'
+                    }`}>
+                      <FileText className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium">Manual</h4>
+                      <p className="text-xs text-muted-foreground">Review before generating</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Completed jobs appear in "Completed Services" for admin review before invoice generation.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="border-border/50">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
