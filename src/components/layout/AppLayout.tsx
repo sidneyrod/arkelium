@@ -1,5 +1,5 @@
-import { Outlet, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import MobileNavigation from './MobileNavigation';
@@ -30,8 +30,24 @@ const getPageLabel = (path: string, t: any): string => {
 
 const AppLayout = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { t } = useLanguage();
-  const { openTab, tabs } = useWorkspaceStore();
+  const { openTab, tabs, activeTabId } = useWorkspaceStore();
+  const hasRestoredSession = useRef(false);
+
+  // On mount, restore the active tab's route if needed
+  useEffect(() => {
+    if (hasRestoredSession.current) return;
+    hasRestoredSession.current = true;
+    
+    // Find the active tab
+    const activeTab = tabs.find(tab => tab.id === activeTabId);
+    
+    // If we have an active tab and it's not the current location, navigate to it
+    if (activeTab && activeTab.path !== location.pathname) {
+      navigate(activeTab.path, { replace: true });
+    }
+  }, []);
 
   // Auto-open tab when navigating directly to a URL
   useEffect(() => {
@@ -41,8 +57,11 @@ const AppLayout = () => {
     if (!existingTab) {
       const label = getPageLabel(currentPath, t);
       openTab(currentPath, label);
+    } else if (existingTab.id !== activeTabId) {
+      // Activate the existing tab if it's not already active
+      openTab(currentPath, existingTab.label);
     }
-  }, [location.pathname, openTab, tabs, t]);
+  }, [location.pathname, openTab, tabs, t, activeTabId]);
 
   return (
     <TooltipProvider>
