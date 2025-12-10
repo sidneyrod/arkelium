@@ -29,7 +29,7 @@ import {
   Bar,
 } from 'recharts';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
-import { useWorkspaceStore } from '@/stores/workspaceStore';
+
 
 interface DashboardStats {
   todayJobs: number;
@@ -44,7 +44,7 @@ const Dashboard = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { openTab } = useWorkspaceStore();
+  
   
   const [stats, setStats] = useState<DashboardStats>({
     todayJobs: 0,
@@ -178,34 +178,28 @@ const Dashboard = () => {
   // Navigation handlers with smart filters
   const handleTodayJobsClick = () => {
     const today = format(new Date(), 'yyyy-MM-dd');
-    openTab(`/schedule?view=day&date=${today}`, 'Schedule', 'calendar');
     navigate(`/schedule?view=day&date=${today}`);
   };
 
   const handleActiveEmployeesClick = () => {
-    openTab('/users?filter=active&roles=cleaner,manager', 'Users', 'users');
     navigate('/users?filter=active&roles=cleaner,manager');
   };
 
   const handleActiveClientsClick = () => {
-    openTab('/clients?status=active', 'Clients', 'user-circle');
     navigate('/clients?status=active');
   };
 
   const handleMonthlyRevenueClick = () => {
     const monthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
     const monthEnd = format(endOfMonth(new Date()), 'yyyy-MM-dd');
-    openTab(`/invoices?status=paid&from=${monthStart}&to=${monthEnd}`, 'Invoices', 'file-text');
     navigate(`/invoices?status=paid&from=${monthStart}&to=${monthEnd}`);
   };
 
   const handlePendingPaymentsClick = () => {
-    openTab('/invoices?status=pending', 'Invoices', 'file-text');
     navigate('/invoices?status=pending');
   };
 
   const handleUpcomingScheduleClick = () => {
-    openTab('/schedule?view=week', 'Schedule', 'calendar');
     navigate('/schedule?view=week');
   };
 
