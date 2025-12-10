@@ -52,16 +52,22 @@ const AppLayout = () => {
   // Auto-open tab when navigating directly to a URL
   useEffect(() => {
     const currentPath = location.pathname;
-    const existingTab = tabs.find(tab => tab.path === currentPath);
+    const fullPath = location.pathname + location.search;
+    
+    // Find existing tab by comparing base path (without query params)
+    const existingTab = tabs.find(tab => {
+      const tabBasePath = tab.path.split('?')[0];
+      return tabBasePath === currentPath;
+    });
     
     if (!existingTab) {
       const label = getPageLabel(currentPath, t);
-      openTab(currentPath, label);
+      openTab(fullPath, label);
     } else if (existingTab.id !== activeTabId) {
-      // Activate the existing tab if it's not already active
-      openTab(currentPath, existingTab.label);
+      // Activate the existing tab and update its path with new query params
+      openTab(fullPath, existingTab.label);
     }
-  }, [location.pathname, openTab, tabs, t, activeTabId]);
+  }, [location.pathname, location.search, openTab, tabs, t, activeTabId]);
 
   return (
     <TooltipProvider>
