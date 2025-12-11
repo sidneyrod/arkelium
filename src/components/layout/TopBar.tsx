@@ -13,8 +13,11 @@ import {
   Building2,
   Mail,
   Phone,
-  Loader2
+  Loader2,
+  Key,
+  User
 } from 'lucide-react';
+import ChangePasswordModal from '@/components/modals/ChangePasswordModal';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -81,6 +84,7 @@ const TopBar = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -533,7 +537,16 @@ const TopBar = () => {
                 </div>
               </div>
               <DropdownMenuSeparator className="bg-border dark:bg-[hsl(160,12%,16%)]" />
-              <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+              <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
+                <User className="h-4 w-4 mr-2" />
+                Account Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsPasswordModalOpen(true)} className="cursor-pointer">
+                <Key className="h-4 w-4 mr-2" />
+                Change Password
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-border dark:bg-[hsl(160,12%,16%)]" />
+              <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive cursor-pointer">
                 <LogOut className="h-4 w-4 mr-2" />
                 {t.auth.signOut}
               </DropdownMenuItem>
@@ -541,6 +554,12 @@ const TopBar = () => {
           </DropdownMenu>
         </div>
       </div>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal 
+        open={isPasswordModalOpen} 
+        onOpenChange={setIsPasswordModalOpen} 
+      />
     </header>
   );
 };
