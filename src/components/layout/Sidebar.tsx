@@ -132,7 +132,7 @@ const Sidebar = () => {
   
   // Cleaner Payroll Report
   if (isCleaner) {
-    financialItems.push({ path: '/my-payroll', label: 'My Payroll', icon: Wallet });
+    financialItems.push({ path: '/my-payroll', label: t.payroll.myPayroll, icon: Wallet });
   }
 
   // ===========================

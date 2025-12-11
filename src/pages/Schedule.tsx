@@ -38,6 +38,7 @@ import { toast } from 'sonner';
 import { logActivity } from '@/stores/activityStore';
 import { useInvoiceStore } from '@/stores/invoiceStore';
 import { useCompanyStore } from '@/stores/companyStore';
+import useRoleAccess from '@/hooks/useRoleAccess';
 import AddJobModal from '@/components/modals/AddJobModal';
 import JobCompletionModal, { PaymentData } from '@/components/modals/JobCompletionModal';
 import OffRequestModal, { OffRequestType } from '@/components/modals/OffRequestModal';
@@ -108,6 +109,7 @@ const Schedule = () => {
   const [searchParams] = useSearchParams();
   const { addInvoice, getInvoiceByJobId } = useInvoiceStore();
   const { estimateConfig } = useCompanyStore();
+  const { isCleaner, isAdminOrManager } = useRoleAccess();
   
   // Read URL params for initial state
   const urlView = searchParams.get('view') as ViewType | null;
@@ -313,9 +315,14 @@ const Schedule = () => {
     }
   }, [user, fetchJobs, fetchAbsenceRequests, fetchInvoiceSettings]);
 
+  // For cleaners: only show their own jobs. For admin/manager: show all or filtered
+  const baseJobs = isCleaner 
+    ? jobs.filter(job => job.employeeId === user?.id)
+    : jobs;
+  
   const filteredJobs = employeeFilter === 'all' 
-    ? jobs 
-    : jobs.filter(job => job.employeeId === employeeFilter);
+    ? baseJobs 
+    : baseJobs.filter(job => job.employeeId === employeeFilter);
 
   const uniqueEmployees = Array.from(new Set(jobs.map(j => ({ id: j.employeeId, name: j.employeeName }))))
     .filter((emp, index, self) => self.findIndex(e => e.id === emp.id) === index);
@@ -808,11 +815,11 @@ const Schedule = () => {
     <div className="p-4 lg:p-6 max-w-7xl mx-auto space-y-6">
       <PageHeader 
         title={t.schedule.title}
-        action={{
+        action={isAdminOrManager ? {
           label: t.schedule.addJob,
           icon: CalendarPlus,
           onClick: () => setShowAddJob(true),
-        }}
+        } : undefined}
       />
 
       <Tabs defaultValue="calendar" className="space-y-6">

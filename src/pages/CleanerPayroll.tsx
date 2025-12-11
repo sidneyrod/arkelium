@@ -69,9 +69,8 @@ interface PayrollEntry {
 }
 
 const CleanerPayroll = () => {
-  const { language } = useLanguage();
+  const { t } = useLanguage();
   const { user } = useAuth();
-  const isEnglish = language === 'en';
   
   const [isLoading, setIsLoading] = useState(true);
   const [jobs, setJobs] = useState<JobDetail[]>([]);
@@ -251,10 +250,8 @@ const CleanerPayroll = () => {
   return (
     <div className="container px-4 py-6 lg:px-8 space-y-6">
       <PageHeader 
-        title={isEnglish ? "My Payroll" : "Minha Folha de Pagamento"}
-        description={isEnglish 
-          ? "View your hours worked and earnings" 
-          : "Visualize suas horas trabalhadas e ganhos"}
+        title={t.payroll.myPayroll}
+        description={t.payroll.myPayrollDescription}
       />
 
       {/* Hours Summary Cards */}
@@ -267,7 +264,7 @@ const CleanerPayroll = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">
-                  {isEnglish ? 'Today' : 'Hoje'}
+                  {t.payroll.today}
                 </p>
                 <p className="text-2xl font-bold">{formatHours(summary.totalHoursDaily)}</p>
               </div>
@@ -283,7 +280,7 @@ const CleanerPayroll = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">
-                  {isEnglish ? 'This Week' : 'Esta Semana'}
+                  {t.payroll.thisWeek}
                 </p>
                 <p className="text-2xl font-bold">{formatHours(summary.totalHoursWeekly)}</p>
               </div>
@@ -299,7 +296,7 @@ const CleanerPayroll = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">
-                  {isEnglish ? 'Bi-weekly' : 'Quinzenal'}
+                  {t.payroll.biweekly}
                 </p>
                 <p className="text-2xl font-bold">{formatHours(summary.totalHoursBiweekly)}</p>
               </div>
@@ -315,7 +312,7 @@ const CleanerPayroll = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">
-                  {isEnglish ? 'This Month' : 'Este Mês'}
+                  {t.payroll.thisMonth}
                 </p>
                 <p className="text-2xl font-bold">{formatHours(summary.totalHoursMonthly)}</p>
               </div>
@@ -334,7 +331,7 @@ const CleanerPayroll = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">
-                  {isEnglish ? 'Hourly Rate' : 'Taxa Horária'}
+                  {t.payroll.hourlyRate}
                 </p>
                 <p className="text-2xl font-bold">${hourlyRate.toFixed(2)}/h</p>
               </div>
@@ -350,7 +347,7 @@ const CleanerPayroll = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">
-                  {isEnglish ? 'Monthly Earnings (Est.)' : 'Ganhos Mensais (Est.)'}
+                  {t.payroll.monthlyEarnings}
                 </p>
                 <p className="text-2xl font-bold">${summary.totalEarningsMonthly.toFixed(2)}</p>
               </div>
@@ -366,7 +363,7 @@ const CleanerPayroll = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">
-                  {isEnglish ? 'Jobs Completed' : 'Serviços Concluídos'}
+                  {t.payroll.servicesCompleted}
                 </p>
                 <p className="text-2xl font-bold">{summary.jobsCompleted}</p>
               </div>
@@ -378,10 +375,10 @@ const CleanerPayroll = () => {
       <Tabs defaultValue="jobs" className="space-y-4">
         <TabsList>
           <TabsTrigger value="jobs">
-            {isEnglish ? 'Job Details' : 'Detalhes dos Serviços'}
+            {t.payroll.jobDetails}
           </TabsTrigger>
           <TabsTrigger value="history">
-            {isEnglish ? 'Payroll History' : 'Histórico de Pagamentos'}
+            {t.payroll.payrollHistory}
           </TabsTrigger>
         </TabsList>
 
@@ -390,13 +387,13 @@ const CleanerPayroll = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <Briefcase className="h-4 w-4" />
-                {isEnglish ? 'Completed Jobs This Month' : 'Serviços Concluídos Este Mês'}
+                {t.payroll.completedServicesThisMonth}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {jobs.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  {isEnglish ? 'No completed jobs this month' : 'Nenhum serviço concluído este mês'}
+                  {t.payroll.noServicesThisMonth}
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -465,13 +462,13 @@ const CleanerPayroll = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <FileText className="h-4 w-4" />
-                {isEnglish ? 'Payment History' : 'Histórico de Pagamentos'}
+                {t.payroll.payrollHistory}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {payrollEntries.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  {isEnglish ? 'No payroll history yet' : 'Nenhum histórico de pagamento ainda'}
+                  {t.payroll.noPayrollHistory}
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -493,11 +490,11 @@ const CleanerPayroll = () => {
                           </p>
                           <div className="flex items-center gap-3 text-sm">
                             <span>
-                              {isEnglish ? 'Regular' : 'Regular'}: {entry.regular_hours}h
+                              {t.payroll.regular}: {entry.regular_hours}h
                             </span>
                             {entry.overtime_hours > 0 && (
                               <span className="text-warning">
-                                {isEnglish ? 'Overtime' : 'Horas Extra'}: {entry.overtime_hours}h
+                                {t.payroll.overtime}: {entry.overtime_hours}h
                               </span>
                             )}
                           </div>
@@ -513,15 +510,15 @@ const CleanerPayroll = () => {
                             )}
                           >
                             {entry.period?.status === 'paid' 
-                              ? (isEnglish ? 'Paid' : 'Pago')
+                              ? t.payroll.paid
                               : entry.period?.status === 'approved'
-                                ? (isEnglish ? 'Approved' : 'Aprovado')
-                                : (isEnglish ? 'Pending' : 'Pendente')
+                                ? t.payroll.approved
+                                : t.payroll.pending
                             }
                           </Badge>
                           <div className="flex flex-col items-end">
                             <span className="text-sm text-muted-foreground">
-                              {isEnglish ? 'Gross' : 'Bruto'}: ${entry.gross_pay.toFixed(2)}
+                              {t.payroll.grossPay}: ${entry.gross_pay.toFixed(2)}
                             </span>
                             <span className="font-semibold text-primary text-lg">
                               ${entry.net_pay.toFixed(2)}
@@ -529,7 +526,7 @@ const CleanerPayroll = () => {
                           </div>
                           {entry.period?.pay_date && (
                             <p className="text-xs text-muted-foreground">
-                              {isEnglish ? 'Pay Date' : 'Data Pagamento'}: {entry.period.pay_date}
+                              {t.payroll.payDate}: {entry.period.pay_date}
                             </p>
                           )}
                         </div>

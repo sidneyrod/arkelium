@@ -114,6 +114,42 @@ const Dashboard = () => {
     const monthEnd = format(endOfMonth(new Date()), 'yyyy-MM-dd');
 
     try {
+      // For cleaners: only fetch their own jobs
+      if (isCleaner) {
+        // Fetch cleaner's today jobs
+        const { data: myTodayJobs } = await supabase
+          .from('jobs')
+          .select('id')
+          .eq('company_id', companyId)
+          .eq('cleaner_id', user.id)
+          .eq('scheduled_date', today);
+
+        // Fetch cleaner's upcoming jobs
+        const { data: myUpcomingJobs } = await supabase
+          .from('jobs')
+          .select('id')
+          .eq('company_id', companyId)
+          .eq('cleaner_id', user.id)
+          .gte('scheduled_date', today)
+          .eq('status', 'scheduled');
+
+        setStats({
+          todayJobs: myTodayJobs?.length || 0,
+          activeEmployees: 0,
+          activeClients: 0,
+          monthlyRevenue: 0,
+          pendingPayments: 0,
+          upcomingSchedule: myUpcomingJobs?.length || 0,
+          myTodayJobs: myTodayJobs?.length || 0,
+          myWeekJobs: 0,
+          myPendingOffRequests: 0,
+          myHoursThisWeek: 0,
+        });
+
+        return;
+      }
+
+      // Admin/Manager: fetch all company data
       // Fetch today's jobs
       const { data: todayJobs } = await supabase
         .from('jobs')
@@ -220,7 +256,7 @@ const Dashboard = () => {
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
     }
-  }, [user?.profile?.company_id]);
+  }, [user?.profile?.company_id, user?.id, isCleaner]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -263,185 +299,211 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Grid - Premium Cards with Color Variants */}
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <StatCard 
-          title={t.dashboard.todayJobs} 
-          value={stats.todayJobs.toString()} 
-          icon={Briefcase}
-          variant="green"
-          onClick={handleTodayJobsClick}
-          tooltip="Click to view today's jobs in Schedule (Day view)"
-        />
-        <StatCard 
-          title={t.dashboard.activeEmployees} 
-          value={stats.activeEmployees.toString()} 
-          icon={Users}
-          variant="blue"
-          onClick={handleActiveEmployeesClick}
-          tooltip="Click to view active employees (Cleaners & Managers)"
-        />
-        <StatCard 
-          title={t.dashboard.activeClients} 
-          value={stats.activeClients.toString()} 
-          icon={UserCircle}
-          variant="purple"
-          onClick={handleActiveClientsClick}
-          tooltip="Click to view all active clients"
-        />
-        <StatCard 
-          title={t.dashboard.monthlyRevenue} 
-          value={`$${stats.monthlyRevenue.toLocaleString()}`} 
-          icon={DollarSign}
-          variant="gold"
-          onClick={handleMonthlyRevenueClick}
-          tooltip="Click to view paid invoices for this month"
-        />
-        <StatCard 
-          title={t.dashboard.pendingPayments} 
-          value={`$${stats.pendingPayments.toLocaleString()}`} 
-          icon={CreditCard}
-          variant="orange"
-          onClick={handlePendingPaymentsClick}
-          tooltip="Click to view pending invoices"
-        />
-        <StatCard 
-          title={t.dashboard.upcomingSchedule} 
-          value={stats.upcomingSchedule.toString()} 
-          icon={Calendar}
-          variant="teal"
-          onClick={handleUpcomingScheduleClick}
-          tooltip="Click to view upcoming jobs in Schedule (Week view)"
-        />
-      </div>
-
-      {/* Charts Row */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Jobs This Week */}
-        <Card className="border-border/60 shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium flex items-center gap-2 heading-secondary">
-              <BarChart3 className="h-4 w-4 text-primary" />
-              {t.dashboard.jobsThisWeek}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[240px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={weeklyJobsData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis 
-                    dataKey="name" 
-                    stroke="hsl(var(--muted-foreground))" 
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis 
-                    stroke="hsl(var(--muted-foreground))" 
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                    }}
-                  />
-                  <Bar 
-                    dataKey="jobs" 
-                    fill="hsl(var(--primary))" 
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Revenue by Month */}
-        <Card className="border-border/60 shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium flex items-center gap-2 heading-secondary">
-              <TrendingUp className="h-4 w-4 text-primary" />
-              {t.dashboard.revenueByMonth}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[240px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={revenueData}>
-                  <defs>
-                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis 
-                    dataKey="name" 
-                    stroke="hsl(var(--muted-foreground))" 
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis 
-                    stroke="hsl(var(--muted-foreground))" 
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(value) => `$${value/1000}k`}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                    }}
-                    formatter={(value: number) => [`$${value.toLocaleString()}`, 'Revenue']}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="revenue" 
-                    stroke="hsl(var(--primary))" 
-                    fillOpacity={1} 
-                    fill="url(#colorRevenue)" 
-                    strokeWidth={2}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Alerts Section */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold heading-secondary">{t.dashboard.alerts}</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <AlertCard 
-            type="delayed" 
-            title={t.dashboard.delayedJobs} 
-            count={alertStats.delayedJobs} 
+      {/* For cleaners: show only Today's Jobs and Upcoming Schedule */}
+      {isCleaner ? (
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-2 max-w-2xl">
+          <StatCard 
+            title={t.dashboard.todayJobs} 
+            value={stats.todayJobs.toString()} 
+            icon={Briefcase}
+            variant="green"
+            onClick={handleTodayJobsClick}
+            tooltip="Click to view today's jobs"
           />
-          <AlertCard 
-            type="invoice" 
-            title={t.dashboard.pendingInvoices} 
-            count={alertStats.pendingInvoices} 
-          />
-          <AlertCard 
-            type="conflict" 
-            title="Pending Off Requests" 
-            count={alertStats.pendingOffRequests} 
-          />
-          <AlertCard 
-            type="churn" 
-            title={t.dashboard.scheduleConflicts} 
-            count={alertStats.scheduleConflicts} 
+          <StatCard 
+            title={t.dashboard.upcomingSchedule} 
+            value={stats.upcomingSchedule.toString()} 
+            icon={Calendar}
+            variant="teal"
+            onClick={handleUpcomingScheduleClick}
+            tooltip="Click to view upcoming jobs"
           />
         </div>
-      </div>
+      ) : (
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <StatCard 
+            title={t.dashboard.todayJobs} 
+            value={stats.todayJobs.toString()} 
+            icon={Briefcase}
+            variant="green"
+            onClick={handleTodayJobsClick}
+            tooltip="Click to view today's jobs in Schedule (Day view)"
+          />
+          <StatCard 
+            title={t.dashboard.activeEmployees} 
+            value={stats.activeEmployees.toString()} 
+            icon={Users}
+            variant="blue"
+            onClick={handleActiveEmployeesClick}
+            tooltip="Click to view active employees (Cleaners & Managers)"
+          />
+          <StatCard 
+            title={t.dashboard.activeClients} 
+            value={stats.activeClients.toString()} 
+            icon={UserCircle}
+            variant="purple"
+            onClick={handleActiveClientsClick}
+            tooltip="Click to view all active clients"
+          />
+          <StatCard 
+            title={t.dashboard.monthlyRevenue} 
+            value={`$${stats.monthlyRevenue.toLocaleString()}`} 
+            icon={DollarSign}
+            variant="gold"
+            onClick={handleMonthlyRevenueClick}
+            tooltip="Click to view paid invoices for this month"
+          />
+          <StatCard 
+            title={t.dashboard.pendingPayments} 
+            value={`$${stats.pendingPayments.toLocaleString()}`} 
+            icon={CreditCard}
+            variant="orange"
+            onClick={handlePendingPaymentsClick}
+            tooltip="Click to view pending invoices"
+          />
+          <StatCard 
+            title={t.dashboard.upcomingSchedule} 
+            value={stats.upcomingSchedule.toString()} 
+            icon={Calendar}
+            variant="teal"
+            onClick={handleUpcomingScheduleClick}
+            tooltip="Click to view upcoming jobs in Schedule (Week view)"
+          />
+        </div>
+      )}
+
+      {/* Charts Row - Only for Admin/Manager */}
+      {isAdminOrManager && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Jobs This Week */}
+          <Card className="border-border/60 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-medium flex items-center gap-2 heading-secondary">
+                <BarChart3 className="h-4 w-4 text-primary" />
+                {t.dashboard.jobsThisWeek}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[240px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={weeklyJobsData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis 
+                      dataKey="name" 
+                      stroke="hsl(var(--muted-foreground))" 
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis 
+                      stroke="hsl(var(--muted-foreground))" 
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                      }}
+                    />
+                    <Bar 
+                      dataKey="jobs" 
+                      fill="hsl(var(--primary))" 
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Revenue by Month */}
+          <Card className="border-border/60 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-medium flex items-center gap-2 heading-secondary">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                {t.dashboard.revenueByMonth}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[240px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={revenueData}>
+                    <defs>
+                      <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis 
+                      dataKey="name" 
+                      stroke="hsl(var(--muted-foreground))" 
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis 
+                      stroke="hsl(var(--muted-foreground))" 
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(value) => `$${value/1000}k`}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                      }}
+                      formatter={(value: number) => [`$${value.toLocaleString()}`, 'Revenue']}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="revenue" 
+                      stroke="hsl(var(--primary))" 
+                      fillOpacity={1} 
+                      fill="url(#colorRevenue)" 
+                      strokeWidth={2}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Alerts Section - Only for Admin/Manager */}
+      {isAdminOrManager && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold heading-secondary">{t.dashboard.alerts}</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <AlertCard 
+              type="delayed" 
+              title={t.dashboard.delayedJobs} 
+              count={alertStats.delayedJobs} 
+            />
+            <AlertCard 
+              type="invoice" 
+              title={t.dashboard.pendingInvoices} 
+              count={alertStats.pendingInvoices} 
+            />
+            <AlertCard 
+              type="conflict" 
+              title="Pending Off Requests" 
+              count={alertStats.pendingOffRequests} 
+            />
+            <AlertCard 
+              type="churn" 
+              title={t.dashboard.scheduleConflicts} 
+              count={alertStats.scheduleConflicts} 
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
