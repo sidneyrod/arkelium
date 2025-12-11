@@ -16,6 +16,7 @@ interface Profile {
   salary: number | null;
   employment_type: string | null;
   primary_province: string | null;
+  must_change_password: boolean | null;
 }
 
 interface UserWithRole {
@@ -31,12 +32,14 @@ interface AuthContextType {
   session: Session | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  mustChangePassword: boolean;
   login: (email: string, password: string, remember?: boolean) => Promise<{ success: boolean; error?: string }>;
   signup: (email: string, password: string, firstName?: string, lastName?: string) => Promise<{ success: boolean; error?: string }>;
   signInWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   hasRole: (roles: UserRole[]) => boolean;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
+  clearMustChangePassword: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -45,6 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<UserWithRole | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
 
   // Fetch user profile and role
   const fetchUserData = async (userId: string, userEmail: string): Promise<UserWithRole | null> => {
@@ -143,6 +147,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.user) {
         const userData = await fetchUserData(data.user.id, data.user.email || '');
         setUser(userData);
+        
+        // Check if user must change password
+        if (userData?.profile?.must_change_password) {
+          setMustChangePassword(true);
+        }
       }
 
       return { success: true };
@@ -212,6 +221,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
+    setMustChangePassword(false);
+  };
+
+  const clearMustChangePassword = () => {
+    setMustChangePassword(false);
   };
 
   const hasRole = (roles: UserRole[]): boolean => {
@@ -241,12 +255,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       session,
       isAuthenticated: !!session, 
       isLoading, 
+      mustChangePassword,
       login, 
       signup,
       signInWithGoogle,
       logout, 
       hasRole,
       resetPassword,
+      clearMustChangePassword,
     }}>
       {children}
     </AuthContext.Provider>

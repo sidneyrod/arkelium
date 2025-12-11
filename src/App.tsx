@@ -8,6 +8,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider, useAuth, UserRole } from "@/contexts/AuthContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import AppLayout from "@/components/layout/AppLayout";
+import ForcedPasswordChangeModal from "@/components/modals/ForcedPasswordChangeModal";
 import Dashboard from "./pages/Dashboard";
 import Company from "./pages/Company";
 import Users from "./pages/Users";
@@ -37,7 +38,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
-  const { isAuthenticated, isLoading, hasRole } = useAuth();
+  const { isAuthenticated, isLoading, hasRole, mustChangePassword, clearMustChangePassword, user } = useAuth();
   
   if (isLoading) {
     return (
@@ -56,7 +57,19 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     return <Navigate to="/" replace />;
   }
   
-  return <>{children}</>;
+  return (
+    <>
+      {/* Show forced password change modal if needed */}
+      {mustChangePassword && user && (
+        <ForcedPasswordChangeModal
+          open={mustChangePassword}
+          userId={user.id}
+          onPasswordChanged={clearMustChangePassword}
+        />
+      )}
+      {children}
+    </>
+  );
 };
 
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {

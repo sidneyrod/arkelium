@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { User, Mail, Phone, MapPin, Shield, DollarSign, Briefcase, Loader2, Lock } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Shield, DollarSign, Briefcase, Loader2 } from 'lucide-react';
 import { userSchema, validateForm } from '@/lib/validations';
 import { CanadianProvince, EmploymentType, provinceNames } from '@/stores/payrollStore';
 
@@ -40,8 +40,6 @@ export interface UserFormData {
   province?: CanadianProvince;
   employmentType?: EmploymentType;
   vacationPayPercent?: number;
-  // Password for new users
-  password?: string;
 }
 
 const initialFormData: UserFormData = {
@@ -59,7 +57,6 @@ const initialFormData: UserFormData = {
   province: 'ON',
   employmentType: 'full-time',
   vacationPayPercent: 4,
-  password: '',
 };
 
 const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalProps) => {
@@ -89,13 +86,6 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
       const validationErrors = (validation as { success: false; errors: Record<string, string> }).errors;
       setErrors(validationErrors);
       toast({ title: t.common.error, description: Object.values(validationErrors)[0], variant: 'destructive' });
-      return;
-    }
-
-    // For new users, password is required
-    if (!editUser?.id && (!formData.password || formData.password.length < 6)) {
-      setErrors({ password: 'Password must be at least 6 characters' });
-      toast({ title: t.common.error, description: 'Password must be at least 6 characters', variant: 'destructive' });
       return;
     }
     
@@ -159,7 +149,6 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
         const response = await supabase.functions.invoke('create-user', {
           body: {
             email: formData.email,
-            password: formData.password,
             firstName,
             lastName,
             phone: formData.phone,
@@ -307,25 +296,14 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
                 </div>
               </div>
 
-              {/* Password field for new users */}
+              {/* Default Password Info for new users */}
               {isNewUser && (
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="flex items-center gap-2">
-                    <Lock className="h-3.5 w-3.5 text-muted-foreground" />
-                    Password
-                  </Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={formData.password || ''}
-                    onChange={(e) => updateField('password', e.target.value)}
-                    placeholder="Minimum 6 characters"
-                    className={`placeholder:text-muted-foreground/50 ${errors.password ? 'border-destructive' : ''}`}
-                    minLength={6}
-                  />
-                  {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
-                  <p className="text-xs text-muted-foreground">
-                    User will use this password to login. They can change it later.
+                <div className="p-3 rounded-lg border border-border bg-muted/30">
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Note:</strong> New users will receive a default password: <code className="bg-background px-1 py-0.5 rounded text-xs">Admin123!</code>
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    They will be required to change it on their first login.
                   </p>
                 </div>
               )}

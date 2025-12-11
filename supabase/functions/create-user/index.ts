@@ -5,9 +5,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Default password for new users - they must change on first login
+const DEFAULT_PASSWORD = 'Admin123!';
+
 interface CreateUserRequest {
   email: string;
-  password: string;
   firstName: string;
   lastName: string;
   phone?: string;
@@ -92,7 +94,6 @@ Deno.serve(async (req) => {
     const body: CreateUserRequest = await req.json();
     const {
       email,
-      password,
       firstName,
       lastName,
       phone,
@@ -109,19 +110,19 @@ Deno.serve(async (req) => {
     } = body;
 
     // Validate required fields
-    if (!email || !password || !firstName) {
+    if (!email || !firstName) {
       return new Response(
-        JSON.stringify({ error: 'Email, password, and first name are required' }),
+        JSON.stringify({ error: 'Email and first name are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     console.log('Creating user:', email, 'for company:', requestingProfile.company_id);
 
-    // Create user in auth
+    // Create user in auth with default password
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
-      password,
+      password: DEFAULT_PASSWORD,
       email_confirm: true, // Auto-confirm email
       user_metadata: {
         first_name: firstName,
@@ -139,7 +140,7 @@ Deno.serve(async (req) => {
 
     console.log('User created in auth:', newUser.user.id);
 
-    // Update profile with company_id and other details
+    // Update profile with company_id and other details, set must_change_password flag
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .update({
@@ -156,6 +157,7 @@ Deno.serve(async (req) => {
         salary: salary || null,
         primary_province: province || 'ON',
         employment_type: employmentType || 'full-time',
+        must_change_password: true, // Force password change on first login
       })
       .eq('id', newUser.user.id);
 
