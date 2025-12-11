@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { notifyInvoiceGenerated } from '@/hooks/useNotifications';
 import PageHeader from '@/components/ui/page-header';
 import SearchInput from '@/components/ui/search-input';
 import DataTable, { Column } from '@/components/ui/data-table';
@@ -207,7 +208,7 @@ const CompletedServices = () => {
           .eq('id', serviceId)
           .single();
 
-        const { error: invoiceError } = await supabase
+        const { data: invoiceData, error: invoiceError } = await supabase
           .from('invoices')
           .insert({
             company_id: companyId,
@@ -224,12 +225,17 @@ const CompletedServices = () => {
             total,
             status: 'draft',
             due_date: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
-          });
+          })
+          .select('id')
+          .single();
 
         if (invoiceError) {
           console.error('Error creating invoice:', invoiceError);
           continue;
         }
+
+        // Notify admin about the generated invoice
+        await notifyInvoiceGenerated(invoiceNumber, service.clientName, total, invoiceData.id);
 
         invoicesCreated++;
       }

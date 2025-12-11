@@ -3,6 +3,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { notifyInvoicePaid } from '@/hooks/useNotifications';
 import PageHeader from '@/components/ui/page-header';
 import SearchInput from '@/components/ui/search-input';
 import DataTable, { Column } from '@/components/ui/data-table';
@@ -279,6 +280,9 @@ const Invoices = () => {
       toast({ title: 'Error', description: 'Failed to update invoice', variant: 'destructive' });
       return;
     }
+
+    // Notify admin about the paid invoice
+    await notifyInvoicePaid(invoice.invoiceNumber, invoice.clientName, invoice.total, invoice.id);
 
     setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, status: 'paid' } : i));
     toast({ title: 'Success', description: `Invoice ${invoice.invoiceNumber} marked as paid` });

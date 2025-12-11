@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { notifyOffRequestCreated } from '@/hooks/useNotifications';
 import PageHeader from '@/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -161,7 +162,7 @@ const CleanerOffRequests = () => {
     }
     
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('absence_requests')
         .insert({
           cleaner_id: user.id,
@@ -171,13 +172,27 @@ const CleanerOffRequests = () => {
           reason: request.reason,
           request_type: request.requestType,
           status: 'pending',
-        });
+        })
+        .select('id')
+        .single();
       
       if (error) {
         console.error('Error creating off request:', error);
         toast.error(isEnglish ? 'Failed to create request' : 'Falha ao criar solicitação');
         return;
       }
+      
+      // Notify admin about the new off request
+      const cleanerName = user.profile.first_name 
+        ? `${user.profile.first_name} ${user.profile.last_name || ''}`.trim()
+        : user.profile.email || 'Employee';
+      
+      await notifyOffRequestCreated(
+        cleanerName,
+        request.startDate,
+        request.endDate,
+        data.id
+      );
       
       toast.success(isEnglish 
         ? 'Request submitted successfully! Waiting for admin approval.' 

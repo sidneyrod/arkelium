@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { logAuditEntry } from '@/hooks/useAuditLog';
+import { notifyPayrollGenerated, notifyPaystubAvailable } from '@/hooks/useNotifications';
 
 export interface PayrollPeriod {
   id: string;
@@ -292,6 +293,9 @@ export function usePayroll() {
         })
         .eq('id', period.id);
 
+      // Notify admin about the generated payroll
+      await notifyPayrollGenerated(periodName, period.id);
+
       toast({ title: 'Success', description: 'Payroll period generated successfully' });
       await fetchPeriods();
       return period;
@@ -393,9 +397,30 @@ export function usePayroll() {
       return;
     }
 
+    // Notify each cleaner about their paystub
+    const period = periods.find(p => p.id === periodId);
+    if (period) {
+      // Fetch entries for this period to notify cleaners
+      const { data: entriesData } = await supabase
+        .from('payroll_entries')
+        .select('employee_id, net_pay')
+        .eq('period_id', periodId);
+      
+      if (entriesData) {
+        for (const entry of entriesData) {
+          await notifyPaystubAvailable(
+            entry.employee_id,
+            period.period_name,
+            entry.net_pay || 0,
+            periodId
+          );
+        }
+      }
+    }
+
     toast({ title: 'Success', description: 'Payroll marked as paid' });
     await fetchPeriods();
-  }, [fetchPeriods]);
+  }, [fetchPeriods, periods]);
 
   // Check for period end notifications
   const checkPeriodNotifications = useCallback(async () => {
