@@ -502,7 +502,8 @@ const Company = () => {
       const { error } = await supabase
         .from('extra_fees')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('company_id', user?.profile?.company_id);
 
       if (error) throw error;
 
@@ -591,7 +592,8 @@ const Company = () => {
       const { error } = await supabase
         .from('checklist_items')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('company_id', user?.profile?.company_id);
 
       if (error) throw error;
 
