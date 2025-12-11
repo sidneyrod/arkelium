@@ -280,11 +280,11 @@ const Clients = () => {
       render: (client) => (
         <div className="flex items-center gap-3">
           <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${
-            client.type === 'residential' ? 'bg-success/10' : 'bg-info/10'
+            client.type === 'residential' ? 'bg-cyan-500/15' : 'bg-amber-500/15'
           }`}>
             {client.type === 'residential' 
-              ? <Home className="h-4 w-4 text-success" />
-              : <Building className="h-4 w-4 text-info" />
+              ? <Home className="h-4 w-4 text-cyan-500" />
+              : <Building className="h-4 w-4 text-amber-500" />
             }
           </div>
           <div>
@@ -298,8 +298,10 @@ const Clients = () => {
       key: 'type',
       header: t.clients.type,
       render: (client) => (
-        <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
-          client.type === 'residential' ? 'bg-success/10 text-success' : 'bg-info/10 text-info'
+        <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium capitalize border ${
+          client.type === 'residential' 
+            ? 'bg-cyan-500/15 text-cyan-500 border-cyan-500/30' 
+            : 'bg-amber-500/15 text-amber-500 border-amber-500/30'
         }`}>
           {t.clients[client.type]}
         </span>

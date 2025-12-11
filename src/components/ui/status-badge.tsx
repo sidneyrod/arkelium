@@ -15,7 +15,7 @@ const statusConfig: Record<StatusType, { defaultLabel: string; className: string
   },
   inactive: { 
     defaultLabel: 'Inactive', 
-    className: 'bg-muted text-muted-foreground border-border' 
+    className: 'bg-destructive/15 text-destructive border-destructive/30' 
   },
   pending: { 
     defaultLabel: 'Pending', 

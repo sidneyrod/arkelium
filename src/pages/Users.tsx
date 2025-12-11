@@ -40,9 +40,9 @@ interface User {
 }
 
 const roleColors: Record<string, string> = {
-  admin: 'bg-primary/10 text-primary',
-  manager: 'bg-info/10 text-info',
-  cleaner: 'bg-success/10 text-success',
+  admin: 'bg-purple-500/15 text-purple-500 border border-purple-500/30',
+  manager: 'bg-info/15 text-info border border-info/30',
+  cleaner: 'bg-warning/15 text-warning-foreground border border-warning/30',
 };
 
 const Users = () => {
