@@ -13,7 +13,6 @@ import {
   CreditCard, 
   Calendar,
   TrendingUp,
-  Clock,
   BarChart3
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -242,16 +241,17 @@ const Dashboard = () => {
     <div className="container px-6 lg:px-10 py-8 space-y-8">
       {/* Welcome Section */}
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{t.dashboard.welcome}, {userName}</h1>
-        <p className="text-muted-foreground">{t.dashboard.subtitle}</p>
+        <h1 className="text-2xl font-semibold tracking-tight heading-primary">{t.dashboard.welcome}, {userName}</h1>
+        <p className="label-secondary">{t.dashboard.subtitle}</p>
       </div>
 
-      {/* Stats Grid - Interactive Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      {/* Stats Grid - Premium Cards with Color Variants */}
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard 
           title={t.dashboard.todayJobs} 
           value={stats.todayJobs.toString()} 
           icon={Briefcase}
+          variant="green"
           onClick={handleTodayJobsClick}
           tooltip="Click to view today's jobs in Schedule (Day view)"
         />
@@ -259,6 +259,7 @@ const Dashboard = () => {
           title={t.dashboard.activeEmployees} 
           value={stats.activeEmployees.toString()} 
           icon={Users}
+          variant="blue"
           onClick={handleActiveEmployeesClick}
           tooltip="Click to view active employees (Cleaners & Managers)"
         />
@@ -266,6 +267,7 @@ const Dashboard = () => {
           title={t.dashboard.activeClients} 
           value={stats.activeClients.toString()} 
           icon={UserCircle}
+          variant="purple"
           onClick={handleActiveClientsClick}
           tooltip="Click to view all active clients"
         />
@@ -273,6 +275,7 @@ const Dashboard = () => {
           title={t.dashboard.monthlyRevenue} 
           value={`$${stats.monthlyRevenue.toLocaleString()}`} 
           icon={DollarSign}
+          variant="gold"
           onClick={handleMonthlyRevenueClick}
           tooltip="Click to view paid invoices for this month"
         />
@@ -280,6 +283,7 @@ const Dashboard = () => {
           title={t.dashboard.pendingPayments} 
           value={`$${stats.pendingPayments.toLocaleString()}`} 
           icon={CreditCard}
+          variant="orange"
           onClick={handlePendingPaymentsClick}
           tooltip="Click to view pending invoices"
         />
@@ -287,6 +291,7 @@ const Dashboard = () => {
           title={t.dashboard.upcomingSchedule} 
           value={stats.upcomingSchedule.toString()} 
           icon={Calendar}
+          variant="teal"
           onClick={handleUpcomingScheduleClick}
           tooltip="Click to view upcoming jobs in Schedule (Week view)"
         />
@@ -295,9 +300,9 @@ const Dashboard = () => {
       {/* Charts Row */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Jobs This Week */}
-        <Card className="border-border/50">
+        <Card className="border-border/60 shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium flex items-center gap-2">
+            <CardTitle className="text-base font-medium flex items-center gap-2 heading-secondary">
               <BarChart3 className="h-4 w-4 text-primary" />
               {t.dashboard.jobsThisWeek}
             </CardTitle>
@@ -339,9 +344,9 @@ const Dashboard = () => {
         </Card>
 
         {/* Revenue by Month */}
-        <Card className="border-border/50">
+        <Card className="border-border/60 shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium flex items-center gap-2">
+            <CardTitle className="text-base font-medium flex items-center gap-2 heading-secondary">
               <TrendingUp className="h-4 w-4 text-primary" />
               {t.dashboard.revenueByMonth}
             </CardTitle>
@@ -396,7 +401,7 @@ const Dashboard = () => {
 
       {/* Alerts Section */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold">{t.dashboard.alerts}</h2>
+        <h2 className="text-lg font-semibold heading-secondary">{t.dashboard.alerts}</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <AlertCard 
             type="delayed" 

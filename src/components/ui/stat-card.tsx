@@ -2,6 +2,8 @@ import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
+export type StatCardVariant = 'default' | 'green' | 'blue' | 'gold' | 'orange' | 'purple' | 'teal';
+
 interface StatCardProps {
   title: string;
   value: string | number;
@@ -13,17 +15,71 @@ interface StatCardProps {
   className?: string;
   onClick?: () => void;
   tooltip?: string;
+  variant?: StatCardVariant;
 }
 
-const StatCard = ({ title, value, icon: Icon, trend, className, onClick, tooltip }: StatCardProps) => {
+const variantStyles: Record<StatCardVariant, { card: string; icon: string; iconBg: string }> = {
+  default: {
+    card: 'bg-card border-border/50',
+    icon: 'text-primary',
+    iconBg: 'bg-primary/10',
+  },
+  green: {
+    card: 'card-variant-green',
+    icon: 'text-[hsl(162,72%,34%)]',
+    iconBg: 'bg-[hsl(162,72%,34%)]/15',
+  },
+  blue: {
+    card: 'card-variant-blue',
+    icon: 'text-[hsl(217,91%,60%)]',
+    iconBg: 'bg-[hsl(217,91%,60%)]/15',
+  },
+  gold: {
+    card: 'card-variant-gold',
+    icon: 'text-[hsl(40,70%,45%)]',
+    iconBg: 'bg-[hsl(40,70%,45%)]/15',
+  },
+  orange: {
+    card: 'card-variant-orange',
+    icon: 'text-[hsl(25,80%,50%)]',
+    iconBg: 'bg-[hsl(25,80%,50%)]/15',
+  },
+  purple: {
+    card: 'card-variant-purple',
+    icon: 'text-[hsl(270,60%,55%)]',
+    iconBg: 'bg-[hsl(270,60%,55%)]/15',
+  },
+  teal: {
+    card: 'card-variant-teal',
+    icon: 'text-[hsl(180,60%,40%)]',
+    iconBg: 'bg-[hsl(180,60%,40%)]/15',
+  },
+};
+
+const StatCard = ({ 
+  title, 
+  value, 
+  icon: Icon, 
+  trend, 
+  className, 
+  onClick, 
+  tooltip,
+  variant = 'default'
+}: StatCardProps) => {
+  const styles = variantStyles[variant];
+
   const cardContent = (
     <div 
       className={cn(
-        "group relative overflow-hidden rounded-xl border border-border/50 bg-card p-6 transition-all duration-300",
-        "hover:shadow-lg hover:shadow-primary/5 hover:border-primary/30 hover:-translate-y-0.5",
+        "group relative overflow-hidden rounded-xl border p-6 transition-all duration-300",
+        styles.card,
+        "hover:-translate-y-1",
         onClick && "cursor-pointer active:scale-[0.98]",
         className
       )}
+      style={{
+        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+      }}
       onClick={onClick}
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
@@ -32,7 +88,7 @@ const StatCard = ({ title, value, icon: Icon, trend, className, onClick, tooltip
       <div className="flex items-start justify-between">
         <div className="space-y-2">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="text-3xl font-semibold tracking-tight">{value}</p>
+          <p className="text-3xl font-bold tracking-tight text-foreground">{value}</p>
           {trend && (
             <div className={cn(
               "inline-flex items-center gap-1 text-xs font-medium",
@@ -44,16 +100,17 @@ const StatCard = ({ title, value, icon: Icon, trend, className, onClick, tooltip
             </div>
           )}
         </div>
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform duration-300 group-hover:scale-110">
-          <Icon className="h-6 w-6" />
+        <div className={cn(
+          "flex h-14 w-14 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110",
+          styles.iconBg,
+          styles.icon
+        )}>
+          <Icon className="h-7 w-7" strokeWidth={1.75} />
         </div>
       </div>
-      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
       
-      {/* Hover glow effect */}
-      {onClick && (
-        <div className="absolute inset-0 -z-10 rounded-xl bg-primary/5 opacity-0 blur-xl transition-opacity duration-300 group-hover:opacity-100" />
-      )}
+      {/* Subtle gradient overlay on hover */}
+      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-white/50 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 dark:from-white/5" />
     </div>
   );
 

@@ -49,6 +49,18 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+          green: "hsl(var(--card-green))",
+          "green-border": "hsl(var(--card-green-border))",
+          blue: "hsl(var(--card-blue))",
+          "blue-border": "hsl(var(--card-blue-border))",
+          gold: "hsl(var(--card-gold))",
+          "gold-border": "hsl(var(--card-gold-border))",
+          orange: "hsl(var(--card-orange))",
+          "orange-border": "hsl(var(--card-orange-border))",
+          purple: "hsl(var(--card-purple))",
+          "purple-border": "hsl(var(--card-purple-border))",
+          teal: "hsl(var(--card-teal))",
+          "teal-border": "hsl(var(--card-teal-border))",
         },
         success: {
           DEFAULT: "hsl(var(--success))",

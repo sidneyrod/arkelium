@@ -326,7 +326,7 @@ const TopBar = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full h-14 bg-card/95 dark:bg-[hsl(160,18%,8%)]/95 backdrop-blur-xl border-b border-border dark:border-[hsl(160,12%,14%)]">
+    <header className="sticky top-0 z-50 w-full h-14 bg-card/98 dark:bg-[hsl(160,18%,8%)]/95 backdrop-blur-xl border-b border-border/60 dark:border-[hsl(160,12%,14%)]" style={{ boxShadow: 'var(--shadow-header)' }}>
       <div className="flex h-full items-center justify-between px-4 lg:px-6">
         {/* Left: Empty space for layout balance */}
         <div className="flex items-center gap-2 min-w-0" />

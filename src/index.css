@@ -6,75 +6,101 @@
 
 @layer base {
   :root {
-    /* Light Theme - Vivid, colorful, professional with strong green accents */
-    --background: 150 8% 98%;
-    --foreground: 156 35% 10%;
+    /* =====================================================
+       LIGHT THEME - Premium Arkelium Design System
+       Modern, elegant, with strong brand identity
+       ===================================================== */
+    
+    /* Background tones - Off-white, elegant, less stark */
+    --background: 210 20% 98%;
+    --foreground: 220 20% 15%;
 
+    /* Card - Subtle warm white */
     --card: 0 0% 100%;
-    --card-foreground: 156 35% 10%;
+    --card-foreground: 220 20% 15%;
 
+    /* Popover */
     --popover: 0 0% 100%;
-    --popover-foreground: 156 35% 10%;
+    --popover-foreground: 220 20% 15%;
 
-    /* Vivid dark green primary - more saturated and vibrant */
-    --primary: 156 55% 28%;
+    /* Brand Primary - Arkelium Green (#0A6C53 / #14A67B) */
+    --primary: 162 80% 24%;
     --primary-foreground: 0 0% 100%;
 
-    /* Subtle green tinted secondary */
-    --secondary: 156 20% 94%;
-    --secondary-foreground: 156 40% 18%;
+    /* Secondary - Light green tint for backgrounds */
+    --secondary: 160 30% 96%;
+    --secondary-foreground: 162 70% 20%;
 
-    --muted: 156 12% 92%;
-    --muted-foreground: 156 15% 40%;
+    /* Muted - Soft neutral gray */
+    --muted: 210 20% 94%;
+    --muted-foreground: 220 10% 45%;
 
-    /* Stronger accent with green tint */
-    --accent: 156 35% 92%;
-    --accent-foreground: 156 50% 18%;
+    /* Accent - Light sage */
+    --accent: 160 25% 94%;
+    --accent-foreground: 162 70% 20%;
 
-    --destructive: 0 72% 51%;
+    /* Destructive */
+    --destructive: 0 70% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Subtle green tint to borders */
-    --border: 156 15% 86%;
-    --input: 156 15% 86%;
-    --ring: 156 55% 28%;
+    /* Borders and inputs */
+    --border: 210 20% 88%;
+    --input: 210 20% 90%;
+    --ring: 162 80% 24%;
 
     --radius: 0.625rem;
 
-    /* Custom tokens - more vivid */
-    --success: 156 60% 35%;
+    /* Status Colors - SaaS Standard */
+    --success: 162 72% 34%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 10%;
-    --info: 210 100% 50%;
+    --warning: 43 96% 56%;
+    --warning-foreground: 30 80% 15%;
+    --info: 217 91% 60%;
     --info-foreground: 0 0% 100%;
 
-    /* Shadows with subtle green tint */
-    --shadow-sm: 0 1px 2px 0 hsl(156 30% 12% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(156 30% 12% / 0.07), 0 2px 4px -2px hsl(156 30% 12% / 0.05);
-    --shadow-lg: 0 10px 15px -3px hsl(156 30% 12% / 0.09), 0 4px 6px -4px hsl(156 30% 12% / 0.05);
-    --shadow-xl: 0 20px 25px -5px hsl(156 30% 12% / 0.12), 0 8px 10px -6px hsl(156 30% 12% / 0.05);
+    /* Premium Card Colors - Light Mode Only */
+    --card-green: 160 40% 95%;
+    --card-green-border: 162 60% 70%;
+    --card-blue: 210 50% 95%;
+    --card-blue-border: 210 70% 65%;
+    --card-gold: 40 50% 94%;
+    --card-gold-border: 40 60% 65%;
+    --card-orange: 25 60% 94%;
+    --card-orange-border: 25 70% 60%;
+    --card-purple: 270 40% 95%;
+    --card-purple-border: 270 50% 70%;
+    --card-teal: 180 40% 94%;
+    --card-teal-border: 180 50% 60%;
 
-    /* Sidebar - more vivid green */
-    --sidebar-background: 156 10% 99%;
-    --sidebar-foreground: 156 35% 10%;
-    --sidebar-primary: 156 55% 28%;
+    /* Premium Shadows - Subtle with brand tint */
+    --shadow-sm: 0 1px 2px 0 hsl(162 30% 20% / 0.04);
+    --shadow-md: 0 2px 8px -1px hsl(162 30% 20% / 0.06), 0 1px 3px -1px hsl(162 30% 20% / 0.04);
+    --shadow-lg: 0 8px 20px -4px hsl(162 30% 20% / 0.08), 0 4px 8px -4px hsl(162 30% 20% / 0.04);
+    --shadow-xl: 0 16px 32px -8px hsl(162 30% 20% / 0.12), 0 8px 16px -8px hsl(162 30% 20% / 0.06);
+    --shadow-header: 0 1px 3px 0 hsl(162 30% 20% / 0.06), 0 1px 2px -1px hsl(162 30% 20% / 0.04);
+
+    /* Sidebar - Premium light */
+    --sidebar-background: 210 25% 99%;
+    --sidebar-foreground: 220 20% 20%;
+    --sidebar-primary: 162 80% 24%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 156 40% 94%;
-    --sidebar-accent-foreground: 156 50% 18%;
-    --sidebar-border: 156 15% 92%;
-    --sidebar-ring: 156 55% 28%;
+    --sidebar-accent: 160 30% 95%;
+    --sidebar-accent-foreground: 162 70% 20%;
+    --sidebar-border: 210 20% 92%;
+    --sidebar-ring: 162 80% 24%;
 
-    /* Chart colors - vivid green spectrum */
-    --chart-1: 156 60% 30%;
-    --chart-2: 156 50% 40%;
-    --chart-3: 156 40% 50%;
-    --chart-4: 156 30% 60%;
-    --chart-5: 156 25% 70%;
+    /* Chart colors - Arkelium brand spectrum */
+    --chart-1: 162 72% 34%;
+    --chart-2: 162 60% 45%;
+    --chart-3: 40 60% 55%;
+    --chart-4: 210 70% 55%;
+    --chart-5: 162 40% 60%;
   }
 
   .dark {
-    /* Dark Theme - Sophisticated dark green elegance */
+    /* =====================================================
+       DARK THEME - Unchanged (kept as is)
+       ===================================================== */
     --background: 160 20% 6%;
     --foreground: 150 15% 92%;
 
@@ -84,7 +110,6 @@
     --popover: 160 18% 9%;
     --popover-foreground: 150 15% 92%;
 
-    /* Elegant green primary for dark mode */
     --primary: 156 45% 45%;
     --primary-foreground: 160 20% 6%;
 
@@ -104,7 +129,6 @@
     --input: 160 12% 18%;
     --ring: 156 45% 45%;
 
-    /* Custom tokens */
     --success: 156 55% 45%;
     --success-foreground: 160 20% 6%;
     --warning: 38 92% 50%;
@@ -112,13 +136,26 @@
     --info: 210 100% 60%;
     --info-foreground: 0 0% 6%;
 
-    /* Shadows */
+    /* Dark mode card colors */
+    --card-green: 160 25% 12%;
+    --card-green-border: 162 40% 30%;
+    --card-blue: 210 25% 12%;
+    --card-blue-border: 210 40% 35%;
+    --card-gold: 40 25% 12%;
+    --card-gold-border: 40 40% 35%;
+    --card-orange: 25 25% 12%;
+    --card-orange-border: 25 40% 35%;
+    --card-purple: 270 20% 14%;
+    --card-purple-border: 270 30% 40%;
+    --card-teal: 180 20% 12%;
+    --card-teal-border: 180 30% 35%;
+
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.2);
     --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.25), 0 2px 4px -2px hsl(0 0% 0% / 0.15);
     --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.3), 0 4px 6px -4px hsl(0 0% 0% / 0.15);
     --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.35), 0 8px 10px -6px hsl(0 0% 0% / 0.15);
+    --shadow-header: 0 1px 3px 0 hsl(0 0% 0% / 0.3);
 
-    /* Sidebar */
     --sidebar-background: 160 18% 8%;
     --sidebar-foreground: 150 15% 90%;
     --sidebar-primary: 156 45% 45%;
@@ -128,7 +165,6 @@
     --sidebar-border: 160 12% 14%;
     --sidebar-ring: 156 45% 45%;
 
-    /* Chart colors */
     --chart-1: 156 55% 50%;
     --chart-2: 156 45% 60%;
     --chart-3: 156 35% 45%;
@@ -197,6 +233,61 @@
     @apply text-muted-foreground hover:text-foreground hover:bg-muted/50;
   }
 
+  /* Premium card utilities for Light theme */
+  .premium-card {
+    @apply relative overflow-hidden rounded-xl border bg-card transition-all duration-300;
+    box-shadow: var(--shadow-md);
+  }
+
+  .premium-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+  }
+
+  /* Card color variants */
+  .card-variant-green {
+    background: hsl(var(--card-green));
+    border-color: hsl(var(--card-green-border));
+  }
+
+  .card-variant-blue {
+    background: hsl(var(--card-blue));
+    border-color: hsl(var(--card-blue-border));
+  }
+
+  .card-variant-gold {
+    background: hsl(var(--card-gold));
+    border-color: hsl(var(--card-gold-border));
+  }
+
+  .card-variant-orange {
+    background: hsl(var(--card-orange));
+    border-color: hsl(var(--card-orange-border));
+  }
+
+  .card-variant-purple {
+    background: hsl(var(--card-purple));
+    border-color: hsl(var(--card-purple-border));
+  }
+
+  .card-variant-teal {
+    background: hsl(var(--card-teal));
+    border-color: hsl(var(--card-teal-border));
+  }
+
+  /* Section backgrounds for hierarchy */
+  .section-elevated {
+    @apply bg-card;
+  }
+
+  .section-subtle {
+    background: hsl(210 25% 97%);
+  }
+
+  .dark .section-subtle {
+    background: hsl(160 15% 8%);
+  }
+
   /* Light theme accent utilities */
   .accent-border {
     @apply border-l-2 border-l-primary/40;
@@ -204,6 +295,29 @@
   
   .accent-hover {
     @apply hover:border-primary/30 hover:bg-accent/50 transition-colors;
+  }
+
+  /* Typography hierarchy */
+  .heading-primary {
+    @apply text-foreground font-semibold tracking-tight;
+  }
+
+  .heading-secondary {
+    color: hsl(220 15% 35%);
+    @apply font-medium;
+  }
+
+  .dark .heading-secondary {
+    color: hsl(150 10% 70%);
+  }
+
+  .label-secondary {
+    color: hsl(220 10% 50%);
+    @apply text-sm;
+  }
+
+  .dark .label-secondary {
+    color: hsl(150 10% 55%);
   }
 }
 
