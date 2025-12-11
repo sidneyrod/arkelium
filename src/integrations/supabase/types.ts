@@ -1171,6 +1171,7 @@ export type Database = {
           hourly_rate: number | null
           id: string
           last_name: string | null
+          must_change_password: boolean | null
           payment_model: string | null
           percentage_of_job_total: number | null
           phone: string | null
@@ -1194,6 +1195,7 @@ export type Database = {
           hourly_rate?: number | null
           id: string
           last_name?: string | null
+          must_change_password?: boolean | null
           payment_model?: string | null
           percentage_of_job_total?: number | null
           phone?: string | null
@@ -1217,6 +1219,7 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           last_name?: string | null
+          must_change_password?: boolean | null
           payment_model?: string | null
           percentage_of_job_total?: number | null
           phone?: string | null
