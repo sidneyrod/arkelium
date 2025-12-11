@@ -25,6 +25,11 @@ interface User {
   name: string;
   email: string;
   phone: string;
+  address?: string;
+  city?: string;
+  province_address?: string;
+  country?: string;
+  postalCode?: string;
   role: 'admin' | 'manager' | 'cleaner';
   status: 'active' | 'inactive';
   avatar?: string;
@@ -78,6 +83,11 @@ const Users = () => {
           last_name,
           email,
           phone,
+          address,
+          city,
+          province,
+          country,
+          postal_code,
           avatar_url,
           hourly_rate,
           salary,
@@ -111,6 +121,11 @@ const Users = () => {
           name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unnamed User',
           email: profile.email || '',
           phone: profile.phone || '',
+          address: profile.address || '',
+          city: profile.city || '',
+          province_address: profile.province || '',
+          country: profile.country || 'Canada',
+          postalCode: profile.postal_code || '',
           role: (userRole?.role as 'admin' | 'manager' | 'cleaner') || 'cleaner',
           status: 'active',
           avatar: profile.avatar_url || undefined,
@@ -400,7 +415,11 @@ const Users = () => {
           name: editUser.name,
           email: editUser.email,
           phone: editUser.phone,
-          address: '',
+          address: editUser.address || '',
+          city: editUser.city || '',
+          province_address: editUser.province_address || '',
+          country: editUser.country || 'Canada',
+          postalCode: editUser.postalCode || '',
           role: editUser.role,
           isActive: editUser.status === 'active',
           hourlyRate: editUser.hourlyRate,

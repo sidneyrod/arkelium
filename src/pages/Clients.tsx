@@ -24,6 +24,8 @@ interface Location {
   id: string;
   address: string;
   city?: string;
+  province?: string;
+  postal_code?: string;
   accessInstructions?: string;
   alarmCode?: string;
   hasPets?: boolean;
@@ -475,6 +477,10 @@ const Clients = () => {
           email: editClient.email,
           phone: editClient.phone,
           address: editClient.locations[0]?.address || '',
+          city: editClient.locations[0]?.city || '',
+          province: editClient.locations[0]?.province || '',
+          country: 'Canada',
+          postalCode: editClient.locations[0]?.postal_code || '',
           type: editClient.type,
           contactPerson: editClient.name,
           notes: editClient.notes,
