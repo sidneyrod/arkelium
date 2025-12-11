@@ -5,23 +5,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface CreateUserRequest {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  phone?: string;
-  address?: string;
-  city?: string;
-  province_address?: string;
-  country?: string;
-  postalCode?: string;
-  role: 'admin' | 'manager' | 'cleaner';
-  companyId: string;
-  hourlyRate?: number;
-  salary?: number;
-  province?: string;
-  employmentType?: string;
+interface ResetPasswordRequest {
+  userId: string;
+  newPassword: string;
 }
 
 Deno.serve(async (req) => {
@@ -70,7 +56,7 @@ Deno.serve(async (req) => {
 
     if (requestingUserRole?.role !== 'admin') {
       return new Response(
-        JSON.stringify({ error: 'Only admins can create users' }),
+        JSON.stringify({ error: 'Only admins can reset passwords' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -89,104 +75,58 @@ Deno.serve(async (req) => {
       );
     }
 
-    const body: CreateUserRequest = await req.json();
-    const {
-      email,
-      password,
-      firstName,
-      lastName,
-      phone,
-      address,
-      city,
-      province_address,
-      country,
-      postalCode,
-      role,
-      hourlyRate,
-      salary,
-      province,
-      employmentType,
-    } = body;
+    const body: ResetPasswordRequest = await req.json();
+    const { userId, newPassword } = body;
 
     // Validate required fields
-    if (!email || !password || !firstName) {
+    if (!userId || !newPassword) {
       return new Response(
-        JSON.stringify({ error: 'Email, password, and first name are required' }),
+        JSON.stringify({ error: 'User ID and new password are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Creating user:', email, 'for company:', requestingProfile.company_id);
-
-    // Create user in auth
-    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true, // Auto-confirm email
-      user_metadata: {
-        first_name: firstName,
-        last_name: lastName,
-      },
-    });
-
-    if (createError) {
-      console.error('Error creating user:', createError);
+    if (newPassword.length < 6) {
       return new Response(
-        JSON.stringify({ error: createError.message }),
+        JSON.stringify({ error: 'Password must be at least 6 characters' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('User created in auth:', newUser.user.id);
-
-    // Update profile with company_id and other details
-    const { error: profileError } = await supabaseAdmin
+    // Verify target user belongs to same company
+    const { data: targetProfile } = await supabaseAdmin
       .from('profiles')
-      .update({
-        company_id: requestingProfile.company_id,
-        first_name: firstName,
-        last_name: lastName,
-        phone: phone || null,
-        address: address || null,
-        city: city || null,
-        province: province_address || null,
-        country: country || 'Canada',
-        postal_code: postalCode || null,
-        hourly_rate: hourlyRate || null,
-        salary: salary || null,
-        primary_province: province || 'ON',
-        employment_type: employmentType || 'full-time',
-      })
-      .eq('id', newUser.user.id);
+      .select('company_id')
+      .eq('id', userId)
+      .single();
 
-    if (profileError) {
-      console.error('Error updating profile:', profileError);
+    if (!targetProfile || targetProfile.company_id !== requestingProfile.company_id) {
+      return new Response(
+        JSON.stringify({ error: 'User not found in your company' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Create user role
-    const validRole = role === 'admin' || role === 'manager' || role === 'cleaner' ? role : 'cleaner';
-    const { error: roleError } = await supabaseAdmin
-      .from('user_roles')
-      .insert({
-        user_id: newUser.user.id,
-        company_id: requestingProfile.company_id,
-        role: validRole,
-      });
+    console.log('Resetting password for user:', userId);
 
-    if (roleError) {
-      console.error('Error creating role:', roleError);
+    // Update user password
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+      userId,
+      { password: newPassword }
+    );
+
+    if (updateError) {
+      console.error('Error resetting password:', updateError);
+      return new Response(
+        JSON.stringify({ error: updateError.message }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    console.log('User setup complete:', newUser.user.id);
+    console.log('Password reset successful for user:', userId);
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        user: {
-          id: newUser.user.id,
-          email: newUser.user.email,
-        }
-      }),
+      JSON.stringify({ success: true }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

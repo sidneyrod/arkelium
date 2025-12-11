@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { User, Mail, Phone, MapPin, Shield, DollarSign, Briefcase, Loader2, Lock } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Shield, DollarSign, Briefcase, Loader2, Lock, Key } from 'lucide-react';
 import { userSchema, validateForm } from '@/lib/validations';
 import { CanadianProvince, EmploymentType, provinceNames } from '@/stores/payrollStore';
 
@@ -28,6 +28,10 @@ export interface UserFormData {
   email: string;
   phone: string;
   address: string;
+  city: string;
+  province_address: string;
+  country: string;
+  postalCode: string;
   role: 'admin' | 'manager' | 'supervisor' | 'cleaner';
   isActive: boolean;
   // Payroll fields
@@ -45,6 +49,10 @@ const initialFormData: UserFormData = {
   email: '',
   phone: '',
   address: '',
+  city: '',
+  province_address: '',
+  country: 'Canada',
+  postalCode: '',
   role: 'cleaner',
   isActive: true,
   hourlyRate: 20,
@@ -61,6 +69,9 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   // Reset form when modal opens/closes or editUser changes
   useEffect(() => {
@@ -68,8 +79,50 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
       setFormData(editUser || initialFormData);
       setErrors({});
       setActiveTab('general');
+      setShowResetPassword(false);
+      setNewPassword('');
     }
   }, [open, editUser]);
+
+  const handleResetPassword = async () => {
+    if (!editUser?.id || newPassword.length < 6) {
+      toast({ title: t.common.error, description: 'Password must be at least 6 characters', variant: 'destructive' });
+      return;
+    }
+
+    setIsResettingPassword(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      
+      if (!session.session?.access_token) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await supabase.functions.invoke('reset-user-password', {
+        body: {
+          userId: editUser.id,
+          newPassword: newPassword,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to reset password');
+      }
+
+      if (response.data?.error) {
+        throw new Error(response.data.error);
+      }
+
+      toast({ title: t.common.success, description: 'Password updated successfully' });
+      setShowResetPassword(false);
+      setNewPassword('');
+    } catch (err: any) {
+      console.error('Error resetting password:', err);
+      toast({ title: t.common.error, description: err.message || 'Failed to reset password', variant: 'destructive' });
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,6 +168,11 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
             last_name: lastName,
             email: formData.email,
             phone: formData.phone,
+            address: formData.address,
+            city: formData.city,
+            province: formData.province_address,
+            country: formData.country,
+            postal_code: formData.postalCode,
             hourly_rate: formData.hourlyRate,
             salary: formData.salary,
             primary_province: formData.province,
@@ -150,6 +208,11 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
             firstName,
             lastName,
             phone: formData.phone,
+            address: formData.address,
+            city: formData.city,
+            province_address: formData.province_address,
+            country: formData.country,
+            postalCode: formData.postalCode,
             role: formData.role === 'supervisor' ? 'cleaner' : formData.role,
             companyId,
             hourlyRate: formData.hourlyRate,
@@ -225,8 +288,8 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
                   id="name"
                   value={formData.name}
                   onChange={(e) => updateField('name', e.target.value)}
-                  placeholder="John Doe"
-                  className={errors.name ? 'border-destructive' : ''}
+                  placeholder="Full name"
+                  className={`placeholder:text-muted-foreground/50 ${errors.name ? 'border-destructive' : ''}`}
                   maxLength={100}
                 />
                 {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
@@ -264,8 +327,8 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
                     type="email"
                     value={formData.email}
                     onChange={(e) => updateField('email', e.target.value)}
-                    placeholder="john@company.com"
-                    className={errors.email ? 'border-destructive' : ''}
+                    placeholder="email@example.com"
+                    className={`placeholder:text-muted-foreground/50 ${errors.email ? 'border-destructive' : ''}`}
                     maxLength={255}
                     disabled={!!editUser?.id}
                   />
@@ -282,7 +345,8 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => updateField('phone', e.target.value)}
-                    placeholder="(416) 555-0100"
+                    placeholder="(000) 000-0000"
+                    className="placeholder:text-muted-foreground/50"
                     maxLength={20}
                   />
                 </div>
@@ -301,7 +365,7 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
                     value={formData.password || ''}
                     onChange={(e) => updateField('password', e.target.value)}
                     placeholder="Minimum 6 characters"
-                    className={errors.password ? 'border-destructive' : ''}
+                    className={`placeholder:text-muted-foreground/50 ${errors.password ? 'border-destructive' : ''}`}
                     minLength={6}
                   />
                   {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
@@ -311,18 +375,115 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label htmlFor="address" className="flex items-center gap-2">
+              {/* Password reset for existing users */}
+              {!isNewUser && (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Key className="h-3.5 w-3.5 text-muted-foreground" />
+                    Password Management
+                  </Label>
+                  {!showResetPassword ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowResetPassword(true)}
+                      className="w-full"
+                    >
+                      <Key className="h-4 w-4 mr-2" />
+                      Reset User Password
+                    </Button>
+                  ) : (
+                    <div className="space-y-2 p-3 rounded-lg border border-border bg-muted/30">
+                      <Input
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="New password (min 6 characters)"
+                        className="placeholder:text-muted-foreground/50"
+                        minLength={6}
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setShowResetPassword(false);
+                            setNewPassword('');
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={handleResetPassword}
+                          disabled={isResettingPassword || newPassword.length < 6}
+                        >
+                          {isResettingPassword ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Updating...
+                            </>
+                          ) : (
+                            'Update Password'
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Address Fields */}
+              <div className="space-y-3">
+                <Label className="flex items-center gap-2">
                   <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                  {t.company.address}
+                  Address
                 </Label>
+                
                 <Input
-                  id="address"
                   value={formData.address}
                   onChange={(e) => updateField('address', e.target.value)}
-                  placeholder="123 Main Street, Toronto, ON"
+                  placeholder="Street address"
+                  className="placeholder:text-muted-foreground/50"
                   maxLength={255}
                 />
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Input
+                    value={formData.city}
+                    onChange={(e) => updateField('city', e.target.value)}
+                    placeholder="City"
+                    className="placeholder:text-muted-foreground/50"
+                    maxLength={100}
+                  />
+                  <Input
+                    value={formData.province_address}
+                    onChange={(e) => updateField('province_address', e.target.value)}
+                    placeholder="Province / Territory"
+                    className="placeholder:text-muted-foreground/50"
+                    maxLength={100}
+                  />
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Input
+                    value={formData.country}
+                    onChange={(e) => updateField('country', e.target.value)}
+                    placeholder="Country"
+                    className="placeholder:text-muted-foreground/50"
+                    maxLength={100}
+                  />
+                  <Input
+                    value={formData.postalCode}
+                    onChange={(e) => updateField('postalCode', e.target.value)}
+                    placeholder="Postal code"
+                    className="placeholder:text-muted-foreground/50"
+                    maxLength={20}
+                  />
+                </div>
               </div>
 
               <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
@@ -404,7 +565,8 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
                           step="0.50"
                           value={formData.hourlyRate || ''}
                           onChange={(e) => updateField('hourlyRate', parseFloat(e.target.value) || 0)}
-                          placeholder="20.00"
+                          placeholder="0.00"
+                          className="placeholder:text-muted-foreground/50"
                         />
                         <p className="text-xs text-muted-foreground">Required for cleaners and supervisors</p>
                       </div>
@@ -420,6 +582,7 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
                           value={formData.vacationPayPercent || ''}
                           onChange={(e) => updateField('vacationPayPercent', parseFloat(e.target.value) || 0)}
                           placeholder="4"
+                          className="placeholder:text-muted-foreground/50"
                         />
                         <p className="text-xs text-muted-foreground">Minimum 4% in most provinces</p>
                       </div>
@@ -434,37 +597,14 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
                         step="1000"
                         value={formData.salary || ''}
                         onChange={(e) => updateField('salary', parseFloat(e.target.value) || 0)}
-                        placeholder="50000"
+                        placeholder="0"
+                        className="placeholder:text-muted-foreground/50"
                       />
                       <p className="text-xs text-muted-foreground">For managers and admins</p>
                     </div>
                   )}
                 </CardContent>
               </Card>
-
-              <div className="p-4 rounded-lg bg-muted/50 space-y-2">
-                <p className="text-sm font-medium">Payroll Summary</p>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <span className="text-muted-foreground">Province:</span>
-                  <span>{provinceNames[formData.province || 'ON']}</span>
-                  <span className="text-muted-foreground">Employment:</span>
-                  <span className="capitalize">{formData.employmentType || 'Full-time'}</span>
-                  {showPayrollFields && (
-                    <>
-                      <span className="text-muted-foreground">Hourly Rate:</span>
-                      <span>${formData.hourlyRate?.toFixed(2) || '0.00'}/hr</span>
-                      <span className="text-muted-foreground">Vacation Pay:</span>
-                      <span>{formData.vacationPayPercent || 4}%</span>
-                    </>
-                  )}
-                  {!showPayrollFields && formData.salary && (
-                    <>
-                      <span className="text-muted-foreground">Annual Salary:</span>
-                      <span>${formData.salary?.toLocaleString()}</span>
-                    </>
-                  )}
-                </div>
-              </div>
             </TabsContent>
           </Tabs>
 
@@ -475,7 +615,7 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
             <Button type="submit" disabled={isLoading}>
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   {t.common.loading}
                 </>
               ) : (

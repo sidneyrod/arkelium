@@ -23,6 +23,10 @@ export interface ClientFormData {
   name: string;
   type: 'residential' | 'commercial';
   address: string;
+  city: string;
+  province: string;
+  country: string;
+  postalCode: string;
   contactPerson: string;
   phone: string;
   email: string;
@@ -34,6 +38,10 @@ const initialFormData: ClientFormData = {
   name: '',
   type: 'residential',
   address: '',
+  city: '',
+  province: '',
+  country: 'Canada',
+  postalCode: '',
   contactPerson: '',
   phone: '',
   email: '',
@@ -87,7 +95,7 @@ const AddClientModal = ({ open, onOpenChange, onSubmit, editClient }: AddClientM
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[420px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[480px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {formData.type === 'commercial' ? (
@@ -107,8 +115,8 @@ const AddClientModal = ({ open, onOpenChange, onSubmit, editClient }: AddClientM
                 id="name"
                 value={formData.name}
                 onChange={(e) => updateField('name', e.target.value)}
-                placeholder={t.clients.name}
-                className={`h-9 ${errors.name ? 'border-destructive' : ''}`}
+                placeholder="Client name"
+                className={`h-9 placeholder:text-muted-foreground/50 ${errors.name ? 'border-destructive' : ''}`}
                 maxLength={100}
               />
               {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
@@ -141,20 +149,55 @@ const AddClientModal = ({ open, onOpenChange, onSubmit, editClient }: AddClientM
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="address" className="flex items-center gap-1.5 text-xs">
+          {/* Address Fields */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5 text-xs">
               <MapPin className="h-3 w-3 text-muted-foreground" />
               {t.company.address}
             </Label>
+            
             <Input
-              id="address"
               value={formData.address}
               onChange={(e) => updateField('address', e.target.value)}
-              placeholder="123 Main Street, Toronto, ON"
-              className={`h-9 ${errors.address ? 'border-destructive' : ''}`}
+              placeholder="Street address"
+              className={`h-9 placeholder:text-muted-foreground/50 ${errors.address ? 'border-destructive' : ''}`}
               maxLength={255}
             />
             {errors.address && <p className="text-xs text-destructive">{errors.address}</p>}
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Input
+                value={formData.city}
+                onChange={(e) => updateField('city', e.target.value)}
+                placeholder="City"
+                className="h-9 placeholder:text-muted-foreground/50"
+                maxLength={100}
+              />
+              <Input
+                value={formData.province}
+                onChange={(e) => updateField('province', e.target.value)}
+                placeholder="Province / Territory"
+                className="h-9 placeholder:text-muted-foreground/50"
+                maxLength={100}
+              />
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Input
+                value={formData.country}
+                onChange={(e) => updateField('country', e.target.value)}
+                placeholder="Country"
+                className="h-9 placeholder:text-muted-foreground/50"
+                maxLength={100}
+              />
+              <Input
+                value={formData.postalCode}
+                onChange={(e) => updateField('postalCode', e.target.value)}
+                placeholder="Postal code"
+                className="h-9 placeholder:text-muted-foreground/50"
+                maxLength={20}
+              />
+            </div>
           </div>
 
           <div className="space-y-1.5">
@@ -166,8 +209,8 @@ const AddClientModal = ({ open, onOpenChange, onSubmit, editClient }: AddClientM
               id="contact"
               value={formData.contactPerson}
               onChange={(e) => updateField('contactPerson', e.target.value)}
-              placeholder={t.clients.companyContact}
-              className="h-9"
+              placeholder="Contact person name"
+              className="h-9 placeholder:text-muted-foreground/50"
               maxLength={100}
             />
           </div>
@@ -183,8 +226,8 @@ const AddClientModal = ({ open, onOpenChange, onSubmit, editClient }: AddClientM
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => updateField('phone', e.target.value)}
-                placeholder="(416) 555-0100"
-                className={`h-9 ${errors.phone ? 'border-destructive' : ''}`}
+                placeholder="(000) 000-0000"
+                className={`h-9 placeholder:text-muted-foreground/50 ${errors.phone ? 'border-destructive' : ''}`}
                 maxLength={20}
               />
               {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
@@ -200,8 +243,8 @@ const AddClientModal = ({ open, onOpenChange, onSubmit, editClient }: AddClientM
                 type="email"
                 value={formData.email}
                 onChange={(e) => updateField('email', e.target.value)}
-                placeholder="contact@client.com"
-                className={`h-9 ${errors.email ? 'border-destructive' : ''}`}
+                placeholder="email@example.com"
+                className={`h-9 placeholder:text-muted-foreground/50 ${errors.email ? 'border-destructive' : ''}`}
                 maxLength={255}
               />
               {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
@@ -214,10 +257,10 @@ const AddClientModal = ({ open, onOpenChange, onSubmit, editClient }: AddClientM
               id="notes"
               value={formData.notes}
               onChange={(e) => updateField('notes', e.target.value)}
-              placeholder={t.clients.notes}
+              placeholder="Additional notes..."
               rows={2}
               maxLength={1000}
-              className="text-sm"
+              className="text-sm placeholder:text-muted-foreground/50"
             />
           </div>
 

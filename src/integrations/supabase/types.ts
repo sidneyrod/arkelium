@@ -424,36 +424,51 @@ export type Database = {
       }
       clients: {
         Row: {
+          address: string | null
+          city: string | null
           client_type: string | null
           company_id: string
+          country: string | null
           created_at: string
           email: string | null
           id: string
           name: string
           notes: string | null
           phone: string | null
+          postal_code: string | null
+          province: string | null
           updated_at: string
         }
         Insert: {
+          address?: string | null
+          city?: string | null
           client_type?: string | null
           company_id: string
+          country?: string | null
           created_at?: string
           email?: string | null
           id?: string
           name: string
           notes?: string | null
           phone?: string | null
+          postal_code?: string | null
+          province?: string | null
           updated_at?: string
         }
         Update: {
+          address?: string | null
+          city?: string | null
           client_type?: string | null
           company_id?: string
+          country?: string | null
           created_at?: string
           email?: string | null
           id?: string
           name?: string
           notes?: string | null
           phone?: string | null
+          postal_code?: string | null
+          province?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1143,8 +1158,11 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
           avatar_url: string | null
+          city: string | null
           company_id: string | null
+          country: string | null
           created_at: string
           email: string | null
           employment_type: string | null
@@ -1156,13 +1174,18 @@ export type Database = {
           payment_model: string | null
           percentage_of_job_total: number | null
           phone: string | null
+          postal_code: string | null
           primary_province: string | null
+          province: string | null
           salary: number | null
           updated_at: string
         }
         Insert: {
+          address?: string | null
           avatar_url?: string | null
+          city?: string | null
           company_id?: string | null
+          country?: string | null
           created_at?: string
           email?: string | null
           employment_type?: string | null
@@ -1174,13 +1197,18 @@ export type Database = {
           payment_model?: string | null
           percentage_of_job_total?: number | null
           phone?: string | null
+          postal_code?: string | null
           primary_province?: string | null
+          province?: string | null
           salary?: number | null
           updated_at?: string
         }
         Update: {
+          address?: string | null
           avatar_url?: string | null
+          city?: string | null
           company_id?: string | null
+          country?: string | null
           created_at?: string
           email?: string | null
           employment_type?: string | null
@@ -1192,7 +1220,9 @@ export type Database = {
           payment_model?: string | null
           percentage_of_job_total?: number | null
           phone?: string | null
+          postal_code?: string | null
           primary_province?: string | null
+          province?: string | null
           salary?: number | null
           updated_at?: string
         }
