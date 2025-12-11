@@ -61,6 +61,8 @@ const Users = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
   const [deleteUser, setDeleteUser] = useState<User | null>(null);
+  const [userJobsCount, setUserJobsCount] = useState<number>(0);
+  const [isCheckingJobs, setIsCheckingJobs] = useState(false);
   const [roleFilter, setRoleFilter] = useState<string>(urlRoles ? 'filtered' : 'all');
   const [statusFilterFromUrl] = useState<string>(urlFilter || 'all');
 
@@ -186,18 +188,55 @@ const Users = () => {
     setIsAddModalOpen(false);
   };
 
+  // Check if user has scheduled jobs before deletion
+  const checkUserJobs = async (userId: string): Promise<number> => {
+    const { count, error } = await supabase
+      .from('jobs')
+      .select('*', { count: 'exact', head: true })
+      .eq('cleaner_id', userId)
+      .eq('company_id', user?.profile?.company_id);
+    
+    if (error) {
+      console.error('Error checking jobs:', error);
+      return 0;
+    }
+    return count || 0;
+  };
+
+  const initiateDeleteUser = async (userToDelete: User) => {
+    setIsCheckingJobs(true);
+    const jobsCount = await checkUserJobs(userToDelete.id);
+    setUserJobsCount(jobsCount);
+    setDeleteUser(userToDelete);
+    setIsCheckingJobs(false);
+  };
+
   const handleDeleteUser = async () => {
     if (!deleteUser) return;
     
     try {
-      // Delete user role first
+      // If user has jobs, delete them first
+      if (userJobsCount > 0) {
+        const { error: jobsError } = await supabase
+          .from('jobs')
+          .delete()
+          .eq('cleaner_id', deleteUser.id)
+          .eq('company_id', user?.profile?.company_id);
+        
+        if (jobsError) {
+          console.error('Error deleting jobs:', jobsError);
+          toast({ title: 'Error', description: 'Failed to delete user jobs', variant: 'destructive' });
+          return;
+        }
+      }
+
+      // Delete user role
       await supabase
         .from('user_roles')
         .delete()
         .eq('user_id', deleteUser.id);
 
-      // Note: Deleting from auth.users requires admin access
-      // For now, we just remove from local state
+      // Remove from local state
       setUsers(prev => prev.filter(u => u.id !== deleteUser.id));
       
       toast({
@@ -209,6 +248,7 @@ const Users = () => {
       toast({ title: 'Error', description: 'Failed to delete user', variant: 'destructive' });
     } finally {
       setDeleteUser(null);
+      setUserJobsCount(0);
     }
   };
 
@@ -272,8 +312,9 @@ const Users = () => {
               {t.common.edit}
             </DropdownMenuItem>
             <DropdownMenuItem 
-              onClick={(e) => { e.stopPropagation(); setDeleteUser(u); }}
+              onClick={(e) => { e.stopPropagation(); initiateDeleteUser(u); }}
               className="text-destructive focus:text-destructive"
+              disabled={isCheckingJobs}
             >
               <Trash2 className="h-4 w-4 mr-2" />
               {t.common.delete}
@@ -432,10 +473,14 @@ const Users = () => {
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         open={!!deleteUser}
-        onOpenChange={() => setDeleteUser(null)}
+        onOpenChange={() => { setDeleteUser(null); setUserJobsCount(0); }}
         onConfirm={handleDeleteUser}
         title={t.common.confirmDelete}
-        description={`Are you sure you want to delete "${deleteUser?.name}"? This action cannot be undone.`}
+        description={
+          userJobsCount > 0
+            ? `"${deleteUser?.name}" has ${userJobsCount} scheduled job(s). Deleting this user will also remove all their scheduled jobs. Are you sure you want to proceed?`
+            : `Are you sure you want to delete "${deleteUser?.name}"? This action cannot be undone.`
+        }
       />
     </div>
   );
