@@ -569,6 +569,7 @@ export type Database = {
       }
       company_estimate_config: {
         Row: {
+          admin_is_cleaner: boolean | null
           company_id: string
           created_at: string
           default_hourly_rate: number | null
@@ -578,6 +579,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          admin_is_cleaner?: boolean | null
           company_id: string
           created_at?: string
           default_hourly_rate?: number | null
@@ -587,6 +589,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          admin_is_cleaner?: boolean | null
           company_id?: string
           created_at?: string
           default_hourly_rate?: number | null

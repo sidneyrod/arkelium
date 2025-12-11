@@ -65,6 +65,7 @@ interface EstimateConfig {
   default_hourly_rate: number;
   tax_rate: number;
   invoice_generation_mode: 'automatic' | 'manual';
+  admin_is_cleaner: boolean;
 }
 
 interface ExtraFee {
@@ -118,7 +119,8 @@ const Company = () => {
   const [estimateConfig, setEstimateConfig] = useState<EstimateConfig>({
     default_hourly_rate: 35,
     tax_rate: 13,
-    invoice_generation_mode: 'manual'
+    invoice_generation_mode: 'manual',
+    admin_is_cleaner: false
   });
   const [initialEstimateConfig, setInitialEstimateConfig] = useState<EstimateConfig | null>(null);
   
@@ -240,7 +242,8 @@ const Company = () => {
             id: estimateData.id,
             default_hourly_rate: estimateData.default_hourly_rate || 35,
             tax_rate: estimateData.tax_rate || 13,
-            invoice_generation_mode: (estimateData as any).invoice_generation_mode || 'manual'
+            invoice_generation_mode: (estimateData as any).invoice_generation_mode || 'manual',
+            admin_is_cleaner: (estimateData as any).admin_is_cleaner || false
           };
           setEstimateConfig(estConfig);
           setInitialEstimateConfig(estConfig);
@@ -411,7 +414,8 @@ const Company = () => {
           company_id: companyId,
           default_hourly_rate: estimateConfig.default_hourly_rate,
           tax_rate: estimateConfig.tax_rate,
-          invoice_generation_mode: estimateConfig.invoice_generation_mode
+          invoice_generation_mode: estimateConfig.invoice_generation_mode,
+          admin_is_cleaner: estimateConfig.admin_is_cleaner
         }, { onConflict: 'company_id' });
 
       if (estimateError) throw estimateError;
@@ -1035,6 +1039,33 @@ const Company = () => {
                     Completed jobs appear in "Completed Services" for admin review before invoice generation.
                   </p>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Admin is also Cleaner setting */}
+          <Card className="border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Settings2 className="h-4 w-4 text-primary" />
+                Admin in Schedule
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Configure if the Admin user should appear in employee lists when scheduling jobs
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between p-4 rounded-lg border border-border/50 bg-muted/30">
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium">Admin is also a Cleaner</h4>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    When enabled, the Admin will appear in the employee dropdown when creating or editing jobs in the Schedule
+                  </p>
+                </div>
+                <Switch
+                  checked={estimateConfig.admin_is_cleaner}
+                  onCheckedChange={(checked) => setEstimateConfig(prev => ({ ...prev, admin_is_cleaner: checked }))}
+                />
               </div>
             </CardContent>
           </Card>
