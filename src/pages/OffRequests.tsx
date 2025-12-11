@@ -502,10 +502,17 @@ const OffRequests = () => {
                 const StatusIcon = statusConf.icon;
                 const typeConf = requestTypeConfig[request.request_type as keyof typeof requestTypeConfig] || requestTypeConfig.time_off;
                 const TypeIcon = typeConf.icon;
-                const days = differenceInDays(new Date(request.end_date), new Date(request.start_date)) + 1;
+                // Parse dates at local noon to avoid timezone issues
+                const parseLocalDate = (dateStr: string) => {
+                  const [year, month, day] = dateStr.split('-').map(Number);
+                  return new Date(year, month - 1, day, 12, 0, 0);
+                };
+                const startDate = parseLocalDate(request.start_date);
+                const endDate = parseLocalDate(request.end_date);
+                const days = differenceInDays(endDate, startDate) + 1;
                 const isCurrentlyBlocked = request.status === 'approved' && 
-                  !isPast(new Date(request.end_date)) &&
-                  !isFuture(new Date(request.start_date));
+                  !isPast(endDate) &&
+                  !isFuture(startDate);
                 const isFullMonth = days >= 28 && days <= 31;
                 
                 return (
@@ -542,11 +549,11 @@ const OffRequests = () => {
                           <div className="flex items-center gap-2 text-sm bg-muted/50 p-3 rounded-lg">
                             <Calendar className="h-4 w-4 text-muted-foreground" />
                             <span className="font-medium">
-                              {format(new Date(request.start_date), 'dd/MM/yyyy')}
+                              {format(startDate, 'dd/MM/yyyy')}
                             </span>
                             <ArrowRight className="h-4 w-4 text-muted-foreground" />
                             <span className="font-medium">
-                              {format(new Date(request.end_date), 'dd/MM/yyyy')}
+                              {format(endDate, 'dd/MM/yyyy')}
                             </span>
                             <Badge variant="outline" className="ml-auto">
                               {days} {isEnglish ? (days === 1 ? 'day' : 'days') : (days === 1 ? 'dia' : 'dias')}
@@ -566,11 +573,11 @@ const OffRequests = () => {
                           )}
                           
                           {/* Return date for approved */}
-                          {request.status === 'approved' && isFuture(new Date(request.end_date)) && (
+                          {request.status === 'approved' && isFuture(endDate) && (
                             <p className="text-xs text-muted-foreground">
                               {isEnglish ? 'Returns to schedule:' : 'Retorna à agenda:'} {' '}
                               <span className="font-medium text-foreground">
-                                {format(new Date(new Date(request.end_date).getTime() + 86400000), 'dd/MM/yyyy')}
+                                {format(new Date(endDate.getTime() + 86400000), 'dd/MM/yyyy')}
                               </span>
                             </p>
                           )}

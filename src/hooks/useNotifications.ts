@@ -320,16 +320,50 @@ export const notifyOffRequestCreated = async (
   cleanerName: string,
   startDate: string,
   endDate: string,
-  requestId: string
+  requestId: string,
+  companyId?: string
 ) => {
-  return createNotification({
-    role_target: 'admin',
-    title: 'New Off Request',
-    message: `${cleanerName} requested time off from ${startDate} to ${endDate}`,
-    type: 'off_request',
-    severity: 'info',
-    metadata: { off_request_id: requestId, cleaner_name: cleanerName }
-  });
+  // Get company_id either from parameter or via RPC
+  let resolvedCompanyId = companyId;
+  if (!resolvedCompanyId) {
+    const { data } = await supabase.rpc('get_user_company_id');
+    resolvedCompanyId = data;
+  }
+  
+  if (!resolvedCompanyId) {
+    console.error('No company ID found for off request notification');
+    return false;
+  }
+
+  try {
+    // Format dates for display (parse as local date)
+    const formatDate = (dateStr: string) => {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      return `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
+    };
+    
+    const { error } = await supabase
+      .from('notifications')
+      .insert({
+        company_id: resolvedCompanyId,
+        recipient_user_id: null,
+        role_target: 'admin',
+        title: 'New Off Request',
+        message: `${cleanerName} requested time off from ${formatDate(startDate)} to ${formatDate(endDate)}`,
+        type: 'off_request',
+        severity: 'info',
+        metadata: { off_request_id: requestId, cleaner_name: cleanerName }
+      } as any);
+
+    if (error) {
+      console.error('Error creating off request notification:', error);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error('Error in notifyOffRequestCreated:', error);
+    return false;
+  }
 };
 
 export const notifyOffRequestApproved = async (

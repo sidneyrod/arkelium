@@ -197,7 +197,8 @@ const CleanerOffRequests = () => {
         cleanerName,
         request.startDate,
         request.endDate,
-        data.id
+        data.id,
+        user.profile.company_id
       );
       
       toast.success(isEnglish 
