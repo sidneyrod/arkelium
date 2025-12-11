@@ -549,10 +549,12 @@ const Schedule = () => {
     if (!jobToDelete) return;
     
     try {
+      const companyId = user?.profile?.company_id;
       const { error } = await supabase
         .from('jobs')
         .delete()
-        .eq('id', jobToDelete.id);
+        .eq('id', jobToDelete.id)
+        .eq('company_id', companyId);
       
       if (error) {
         console.error('Error deleting job:', error);

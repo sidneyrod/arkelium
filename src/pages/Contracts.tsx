@@ -420,7 +420,8 @@ const Contracts = () => {
       const { error } = await supabase
         .from('contracts')
         .delete()
-        .eq('id', deleteContract.id);
+        .eq('id', deleteContract.id)
+        .eq('company_id', user?.profile?.company_id);
       
       if (error) {
         toast({

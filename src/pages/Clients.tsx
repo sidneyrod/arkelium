@@ -249,7 +249,8 @@ const Clients = () => {
       const { error } = await supabase
         .from('clients')
         .delete()
-        .eq('id', deleteClient.id);
+        .eq('id', deleteClient.id)
+        .eq('company_id', user?.profile?.company_id);
 
       if (error) throw error;
 

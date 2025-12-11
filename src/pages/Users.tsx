@@ -230,21 +230,25 @@ const Users = () => {
         }
       }
 
-      // Delete user role
+      // Delete user role (company_id required by RLS)
       const { error: roleError } = await supabase
         .from('user_roles')
         .delete()
-        .eq('user_id', deleteUser.id);
+        .eq('user_id', deleteUser.id)
+        .eq('company_id', user?.profile?.company_id);
 
       if (roleError) {
         console.error('Error deleting role:', roleError);
+        toast({ title: 'Error', description: 'Failed to delete user role', variant: 'destructive' });
+        return;
       }
 
-      // Delete from profiles table
+      // Delete from profiles table (company_id required by RLS)
       const { error: profileError } = await supabase
         .from('profiles')
         .delete()
-        .eq('id', deleteUser.id);
+        .eq('id', deleteUser.id)
+        .eq('company_id', user?.profile?.company_id);
 
       if (profileError) {
         console.error('Error deleting profile:', profileError);
