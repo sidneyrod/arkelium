@@ -28,9 +28,11 @@ const getPageLabel = (path: string, t: any): string => {
     '/notifications': t?.notifications?.title || 'Notifications',
     '/visit-history': t?.nav?.visitHistory || 'Visit History',
     '/off-requests': t?.nav?.offRequests || 'Off Requests',
+    '/my-off-requests': t?.nav?.offRequests || 'Off Requests',
     '/cleaner-off-requests': t?.nav?.offRequests || 'Off Requests',
     '/availability': t?.nav?.availability || 'Availability',
     '/absences': t?.nav?.absences || 'Absences',
+    '/my-payroll': t?.nav?.myPayroll || 'My Payroll',
     '/cleaner-payroll': t?.nav?.myPayroll || 'My Payroll',
   };
   return pathMap[path] || 'Page';

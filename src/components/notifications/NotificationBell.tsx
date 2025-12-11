@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useNotifications, Notification, NotificationSeverity, NotificationType } from '@/hooks/useNotifications';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { format, formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -38,7 +39,7 @@ const getTypeColor = (type: NotificationType): string => {
   }
 };
 
-const getDeepLink = (notification: Notification): string | null => {
+const getDeepLink = (notification: Notification, isCleaner: boolean): string | null => {
   const metadata = notification.metadata as Record<string, unknown>;
   
   switch (notification.type) {
@@ -49,14 +50,18 @@ const getDeepLink = (notification: Notification): string | null => {
       if (metadata.visit_id) return `/visit-history?visitId=${metadata.visit_id}`;
       return '/visit-history';
     case 'off_request':
-      if (metadata.off_request_id) return `/off-requests?requestId=${metadata.off_request_id}`;
-      return '/off-requests';
+      // Cleaners go to my-off-requests, admin/manager go to off-requests
+      const offRequestPath = isCleaner ? '/my-off-requests' : '/off-requests';
+      if (metadata.off_request_id) return `${offRequestPath}?requestId=${metadata.off_request_id}`;
+      return offRequestPath;
     case 'invoice':
       if (metadata.invoice_id) return `/invoices?invoiceId=${metadata.invoice_id}`;
       return '/invoices';
     case 'payroll':
-      if (metadata.period_id) return `/payroll?periodId=${metadata.period_id}`;
-      return '/payroll';
+      // Cleaners go to my-payroll, admin go to payroll
+      const payrollPath = isCleaner ? '/my-payroll' : '/payroll';
+      if (metadata.period_id) return `${payrollPath}?periodId=${metadata.period_id}`;
+      return payrollPath;
     default:
       return null;
   }
@@ -64,10 +69,14 @@ const getDeepLink = (notification: Notification): string | null => {
 
 export const NotificationBell = () => {
   const { t } = useLanguage();
+  const { hasRole } = useAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
+
+  // Check if current user is a cleaner (not admin or manager)
+  const isCleaner = hasRole(['cleaner']) && !hasRole(['admin', 'manager']);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -85,7 +94,7 @@ export const NotificationBell = () => {
       await markAsRead(notification.id);
     }
     
-    const deepLink = getDeepLink(notification);
+    const deepLink = getDeepLink(notification, isCleaner);
     if (deepLink) {
       navigate(deepLink);
       setIsOpen(false);
@@ -175,7 +184,7 @@ export const NotificationBell = () => {
                           {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
                         </p>
                       </div>
-                      {getDeepLink(notification) && (
+                      {getDeepLink(notification, isCleaner) && (
                         <ExternalLink className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                       )}
                     </div>
