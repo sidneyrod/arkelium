@@ -57,6 +57,9 @@ export const translations = {
       scheduleConflicts: 'Schedule conflicts',
       beforeAfter: 'Before / After',
       viewAll: 'View All',
+      weekJobs: 'Week Jobs',
+      completedJobs: 'Completed',
+      weekOverview: 'Week Overview',
     },
     // Company
     company: {
@@ -651,6 +654,9 @@ export const translations = {
       scheduleConflicts: 'Conflits d\'agenda',
       beforeAfter: 'Avant / Après',
       viewAll: 'Voir tout',
+      weekJobs: 'Jobs semaine',
+      completedJobs: 'Complétés',
+      weekOverview: 'Aperçu de la semaine',
     },
     // Company
     company: {
