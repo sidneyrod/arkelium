@@ -129,6 +129,11 @@ const Sidebar = () => {
   if (isAdmin) {
     financialItems.push({ path: '/payroll', label: t.nav.payroll, icon: Wallet });
   }
+  
+  // Cleaner Payroll Report
+  if (isCleaner) {
+    financialItems.push({ path: '/my-payroll', label: 'My Payroll', icon: Wallet });
+  }
 
   // ===========================
   // MODULE 4: COMPANY MANAGEMENT
