@@ -231,10 +231,26 @@ const Users = () => {
       }
 
       // Delete user role
-      await supabase
+      const { error: roleError } = await supabase
         .from('user_roles')
         .delete()
         .eq('user_id', deleteUser.id);
+
+      if (roleError) {
+        console.error('Error deleting role:', roleError);
+      }
+
+      // Delete from profiles table
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', deleteUser.id);
+
+      if (profileError) {
+        console.error('Error deleting profile:', profileError);
+        toast({ title: 'Error', description: 'Failed to delete user profile', variant: 'destructive' });
+        return;
+      }
 
       // Remove from local state
       setUsers(prev => prev.filter(u => u.id !== deleteUser.id));
