@@ -1002,6 +1002,132 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          notify_invoices: boolean
+          notify_job_cancellations: boolean
+          notify_job_changes: boolean
+          notify_new_jobs: boolean
+          notify_off_request_status: boolean
+          notify_off_requests: boolean
+          notify_payroll: boolean
+          notify_system: boolean
+          notify_visits: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          notify_invoices?: boolean
+          notify_job_cancellations?: boolean
+          notify_job_changes?: boolean
+          notify_new_jobs?: boolean
+          notify_off_request_status?: boolean
+          notify_off_requests?: boolean
+          notify_payroll?: boolean
+          notify_system?: boolean
+          notify_visits?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          notify_invoices?: boolean
+          notify_job_cancellations?: boolean
+          notify_job_changes?: boolean
+          notify_new_jobs?: boolean
+          notify_off_request_status?: boolean
+          notify_off_requests?: boolean
+          notify_payroll?: boolean
+          notify_system?: boolean
+          notify_visits?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          metadata: Json | null
+          read_at: string | null
+          recipient_user_id: string | null
+          role_target: string | null
+          severity: Database["public"]["Enums"]["notification_severity"]
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          metadata?: Json | null
+          read_at?: string | null
+          recipient_user_id?: string | null
+          role_target?: string | null
+          severity?: Database["public"]["Enums"]["notification_severity"]
+          title: string
+          type?: Database["public"]["Enums"]["notification_type"]
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          metadata?: Json | null
+          read_at?: string | null
+          recipient_user_id?: string | null
+          role_target?: string | null
+          severity?: Database["public"]["Enums"]["notification_severity"]
+          title?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_recipient_user_id_fkey"
+            columns: ["recipient_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payroll_entries: {
         Row: {
           company_id: string
@@ -1342,6 +1468,14 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "manager" | "cleaner"
+      notification_severity: "info" | "warning" | "critical"
+      notification_type:
+        | "job"
+        | "visit"
+        | "off_request"
+        | "invoice"
+        | "payroll"
+        | "system"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1470,6 +1604,15 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "manager", "cleaner"],
+      notification_severity: ["info", "warning", "critical"],
+      notification_type: [
+        "job",
+        "visit",
+        "off_request",
+        "invoice",
+        "payroll",
+        "system",
+      ],
     },
   },
 } as const

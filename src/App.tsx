@@ -30,6 +30,7 @@ import CleanerPayroll from "./pages/CleanerPayroll";
 import VisitHistory from "./pages/VisitHistory";
 import Absences from "./pages/Absences";
 import Availability from "./pages/Availability";
+import Notifications from "./pages/Notifications";
 
 const queryClient = new QueryClient();
 
@@ -189,6 +190,9 @@ const AppRoutes = () => {
         <Route path="/completed-services" element={<AdminManagerRoute><CompletedServices /></AdminManagerRoute>} />
         <Route path="/calculator" element={<AdminManagerRoute><Calculator /></AdminManagerRoute>} />
         <Route path="/payroll" element={<AdminRoute><Payroll /></AdminRoute>} />
+        
+        {/* Notifications - accessible to all authenticated users */}
+        <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
       </Route>
       
       <Route path="*" element={<NotFound />} />
