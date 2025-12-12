@@ -135,37 +135,14 @@ const AddJobModal = ({ open, onOpenChange, onSave, job, preselectedDate, presele
           setClients(clientsData);
         }
         
-        // Fetch company estimate config to check admin_is_cleaner setting
-        const { data: configData } = await supabase
-          .from('company_estimate_config')
-          .select('admin_is_cleaner')
-          .eq('company_id', companyId)
-          .maybeSingle();
-        
-        const adminIsCleaner = configData?.admin_is_cleaner ?? false;
-        
-        // Fetch employees (cleaners) and their roles
+        // Fetch employees (all profiles including admins)
         const { data: employeesData } = await supabase
           .from('profiles')
           .select('id, first_name, last_name')
           .eq('company_id', companyId);
         
         if (employeesData) {
-          // If admin_is_cleaner is false, filter out admin users
-          if (!adminIsCleaner) {
-            // Fetch user roles to identify admins
-            const { data: rolesData } = await supabase
-              .from('user_roles')
-              .select('user_id, role')
-              .eq('company_id', companyId)
-              .eq('role', 'admin');
-            
-            const adminUserIds = new Set(rolesData?.map(r => r.user_id) || []);
-            const filteredEmployees = employeesData.filter(emp => !adminUserIds.has(emp.id));
-            setEmployees(filteredEmployees);
-          } else {
-            setEmployees(employeesData);
-          }
+          setEmployees(employeesData);
         }
         
         // Fetch locations
