@@ -492,6 +492,7 @@ export type Database = {
           phone: string | null
           postal_code: string | null
           province: string | null
+          timezone: string | null
           trade_name: string
           updated_at: string
           website: string | null
@@ -506,6 +507,7 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           province?: string | null
+          timezone?: string | null
           trade_name: string
           updated_at?: string
           website?: string | null
@@ -520,6 +522,7 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           province?: string | null
+          timezone?: string | null
           trade_name?: string
           updated_at?: string
           website?: string | null

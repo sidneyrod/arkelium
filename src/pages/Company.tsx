@@ -30,8 +30,10 @@ import {
   Loader2,
   Globe,
   FileText,
-  Zap
+  Zap,
+  Clock
 } from 'lucide-react';
+import { CANADIAN_TIMEZONES } from '@/hooks/useTimezone';
 
 const canadianProvinces = [
   'Alberta', 'British Columbia', 'Manitoba', 'New Brunswick', 
@@ -50,6 +52,7 @@ interface CompanyProfile {
   email: string;
   phone: string;
   website: string;
+  timezone: string;
 }
 
 interface CompanyBranding {
@@ -103,7 +106,8 @@ const Company = () => {
     postal_code: '',
     email: '',
     phone: '',
-    website: ''
+    website: '',
+    timezone: 'America/Toronto'
   });
   const [initialProfile, setInitialProfile] = useState<CompanyProfile | null>(null);
   
@@ -201,7 +205,8 @@ const Company = () => {
             postal_code: companyData.postal_code || '',
             email: companyData.email || '',
             phone: companyData.phone || '',
-            website: companyData.website || ''
+            website: companyData.website || '',
+            timezone: (companyData as any).timezone || 'America/Toronto'
           };
           setProfile(profileData);
           setInitialProfile(profileData);
@@ -383,7 +388,8 @@ const Company = () => {
           postal_code: profile.postal_code,
           email: profile.email,
           phone: profile.phone,
-          website: profile.website
+          website: profile.website,
+          timezone: profile.timezone
         })
         .eq('id', companyId);
 
@@ -764,7 +770,7 @@ const Company = () => {
 
               <Separator className="my-2" />
 
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-1">
                   <Label htmlFor="email" className="text-xs">{t.auth.email}</Label>
                   <Input 
@@ -794,6 +800,27 @@ const Company = () => {
                     placeholder="www.company.com"
                     className="h-8 text-sm"
                   />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="timezone" className="text-xs flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    Timezone
+                  </Label>
+                  <Select 
+                    value={profile.timezone} 
+                    onValueChange={(value) => setProfile(prev => ({ ...prev, timezone: value }))}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Select timezone" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover">
+                      {CANADIAN_TIMEZONES.map(tz => (
+                        <SelectItem key={tz.value} value={tz.value}>
+                          {tz.label} ({tz.offset})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardContent>
