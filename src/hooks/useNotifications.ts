@@ -177,7 +177,9 @@ export const useNotifications = () => {
       fetchUnreadCount();
       fetchPreferences();
 
-      // Subscribe to real-time notifications
+      // Subscribe to real-time notifications - only INSERT for new notifications
+      // We don't subscribe to UPDATE because we handle markAsRead optimistically
+      // and re-syncing on UPDATE causes the "reappearing as unread" bug
       const channel = supabase
         .channel('notifications-changes')
         .on(
@@ -189,7 +191,13 @@ export const useNotifications = () => {
           },
           (payload) => {
             const newNotification = payload.new as Notification;
-            setNotifications(prev => [newNotification, ...prev]);
+            // Only add if not already in state (prevent duplicates)
+            setNotifications(prev => {
+              if (prev.some(n => n.id === newNotification.id)) {
+                return prev;
+              }
+              return [newNotification, ...prev];
+            });
             if (!newNotification.is_read) {
               setUnreadCount(prev => prev + 1);
             }
