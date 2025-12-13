@@ -87,16 +87,19 @@ const statusConfig: Record<JobStatus, { color: string; bgColor: string; label: s
   cancelled: { color: 'text-muted-foreground', bgColor: 'bg-muted border-border', label: 'Cancelled' },
 };
 
-// Generate 24-hour time slots
+// Generate 24-hour time slots with 30-minute increments (matching AddJobModal)
 const generateTimeSlots = () => {
   const slots: { value: string; label: string }[] = [];
   for (let hour = 0; hour < 24; hour++) {
-    const h24 = hour.toString().padStart(2, '0');
-    const value = `${h24}:00`;
-    const h12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-    const ampm = hour < 12 ? 'AM' : 'PM';
-    const label = `${h12}:00 ${ampm}`;
-    slots.push({ value, label });
+    for (let min = 0; min < 60; min += 30) {
+      const h24 = hour.toString().padStart(2, '0');
+      const m = min.toString().padStart(2, '0');
+      const value = `${h24}:${m}`;
+      const h12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+      const ampm = hour < 12 ? 'AM' : 'PM';
+      const label = `${h12}:${m} ${ampm}`;
+      slots.push({ value, label });
+    }
   }
   return slots;
 };
