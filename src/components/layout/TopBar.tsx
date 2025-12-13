@@ -134,48 +134,58 @@ const TopBar = () => {
   
   // Dynamic company info from database
   useEffect(() => {
+    // Don't fetch if no user or no company_id
+    if (!user?.profile?.company_id) {
+      setCompanyInfo({ name: 'No Company', email: null, phone: null });
+      return;
+    }
+
     const fetchCompanyInfo = async () => {
-      if (!user?.profile?.company_id) {
-        setCompanyInfo({ name: 'No Company', email: null, phone: null });
-        return;
-      }
-      
       try {
         const { data, error } = await supabase
           .from('companies')
           .select('trade_name, legal_name, email, phone')
           .eq('id', user.profile.company_id)
-          .single();
+          .maybeSingle();
         
         if (error) {
-          console.error('Error fetching company:', error);
+          // Silent fail for RLS errors when not authenticated
+          if (error.code !== 'PGRST116') {
+            console.error('Error fetching company:', error);
+          }
           setCompanyInfo({ name: 'Unknown', email: null, phone: null });
           return;
         }
         
-        setCompanyInfo({
-          name: data?.trade_name || data?.legal_name || 'Unknown',
-          email: data?.email || null,
-          phone: data?.phone || null
-        });
+        if (data) {
+          setCompanyInfo({
+            name: data.trade_name || data.legal_name || 'Unknown',
+            email: data.email || null,
+            phone: data.phone || null
+          });
+        } else {
+          setCompanyInfo({ name: 'Unknown', email: null, phone: null });
+        }
       } catch (err) {
-        console.error('Error fetching company info:', err);
+        // Silent fail for network errors
         setCompanyInfo({ name: 'Unknown', email: null, phone: null });
       }
     };
     
     fetchCompanyInfo();
     
-    // Subscribe to realtime updates for company changes
+    // Only subscribe to realtime updates if we have a company_id
+    if (!user?.profile?.company_id) return;
+
     const channel = supabase
-      .channel('company-info-updates')
+      .channel(`company-info-${user.profile.company_id}`)
       .on(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
           table: 'companies',
-          filter: `id=eq.${user?.profile?.company_id}`
+          filter: `id=eq.${user.profile.company_id}`
         },
         (payload) => {
           const newData = payload.new as { trade_name?: string; legal_name?: string; email?: string; phone?: string };

@@ -24,15 +24,16 @@ interface CreateNotificationParams {
 }
 
 export const useNotifications = () => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const store = useNotificationStore();
 
   useEffect(() => {
-    if (user) {
+    // Only initialize if user is authenticated and has an ID
+    if (isAuthenticated && user?.id) {
       const cleanup = initializeNotificationSubscription(user.id);
       return cleanup;
     }
-  }, [user?.id]);
+  }, [user?.id, isAuthenticated]);
 
   const updatePreferences = async (newPrefs: Partial<NotificationPreferences>) => {
     if (!user) return;
