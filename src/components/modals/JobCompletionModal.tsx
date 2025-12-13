@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCompanyStore } from '@/stores/companyStore';
 import { supabase } from '@/lib/supabase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -13,11 +12,19 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Camera, Upload, CheckCircle, Clock, MapPin, User, DollarSign, CreditCard, Banknote, CalendarIcon, AlertTriangle, Loader2, X } from 'lucide-react';
+import { Camera, Upload, CheckCircle, Clock, MapPin, User, DollarSign, CreditCard, Banknote, CalendarIcon, AlertTriangle, Loader2, X, Package } from 'lucide-react';
 import { ScheduledJob } from '@/stores/scheduleStore';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+
+interface CompanyChecklistItem {
+  id: string;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  display_order: number;
+}
 
 interface JobCompletionModalProps {
   open: boolean;
@@ -43,33 +50,16 @@ interface ChecklistItemState {
 const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompletionModalProps) => {
   const { t } = useLanguage();
   const { user } = useAuth();
-  const { scheduleConfig } = useCompanyStore();
   
   const beforePhotoRef = useRef<HTMLInputElement>(null);
   const afterPhotoRef = useRef<HTMLInputElement>(null);
   
-  // Build checklist from company config or use job's existing checklist
-  const getInitialChecklist = (): ChecklistItemState[] => {
-    if (job?.checklist && Array.isArray(job.checklist) && job.checklist.length > 0) {
-      return job.checklist;
-    }
-    // Use active checklist items from company config
-    const activeItems = scheduleConfig.checklistItems
-      .filter(item => item.isActive)
-      .sort((a, b) => a.order - b.order)
-      .map(item => ({ item: item.name, completed: false }));
-    
-    return activeItems.length > 0 ? activeItems : [
-      { item: 'Vacuum all floors', completed: false },
-      { item: 'Mop hard floors', completed: false },
-      { item: 'Dust surfaces', completed: false },
-      { item: 'Clean bathrooms', completed: false },
-      { item: 'Clean kitchen', completed: false },
-      { item: 'Empty trash bins', completed: false },
-    ];
-  };
+  // Company checklist items from database
+  const [companyChecklistItems, setCompanyChecklistItems] = useState<CompanyChecklistItem[]>([]);
+  const [loadingChecklistItems, setLoadingChecklistItems] = useState(false);
   
-  const [checklist, setChecklist] = useState<ChecklistItemState[]>(getInitialChecklist());
+  // Selected items (tools/supplies used by cleaner)
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   const [beforePhoto, setBeforePhoto] = useState<string | null>(null);
   const [afterPhoto, setAfterPhoto] = useState<string | null>(null);
@@ -84,10 +74,43 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
   const [paymentReceivedBy, setPaymentReceivedBy] = useState<'cleaner' | 'company' | ''>('');
   const [paymentNotes, setPaymentNotes] = useState('');
 
+  // Fetch checklist items from company settings
+  const fetchChecklistItems = async () => {
+    if (!user?.profile?.company_id) return;
+    
+    setLoadingChecklistItems(true);
+    try {
+      const { data, error } = await supabase
+        .from('checklist_items')
+        .select('id, name, description, is_active, display_order')
+        .eq('company_id', user.profile.company_id)
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+      
+      if (error) throw error;
+      setCompanyChecklistItems(data || []);
+    } catch (err) {
+      console.error('Error fetching checklist items:', err);
+    } finally {
+      setLoadingChecklistItems(false);
+    }
+  };
+
   // Reset state when modal opens with a new job
   useEffect(() => {
     if (open && job) {
-      setChecklist(getInitialChecklist());
+      fetchChecklistItems();
+      
+      // If job already has checklist data, restore selected items
+      if (job.checklist && Array.isArray(job.checklist)) {
+        const previouslySelected = job.checklist
+          .filter((item: any) => item.completed)
+          .map((item: any) => item.item);
+        setSelectedItems(previouslySelected);
+      } else {
+        setSelectedItems([]);
+      }
+      
       setNotes('');
       setBeforePhoto(job.beforePhoto || null);
       setAfterPhoto(job.afterPhoto || null);
@@ -99,16 +122,19 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
       setPaymentReceivedBy('');
       setPaymentNotes('');
     }
-  }, [open, job, scheduleConfig.checklistItems]);
+  }, [open, job, user?.profile?.company_id]);
 
-  const toggleChecklistItem = (index: number) => {
-    setChecklist(prev => prev.map((item, i) => 
-      i === index ? { ...item, completed: !item.completed } : item
-    ));
+  const toggleChecklistItem = (itemName: string) => {
+    setSelectedItems(prev => 
+      prev.includes(itemName) 
+        ? prev.filter(name => name !== itemName)
+        : [...prev, itemName]
+    );
   };
 
-  const completedItems = checklist.filter(item => item.completed).length;
-  const progress = checklist.length > 0 ? Math.round((completedItems / checklist.length) * 100) : 0;
+  const selectedCount = selectedItems.length;
+  const totalItems = companyChecklistItems.length;
+  const progress = totalItems > 0 ? Math.round((selectedCount / totalItems) * 100) : 0;
 
   const handlePhotoUpload = async (type: 'before' | 'after', file: File) => {
     if (!job || !user?.profile?.company_id) return;
@@ -177,12 +203,31 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
     }
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (!job) return;
     
     // Payment is REQUIRED - validate before proceeding
     if (!isPaymentValid()) {
       return;
+    }
+    
+    // Save checklist with selected items
+    const checklistToSave = companyChecklistItems.map(item => ({
+      item: item.name,
+      completed: selectedItems.includes(item.name)
+    }));
+    
+    // Update job with checklist in database
+    if (user?.profile?.company_id) {
+      try {
+        await supabase
+          .from('jobs')
+          .update({ checklist: checklistToSave })
+          .eq('id', job.id)
+          .eq('company_id', user.profile.company_id);
+      } catch (err) {
+        console.error('Error saving checklist:', err);
+      }
     }
     
     const paymentData: PaymentData = {
@@ -347,46 +392,70 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
             </div>
           </div>
           
-          {/* Checklist */}
-          {checklist.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-primary" />
-                  {t.job.checklist}
-                </h4>
-                <span className="text-sm text-muted-foreground">{completedItems}/{checklist.length} ({progress}%)</span>
-              </div>
-              
-              <div className="h-2 rounded-full bg-muted overflow-hidden">
-                <div 
-                  className="h-full bg-primary transition-all duration-300"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              
-              <div className="grid gap-2 sm:grid-cols-2">
-                {checklist.map((item, index) => (
-                  <div 
-                    key={index}
-                    className={cn(
-                      "flex items-center space-x-3 p-2.5 rounded-lg border transition-colors cursor-pointer",
-                      item.completed ? "bg-success/10 border-success/30" : "bg-muted/30 border-border/50 hover:bg-muted/50"
-                    )}
-                    onClick={() => toggleChecklistItem(index)}
-                  >
-                    <Checkbox
-                      checked={item.completed}
-                      onCheckedChange={() => toggleChecklistItem(index)}
-                    />
-                    <span className={cn("text-sm", item.completed && "line-through text-muted-foreground")}>
-                      {item.item}
-                    </span>
-                  </div>
-                ))}
-              </div>
+          {/* Tools/Supplies Used (Checklist from Company Settings) */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-medium flex items-center gap-2">
+                <Package className="h-4 w-4 text-primary" />
+                {t.job.toolsUsed || 'Tools & Supplies Used'}
+              </h4>
+              <span className="text-sm text-muted-foreground">{selectedCount}/{totalItems} selected</span>
             </div>
-          )}
+            
+            <p className="text-xs text-muted-foreground">
+              {t.job.selectToolsUsed || 'Select the tools and supplies you used for this cleaning service.'}
+            </p>
+            
+            {loadingChecklistItems ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : companyChecklistItems.length > 0 ? (
+              <>
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div 
+                    className="h-full bg-primary transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {companyChecklistItems.map((item) => {
+                    const isSelected = selectedItems.includes(item.name);
+                    return (
+                      <div 
+                        key={item.id}
+                        className={cn(
+                          "flex items-center space-x-3 p-2.5 rounded-lg border transition-colors cursor-pointer",
+                          isSelected ? "bg-success/10 border-success/30" : "bg-muted/30 border-border/50 hover:bg-muted/50"
+                        )}
+                        onClick={() => toggleChecklistItem(item.name)}
+                      >
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => toggleChecklistItem(item.name)}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className={cn("text-sm block", isSelected && "text-success font-medium")}>
+                            {item.name}
+                          </span>
+                          {item.description && (
+                            <span className="text-xs text-muted-foreground truncate block">
+                              {item.description}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-4 text-sm text-muted-foreground border rounded-lg border-dashed">
+                {t.job.noChecklistItems || 'No tools/supplies configured. Admin can add items in Company Settings.'}
+              </div>
+            )}
+          </div>
           
           {/* Payment Section - REQUIRED */}
           <div className="space-y-3">

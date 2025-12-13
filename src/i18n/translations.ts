@@ -309,6 +309,9 @@ export const translations = {
       moveOutClean: 'Move-out Clean',
       officeClean: 'Office Clean',
       dailyClean: 'Daily Clean',
+      toolsUsed: 'Tools & Supplies Used',
+      selectToolsUsed: 'Select the tools and supplies you used for this cleaning service.',
+      noChecklistItems: 'No tools/supplies configured. Admin can add items in Company Settings.',
     },
     // Calculator / Estimates
     calculator: {
@@ -906,6 +909,9 @@ export const translations = {
       moveOutClean: 'Nettoyage de déménagement',
       officeClean: 'Nettoyage de bureau',
       dailyClean: 'Nettoyage quotidien',
+      toolsUsed: 'Outils et fournitures utilisés',
+      selectToolsUsed: 'Sélectionnez les outils et fournitures que vous avez utilisés pour ce service de nettoyage.',
+      noChecklistItems: 'Aucun outil/fourniture configuré. L\'admin peut ajouter des articles dans les paramètres de l\'entreprise.',
     },
     // Calculator / Estimates
     calculator: {
