@@ -117,10 +117,10 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
   
   markAllAsRead: async () => {
-    const { notifications } = get();
+    const { notifications, userId } = get();
     const unreadNotifications = notifications.filter(n => !n.is_read);
     
-    if (unreadNotifications.length === 0) return;
+    if (!userId || unreadNotifications.length === 0) return;
     
     // Optimistic update
     const updatedNotifications = notifications.map(n => ({
@@ -138,7 +138,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       const { error } = await supabase
         .from('notifications')
         .update({ is_read: true, read_at: new Date().toISOString() })
-        .eq('is_read', false);
+        .eq('is_read', false)
+        .or(`recipient_user_id.eq.${userId},recipient_user_id.is.null`);
       
       if (error) {
         console.error('Error marking all notifications as read:', error);
@@ -173,12 +174,16 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
   
   fetchNotifications: async (limit = 50) => {
+    const { userId } = get();
+    if (!userId) return;
+
     set({ loading: true });
     
     try {
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
+        .or(`recipient_user_id.eq.${userId},recipient_user_id.is.null`)
         .order('created_at', { ascending: false })
         .limit(limit);
       
@@ -192,11 +197,15 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
   
   fetchUnreadCount: async () => {
+    const { userId } = get();
+    if (!userId) return;
+
     try {
       const { count, error } = await supabase
         .from('notifications')
         .select('*', { count: 'exact', head: true })
-        .eq('is_read', false);
+        .eq('is_read', false)
+        .or(`recipient_user_id.eq.${userId},recipient_user_id.is.null`);
       
       if (error) throw error;
       set({ unreadCount: count || 0 });
