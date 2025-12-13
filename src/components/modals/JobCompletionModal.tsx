@@ -392,18 +392,21 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
             </div>
           </div>
           
-          {/* Tools/Supplies Used (Checklist from Company Settings) */}
+          {/* Tools/Supplies Used (Checklist from Company Settings) - OPTIONAL */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-medium flex items-center gap-2">
                 <Package className="h-4 w-4 text-primary" />
                 {t.job.toolsUsed || 'Tools & Supplies Used'}
+                <span className="text-xs font-normal text-muted-foreground">({t.common.optional || 'Optional'})</span>
               </h4>
-              <span className="text-sm text-muted-foreground">{selectedCount}/{totalItems} selected</span>
+              {selectedCount > 0 && (
+                <span className="text-sm text-muted-foreground">{selectedCount} {t.common.added || 'added'}</span>
+              )}
             </div>
             
             <p className="text-xs text-muted-foreground">
-              {t.job.selectToolsUsed || 'Select the tools and supplies you used for this cleaning service.'}
+              {t.job.addToolsUsed || 'Add any tools or supplies you used for this cleaning service.'}
             </p>
             
             {loadingChecklistItems ? (
@@ -411,15 +414,7 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
             ) : companyChecklistItems.length > 0 ? (
-              <>
-                <div className="h-2 rounded-full bg-muted overflow-hidden">
-                  <div 
-                    className="h-full bg-primary transition-all duration-300"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-                
-                <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid gap-2 sm:grid-cols-2">
                   {companyChecklistItems.map((item) => {
                     const isSelected = selectedItems.includes(item.name);
                     return (
@@ -449,7 +444,6 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
                     );
                   })}
                 </div>
-              </>
             ) : (
               <div className="text-center py-4 text-sm text-muted-foreground border rounded-lg border-dashed">
                 {t.job.noChecklistItems || 'No tools/supplies configured. Admin can add items in Company Settings.'}

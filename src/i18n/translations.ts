@@ -1,4 +1,5 @@
 export const translations = {
+  // Note: addToolsUsed, optional, added keys are used in JobCompletionModal
   en: {
     // Navigation
     nav: {
@@ -310,7 +311,7 @@ export const translations = {
       officeClean: 'Office Clean',
       dailyClean: 'Daily Clean',
       toolsUsed: 'Tools & Supplies Used',
-      selectToolsUsed: 'Select the tools and supplies you used for this cleaning service.',
+      addToolsUsed: 'Add any tools or supplies you used for this cleaning service.',
       noChecklistItems: 'No tools/supplies configured. Admin can add items in Company Settings.',
     },
     // Calculator / Estimates
@@ -597,6 +598,8 @@ export const translations = {
       accessDenied: 'Access Denied',
       noPermission: 'You do not have permission to view this page',
       today: 'Today',
+      optional: 'Optional',
+      added: 'added',
     },
   },
   fr: {
@@ -910,7 +913,7 @@ export const translations = {
       officeClean: 'Nettoyage de bureau',
       dailyClean: 'Nettoyage quotidien',
       toolsUsed: 'Outils et fournitures utilisés',
-      selectToolsUsed: 'Sélectionnez les outils et fournitures que vous avez utilisés pour ce service de nettoyage.',
+      addToolsUsed: 'Ajoutez les outils ou fournitures que vous avez utilisés pour ce service de nettoyage.',
       noChecklistItems: 'Aucun outil/fourniture configuré. L\'admin peut ajouter des articles dans les paramètres de l\'entreprise.',
     },
     // Calculator / Estimates
@@ -1197,6 +1200,8 @@ export const translations = {
       accessDenied: 'Accès refusé',
       noPermission: 'Vous n\'avez pas la permission de voir cette page',
       today: 'Aujourd\'hui',
+      optional: 'Optionnel',
+      added: 'ajouté(s)',
     },
   },
 };
