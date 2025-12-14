@@ -76,16 +76,22 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
 
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
-  if (isLoading) {
+  
+  // Only show loading on initial app load, not on navigation between public routes
+  // If already authenticated, redirect to home
+  if (isAuthenticated && !isLoading) {
+    return <Navigate to="/" replace />;
+  }
+  
+  // Show loading only if we're checking auth AND not yet determined
+  if (isLoading && isAuthenticated === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
-  if (isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
+  
   return <>{children}</>;
 };
 
