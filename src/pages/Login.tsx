@@ -11,8 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/hooks/use-toast';
 import { Sun, Moon, Eye, EyeOff } from 'lucide-react';
 import { z } from 'zod';
-import cleaningWatermark from '@/assets/cleaning-watermark.png';
 import arkeliumLogo from '@/assets/arkelium-logo.png';
+import arkeliumSymbol from '@/assets/arkelium-symbol.png';
 
 // Validation schemas
 const emailSchema = z.string().email('Please enter a valid email address');
@@ -90,15 +90,23 @@ const Login = () => {
         : 'bg-gradient-to-br from-[#f0f7f4] via-[#e8f4ed] to-[#f5faf7]'
     }`}>
       
-      {/* Watermark Background - Cleaning Professional Image */}
-      <div 
-        className="absolute inset-0 bg-no-repeat bg-center bg-cover pointer-events-none"
-        style={{
-          backgroundImage: `url(${cleaningWatermark})`,
-          opacity: isDark ? 0.04 : 0.06,
-          filter: isDark ? 'grayscale(30%)' : 'grayscale(20%)',
-        }}
-      />
+      {/* Arkelium Symbol Watermark - Premium SaaS aesthetic */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+        <img 
+          src={arkeliumSymbol}
+          alt=""
+          aria-hidden="true"
+          className="w-[140%] h-[140%] max-w-none object-contain select-none"
+          style={{
+            opacity: isDark ? 0.025 : 0.03,
+            filter: isDark 
+              ? 'blur(2px) brightness(0.3) saturate(0.7)' 
+              : 'blur(2px) grayscale(0.4) brightness(0.85)',
+            mixBlendMode: isDark ? 'soft-light' : 'overlay',
+            transform: 'scale(1.1)',
+          }}
+        />
+      </div>
       
       {/* Green gradient overlay */}
       <div className={`absolute inset-0 ${
