@@ -123,7 +123,7 @@ const Login = () => {
       </div>
 
       {/* Right Side - Login Form */}
-      <div className="w-full lg:w-1/2 xl:w-[45%] flex items-center justify-center relative">
+      <div className="w-full lg:w-1/2 xl:w-[45%] flex items-center justify-center lg:justify-start lg:pl-[8%] relative">
         {/* Mobile watermark - visible only on small screens */}
         <div className="lg:hidden absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
           <img 
