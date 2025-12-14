@@ -24,7 +24,8 @@ import {
   DollarSign,
   Clock,
   CalendarX,
-  Bell
+  Bell,
+  BookOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -125,6 +126,11 @@ const Sidebar = () => {
   // MODULE 3: FINANCIAL
   // =====================
   const financialItems: MenuItem[] = [];
+  
+  // Financial Ledger - Admin/Manager only
+  if (isAdminOrManager) {
+    financialItems.push({ path: '/financial', label: 'Ledger', icon: BookOpen });
+  }
   
   if (isAdminOrManager) {
     financialItems.push({ path: '/invoices', label: 'Invoices', icon: Receipt });

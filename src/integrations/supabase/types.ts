@@ -740,6 +740,121 @@ export type Database = {
           },
         ]
       }
+      financial_adjustments: {
+        Row: {
+          cleaner_id: string | null
+          client_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          deductions: number
+          description: string
+          event_type: Database["public"]["Enums"]["financial_event_type"]
+          gross_amount: number
+          id: string
+          invoice_id: string | null
+          job_id: string | null
+          net_amount: number
+          notes: string | null
+          payment_method:
+            | Database["public"]["Enums"]["payment_method_type"]
+            | null
+          reference_number: string | null
+          status: string
+          transaction_date: string
+          updated_at: string
+        }
+        Insert: {
+          cleaner_id?: string | null
+          client_id?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          deductions?: number
+          description: string
+          event_type: Database["public"]["Enums"]["financial_event_type"]
+          gross_amount?: number
+          id?: string
+          invoice_id?: string | null
+          job_id?: string | null
+          net_amount?: number
+          notes?: string | null
+          payment_method?:
+            | Database["public"]["Enums"]["payment_method_type"]
+            | null
+          reference_number?: string | null
+          status?: string
+          transaction_date?: string
+          updated_at?: string
+        }
+        Update: {
+          cleaner_id?: string | null
+          client_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          deductions?: number
+          description?: string
+          event_type?: Database["public"]["Enums"]["financial_event_type"]
+          gross_amount?: number
+          id?: string
+          invoice_id?: string | null
+          job_id?: string | null
+          net_amount?: number
+          notes?: string | null
+          payment_method?:
+            | Database["public"]["Enums"]["payment_method_type"]
+            | null
+          reference_number?: string | null
+          status?: string
+          transaction_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_adjustments_cleaner_id_fkey"
+            columns: ["cleaner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_adjustments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_adjustments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_adjustments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_adjustments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_adjustments_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_items: {
         Row: {
           created_at: string
@@ -1455,7 +1570,29 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      financial_ledger: {
+        Row: {
+          cleaner_id: string | null
+          cleaner_name: string | null
+          client_id: string | null
+          client_name: string | null
+          company_id: string | null
+          created_at: string | null
+          deductions: number | null
+          event_type: string | null
+          gross_amount: number | null
+          id: string | null
+          job_id: string | null
+          net_amount: number | null
+          notes: string | null
+          payment_method: string | null
+          reference_number: string | null
+          service_reference: string | null
+          status: string | null
+          transaction_date: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_next_payroll_period: {
@@ -1474,6 +1611,13 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "manager" | "cleaner"
+      financial_event_type:
+        | "invoice"
+        | "payment"
+        | "visit"
+        | "payroll"
+        | "refund"
+        | "adjustment"
       notification_severity: "info" | "warning" | "critical"
       notification_type:
         | "job"
@@ -1482,6 +1626,13 @@ export type Database = {
         | "invoice"
         | "payroll"
         | "system"
+      payment_method_type:
+        | "cash"
+        | "e_transfer"
+        | "cheque"
+        | "credit_card"
+        | "bank_transfer"
+        | "no_charge"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1610,6 +1761,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "manager", "cleaner"],
+      financial_event_type: [
+        "invoice",
+        "payment",
+        "visit",
+        "payroll",
+        "refund",
+        "adjustment",
+      ],
       notification_severity: ["info", "warning", "critical"],
       notification_type: [
         "job",
@@ -1618,6 +1777,14 @@ export const Constants = {
         "invoice",
         "payroll",
         "system",
+      ],
+      payment_method_type: [
+        "cash",
+        "e_transfer",
+        "cheque",
+        "credit_card",
+        "bank_transfer",
+        "no_charge",
       ],
     },
   },
