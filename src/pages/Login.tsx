@@ -96,14 +96,13 @@ const Login = () => {
           src={arkeliumSymbol}
           alt=""
           aria-hidden="true"
-          className="w-[140%] h-[140%] max-w-none object-contain select-none"
+          className="w-[120vw] h-[120vh] max-w-none object-contain select-none"
           style={{
-            opacity: isDark ? 0.025 : 0.03,
+            opacity: isDark ? 0.04 : 0.045,
             filter: isDark 
-              ? 'blur(2px) brightness(0.3) saturate(0.7)' 
-              : 'blur(2px) grayscale(0.4) brightness(0.85)',
-            mixBlendMode: isDark ? 'soft-light' : 'overlay',
-            transform: 'scale(1.1)',
+              ? 'blur(1px)' 
+              : 'blur(1px) grayscale(0.3)',
+            transform: 'scale(1.2)',
           }}
         />
       </div>
