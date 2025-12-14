@@ -87,43 +87,43 @@ const Login = () => {
     <div className={`fixed inset-0 flex overflow-hidden ${
       isDark 
         ? 'bg-gradient-to-br from-[#0a1210] via-[#0d1a15] to-[#081410]' 
-        : 'bg-[#F2F6F4]'
+        : 'bg-[#EDF3F0]'
     }`}>
       
       {/* Left Side - Arkelium Symbol Brand Area */}
-      <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] relative items-center justify-center">
+      <div className="hidden lg:flex lg:w-[52%] xl:w-[55%] relative items-center justify-center">
         {/* Subtle gradient overlay */}
         <div className={`absolute inset-0 ${
           isDark 
             ? 'bg-gradient-to-br from-emerald-950/20 via-transparent to-emerald-900/10'
-            : 'bg-gradient-to-br from-[#E8F0EC]/60 via-transparent to-[#EDF5F1]/40'
+            : 'bg-gradient-to-br from-[#DCE8E2]/70 via-[#E5F0EA]/50 to-[#EDF5F1]/60'
         }`} />
         
-        {/* Arkelium Symbol - Large, elegant, centered */}
+        {/* Arkelium Symbol - Large, elegant, centered with enhanced light theme presence */}
         <div className="relative z-10 flex items-center justify-center w-full h-full">
           <img 
             src={arkeliumSymbol}
             alt="Arkelium"
-            className="w-[60%] max-w-[450px] object-contain select-none"
+            className="w-[65%] max-w-[480px] object-contain select-none"
             style={{
-              opacity: isDark ? 0.06 : 0.055,
+              opacity: isDark ? 0.06 : 0.09,
               filter: isDark 
                 ? 'brightness(0.8)' 
-                : 'none',
+                : 'drop-shadow(0 4px 20px rgba(10, 108, 83, 0.08)) contrast(1.05)',
             }}
           />
         </div>
         
         {/* Bottom branding text */}
         <div className={`absolute bottom-8 left-8 text-xs font-medium tracking-wide ${
-          isDark ? 'text-emerald-500/40' : 'text-emerald-700/50'
+          isDark ? 'text-emerald-500/40' : 'text-emerald-700/60'
         }`}>
           Powered by Arkelium
         </div>
       </div>
 
       {/* Right Side - Login Form */}
-      <div className="w-full lg:w-1/2 xl:w-[45%] flex items-center justify-center lg:justify-start lg:pl-[8%] relative">
+      <div className="w-full lg:w-[48%] xl:w-[45%] flex items-center justify-center lg:justify-center relative">
         {/* Mobile watermark - visible only on small screens */}
         <div className="lg:hidden absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
           <img 
@@ -170,11 +170,11 @@ const Login = () => {
         </div>
 
         {/* Login Card */}
-        <div className="w-full max-w-[420px] mx-8 lg:mx-12 z-10">
+        <div className="w-full max-w-[460px] mx-6 lg:mx-0 lg:mr-[12%] z-10">
           <div className={`rounded-2xl backdrop-blur-xl p-8 lg:p-10 ${
             isDark 
               ? 'bg-[#0d1a15]/90 border border-emerald-800/20 shadow-2xl shadow-black/50' 
-              : 'bg-white border border-emerald-300/40 shadow-[0_8px_40px_-12px_rgba(0,80,60,0.15)]'
+              : 'bg-white/95 border border-emerald-200/60 shadow-[0_12px_48px_-12px_rgba(0,80,60,0.18)]'
           }`}>
           
           {/* Logo - Arkelium Symbol with immediate loading */}
