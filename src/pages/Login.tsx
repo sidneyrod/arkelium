@@ -87,7 +87,7 @@ const Login = () => {
     <div className={`fixed inset-0 flex overflow-hidden ${
       isDark 
         ? 'bg-gradient-to-br from-[#0a1210] via-[#0d1a15] to-[#081410]' 
-        : 'bg-gradient-to-br from-[#f5f7f9] via-[#edf8f5] to-[#f0f7f4]'
+        : 'bg-[#F2F6F4]'
     }`}>
       
       {/* Left Side - Arkelium Symbol Brand Area */}
@@ -96,7 +96,7 @@ const Login = () => {
         <div className={`absolute inset-0 ${
           isDark 
             ? 'bg-gradient-to-br from-emerald-950/20 via-transparent to-emerald-900/10'
-            : 'bg-gradient-to-br from-emerald-100/40 via-transparent to-emerald-50/30'
+            : 'bg-gradient-to-br from-[#E8F0EC]/60 via-transparent to-[#EDF5F1]/40'
         }`} />
         
         {/* Arkelium Symbol - Large, elegant, centered */}
@@ -106,17 +106,17 @@ const Login = () => {
             alt="Arkelium"
             className="w-[60%] max-w-[450px] object-contain select-none"
             style={{
-              opacity: isDark ? 0.06 : 0.04,
+              opacity: isDark ? 0.06 : 0.055,
               filter: isDark 
                 ? 'brightness(0.8)' 
-                : 'grayscale(0.5) brightness(0.92)',
+                : 'none',
             }}
           />
         </div>
         
         {/* Bottom branding text */}
         <div className={`absolute bottom-8 left-8 text-xs font-medium tracking-wide ${
-          isDark ? 'text-emerald-500/40' : 'text-emerald-600/50'
+          isDark ? 'text-emerald-500/40' : 'text-emerald-700/50'
         }`}>
           Powered by Arkelium
         </div>
@@ -132,8 +132,8 @@ const Login = () => {
             aria-hidden="true"
             className="w-[100vw] h-[100vh] max-w-none object-contain select-none"
             style={{
-              opacity: isDark ? 0.03 : 0.04,
-              filter: 'blur(1px)',
+              opacity: isDark ? 0.03 : 0.045,
+              filter: isDark ? 'blur(1px)' : 'none',
               transform: 'scale(1.1)',
             }}
           />
@@ -171,10 +171,10 @@ const Login = () => {
 
         {/* Login Card */}
         <div className="w-full max-w-[420px] mx-8 lg:mx-12 z-10">
-          <div className={`rounded-2xl backdrop-blur-xl shadow-2xl p-8 lg:p-10 ${
+          <div className={`rounded-2xl backdrop-blur-xl p-8 lg:p-10 ${
             isDark 
-              ? 'bg-[#0d1a15]/90 border border-emerald-800/20 shadow-black/50' 
-              : 'bg-white/90 border border-emerald-200/50 shadow-emerald-900/10'
+              ? 'bg-[#0d1a15]/90 border border-emerald-800/20 shadow-2xl shadow-black/50' 
+              : 'bg-white border border-emerald-300/40 shadow-[0_8px_40px_-12px_rgba(0,80,60,0.15)]'
           }`}>
           
           {/* Logo - Arkelium Symbol with immediate loading */}
