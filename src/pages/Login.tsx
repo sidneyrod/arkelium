@@ -139,8 +139,8 @@ const Login = () => {
           />
         </div>
 
-        {/* Theme & Language Controls */}
-        <div className="absolute top-6 right-8 flex items-center gap-3 z-10">
+        {/* Theme & Language Controls - Fixed at top right of viewport */}
+        <div className="fixed top-6 right-6 flex items-center gap-3 z-20">
           <Select value={language} onValueChange={(val: 'en' | 'fr') => setLanguage(val)}>
             <SelectTrigger className={`w-16 h-9 backdrop-blur-sm transition-colors text-xs ${
               isDark 
