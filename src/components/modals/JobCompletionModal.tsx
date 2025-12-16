@@ -54,6 +54,9 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
   const beforePhotoRef = useRef<HTMLInputElement>(null);
   const afterPhotoRef = useRef<HTMLInputElement>(null);
   
+  // Prevent double submission
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   // Company checklist items from database
   const [companyChecklistItems, setCompanyChecklistItems] = useState<CompanyChecklistItem[]>([]);
   const [loadingChecklistItems, setLoadingChecklistItems] = useState(false);
@@ -204,12 +207,18 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
   };
 
   const handleComplete = async () => {
-    if (!job) return;
+    if (!job || isSubmitting) return;
     
     // Payment is REQUIRED - validate before proceeding
     if (!isPaymentValid()) {
       return;
     }
+    
+    // Prevent double submission
+    setIsSubmitting(true);
+    
+    // Close modal IMMEDIATELY to prevent reopening
+    onOpenChange(false);
     
     // Save checklist with selected items
     const checklistToSave = companyChecklistItems.map(item => ({
@@ -239,8 +248,11 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
       paymentNotes,
     };
     
+    // Call onComplete AFTER closing modal
     onComplete(job.id, afterPhoto || undefined, notes, paymentData);
-    onOpenChange(false);
+    
+    // Reset submitting state after a delay to ensure cleanup
+    setTimeout(() => setIsSubmitting(false), 500);
   };
 
   // Payment is REQUIRED - check if payment form is valid
