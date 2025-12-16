@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { 
   CheckCircle, 
   FileText, 
@@ -277,7 +277,12 @@ const CompletedServices = () => {
     {
       key: 'date',
       header: 'Service Date',
-      render: (service) => format(new Date(service.date), 'MMM d, yyyy'),
+      render: (service) => {
+        // Parse date at noon local time to prevent timezone shift
+        const [year, month, day] = service.date.split('-').map(Number);
+        const localDate = new Date(year, month - 1, day, 12, 0, 0);
+        return format(localDate, 'MMM d, yyyy');
+      },
     },
     {
       key: 'jobType',
