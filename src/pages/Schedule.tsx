@@ -345,7 +345,7 @@ const Schedule = () => {
       // Fetch cleaner's payment model from profiles
       const { data: cleanerProfile } = await supabase
         .from('profiles')
-        .select('payment_model, hourly_rate, fixed_amount_per_job, percentage_of_job_total')
+        .select('payment_model, hourly_rate, fixed_amount_per_job, percentage_of_job_total, first_name, last_name')
         .eq('id', job.employeeId)
         .maybeSingle();
       
@@ -369,12 +369,35 @@ const Schedule = () => {
           break;
       }
       
-      // Determine if cleaner already received cash
+      // Determine if cleaner received cash and their handling choice
       const cashReceivedByCleaner = paymentData.paymentMethod === 'cash' && 
         paymentData.paymentReceivedBy === 'cleaner';
       
+      // Determine initial status based on cash handling
+      let status = 'pending';
+      let deductFromPayroll = false;
+      
+      if (cashReceivedByCleaner && paymentData.cashHandlingChoice) {
+        if (paymentData.cashHandlingChoice === 'keep_cash') {
+          status = 'pending_approval'; // Needs admin approval
+          deductFromPayroll = true;
+        } else if (paymentData.cashHandlingChoice === 'hand_to_admin') {
+          status = 'pending_handover'; // Cleaner will deliver cash
+        }
+      }
+      
+      // Build notes based on handling choice
+      let notes = '';
+      if (cashReceivedByCleaner) {
+        if (paymentData.cashHandlingChoice === 'keep_cash') {
+          notes = 'Cleaner chose to keep cash - pending admin approval for payroll deduction';
+        } else if (paymentData.cashHandlingChoice === 'hand_to_admin') {
+          notes = 'Cleaner will hand over cash to admin';
+        }
+      }
+      
       // Create cleaner payment entry
-      await supabase
+      const { data: paymentEntry } = await supabase
         .from('cleaner_payments')
         .insert({
           company_id: companyId,
@@ -388,16 +411,60 @@ const Schedule = () => {
           percentage_rate: cleanerProfile.percentage_of_job_total,
           fixed_amount: cleanerProfile.fixed_amount_per_job,
           amount_due: amountDue,
-          status: cashReceivedByCleaner ? 'cash_received' : 'pending',
+          status,
           cash_received_by_cleaner: cashReceivedByCleaner,
-          notes: cashReceivedByCleaner 
-            ? `Cash received directly by cleaner from client` 
-            : null,
-        });
+          cash_handling_choice: paymentData.cashHandlingChoice || null,
+          admin_approval_status: cashReceivedByCleaner ? 'pending' : null,
+          deduct_from_payroll: deductFromPayroll,
+          notes,
+        })
+        .select('id')
+        .single();
       
-      console.log(`Cleaner payment created: $${amountDue.toFixed(2)} (${paymentModel})`);
+      // Send notification to admin if cleaner received cash
+      if (cashReceivedByCleaner && paymentEntry?.id) {
+        const cleanerName = `${cleanerProfile.first_name || ''} ${cleanerProfile.last_name || ''}`.trim() || 'Cleaner';
+        const handlingText = paymentData.cashHandlingChoice === 'keep_cash' 
+          ? 'wants to keep the cash (deduct from payroll)' 
+          : 'will hand over the cash';
+        
+        await notifyCashPaymentPending(
+          cleanerName,
+          paymentData.paymentAmount,
+          handlingText,
+          paymentEntry.id
+        );
+      }
+      
+      console.log(`Cleaner payment created: $${amountDue.toFixed(2)} (${paymentModel}) - Status: ${status}`);
     } catch (error) {
       console.error('Error creating cleaner payment:', error);
+    }
+  };
+
+  // Helper to notify admin about pending cash payment
+  const notifyCashPaymentPending = async (
+    cleanerName: string,
+    amount: number,
+    handlingText: string,
+    paymentId: string
+  ) => {
+    try {
+      const { data: companyId } = await supabase.rpc('get_user_company_id');
+      if (!companyId) return;
+      
+      await supabase.from('notifications').insert({
+        company_id: companyId,
+        recipient_user_id: null,
+        role_target: 'admin',
+        title: 'Cash Payment Requires Approval',
+        message: `${cleanerName} received $${amount.toFixed(2)} in cash and ${handlingText}`,
+        type: 'payroll',
+        severity: 'warning',
+        metadata: { payment_id: paymentId, cleaner_name: cleanerName, amount }
+      } as any);
+    } catch (error) {
+      console.error('Error creating cash payment notification:', error);
     }
   };
 

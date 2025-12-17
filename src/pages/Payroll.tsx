@@ -36,6 +36,8 @@ interface CashPayment {
   service_date: string;
   amount_due: number;
   cash_received_by_cleaner: boolean;
+  cash_handling_choice: 'keep_cash' | 'hand_to_admin' | null;
+  admin_approval_status: string;
   status: string;
   notes: string | null;
 }
@@ -102,13 +104,15 @@ const Payroll = () => {
           service_date,
           amount_due,
           cash_received_by_cleaner,
+          cash_handling_choice,
+          admin_approval_status,
           status,
           notes,
           profiles:cleaner_id(first_name, last_name)
         `)
         .eq('company_id', companyId)
         .eq('cash_received_by_cleaner', true)
-        .eq('status', 'cash_received')
+        .eq('admin_approval_status', 'pending')
         .order('service_date', { ascending: false });
       
       if (error) {
@@ -127,6 +131,8 @@ const Payroll = () => {
         service_date: p.service_date,
         amount_due: p.amount_due,
         cash_received_by_cleaner: p.cash_received_by_cleaner,
+        cash_handling_choice: p.cash_handling_choice,
+        admin_approval_status: p.admin_approval_status,
         status: p.status,
         notes: p.notes,
       }));
@@ -139,17 +145,37 @@ const Payroll = () => {
     }
   }, [user]);
 
-  // Confirm cash payment (admin keeps cash or deducts from payroll)
-  const handleConfirmCashPayment = async (paymentId: string, action: 'keep_cash' | 'deduct_payroll') => {
+  // Approve or reject cash payment
+  const handleCashPaymentDecision = async (paymentId: string, decision: 'approve' | 'reject', rejectionReason?: string) => {
     try {
+      const payment = cashPayments.find(p => p.id === paymentId);
+      if (!payment) return;
+      
+      const updateData: Record<string, any> = {
+        admin_approval_status: decision === 'approve' ? 'approved' : 'rejected',
+        admin_approved_by: user?.id,
+        admin_approved_at: new Date().toISOString(),
+      };
+      
+      if (decision === 'approve') {
+        // Determine final status based on cleaner's choice
+        if (payment.cash_handling_choice === 'keep_cash') {
+          updateData.status = 'approved_deduct';
+          updateData.deduct_from_payroll = true;
+          updateData.notes = 'Approved by admin - will be deducted from payroll';
+        } else {
+          updateData.status = 'approved_handover';
+          updateData.notes = 'Approved by admin - cleaner will deliver cash';
+        }
+      } else {
+        updateData.status = 'rejected';
+        updateData.admin_rejection_reason = rejectionReason || 'Rejected by admin';
+        updateData.notes = `Rejected: ${rejectionReason || 'No reason provided'}`;
+      }
+      
       const { error } = await supabase
         .from('cleaner_payments')
-        .update({ 
-          status: action === 'keep_cash' ? 'cash_confirmed' : 'deduct_from_payroll',
-          notes: action === 'keep_cash' 
-            ? 'Cash kept by cleaner - confirmed by admin' 
-            : 'Cash to be deducted from payroll'
-        })
+        .update(updateData)
         .eq('id', paymentId);
       
       if (error) {
@@ -158,14 +184,50 @@ const Payroll = () => {
         return;
       }
       
-      logActivity('payment_confirmed', `Cash payment ${action === 'keep_cash' ? 'confirmed' : 'marked for deduction'}`, paymentId);
-      toast.success(action === 'keep_cash' 
-        ? 'Cash payment confirmed - cleaner keeps the cash' 
-        : 'Cash marked for payroll deduction');
+      // Log activity
+      logActivity(
+        decision === 'approve' ? 'payment_confirmed' : 'payment_rejected', 
+        `Cash payment ${decision === 'approve' ? 'approved' : 'rejected'} for ${payment.cleaner_name}`, 
+        paymentId
+      );
+      
+      // Notify cleaner of decision
+      await notifyCleanerOfCashDecision(payment.cleaner_id, payment.amount_due, decision, rejectionReason);
+      
+      toast.success(decision === 'approve' 
+        ? `Cash payment approved${payment.cash_handling_choice === 'keep_cash' ? ' - will be deducted from payroll' : ''}` 
+        : 'Cash payment request rejected');
+      
       fetchCashPayments();
     } catch (error) {
-      console.error('Error in handleConfirmCashPayment:', error);
+      console.error('Error in handleCashPaymentDecision:', error);
       toast.error('Failed to process payment');
+    }
+  };
+
+  // Notify cleaner of admin decision
+  const notifyCleanerOfCashDecision = async (cleanerId: string, amount: number, decision: 'approve' | 'reject', reason?: string) => {
+    try {
+      const { data: companyId } = await supabase.rpc('get_user_company_id');
+      if (!companyId) return;
+      
+      const title = decision === 'approve' ? 'Cash Payment Approved' : 'Cash Payment Rejected';
+      const message = decision === 'approve'
+        ? `Your cash payment of $${amount.toFixed(2)} has been approved by admin`
+        : `Your cash payment of $${amount.toFixed(2)} was rejected${reason ? `: ${reason}` : ''}`;
+      
+      await supabase.from('notifications').insert({
+        company_id: companyId,
+        recipient_user_id: cleanerId,
+        role_target: null,
+        title,
+        message,
+        type: 'payroll',
+        severity: decision === 'approve' ? 'info' : 'warning',
+        metadata: { amount, decision }
+      } as any);
+    } catch (error) {
+      console.error('Error notifying cleaner:', error);
     }
   };
 
@@ -459,6 +521,11 @@ const Payroll = () => {
                           <p className="text-sm text-muted-foreground">
                             Service Date: {payment.service_date}
                           </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {payment.cash_handling_choice === 'keep_cash' 
+                              ? '💰 Cleaner wants to keep cash (deduct from payroll)' 
+                              : '📤 Cleaner will hand over cash to admin'}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
@@ -466,27 +533,27 @@ const Payroll = () => {
                           <p className="font-semibold text-lg">${payment.amount_due.toFixed(2)}</p>
                           <Badge variant="outline" className="text-xs border-warning text-warning">
                             <AlertTriangle className="h-3 w-3 mr-1" />
-                            Cash Pending
+                            Pending Approval
                           </Badge>
                         </div>
                         <div className="flex flex-col gap-2">
                           <Button 
                             size="sm" 
-                            variant="outline"
+                            variant="default"
                             className="gap-1.5 text-xs"
-                            onClick={() => handleConfirmCashPayment(payment.id, 'keep_cash')}
+                            onClick={() => handleCashPaymentDecision(payment.id, 'approve')}
                           >
                             <Check className="h-3 w-3" />
-                            Cleaner Keeps Cash
+                            Approve
                           </Button>
                           <Button 
                             size="sm"
                             variant="outline"
                             className="gap-1.5 text-xs border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                            onClick={() => handleConfirmCashPayment(payment.id, 'deduct_payroll')}
+                            onClick={() => handleCashPaymentDecision(payment.id, 'reject', 'Admin rejected')}
                           >
-                            <DollarSign className="h-3 w-3" />
-                            Deduct from Payroll
+                            <AlertTriangle className="h-3 w-3" />
+                            Reject
                           </Button>
                         </div>
                       </div>

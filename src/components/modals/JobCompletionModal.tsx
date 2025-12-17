@@ -40,6 +40,7 @@ export interface PaymentData {
   paymentReference?: string;
   paymentReceivedBy?: 'cleaner' | 'company';
   paymentNotes?: string;
+  cashHandlingChoice?: 'keep_cash' | 'hand_to_admin';
 }
 
 interface ChecklistItemState {
@@ -76,6 +77,7 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
   const [paymentReference, setPaymentReference] = useState('');
   const [paymentReceivedBy, setPaymentReceivedBy] = useState<'cleaner' | 'company' | ''>('');
   const [paymentNotes, setPaymentNotes] = useState('');
+  const [cashHandlingChoice, setCashHandlingChoice] = useState<'keep_cash' | 'hand_to_admin' | ''>('');
 
   // Fetch checklist items from company settings
   const fetchChecklistItems = async () => {
@@ -122,6 +124,7 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
       setPaymentAmount('');
       setPaymentDate(new Date());
       setPaymentReference('');
+      setCashHandlingChoice('');
       setPaymentReceivedBy('');
       setPaymentNotes('');
     }
@@ -246,6 +249,9 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
       paymentReference: paymentMethod === 'e-transfer' ? paymentReference : undefined,
       paymentReceivedBy: paymentMethod === 'cash' ? paymentReceivedBy as 'cleaner' | 'company' : undefined,
       paymentNotes,
+      cashHandlingChoice: paymentMethod === 'cash' && paymentReceivedBy === 'cleaner' 
+        ? cashHandlingChoice as 'keep_cash' | 'hand_to_admin' 
+        : undefined,
     };
     
     // Call onComplete AFTER closing modal
@@ -260,6 +266,8 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
     if (!paymentMethod) return false;
     if (!paymentAmount || parseFloat(paymentAmount) <= 0) return false;
     if (paymentMethod === 'cash' && !paymentReceivedBy) return false;
+    // If cleaner received cash, they must choose what to do with it
+    if (paymentMethod === 'cash' && paymentReceivedBy === 'cleaner' && !cashHandlingChoice) return false;
     return true;
   };
 
@@ -572,34 +580,90 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
                 
                 {/* Cash Received By */}
                 {paymentMethod === 'cash' && (
-                  <div className="space-y-2">
-                    <Label>Who Received the Cash? *</Label>
-                    <Select value={paymentReceivedBy} onValueChange={(v) => setPaymentReceivedBy(v as 'cleaner' | 'company')}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select who received payment" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="cleaner">
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4" />
-                            Cleaner
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="company">
-                          <div className="flex items-center gap-2">
-                            <CreditCard className="h-4 w-4" />
-                            Company / Office
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {!paymentReceivedBy && (
-                      <p className="text-xs text-destructive">Please select who received the payment</p>
-                    )}
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Who Received the Cash? *</Label>
+                      <Select value={paymentReceivedBy} onValueChange={(v) => {
+                        setPaymentReceivedBy(v as 'cleaner' | 'company');
+                        if (v === 'company') setCashHandlingChoice('');
+                      }}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select who received payment" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cleaner">
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4" />
+                              Cleaner
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="company">
+                            <div className="flex items-center gap-2">
+                              <CreditCard className="h-4 w-4" />
+                              Company / Office
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {!paymentReceivedBy && (
+                        <p className="text-xs text-destructive">Please select who received the payment</p>
+                      )}
+                    </div>
+                    
+                    {/* Cash Handling Choice - Only when cleaner received cash */}
                     {paymentReceivedBy === 'cleaner' && (
-                      <p className="text-xs text-warning">
-                        Note: Cash received by cleaner will be tracked as "Cash Pending Transfer" until confirmed by admin.
-                      </p>
+                      <div className="space-y-3 p-4 rounded-lg border border-warning/30 bg-warning/5">
+                        <div className="flex items-center gap-2 text-warning">
+                          <AlertTriangle className="h-4 w-4" />
+                          <Label className="text-warning font-medium">What will you do with this cash? *</Label>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          This choice requires admin approval before affecting your payroll.
+                        </p>
+                        <div className="grid gap-3">
+                          <Button
+                            type="button"
+                            variant={cashHandlingChoice === 'keep_cash' ? 'default' : 'outline'}
+                            className={cn(
+                              "h-auto py-3 px-4 justify-start text-left",
+                              cashHandlingChoice === 'keep_cash' && "ring-2 ring-warning bg-warning text-warning-foreground"
+                            )}
+                            onClick={() => setCashHandlingChoice('keep_cash')}
+                          >
+                            <div className="flex items-start gap-3">
+                              <Banknote className="h-5 w-5 mt-0.5 shrink-0" />
+                              <div>
+                                <p className="font-medium">Keep the Cash</p>
+                                <p className="text-xs opacity-80 font-normal">
+                                  Amount will be deducted from your next payroll (requires admin approval)
+                                </p>
+                              </div>
+                            </div>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={cashHandlingChoice === 'hand_to_admin' ? 'default' : 'outline'}
+                            className={cn(
+                              "h-auto py-3 px-4 justify-start text-left",
+                              cashHandlingChoice === 'hand_to_admin' && "ring-2 ring-primary"
+                            )}
+                            onClick={() => setCashHandlingChoice('hand_to_admin')}
+                          >
+                            <div className="flex items-start gap-3">
+                              <User className="h-5 w-5 mt-0.5 shrink-0" />
+                              <div>
+                                <p className="font-medium">Hand Over to Admin</p>
+                                <p className="text-xs opacity-80 font-normal">
+                                  You will deliver the cash to the office/admin
+                                </p>
+                              </div>
+                            </div>
+                          </Button>
+                        </div>
+                        {!cashHandlingChoice && (
+                          <p className="text-xs text-destructive">Please select how you will handle this cash</p>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}

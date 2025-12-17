@@ -229,11 +229,17 @@ export type Database = {
       }
       cleaner_payments: {
         Row: {
+          admin_approval_status: string | null
+          admin_approved_at: string | null
+          admin_approved_by: string | null
+          admin_rejection_reason: string | null
           amount_due: number
+          cash_handling_choice: string | null
           cash_received_by_cleaner: boolean | null
           cleaner_id: string
           company_id: string
           created_at: string
+          deduct_from_payroll: boolean | null
           fixed_amount: number | null
           hourly_rate: number | null
           hours_worked: number | null
@@ -250,11 +256,17 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          admin_approval_status?: string | null
+          admin_approved_at?: string | null
+          admin_approved_by?: string | null
+          admin_rejection_reason?: string | null
           amount_due: number
+          cash_handling_choice?: string | null
           cash_received_by_cleaner?: boolean | null
           cleaner_id: string
           company_id: string
           created_at?: string
+          deduct_from_payroll?: boolean | null
           fixed_amount?: number | null
           hourly_rate?: number | null
           hours_worked?: number | null
@@ -271,11 +283,17 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          admin_approval_status?: string | null
+          admin_approved_at?: string | null
+          admin_approved_by?: string | null
+          admin_rejection_reason?: string | null
           amount_due?: number
+          cash_handling_choice?: string | null
           cash_received_by_cleaner?: boolean | null
           cleaner_id?: string
           company_id?: string
           created_at?: string
+          deduct_from_payroll?: boolean | null
           fixed_amount?: number | null
           hourly_rate?: number | null
           hours_worked?: number | null
