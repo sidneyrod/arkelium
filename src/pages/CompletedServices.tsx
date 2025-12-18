@@ -3,6 +3,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { notifyInvoiceGenerated } from '@/hooks/useNotifications';
+import { formatSafeDate, formatDateTime } from '@/lib/dates';
 import PageHeader from '@/components/ui/page-header';
 import SearchInput from '@/components/ui/search-input';
 import DataTable, { Column } from '@/components/ui/data-table';
@@ -12,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { 
   CheckCircle, 
   FileText, 
@@ -31,7 +32,6 @@ interface CompletedService {
   employeeName: string;
   jobType: string;
   completedAt: string;
-  hasInvoice: boolean;
 }
 
 const CompletedServices = () => {
@@ -52,64 +52,32 @@ const CompletedServices = () => {
   const canGenerateInvoices = isAdmin;
   const canViewServices = isAdmin || isManager;
 
+  // Use RPC to get pending invoices (single source of truth from database)
   const fetchCompletedServices = useCallback(async () => {
     try {
-      let companyId = user?.profile?.company_id;
-      if (!companyId) {
-        const { data: companyIdData } = await supabase.rpc('get_user_company_id');
-        companyId = companyIdData;
-      }
-      
-      if (!companyId) {
-        setIsLoading(false);
-        return;
-      }
-      
-      const { data: jobs, error } = await supabase
-        .from('jobs')
-        .select(`
-          id,
-          client_id,
-          scheduled_date,
-          duration_minutes,
-          job_type,
-          completed_at,
-          clients(id, name),
-          profiles:cleaner_id(first_name, last_name),
-          client_locations(address, city)
-        `)
-        .eq('company_id', companyId)
-        .eq('status', 'completed')
-        .order('completed_at', { ascending: false });
+      // Call the RPC function - it handles role check internally
+      const { data: pendingServices, error } = await supabase
+        .rpc('get_completed_services_pending_invoices');
       
       if (error) {
-        console.error('Error fetching completed services:', error);
+        console.error('Error fetching pending invoices:', error);
         setIsLoading(false);
         return;
       }
 
-      const { data: invoices } = await supabase
-        .from('invoices')
-        .select('job_id')
-        .eq('company_id', companyId);
-      
-      const invoicedJobIds = new Set((invoices || []).map(inv => inv.job_id));
-      
-      const mappedServices: CompletedService[] = (jobs || []).map((job: any) => ({
+      // Map the RPC response to our CompletedService interface
+      const mappedServices: CompletedService[] = (pendingServices || []).map((job: any) => ({
         id: job.id,
         clientId: job.client_id,
-        clientName: job.clients?.name || 'Unknown',
-        address: job.client_locations?.address 
-          ? `${job.client_locations.address}${job.client_locations.city ? `, ${job.client_locations.city}` : ''}`
-          : 'No address',
-        date: job.scheduled_date,
+        clientName: job.client_name || 'Unknown',
+        address: job.address || 'No address',
+        date: job.scheduled_date, // date-only string from database
         duration: job.duration_minutes ? `${job.duration_minutes / 60}h` : '2h',
-        employeeName: job.profiles 
-          ? `${job.profiles.first_name || ''} ${job.profiles.last_name || ''}`.trim() || 'Unassigned'
-          : 'Unassigned',
+        employeeName: job.cleaner_first_name && job.cleaner_last_name
+          ? `${job.cleaner_first_name} ${job.cleaner_last_name}`.trim()
+          : job.cleaner_first_name || job.cleaner_last_name || 'Unassigned',
         jobType: job.job_type || 'Standard Clean',
         completedAt: job.completed_at,
-        hasInvoice: invoicedJobIds.has(job.id),
       }));
       
       setServices(mappedServices);
@@ -118,7 +86,7 @@ const CompletedServices = () => {
       console.error('Error in fetchCompletedServices:', error);
       setIsLoading(false);
     }
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -126,12 +94,11 @@ const CompletedServices = () => {
     }
   }, [user, fetchCompletedServices]);
 
+  // RPC already returns only services without invoices, just filter by search
   const filteredServices = services.filter(service => 
-    !service.hasInvoice && (
-      service.clientName.toLowerCase().includes(search.toLowerCase()) ||
-      service.employeeName.toLowerCase().includes(search.toLowerCase()) ||
-      service.address.toLowerCase().includes(search.toLowerCase())
-    )
+    service.clientName.toLowerCase().includes(search.toLowerCase()) ||
+    service.employeeName.toLowerCase().includes(search.toLowerCase()) ||
+    service.address.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleSelectAll = (checked: boolean) => {
@@ -190,10 +157,25 @@ const CompletedServices = () => {
       const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
       
       let invoicesCreated = 0;
+      let invoicesSkipped = 0;
 
       for (const serviceId of selectedServices) {
         const service = services.find(s => s.id === serviceId);
         if (!service) continue;
+
+        // IDEMPOTENCY CHECK: Verify invoice doesn't already exist before inserting
+        const { data: existingInvoice } = await supabase
+          .from('invoices')
+          .select('id')
+          .eq('job_id', serviceId)
+          .eq('company_id', companyId)
+          .maybeSingle();
+        
+        if (existingInvoice) {
+          console.log(`Skipping job ${serviceId} - invoice already exists`);
+          invoicesSkipped++;
+          continue;
+        }
 
         const durationHours = parseFloat(service.duration.replace(/[^0-9.]/g, '')) || 2;
         const subtotal = durationHours * hourlyRate;
@@ -230,6 +212,12 @@ const CompletedServices = () => {
           .single();
 
         if (invoiceError) {
+          // Handle unique constraint violation gracefully
+          if (invoiceError.code === '23505') {
+            console.log(`Invoice already exists for job ${serviceId}`);
+            invoicesSkipped++;
+            continue;
+          }
           console.error('Error creating invoice:', invoiceError);
           continue;
         }
@@ -240,7 +228,12 @@ const CompletedServices = () => {
         invoicesCreated++;
       }
 
-      toast.success(`${invoicesCreated} invoice(s) generated successfully`);
+      // Report results including any skipped
+      if (invoicesSkipped > 0) {
+        toast.success(`${invoicesCreated} invoice(s) generated, ${invoicesSkipped} already existed`);
+      } else {
+        toast.success(`${invoicesCreated} invoice(s) generated successfully`);
+      }
       setShowGenerateDialog(false);
       setSelectedServices([]);
       await fetchCompletedServices();
@@ -277,12 +270,7 @@ const CompletedServices = () => {
     {
       key: 'date',
       header: 'Service Date',
-      render: (service) => {
-        // Parse date at noon local time to prevent timezone shift
-        const [year, month, day] = service.date.split('-').map(Number);
-        const localDate = new Date(year, month - 1, day, 12, 0, 0);
-        return format(localDate, 'MMM d, yyyy');
-      },
+      render: (service) => formatSafeDate(service.date, 'MMM d, yyyy'),
     },
     {
       key: 'jobType',
@@ -299,9 +287,7 @@ const CompletedServices = () => {
     {
       key: 'completedAt',
       header: 'Completed',
-      render: (service) => service.completedAt 
-        ? format(new Date(service.completedAt), 'MMM d, yyyy HH:mm')
-        : '-',
+      render: (service) => formatDateTime(service.completedAt, 'MMM d, yyyy HH:mm') || '-',
     },
   ];
 

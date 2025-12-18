@@ -1613,6 +1613,22 @@ export type Database = {
       }
     }
     Functions: {
+      get_completed_services_pending_invoices: {
+        Args: never
+        Returns: {
+          address: string
+          cleaner_first_name: string
+          cleaner_id: string
+          cleaner_last_name: string
+          client_id: string
+          client_name: string
+          completed_at: string
+          duration_minutes: number
+          id: string
+          job_type: string
+          scheduled_date: string
+        }[]
+      }
       get_next_payroll_period: {
         Args: { p_frequency: string; p_reference_date?: string }
         Returns: {

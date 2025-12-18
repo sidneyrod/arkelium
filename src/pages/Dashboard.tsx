@@ -30,7 +30,8 @@ import {
   BarChart,
   Bar,
 } from 'recharts';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { toSafeLocalDate } from '@/lib/dates';
 
 
 interface DashboardStats {
@@ -287,8 +288,9 @@ const Dashboard = () => {
         const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const weeklyData = dayNames.map((name, index) => {
           const count = weekJobs.filter(job => {
-            const jobDay = new Date(job.scheduled_date).getDay();
-            return jobDay === index;
+            // Use safe date parsing to prevent timezone shift
+            const jobDate = toSafeLocalDate(job.scheduled_date);
+            return jobDate.getDay() === index;
           }).length;
           return { name, jobs: count };
         });
@@ -404,7 +406,8 @@ const Dashboard = () => {
                       </div>
                       <div className="text-right shrink-0 ml-4">
                         <p className="text-sm font-medium">
-                          {format(new Date(job.scheduled_date + 'T12:00:00'), 'EEE, MMM d')}
+                          {/* Use safe date parsing to prevent timezone shift */}
+                          {format(toSafeLocalDate(job.scheduled_date), 'EEE, MMM d')}
                         </p>
                         {job.start_time && (
                           <p className="text-xs text-muted-foreground">

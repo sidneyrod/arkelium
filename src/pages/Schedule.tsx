@@ -46,6 +46,7 @@ import AvailabilityManager from '@/components/schedule/AvailabilityManager';
 import ConfirmDialog from '@/components/modals/ConfirmDialog';
 import { notifyJobCreated, notifyJobUpdated, notifyJobCancelled, notifyVisitCreated, notifyJobCompleted, notifyInvoiceGenerated } from '@/hooks/useNotifications';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, startOfWeek, endOfWeek, addWeeks, subWeeks, isSameDay, addDays, subDays, parseISO } from 'date-fns';
+import { toSafeLocalDate } from '@/lib/dates';
 
 type ViewType = 'day' | 'week' | 'month' | 'timeline';
 type JobStatus = 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
@@ -925,10 +926,8 @@ const Schedule = () => {
 
   const getJobsForDate = (date: Date) => {
     return filteredJobs.filter(job => {
-      // Parse job.date as local date to avoid timezone shift
-      // job.date is in format "YYYY-MM-DD"
-      const [year, month, day] = job.date.split('-').map(Number);
-      const jobDate = new Date(year, month - 1, day, 12, 0, 0);
+      // Use safe date parsing helper to prevent timezone shift
+      const jobDate = toSafeLocalDate(job.date);
       return isSameDay(jobDate, date);
     });
   };
