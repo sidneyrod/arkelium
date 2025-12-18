@@ -33,8 +33,9 @@ import {
   RefreshCw,
   Lock
 } from 'lucide-react';
-import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
+import { format, parseISO, isWithinInterval } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { formatSafeDate } from '@/lib/dates';
 
 type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled' | 'partially_paid';
 
@@ -350,7 +351,7 @@ const Invoices = () => {
     {
       key: 'serviceDate',
       header: 'Service Date',
-      render: (invoice) => invoice.serviceDate ? format(new Date(invoice.serviceDate), 'MMM d, yyyy') : 'N/A',
+      render: (invoice) => formatSafeDate(invoice.serviceDate, 'MMM d, yyyy') || 'N/A',
     },
     {
       key: 'cleanerName',
