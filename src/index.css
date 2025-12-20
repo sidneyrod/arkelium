@@ -1,4 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:wght@400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -10,45 +13,45 @@
        LIGHT THEME - Premium Arkelium Design System
        Modern, elegant, with strong brand identity
        ===================================================== */
-    
+
     /* Background tones - Off-white, elegant, less stark */
-    --background: 210 20% 98%;
-    --foreground: 220 20% 15%;
+    --background: 0 0% 96%;
+    --foreground: 0 0% 9%;
 
     /* Card - Subtle warm white */
-    --card: 0 0% 100%;
-    --card-foreground: 220 20% 15%;
+    --card: 0 0% 98%;
+    --card-foreground: 0 0% 9%;
 
     /* Popover */
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 15%;
+    --popover: 0 0% 89%;
+    --popover-foreground: 0 0% 9%;
 
     /* Brand Primary - Arkelium Green (#0A6C53 / #14A67B) */
-    --primary: 162 80% 24%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 20 90% 48%;
+    --primary-foreground: 33 100% 96%;
 
     /* Secondary - Light green tint for backgrounds */
-    --secondary: 160 30% 96%;
-    --secondary-foreground: 162 70% 20%;
+    --secondary: 0 0% 32%;
+    --secondary-foreground: 0 0% 98%;
 
     /* Muted - Soft neutral gray */
-    --muted: 210 20% 94%;
-    --muted-foreground: 220 10% 45%;
+    --muted: 0 0% 63%;
+    --muted-foreground: 0 0% 9%;
 
     /* Accent - Light sage */
-    --accent: 160 25% 94%;
-    --accent-foreground: 162 70% 20%;
+    --accent: 47 100% 96%;
+    --accent-foreground: 37 92% 50%;
 
     /* Destructive */
-    --destructive: 0 70% 55%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 85% 97%;
 
     /* Borders and inputs */
-    --border: 210 20% 88%;
-    --input: 210 20% 90%;
-    --ring: 162 80% 24%;
+    --border: 0 0% 83%;
+    --input: 0 0% 83%;
+    --ring: 20 90% 48%;
 
-    --radius: 0.625rem;
+    --radius: 0.75rem;
 
     /* Status Colors - SaaS Standard */
     --success: 162 72% 34%;
@@ -73,61 +76,71 @@
     --card-teal-border: 180 50% 60%;
 
     /* Premium Shadows - Subtle with brand tint */
-    --shadow-sm: 0 1px 2px 0 hsl(162 30% 20% / 0.04);
-    --shadow-md: 0 2px 8px -1px hsl(162 30% 20% / 0.06), 0 1px 3px -1px hsl(162 30% 20% / 0.04);
-    --shadow-lg: 0 8px 20px -4px hsl(162 30% 20% / 0.08), 0 4px 8px -4px hsl(162 30% 20% / 0.04);
-    --shadow-xl: 0 16px 32px -8px hsl(162 30% 20% / 0.12), 0 8px 16px -8px hsl(162 30% 20% / 0.06);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
     --shadow-header: 0 1px 3px 0 hsl(162 30% 20% / 0.06), 0 1px 2px -1px hsl(162 30% 20% / 0.04);
 
     /* Sidebar - Premium light */
     --sidebar-background: 210 25% 99%;
-    --sidebar-foreground: 220 20% 20%;
-    --sidebar-primary: 162 80% 24%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 160 30% 95%;
-    --sidebar-accent-foreground: 162 70% 20%;
-    --sidebar-border: 210 20% 92%;
-    --sidebar-ring: 162 80% 24%;
+    --sidebar-foreground: 0 0% 9%;
+    --sidebar-primary: 20 90% 48%;
+    --sidebar-primary-foreground: 33 100% 96%;
+    --sidebar-accent: 0 0% 32%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 83%;
+    --sidebar-ring: 20 90% 48%;
 
     /* Chart colors - Arkelium brand spectrum */
-    --chart-1: 162 72% 34%;
-    --chart-2: 162 60% 45%;
-    --chart-3: 40 60% 55%;
-    --chart-4: 210 70% 55%;
-    --chart-5: 162 40% 60%;
+    --chart-1: 27 95% 60%;
+    --chart-2: 43 96% 56%;
+    --chart-3: 47 95% 53%;
+    --chart-4: 24 94% 53%;
+    --chart-5: 0 0% 45%;
+    --sidebar: 0 0% 98%;
+    --font-sans: 'Roboto', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+    --font-serif: 'Libre Caslon Text', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+    --font-mono: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+    --tracking-normal: 0em;
+    --spacing: 0.25rem;
   }
 
   .dark {
     /* =====================================================
        DARK THEME - Unchanged (kept as is)
        ===================================================== */
-    --background: 160 20% 6%;
-    --foreground: 150 15% 92%;
+    --background: 0 0% 9%;
+    --foreground: 0 0% 98%;
 
-    --card: 160 18% 9%;
-    --card-foreground: 150 15% 92%;
+    --card: 0 0% 14%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 160 18% 9%;
-    --popover-foreground: 150 15% 92%;
+    --popover: 0 0% 25%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 156 45% 45%;
-    --primary-foreground: 160 20% 6%;
+    --primary: 27 95% 60%;
+    --primary-foreground: 12 81% 14%;
 
-    --secondary: 160 15% 14%;
-    --secondary-foreground: 150 15% 85%;
+    --secondary: 0 0% 45%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 160 12% 16%;
-    --muted-foreground: 150 10% 55%;
+    --muted: 0 0% 45%;
+    --muted-foreground: 0 0% 98%;
 
-    --accent: 156 30% 18%;
-    --accent-foreground: 156 45% 65%;
+    --accent: 20 91% 14%;
+    --accent-foreground: 43 96% 56%;
 
-    --destructive: 0 62% 45%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 85% 97%;
 
-    --border: 160 12% 16%;
-    --input: 160 12% 18%;
-    --ring: 156 45% 45%;
+    --border: 0 0% 32%;
+    --input: 0 0% 32%;
+    --ring: 27 95% 60%;
 
     --success: 156 55% 45%;
     --success-foreground: 160 20% 6%;
@@ -150,26 +163,31 @@
     --card-teal: 180 20% 12%;
     --card-teal-border: 180 30% 35%;
 
-    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.2);
-    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.25), 0 2px 4px -2px hsl(0 0% 0% / 0.15);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.3), 0 4px 6px -4px hsl(0 0% 0% / 0.15);
-    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.35), 0 8px 10px -6px hsl(0 0% 0% / 0.15);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
     --shadow-header: 0 1px 3px 0 hsl(0 0% 0% / 0.3);
 
     --sidebar-background: 160 18% 8%;
-    --sidebar-foreground: 150 15% 90%;
-    --sidebar-primary: 156 45% 45%;
-    --sidebar-primary-foreground: 160 20% 6%;
-    --sidebar-accent: 156 25% 16%;
-    --sidebar-accent-foreground: 156 45% 65%;
-    --sidebar-border: 160 12% 14%;
-    --sidebar-ring: 156 45% 45%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 27 95% 60%;
+    --sidebar-primary-foreground: 12 81% 14%;
+    --sidebar-accent: 43 96% 56%;
+    --sidebar-accent-foreground: 20 91% 14%;
+    --sidebar-border: 0 0% 32%;
+    --sidebar-ring: 27 95% 60%;
 
-    --chart-1: 156 55% 50%;
-    --chart-2: 156 45% 60%;
-    --chart-3: 156 35% 45%;
-    --chart-4: 156 25% 55%;
-    --chart-5: 156 20% 65%;
+    --chart-1: 30 97% 72%;
+    --chart-2: 45 96% 64%;
+    --chart-3: 48 96% 76%;
+    --chart-4: 27 95% 60%;
+    --chart-5: 0 0% 45%;
+    --sidebar: 0 0% 14%;
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
   }
 }
 
@@ -292,7 +310,7 @@
   .accent-border {
     @apply border-l-2 border-l-primary/40;
   }
-  
+
   .accent-hover {
     @apply hover:border-primary/30 hover:bg-accent/50 transition-colors;
   }
