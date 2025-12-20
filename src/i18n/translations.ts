@@ -38,7 +38,7 @@ export const translations = {
     // Dashboard
     dashboard: {
       title: 'Dashboard',
-      welcome: 'Welcome back',
+      welcome: 'Welcome',
       subtitle: "Here's what's happening with your business today.",
       todayJobs: "Today's Jobs",
       activeEmployees: 'Active Employees',
