@@ -72,17 +72,20 @@ const Receipts = () => {
         .from('payment_receipts')
         .select(`
           *,
-          clients(name)
+          clients!payment_receipts_client_id_fkey(name)
         `)
         .gte('service_date', format(dateRange.startDate, 'yyyy-MM-dd'))
         .lte('service_date', format(dateRange.endDate, 'yyyy-MM-dd'))
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
       
       const mappedData = (data || []).map(r => ({
         ...r,
-        client_name: r.clients?.name || '-',
+        client_name: (r.clients as any)?.name || '-',
       }));
       
       setReceipts(mappedData);

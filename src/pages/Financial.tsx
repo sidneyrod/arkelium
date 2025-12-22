@@ -560,20 +560,6 @@ const Financial = () => {
             className="w-full sm:max-w-xs"
           />
           
-          <Select value={periodFilter} onValueChange={handlePeriodChange}>
-            <SelectTrigger className="w-[150px]">
-              <CalendarIcon className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Period" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="thisWeek">This Week</SelectItem>
-              <SelectItem value="thisMonth">This Month</SelectItem>
-              <SelectItem value="lastMonth">Last Month</SelectItem>
-              <SelectItem value="custom">Custom Range</SelectItem>
-            </SelectContent>
-          </Select>
-          
           {/* Period filter is handled by PeriodSelector in header */}
           
           <Select value={eventTypeFilter} onValueChange={setEventTypeFilter}>
