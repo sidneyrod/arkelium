@@ -72,7 +72,7 @@ const Receipts = () => {
         .from('payment_receipts')
         .select(`
           *,
-          clients!payment_receipts_client_id_fkey(name)
+          clients(name)
         `)
         .gte('service_date', format(dateRange.startDate, 'yyyy-MM-dd'))
         .lte('service_date', format(dateRange.endDate, 'yyyy-MM-dd'))
