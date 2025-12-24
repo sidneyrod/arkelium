@@ -34,6 +34,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { toast } from 'sonner';
 import { openPdfPreview } from '@/utils/pdfGenerator';
+import ViewReceiptModal from '@/components/receipts/ViewReceiptModal';
 
 interface PaymentReceipt {
   id: string;
@@ -52,6 +53,8 @@ interface PaymentReceipt {
   notes: string | null;
   created_at: string;
   client_name?: string;
+  cleaner_name?: string;
+  client_email?: string;
 }
 
 const Receipts = () => {
@@ -64,6 +67,9 @@ const Receipts = () => {
     startDate: startOfWeek(new Date(), { weekStartsOn: 1 }),
     endDate: endOfWeek(new Date(), { weekStartsOn: 1 }),
   });
+  const [selectedReceipt, setSelectedReceipt] = useState<PaymentReceipt | null>(null);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   const fetchReceipts = async () => {
     try {
@@ -72,7 +78,8 @@ const Receipts = () => {
         .from('payment_receipts')
         .select(`
           *,
-          clients(name)
+          clients(name, email),
+          profiles:cleaner_id(first_name, last_name)
         `)
         .gte('service_date', format(dateRange.startDate, 'yyyy-MM-dd'))
         .lte('service_date', format(dateRange.endDate, 'yyyy-MM-dd'))
@@ -86,6 +93,10 @@ const Receipts = () => {
       const mappedData = (data || []).map(r => ({
         ...r,
         client_name: (r.clients as any)?.name || '-',
+        client_email: (r.clients as any)?.email || null,
+        cleaner_name: (r.profiles as any) 
+          ? `${(r.profiles as any).first_name || ''} ${(r.profiles as any).last_name || ''}`.trim() || '-'
+          : '-',
       }));
       
       setReceipts(mappedData);
@@ -107,11 +118,17 @@ const Receipts = () => {
     return (
       receipt.receipt_number.toLowerCase().includes(query) ||
       (receipt.client_name || '').toLowerCase().includes(query) ||
+      (receipt.cleaner_name || '').toLowerCase().includes(query) ||
       receipt.payment_method.toLowerCase().includes(query)
     );
   });
 
   const handleViewReceipt = (receipt: PaymentReceipt) => {
+    setSelectedReceipt(receipt);
+    setViewModalOpen(true);
+  };
+
+  const handleViewPdf = (receipt: PaymentReceipt) => {
     if (receipt.receipt_html) {
       openPdfPreview(receipt.receipt_html, `Receipt-${receipt.receipt_number}`);
     } else {
@@ -128,6 +145,49 @@ const Receipts = () => {
       a.download = `Receipt-${receipt.receipt_number}.html`;
       a.click();
       URL.revokeObjectURL(url);
+    }
+  };
+
+  const handleSendEmail = async (receipt: PaymentReceipt) => {
+    if (!receipt.client_email) {
+      toast.error('Client does not have an email address');
+      return;
+    }
+
+    setSendingEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-receipt-email', {
+        body: {
+          receiptId: receipt.id,
+          recipientEmail: receipt.client_email,
+          recipientName: receipt.client_name,
+        },
+      });
+
+      if (error) throw error;
+
+      // Update local state
+      const updatedReceipts = receipts.map(r => 
+        r.id === receipt.id 
+          ? { ...r, sent_at: new Date().toISOString(), sent_to_email: receipt.client_email }
+          : r
+      );
+      setReceipts(updatedReceipts);
+      
+      if (selectedReceipt?.id === receipt.id) {
+        setSelectedReceipt({ 
+          ...selectedReceipt, 
+          sent_at: new Date().toISOString(), 
+          sent_to_email: receipt.client_email 
+        });
+      }
+
+      toast.success(`Receipt sent to ${receipt.client_email}`);
+    } catch (error: any) {
+      console.error('Error sending email:', error);
+      toast.error('Failed to send email. Please check if email service is configured.');
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -249,45 +309,58 @@ const Receipts = () => {
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Receipt #</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Client</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Cleaner</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Service Date</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Method</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Method</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Total</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Status</TableHead>
                     <TableHead className="w-10"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredReceipts.map((receipt) => (
-                    <TableRow key={receipt.id}>
+                    <TableRow 
+                      key={receipt.id} 
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => handleViewReceipt(receipt)}
+                    >
                       <TableCell className="font-mono font-medium">{receipt.receipt_number}</TableCell>
                       <TableCell>{receipt.client_name}</TableCell>
+                      <TableCell className="hidden md:table-cell">{receipt.cleaner_name}</TableCell>
                       <TableCell>{format(new Date(receipt.service_date), 'MMM d, yyyy')}</TableCell>
-                      <TableCell>{getPaymentMethodBadge(receipt.payment_method)}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{getPaymentMethodBadge(receipt.payment_method)}</TableCell>
                       <TableCell className="font-medium">${receipt.total.toFixed(2)}</TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <Badge variant={receipt.sent_at ? 'default' : 'secondary'}>
                           {receipt.sent_at ? 'Sent' : 'Pending'}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleViewReceipt(receipt)}>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewReceipt(receipt); }}>
                               <Eye className="h-4 w-4 mr-2" />
-                              View Receipt
+                              View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDownloadReceipt(receipt)}>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewPdf(receipt); }}>
+                              <FileText className="h-4 w-4 mr-2" />
+                              View PDF
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDownloadReceipt(receipt); }}>
                               <Download className="h-4 w-4 mr-2" />
                               Download
                             </DropdownMenuItem>
-                            <DropdownMenuItem disabled>
+                            <DropdownMenuItem 
+                              onClick={(e) => { e.stopPropagation(); handleSendEmail(receipt); }}
+                              disabled={!receipt.client_email || sendingEmail}
+                            >
                               <Mail className="h-4 w-4 mr-2" />
-                              Resend Email
+                              {receipt.sent_at ? 'Resend Email' : 'Send Email'}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -300,6 +373,16 @@ const Receipts = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* View Receipt Modal */}
+      <ViewReceiptModal
+        open={viewModalOpen}
+        onClose={() => setViewModalOpen(false)}
+        receipt={selectedReceipt}
+        onSendEmail={handleSendEmail}
+        onDownload={handleDownloadReceipt}
+        sendingEmail={sendingEmail}
+      />
     </div>
   );
 };
