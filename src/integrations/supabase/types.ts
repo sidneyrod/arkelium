@@ -132,6 +132,56 @@ export type Database = {
           },
         ]
       }
+      chart_of_accounts: {
+        Row: {
+          account_code: string
+          account_name: string
+          account_type: Database["public"]["Enums"]["account_type"]
+          company_id: string
+          created_at: string
+          description: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean
+          parent_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_code: string
+          account_name: string
+          account_type: Database["public"]["Enums"]["account_type"]
+          company_id: string
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          parent_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_code?: string
+          account_name?: string
+          account_type?: Database["public"]["Enums"]["account_type"]
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          parent_code?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chart_of_accounts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       checklist_items: {
         Row: {
           company_id: string
@@ -590,6 +640,8 @@ export type Database = {
       }
       company_estimate_config: {
         Row: {
+          accounting_date_field: string
+          accounting_method: string
           admin_is_cleaner: boolean | null
           auto_send_cash_receipt: boolean | null
           company_id: string
@@ -601,6 +653,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accounting_date_field?: string
+          accounting_method?: string
           admin_is_cleaner?: boolean | null
           auto_send_cash_receipt?: boolean | null
           company_id: string
@@ -612,6 +666,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accounting_date_field?: string
+          accounting_method?: string
           admin_is_cleaner?: boolean | null
           auto_send_cash_receipt?: boolean | null
           company_id?: string
@@ -872,6 +928,189 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financial_transactions: {
+        Row: {
+          accounting_date: string
+          amount_gross: number
+          amount_net: number
+          amount_tax: number
+          cleaner_id: string | null
+          client_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string
+          id: string
+          invoice_id: string | null
+          invoice_issued_at: string | null
+          is_void: boolean
+          job_id: string | null
+          notes: string | null
+          paid_out_at: string | null
+          payment_method: string | null
+          payroll_period_id: string | null
+          receipt_id: string | null
+          received_at: string | null
+          reference_code: string | null
+          reversal_of: string | null
+          service_completed_at: string | null
+          source_type: Database["public"]["Enums"]["financial_source_type"]
+          status: string
+          transaction_type: Database["public"]["Enums"]["financial_transaction_type"]
+          updated_at: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          accounting_date: string
+          amount_gross?: number
+          amount_net?: number
+          amount_tax?: number
+          cleaner_id?: string | null
+          client_id?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description: string
+          id?: string
+          invoice_id?: string | null
+          invoice_issued_at?: string | null
+          is_void?: boolean
+          job_id?: string | null
+          notes?: string | null
+          paid_out_at?: string | null
+          payment_method?: string | null
+          payroll_period_id?: string | null
+          receipt_id?: string | null
+          received_at?: string | null
+          reference_code?: string | null
+          reversal_of?: string | null
+          service_completed_at?: string | null
+          source_type: Database["public"]["Enums"]["financial_source_type"]
+          status?: string
+          transaction_type: Database["public"]["Enums"]["financial_transaction_type"]
+          updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          accounting_date?: string
+          amount_gross?: number
+          amount_net?: number
+          amount_tax?: number
+          cleaner_id?: string | null
+          client_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string
+          id?: string
+          invoice_id?: string | null
+          invoice_issued_at?: string | null
+          is_void?: boolean
+          job_id?: string | null
+          notes?: string | null
+          paid_out_at?: string | null
+          payment_method?: string | null
+          payroll_period_id?: string | null
+          receipt_id?: string | null
+          received_at?: string | null
+          reference_code?: string | null
+          reversal_of?: string | null
+          service_completed_at?: string | null
+          source_type?: Database["public"]["Enums"]["financial_source_type"]
+          status?: string
+          transaction_type?: Database["public"]["Enums"]["financial_transaction_type"]
+          updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_transactions_cleaner_id_fkey"
+            columns: ["cleaner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_payroll_period_id_fkey"
+            columns: ["payroll_period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "payment_receipts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_reversal_of_fkey"
+            columns: ["reversal_of"]
+            isOneToOne: false
+            referencedRelation: "financial_report_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_reversal_of_fkey"
+            columns: ["reversal_of"]
+            isOneToOne: false
+            referencedRelation: "financial_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1143,6 +1382,67 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "client_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ledger_entries: {
+        Row: {
+          account_code: string
+          account_name: string
+          company_id: string
+          created_at: string
+          credit: number
+          debit: number
+          description: string | null
+          financial_transaction_id: string
+          id: string
+          ledger_date: string
+        }
+        Insert: {
+          account_code: string
+          account_name: string
+          company_id: string
+          created_at?: string
+          credit?: number
+          debit?: number
+          description?: string | null
+          financial_transaction_id: string
+          id?: string
+          ledger_date: string
+        }
+        Update: {
+          account_code?: string
+          account_name?: string
+          company_id?: string
+          created_at?: string
+          credit?: number
+          debit?: number
+          description?: string | null
+          financial_transaction_id?: string
+          id?: string
+          ledger_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ledger_entries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ledger_entries_financial_transaction_id_fkey"
+            columns: ["financial_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "financial_report_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ledger_entries_financial_transaction_id_fkey"
+            columns: ["financial_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "financial_transactions"
             referencedColumns: ["id"]
           },
         ]
@@ -1719,8 +2019,53 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_report_view: {
+        Row: {
+          accounting_date: string | null
+          amount_gross: number | null
+          amount_net: number | null
+          amount_tax: number | null
+          cleaner_name: string | null
+          client_name: string | null
+          company_id: string | null
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          id: string | null
+          invoice_issued_at: string | null
+          invoice_number: string | null
+          is_void: boolean | null
+          job_type: string | null
+          notes: string | null
+          paid_out_at: string | null
+          payment_method: string | null
+          received_at: string | null
+          reference_code: string | null
+          service_completed_at: string | null
+          source_type:
+            | Database["public"]["Enums"]["financial_source_type"]
+            | null
+          status: string | null
+          transaction_type:
+            | Database["public"]["Enums"]["financial_transaction_type"]
+            | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_transactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      create_default_chart_of_accounts: {
+        Args: { p_company_id: string }
+        Returns: undefined
+      }
       get_completed_services_pending_invoices: {
         Args: never
         Returns: {
@@ -1752,6 +2097,7 @@ export type Database = {
       is_admin_or_manager: { Args: never; Returns: boolean }
     }
     Enums: {
+      account_type: "asset" | "liability" | "equity" | "revenue" | "expense"
       app_role: "admin" | "manager" | "cleaner"
       financial_event_type:
         | "invoice"
@@ -1760,6 +2106,14 @@ export type Database = {
         | "payroll"
         | "refund"
         | "adjustment"
+      financial_source_type:
+        | "service"
+        | "invoice"
+        | "payroll"
+        | "expense"
+        | "refund"
+        | "manual"
+      financial_transaction_type: "received" | "paid_out" | "adjustment"
       notification_severity: "info" | "warning" | "critical"
       notification_type:
         | "job"
@@ -1902,6 +2256,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      account_type: ["asset", "liability", "equity", "revenue", "expense"],
       app_role: ["admin", "manager", "cleaner"],
       financial_event_type: [
         "invoice",
@@ -1911,6 +2266,15 @@ export const Constants = {
         "refund",
         "adjustment",
       ],
+      financial_source_type: [
+        "service",
+        "invoice",
+        "payroll",
+        "expense",
+        "refund",
+        "manual",
+      ],
+      financial_transaction_type: ["received", "paid_out", "adjustment"],
       notification_severity: ["info", "warning", "critical"],
       notification_type: [
         "job",
