@@ -1096,13 +1096,6 @@ export type Database = {
             foreignKeyName: "financial_transactions_reversal_of_fkey"
             columns: ["reversal_of"]
             isOneToOne: false
-            referencedRelation: "financial_report_view"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "financial_transactions_reversal_of_fkey"
-            columns: ["reversal_of"]
-            isOneToOne: false
             referencedRelation: "financial_transactions"
             referencedColumns: ["id"]
           },
@@ -1429,13 +1422,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ledger_entries_financial_transaction_id_fkey"
-            columns: ["financial_transaction_id"]
-            isOneToOne: false
-            referencedRelation: "financial_report_view"
             referencedColumns: ["id"]
           },
           {
@@ -2019,47 +2005,6 @@ export type Database = {
         }
         Relationships: []
       }
-      financial_report_view: {
-        Row: {
-          accounting_date: string | null
-          amount_gross: number | null
-          amount_net: number | null
-          amount_tax: number | null
-          cleaner_name: string | null
-          client_name: string | null
-          company_id: string | null
-          created_at: string | null
-          currency: string | null
-          description: string | null
-          id: string | null
-          invoice_issued_at: string | null
-          invoice_number: string | null
-          is_void: boolean | null
-          job_type: string | null
-          notes: string | null
-          paid_out_at: string | null
-          payment_method: string | null
-          received_at: string | null
-          reference_code: string | null
-          service_completed_at: string | null
-          source_type:
-            | Database["public"]["Enums"]["financial_source_type"]
-            | null
-          status: string | null
-          transaction_type:
-            | Database["public"]["Enums"]["financial_transaction_type"]
-            | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "financial_transactions_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Functions: {
       create_default_chart_of_accounts: {
@@ -2080,6 +2025,56 @@ export type Database = {
           id: string
           job_type: string
           scheduled_date: string
+        }[]
+      }
+      get_financial_report_data: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: {
+          accounting_date: string
+          amount_gross: number
+          amount_net: number
+          amount_tax: number
+          cleaner_name: string
+          client_name: string
+          company_id: string
+          created_at: string
+          currency: string
+          description: string
+          id: string
+          invoice_issued_at: string
+          invoice_number: string
+          is_void: boolean
+          job_type: string
+          notes: string
+          paid_out_at: string
+          payment_method: string
+          received_at: string
+          reference_code: string
+          service_completed_at: string
+          source_type: Database["public"]["Enums"]["financial_source_type"]
+          status: string
+          transaction_type: Database["public"]["Enums"]["financial_transaction_type"]
+        }[]
+      }
+      get_financial_summary: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: {
+          net_result: number
+          total_adjustments: number
+          total_paid_out: number
+          total_received: number
+          total_tax_collected: number
+          transaction_count: number
+        }[]
+      }
+      get_ledger_summary: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: {
+          account_code: string
+          account_name: string
+          balance: number
+          total_credit: number
+          total_debit: number
         }[]
       }
       get_next_payroll_period: {
