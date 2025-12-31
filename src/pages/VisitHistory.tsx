@@ -299,45 +299,8 @@ const VisitHistory = () => {
     setShowDetailModal(true);
   };
 
-  const handleEdit = (visit: Visit) => {
-    if (!isAdminOrManager && visit.employeeId !== user?.id) {
-      toast.error('You can only edit your own visits');
-      return;
-    }
-    setSelectedVisit(visit);
-    setShowEditModal(true);
-  };
-
-  const handleConvert = (visit: Visit, type: 'job' | 'estimate' | 'contract') => {
-    if (type === 'contract' && !isAdmin) {
-      toast.error('Only administrators can convert visits to contracts');
-      return;
-    }
-    setSelectedVisit(visit);
-    setConvertType(type);
-    setShowConvertModal(true);
-  };
-
-  const handleCancel = (visit: Visit) => {
-    if (!isAdminOrManager && visit.employeeId !== user?.id) {
-      toast.error('You can only cancel your own visits');
-      return;
-    }
-    setSelectedVisit(visit);
-    setShowCancelModal(true);
-  };
-
-  const handleGeneratePdf = async (visit: Visit) => {
-    toast.info('Generating PDF...');
-    // PDF generation logic would go here
-    await logAuditEntry({
-      action: 'job_updated',
-      entityType: 'visit',
-      entityId: visit.id,
-      details: { description: 'PDF generated for visit' }
-    }, user?.id, user?.profile?.company_id);
-    toast.success('PDF generated successfully');
-  };
+  // Visit History is READ-ONLY - no edit/cancel/convert functionality
+  // Visits can only be modified from the Schedule module
 
   const refreshVisits = () => {
     fetchVisits();
@@ -600,59 +563,6 @@ const VisitHistory = () => {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {(isAdminOrManager || visit.employeeId === user?.id) && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleEdit(visit)}
-                              title="Edit"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleGeneratePdf(visit)}
-                            title="Generate PDF"
-                          >
-                            <FileText className="h-4 w-4" />
-                          </Button>
-                          {isAdminOrManager && (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleConvert(visit, 'job')}
-                                title="Convert to Job"
-                              >
-                                <Briefcase className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleConvert(visit, 'estimate')}
-                                title="Convert to Estimate"
-                              >
-                                <FileSpreadsheet className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
-                          {visit.status === 'scheduled' && (isAdminOrManager || visit.employeeId === user?.id) && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={() => handleCancel(visit)}
-                              title="Cancel"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          )}
                         </div>
                       </td>
                     </tr>
@@ -689,49 +599,15 @@ const VisitHistory = () => {
         </div>
       )}
 
-      {/* Modals */}
+      {/* View-Only Modal - Visit History is read-only */}
       {selectedVisit && (
-        <>
-          <VisitDetailModal
-            open={showDetailModal}
-            onOpenChange={setShowDetailModal}
-            visit={selectedVisit}
-            onEdit={() => {
-              setShowDetailModal(false);
-              setShowEditModal(true);
-            }}
-            onConvert={(type) => {
-              setShowDetailModal(false);
-              handleConvert(selectedVisit, type);
-            }}
-            onCancel={() => {
-              setShowDetailModal(false);
-              handleCancel(selectedVisit);
-            }}
-            onGeneratePdf={() => handleGeneratePdf(selectedVisit)}
-            isAdmin={isAdmin}
-            isAdminOrManager={isAdminOrManager}
-          />
-          <EditVisitModal
-            open={showEditModal}
-            onOpenChange={setShowEditModal}
-            visit={selectedVisit}
-            onSuccess={refreshVisits}
-          />
-          <ConvertVisitModal
-            open={showConvertModal}
-            onOpenChange={setShowConvertModal}
-            visit={selectedVisit}
-            convertType={convertType}
-            onSuccess={refreshVisits}
-          />
-          <CancelVisitModal
-            open={showCancelModal}
-            onOpenChange={setShowCancelModal}
-            visit={selectedVisit}
-            onSuccess={refreshVisits}
-          />
-        </>
+        <VisitDetailModal
+          open={showDetailModal}
+          onOpenChange={setShowDetailModal}
+          visit={selectedVisit}
+          isAdmin={isAdmin}
+          isAdminOrManager={isAdminOrManager}
+        />
       )}
     </div>
   );

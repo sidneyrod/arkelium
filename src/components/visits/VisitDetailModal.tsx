@@ -28,10 +28,10 @@ interface VisitDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   visit: Visit;
-  onEdit: () => void;
-  onConvert: (type: 'job' | 'estimate' | 'contract') => void;
-  onCancel: () => void;
-  onGeneratePdf: () => void;
+  onEdit?: () => void;
+  onConvert?: (type: 'job' | 'estimate' | 'contract') => void;
+  onCancel?: () => void;
+  onGeneratePdf?: () => void;
   isAdmin: boolean;
   isAdminOrManager: boolean;
 }

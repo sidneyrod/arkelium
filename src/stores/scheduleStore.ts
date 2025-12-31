@@ -21,6 +21,10 @@ export interface ScheduledJob {
   beforePhoto?: string;
   afterPhoto?: string;
   checklist?: { item: string; completed: boolean }[];
+  // Service type distinction
+  jobType?: 'cleaning' | 'visit';
+  visitPurpose?: string;
+  visitRoute?: string;
 }
 
 export interface CleanerAvailability {
