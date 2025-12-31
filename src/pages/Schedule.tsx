@@ -3,9 +3,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import PageHeader from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -20,10 +19,8 @@ import {
   Calendar as CalendarIcon,
   List,
   CheckCircle,
-  Camera,
   Send,
   CalendarOff,
-  Users,
   Pencil,
   Trash2,
   Mail,
@@ -31,7 +28,8 @@ import {
   Receipt,
   Loader2,
   Sparkles,
-  Eye
+  Eye,
+  Filter
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -39,10 +37,9 @@ import { logActivity } from '@/stores/activityStore';
 import { useInvoiceStore } from '@/stores/invoiceStore';
 import { useCompanyStore } from '@/stores/companyStore';
 import useRoleAccess from '@/hooks/useRoleAccess';
-import AddJobModal from '@/components/modals/AddJobModal';
+import AddJobDrawer from '@/components/schedule/AddJobDrawer';
 import JobCompletionModal, { PaymentData } from '@/components/modals/JobCompletionModal';
 import OffRequestModal, { OffRequestType } from '@/components/modals/OffRequestModal';
-import AvailabilityManager from '@/components/schedule/AvailabilityManager';
 import ConfirmDialog from '@/components/modals/ConfirmDialog';
 import { notifyJobCreated, notifyJobUpdated, notifyJobCancelled, notifyVisitCreated, notifyJobCompleted, notifyInvoiceGenerated } from '@/hooks/useNotifications';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, startOfWeek, endOfWeek, addWeeks, subWeeks, isSameDay, addDays, subDays, parseISO } from 'date-fns';
@@ -1085,28 +1082,29 @@ const Schedule = () => {
 
   return (
     <div className="p-4 lg:p-6 max-w-7xl mx-auto space-y-6">
-      <PageHeader 
-        title={t.schedule.title}
-        action={isAdminOrManager ? {
-          label: t.schedule.addJob,
-          icon: CalendarPlus,
-          onClick: () => setShowAddJob(true),
-        } : undefined}
-      />
+      {/* Header with Add Button */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Schedule</h1>
+          <p className="text-muted-foreground text-sm">Manage cleaning jobs and business visits</p>
+        </div>
+        {isAdminOrManager && (
+          <Button onClick={() => setShowAddJob(true)} className="gap-2">
+            <CalendarPlus className="h-4 w-4" />
+            {t.schedule.addJob}
+          </Button>
+        )}
+      </div>
 
       <Tabs defaultValue="calendar" className="space-y-6">
         <TabsList>
           <TabsTrigger value="calendar" className="gap-2">
             <CalendarIcon className="h-4 w-4" />
-            {t.schedule.weeklyPlanner}
-          </TabsTrigger>
-          <TabsTrigger value="availability" className="gap-2">
-            <Users className="h-4 w-4" />
-            {t.schedule.availability}
+            Schedule
           </TabsTrigger>
           <TabsTrigger value="requests" className="gap-2">
             <CalendarOff className="h-4 w-4" />
-            {t.schedule.absenceRequest}
+            Days Off Requests
           </TabsTrigger>
         </TabsList>
 
@@ -1332,9 +1330,9 @@ const Schedule = () => {
           {/* Day View */}
           {view === 'day' && (
             <Card className="border-border/50">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">{format(currentDate, 'EEEE, MMMM d, yyyy')}</CardTitle>
-              </CardHeader>
+              <div className="p-4 border-b border-border/50">
+                <h3 className="text-base font-medium">{format(currentDate, 'EEEE, MMMM d, yyyy')}</h3>
+              </div>
               <CardContent>
                 <div className="space-y-2">
                   {TIME_SLOTS.map((slot) => {
@@ -1492,10 +1490,6 @@ const Schedule = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="availability">
-          <AvailabilityManager />
-        </TabsContent>
-
         <TabsContent value="requests" className="space-y-4">
           <div className="flex justify-end">
             <Button onClick={() => setShowAbsenceRequest(true)} size="sm" className="gap-2">
@@ -1505,9 +1499,9 @@ const Schedule = () => {
           </div>
           
           <Card className="border-border/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-medium">Absence Requests</CardTitle>
-            </CardHeader>
+            <div className="p-4 border-b border-border/50">
+              <h3 className="text-base font-medium">Days Off Requests</h3>
+            </div>
             <CardContent>
               {absenceRequests.length > 0 ? (
                 <div className="space-y-2">
@@ -1621,8 +1615,8 @@ const Schedule = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Add/Edit Job Modal */}
-      <AddJobModal
+      {/* Add/Edit Job Drawer */}
+      <AddJobDrawer
         open={showAddJob || !!editingJob}
         onOpenChange={(open) => {
           if (!open) {
