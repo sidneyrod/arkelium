@@ -39,6 +39,7 @@ import { useCompanyStore } from '@/stores/companyStore';
 import useRoleAccess from '@/hooks/useRoleAccess';
 import AddJobDrawer from '@/components/schedule/AddJobDrawer';
 import JobCompletionModal, { PaymentData } from '@/components/modals/JobCompletionModal';
+import VisitCompletionModal, { VisitCompletionData } from '@/components/schedule/VisitCompletionModal';
 import OffRequestModal, { OffRequestType } from '@/components/modals/OffRequestModal';
 import ConfirmDialog from '@/components/modals/ConfirmDialog';
 import { notifyJobCreated, notifyJobUpdated, notifyJobCancelled, notifyVisitCreated, notifyJobCompleted, notifyInvoiceGenerated } from '@/hooks/useNotifications';
@@ -134,6 +135,7 @@ const Schedule = () => {
   });
   const [showAddJob, setShowAddJob] = useState(false);
   const [showCompletion, setShowCompletion] = useState(false);
+  const [showVisitCompletion, setShowVisitCompletion] = useState(false);
   const [showAbsenceRequest, setShowAbsenceRequest] = useState(false);
   const [jobToDelete, setJobToDelete] = useState<ScheduledJob | null>(null);
   const [editingJob, setEditingJob] = useState<ScheduledJob | null>(null);
@@ -995,6 +997,53 @@ const Schedule = () => {
     }
   };
 
+  // Handle visit completion (no financial records)
+  const handleCompleteVisit = async (jobId: string, data: VisitCompletionData) => {
+    try {
+      let companyId = user?.profile?.company_id;
+      if (!companyId) {
+        const { data: companyIdData } = await supabase.rpc('get_user_company_id');
+        companyId = companyIdData;
+      }
+      
+      if (!companyId) {
+        toast.error('Unable to complete visit');
+        return;
+      }
+      
+      const { error } = await supabase
+        .from('jobs')
+        .update({
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          visit_outcome: data.outcome,
+          visit_notes: data.notes || null,
+          visit_next_action: data.nextAction || null,
+        })
+        .eq('id', jobId)
+        .eq('company_id', companyId);
+      
+      if (error) {
+        console.error('Error completing visit:', error);
+        toast.error('Failed to complete visit');
+        return;
+      }
+      
+      const job = jobs.find(j => j.id === jobId);
+      if (job) {
+        logActivity('visit_completed', `Visit completed for ${job.clientName} - Outcome: ${data.outcome}`, jobId, job.clientName);
+      }
+      
+      toast.success('Visit completed successfully');
+      setShowVisitCompletion(false);
+      setSelectedJob(null);
+      await fetchJobs();
+    } catch (error) {
+      console.error('Error in handleCompleteVisit:', error);
+      toast.error('Failed to complete visit');
+    }
+  };
+
   const handleAbsenceRequest = async (request: { startDate: string; endDate: string; reason: string; requestType?: string }) => {
     try {
       let companyId = user?.profile?.company_id;
@@ -1614,9 +1663,18 @@ const Schedule = () => {
 
               <div className="flex flex-wrap gap-2 pt-2">
                 {selectedJob.status === 'scheduled' && (
-                  <Button className="flex-1 gap-2" onClick={() => { setShowCompletion(true); }}>
+                  <Button 
+                    className="flex-1 gap-2" 
+                    onClick={() => { 
+                      if (selectedJob.jobType === 'visit') {
+                        setShowVisitCompletion(true);
+                      } else {
+                        setShowCompletion(true);
+                      }
+                    }}
+                  >
                     <CheckCircle className="h-4 w-4" />
-                    {t.job.completeJob}
+                    {selectedJob.jobType === 'visit' ? 'Complete Visit' : t.job.completeJob}
                   </Button>
                 )}
                 
@@ -1676,12 +1734,20 @@ const Schedule = () => {
         preselectedTime={selectedTime}
       />
 
-      {/* Job Completion Modal */}
+      {/* Job Completion Modal (for cleaning jobs) */}
       <JobCompletionModal
         open={showCompletion}
         onOpenChange={setShowCompletion}
         job={selectedJob}
         onComplete={handleCompleteJob}
+      />
+
+      {/* Visit Completion Modal (for visit jobs - no financial records) */}
+      <VisitCompletionModal
+        open={showVisitCompletion}
+        onOpenChange={setShowVisitCompletion}
+        job={selectedJob}
+        onComplete={handleCompleteVisit}
       />
 
       {/* Off Request Modal */}

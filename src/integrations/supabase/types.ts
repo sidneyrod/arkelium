@@ -1377,6 +1377,9 @@ export type Database = {
           start_time: string | null
           status: string
           updated_at: string
+          visit_next_action: string | null
+          visit_notes: string | null
+          visit_outcome: string | null
           visit_purpose: string | null
           visit_route: string | null
         }
@@ -1404,6 +1407,9 @@ export type Database = {
           start_time?: string | null
           status?: string
           updated_at?: string
+          visit_next_action?: string | null
+          visit_notes?: string | null
+          visit_outcome?: string | null
           visit_purpose?: string | null
           visit_route?: string | null
         }
@@ -1431,6 +1437,9 @@ export type Database = {
           start_time?: string | null
           status?: string
           updated_at?: string
+          visit_next_action?: string | null
+          visit_notes?: string | null
+          visit_outcome?: string | null
           visit_purpose?: string | null
           visit_route?: string | null
         }
