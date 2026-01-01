@@ -15,11 +15,6 @@ import {
   User,
   Clock,
   Eye,
-  Pencil,
-  FileText,
-  FileSpreadsheet,
-  Briefcase,
-  ArrowRightLeft,
   X,
   Loader2,
   Filter,
@@ -31,10 +26,6 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 import VisitDetailModal from '@/components/visits/VisitDetailModal';
-import EditVisitModal from '@/components/visits/EditVisitModal';
-import ConvertVisitModal from '@/components/visits/ConvertVisitModal';
-import CancelVisitModal from '@/components/visits/CancelVisitModal';
-import { logAuditEntry } from '@/hooks/useAuditLog';
 
 export interface Visit {
   id: string;
@@ -96,13 +87,9 @@ const VisitHistory = () => {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   
-  // Modals
+  // Modals - Visit History is read-only, only view modal is available
   const [selectedVisit, setSelectedVisit] = useState<Visit | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showConvertModal, setShowConvertModal] = useState(false);
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [convertType, setConvertType] = useState<'job' | 'estimate' | 'contract'>('job');
 
   // Unique filter options
   const [clients, setClients] = useState<{id: string, name: string}[]>([]);

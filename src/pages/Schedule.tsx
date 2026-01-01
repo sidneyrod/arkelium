@@ -138,6 +138,8 @@ const Schedule = () => {
   const [jobToDelete, setJobToDelete] = useState<ScheduledJob | null>(null);
   const [editingJob, setEditingJob] = useState<ScheduledJob | null>(null);
   const [employeeFilter, setEmployeeFilter] = useState('all');
+  const [serviceTypeFilter, setServiceTypeFilter] = useState<'all' | 'cleaning' | 'visit'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | JobStatus>('all');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -328,9 +330,12 @@ const Schedule = () => {
     ? jobs.filter(job => job.employeeId === user?.id)
     : jobs;
   
-  const filteredJobs = employeeFilter === 'all' 
-    ? baseJobs 
-    : baseJobs.filter(job => job.employeeId === employeeFilter);
+  const filteredJobs = baseJobs.filter(job => {
+    if (employeeFilter !== 'all' && job.employeeId !== employeeFilter) return false;
+    if (serviceTypeFilter !== 'all' && job.jobType !== serviceTypeFilter) return false;
+    if (statusFilter !== 'all' && job.status !== statusFilter) return false;
+    return true;
+  });
 
   const uniqueEmployees = Array.from(new Set(jobs.map(j => ({ id: j.employeeId, name: j.employeeName }))))
     .filter((emp, index, self) => self.findIndex(e => e.id === emp.id) === index);
@@ -1126,9 +1131,34 @@ const Schedule = () => {
               </Button>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Service Type Filter */}
+              <Select value={serviceTypeFilter} onValueChange={(v) => setServiceTypeFilter(v as 'all' | 'cleaning' | 'visit')}>
+                <SelectTrigger className="w-[130px] h-9">
+                  <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover">
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="cleaning">
+                    <span className="flex items-center gap-2">
+                      <Sparkles className="h-3.5 w-3.5 text-primary" />
+                      Cleaning
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="visit">
+                    <span className="flex items-center gap-2">
+                      <Eye className="h-3.5 w-3.5 text-purple-500" />
+                      Visit
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Employee Filter */}
               <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
-                <SelectTrigger className="w-[160px] h-9">
+                <SelectTrigger className="w-[150px] h-9">
+                  <User className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
                   <SelectValue placeholder={t.schedule.filterByEmployee} />
                 </SelectTrigger>
                 <SelectContent className="bg-popover">
@@ -1136,6 +1166,20 @@ const Schedule = () => {
                   {uniqueEmployees.map(emp => (
                     <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+
+              {/* Status Filter */}
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as 'all' | JobStatus)}>
+                <SelectTrigger className="w-[130px] h-9">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover">
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="in-progress">In Progress</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
 
