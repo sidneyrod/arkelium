@@ -2118,22 +2118,37 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: undefined
       }
-      get_completed_services_pending_invoices: {
-        Args: never
-        Returns: {
-          address: string
-          cleaner_first_name: string
-          cleaner_id: string
-          cleaner_last_name: string
-          client_id: string
-          client_name: string
-          completed_at: string
-          duration_minutes: number
-          id: string
-          job_type: string
-          scheduled_date: string
-        }[]
-      }
+      get_completed_services_pending_invoices:
+        | {
+            Args: never
+            Returns: {
+              address: string
+              cleaner_first_name: string
+              cleaner_id: string
+              cleaner_last_name: string
+              client_id: string
+              client_name: string
+              completed_at: string
+              duration_minutes: number
+              id: string
+              job_type: string
+              scheduled_date: string
+            }[]
+          }
+        | {
+            Args: { p_company_id: string }
+            Returns: {
+              cleaner_id: string
+              cleaner_name: string
+              client_id: string
+              client_name: string
+              completed_at: string
+              duration_minutes: number
+              job_id: string
+              job_type: string
+              service_date: string
+            }[]
+          }
       get_current_period: { Args: { p_company_id: string }; Returns: string }
       get_financial_report_data: {
         Args: { p_end_date: string; p_start_date: string }

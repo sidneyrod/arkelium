@@ -29,7 +29,9 @@ import {
   Loader2,
   Sparkles,
   Eye,
-  Filter
+  Filter,
+  Calculator,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -1680,18 +1682,33 @@ const Schedule = () => {
                 
                 {selectedJob.status === 'completed' && isAdminOrManager && (
                   <>
-                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => handleViewInvoice(selectedJob)}>
-                      <Receipt className="h-4 w-4" />
-                      View Invoice
-                    </Button>
-                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => handleSendInvoiceEmail(selectedJob)}>
-                      <Mail className="h-4 w-4" />
-                      Email
-                    </Button>
-                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => handleSendInvoiceSms(selectedJob)}>
-                      <MessageSquare className="h-4 w-4" />
-                      SMS
-                    </Button>
+                    {selectedJob.jobType !== 'visit' ? (
+                      <>
+                        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => handleViewInvoice(selectedJob)}>
+                          <Receipt className="h-4 w-4" />
+                          View Invoice
+                        </Button>
+                        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => handleSendInvoiceEmail(selectedJob)}>
+                          <Mail className="h-4 w-4" />
+                          Email
+                        </Button>
+                        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => handleSendInvoiceSms(selectedJob)}>
+                          <MessageSquare className="h-4 w-4" />
+                          SMS
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate(`/calculator?clientId=${selectedJob.clientId}`)}>
+                          <Calculator className="h-4 w-4" />
+                          Create Estimate
+                        </Button>
+                        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate(`/contracts?clientId=${selectedJob.clientId}`)}>
+                          <FileText className="h-4 w-4" />
+                          Create Contract
+                        </Button>
+                      </>
+                    )}
                   </>
                 )}
                 
