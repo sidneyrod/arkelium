@@ -89,19 +89,17 @@ const VisitCompletionModal = ({ open, onOpenChange, job, onComplete }: VisitComp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-xl lg:max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogHeader className="pb-2">
           <DialogTitle>Complete Visit</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-6 py-4">
-          {/* Visit Info */}
-          <div className="rounded-lg bg-muted/50 p-3 space-y-1">
+        <div className="space-y-4 py-2 flex-1 overflow-y-auto">
+          {/* Visit Info - Compact */}
+          <div className="rounded-lg bg-muted/50 p-2.5 flex flex-wrap gap-x-4 gap-y-1">
             <p className="font-medium text-foreground">{job.clientName}</p>
             <p className="text-sm text-muted-foreground">{job.address}</p>
-            <p className="text-sm text-muted-foreground">
-              {job.date} at {job.time}
-            </p>
+            <p className="text-sm text-muted-foreground">{job.date} at {job.time}</p>
             {job.visitPurpose && (
               <p className="text-sm text-muted-foreground">
                 <span className="font-medium">Purpose:</span> {job.visitPurpose}
@@ -109,13 +107,13 @@ const VisitCompletionModal = ({ open, onOpenChange, job, onComplete }: VisitComp
             )}
           </div>
 
-          {/* Outcome Selection */}
-          <div className="space-y-3">
-            <Label className="text-base font-medium">Visit Outcome *</Label>
+          {/* Outcome Selection - 4 columns on larger screens */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Visit Outcome *</Label>
             <RadioGroup
               value={outcome}
               onValueChange={(value) => setOutcome(value as VisitOutcome)}
-              className="grid grid-cols-2 gap-3"
+              className="grid grid-cols-2 lg:grid-cols-4 gap-2"
             >
               {outcomeOptions.map((option) => (
                 <div key={option.value}>
@@ -126,44 +124,42 @@ const VisitCompletionModal = ({ open, onOpenChange, job, onComplete }: VisitComp
                   />
                   <Label
                     htmlFor={option.value}
-                    className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary cursor-pointer transition-colors"
+                    className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary cursor-pointer transition-colors min-h-[70px]"
                   >
                     {option.icon}
-                    <span className="mt-1 text-sm font-medium">{option.label}</span>
-                    <span className="text-xs text-muted-foreground text-center mt-0.5">
-                      {option.description}
-                    </span>
+                    <span className="mt-1 text-xs font-medium text-center">{option.label}</span>
                   </Label>
                 </div>
               ))}
             </RadioGroup>
           </div>
 
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
-              placeholder="Add any observations about the visit..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-            />
-          </div>
-
-          {/* Next Action */}
-          <div className="space-y-2">
-            <Label htmlFor="nextAction">Next Action</Label>
-            <Input
-              id="nextAction"
-              placeholder="e.g., Send quote, Schedule cleaning, Follow up call..."
-              value={nextAction}
-              onChange={(e) => setNextAction(e.target.value)}
-            />
+          {/* Notes and Next Action in row on large screens */}
+          <div className="grid gap-3 lg:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="notes" className="text-sm">Notes</Label>
+              <Textarea
+                id="notes"
+                placeholder="Add any observations..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={2}
+                className="resize-none"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="nextAction" className="text-sm">Next Action</Label>
+              <Input
+                id="nextAction"
+                placeholder="e.g., Send quote, Schedule cleaning..."
+                value={nextAction}
+                onChange={(e) => setNextAction(e.target.value)}
+              />
+            </div>
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t mt-2">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
