@@ -708,7 +708,33 @@ const Schedule = () => {
     }
   };
 
-  // Create cash payment receipt
+  // Handle starting a job (mark as in-progress)
+  const handleStartJob = async (job: ScheduledJob) => {
+    try {
+      const companyId = user?.profile?.company_id;
+      const { error } = await supabase
+        .from('jobs')
+        .update({ status: 'in-progress' })
+        .eq('id', job.id)
+        .eq('company_id', companyId);
+      
+      if (error) {
+        console.error('Error starting job:', error);
+        toast.error('Failed to start job');
+        return;
+      }
+      
+      logActivity('job_started', `Job started for ${job.clientName}`, job.id, job.clientName);
+      toast.success('Job started successfully');
+      
+      await fetchJobs();
+      setSelectedJob(null);
+    } catch (error) {
+      console.error('Error in handleStartJob:', error);
+      toast.error('Failed to start job');
+    }
+  };
+
   const createCashReceipt = async (
     job: ScheduledJob,
     paymentData: PaymentData,
@@ -1327,12 +1353,15 @@ const Schedule = () => {
                                 )}
                                 <span className="truncate">{job.clientName}</span>
                               </div>
-                              <span className={cn(
-                                "text-[8px] font-medium uppercase",
-                                statusConfig[job.status].color
-                              )}>
-                                {statusConfig[job.status].label}
-                              </span>
+                              <div className="flex items-center justify-between">
+                                <span className="text-[8px] text-muted-foreground">{job.duration}</span>
+                                <span className={cn(
+                                  "text-[8px] font-medium uppercase",
+                                  statusConfig[job.status].color
+                                )}>
+                                  {statusConfig[job.status].label}
+                                </span>
+                              </div>
                             </div>
                           ))}
                           {dayJobs.length > 2 && (
@@ -1411,7 +1440,9 @@ const Schedule = () => {
                                   )}
                                   <p className="font-medium truncate">{job.clientName}</p>
                                 </div>
-                                <p className="text-muted-foreground text-[10px] truncate">{job.employeeName}</p>
+                                <p className="text-muted-foreground text-[10px] truncate">
+                                  {job.employeeName} • {job.duration}
+                                </p>
                                 <div className="flex items-center justify-between mt-0.5">
                                   <span className={cn(
                                     "text-[9px] font-medium",
@@ -1478,6 +1509,7 @@ const Schedule = () => {
                                   <Sparkles className="h-4 w-4 text-primary" />
                                 )}
                                 <p className="font-medium text-sm">{job.clientName}</p>
+                                <span className="text-xs text-muted-foreground">• {job.duration}</span>
                                 <Badge 
                                   variant="outline" 
                                   className={cn(
@@ -1691,34 +1723,43 @@ const Schedule = () => {
               </div>
 
               <div className="flex flex-wrap gap-2 pt-2">
+              {/* Start button: Cleaners can start their scheduled cleaning jobs */}
+              {selectedJob.status === 'scheduled' && selectedJob.jobType !== 'visit' && 
+                isCleaner && selectedJob.employeeId === user?.id && (
+                  <Button 
+                    className="flex-1 gap-2"
+                    variant="outline"
+                    onClick={() => handleStartJob(selectedJob)}
+                  >
+                    <Clock className="h-4 w-4" />
+                    Start Service
+                  </Button>
+              )}
+
               {/* Complete button: 
-                  - For CLEANING jobs: Only the assigned cleaner can complete (not admin/manager)
-                  - For VISIT jobs: Admin/Manager can complete 
+                  - For CLEANING jobs: Only the assigned cleaner can complete (must be in-progress)
+                  - For VISIT jobs: Admin/Manager can complete (from scheduled status)
               */}
-              {selectedJob.status === 'scheduled' && (
-                selectedJob.jobType === 'visit' ? (
-                  // Visits can be completed by admin/manager
-                  isAdminOrManager && (
-                    <Button 
-                      className="flex-1 gap-2" 
-                      onClick={() => setShowVisitCompletion(true)}
-                    >
-                      <CheckCircle className="h-4 w-4" />
-                      Complete Visit
-                    </Button>
-                  )
-                ) : (
-                  // Cleaning jobs can only be completed by the assigned cleaner
-                  isCleaner && selectedJob.employeeId === user?.id && (
-                    <Button 
-                      className="flex-1 gap-2" 
-                      onClick={() => setShowCompletion(true)}
-                    >
-                      <CheckCircle className="h-4 w-4" />
-                      {t.job.completeJob}
-                    </Button>
-                  )
-                )
+              {selectedJob.status === 'in-progress' && selectedJob.jobType !== 'visit' &&
+                isCleaner && selectedJob.employeeId === user?.id && (
+                  <Button 
+                    className="flex-1 gap-2" 
+                    onClick={() => setShowCompletion(true)}
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    {t.job.completeJob}
+                  </Button>
+              )}
+
+              {selectedJob.status === 'scheduled' && selectedJob.jobType === 'visit' &&
+                isAdminOrManager && (
+                  <Button 
+                    className="flex-1 gap-2" 
+                    onClick={() => setShowVisitCompletion(true)}
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    Complete Visit
+                  </Button>
               )}
                 
                 {selectedJob.status === 'completed' && isAdminOrManager && (

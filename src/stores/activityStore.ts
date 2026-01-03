@@ -6,7 +6,7 @@ export type ActivityType =
   | 'user_created' | 'user_updated' | 'user_deleted'
   | 'client_created' | 'client_updated' | 'client_deleted' | 'client_inactivated'
   | 'contract_created' | 'contract_updated' | 'contract_deleted'
-  | 'job_created' | 'job_updated' | 'job_completed' | 'job_cancelled'
+  | 'job_created' | 'job_updated' | 'job_started' | 'job_completed' | 'job_cancelled'
   | 'visit_completed'
   | 'invoice_created' | 'invoice_sent' | 'invoice_paid' | 'invoice_cancelled'
   | 'payment_registered' | 'payment_confirmed' | 'payment_rejected'
