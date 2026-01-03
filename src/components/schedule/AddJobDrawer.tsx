@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetDescription } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -341,31 +341,31 @@ const AddJobDrawer = ({ open, onOpenChange, onSave, job, preselectedDate, presel
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-[480px] overflow-y-auto">
-        <SheetHeader className="pb-4">
-          <SheetTitle className="flex items-center gap-2">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
             {formData.serviceType === 'visit' ? (
               <Eye className="h-5 w-5 text-purple-500" />
             ) : (
               <Sparkles className="h-5 w-5 text-primary" />
             )}
             {isEditing ? 'Edit Booking' : 'New Booking'}
-          </SheetTitle>
-          <SheetDescription>
+          </DialogTitle>
+          <DialogDescription>
             {formData.serviceType === 'visit' 
               ? 'Schedule a non-billable visit (inspection, quote, consultation)'
               : 'Schedule a billable cleaning service'
             }
-          </SheetDescription>
-        </SheetHeader>
+          </DialogDescription>
+        </DialogHeader>
         
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4 pb-20">
+          <form onSubmit={handleSubmit} className="space-y-4 py-4">
             {/* Service Type Toggle */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Service Type</Label>
@@ -595,7 +595,7 @@ const AddJobDrawer = ({ open, onOpenChange, onSave, job, preselectedDate, presel
             </div>
 
             {/* Footer */}
-            <SheetFooter className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t sm:relative sm:border-0 sm:p-0 sm:bg-transparent">
+            <DialogFooter className="pt-4">
               <div className="flex gap-2 w-full sm:justify-end">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1 sm:flex-none">
                   Cancel
@@ -609,11 +609,11 @@ const AddJobDrawer = ({ open, onOpenChange, onSave, job, preselectedDate, presel
                   {isEditing ? 'Update' : 'Schedule'}
                 </Button>
               </div>
-            </SheetFooter>
+            </DialogFooter>
           </form>
         )}
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 };
 

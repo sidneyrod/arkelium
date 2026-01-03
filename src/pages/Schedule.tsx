@@ -1313,18 +1313,26 @@ const Schedule = () => {
                               key={job.id}
                               onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
                               className={cn(
-                                "text-[10px] px-1 py-0.5 rounded truncate cursor-pointer flex items-center gap-1",
+                                "text-[10px] px-1 py-0.5 rounded truncate cursor-pointer flex flex-col gap-0.5 border",
                                 job.jobType === 'visit' 
-                                  ? "bg-purple-500/10 border border-purple-500/20 text-purple-700 dark:text-purple-300" 
+                                  ? "bg-purple-500/10 border-purple-500/20 text-purple-700 dark:text-purple-300" 
                                   : statusConfig[job.status].bgColor
                               )}
                             >
-                              {job.jobType === 'visit' ? (
-                                <Eye className="h-2.5 w-2.5 flex-shrink-0" />
-                              ) : (
-                                <Sparkles className="h-2.5 w-2.5 flex-shrink-0" />
-                              )}
-                              <span className="truncate">{job.clientName}</span>
+                              <div className="flex items-center gap-1">
+                                {job.jobType === 'visit' ? (
+                                  <Eye className="h-2.5 w-2.5 flex-shrink-0" />
+                                ) : (
+                                  <Sparkles className="h-2.5 w-2.5 flex-shrink-0" />
+                                )}
+                                <span className="truncate">{job.clientName}</span>
+                              </div>
+                              <span className={cn(
+                                "text-[8px] font-medium uppercase",
+                                statusConfig[job.status].color
+                              )}>
+                                {statusConfig[job.status].label}
+                              </span>
                             </div>
                           ))}
                           {dayJobs.length > 2 && (
@@ -1404,12 +1412,21 @@ const Schedule = () => {
                                   <p className="font-medium truncate">{job.clientName}</p>
                                 </div>
                                 <p className="text-muted-foreground text-[10px] truncate">{job.employeeName}</p>
-                                <span className={cn(
-                                  "text-[9px] font-medium",
-                                  job.jobType === 'visit' ? "text-purple-600 dark:text-purple-400" : "text-primary"
-                                )}>
-                                  {job.jobType === 'visit' ? 'Visit' : 'Service'}
-                                </span>
+                                <div className="flex items-center justify-between mt-0.5">
+                                  <span className={cn(
+                                    "text-[9px] font-medium",
+                                    job.jobType === 'visit' ? "text-purple-600 dark:text-purple-400" : "text-primary"
+                                  )}>
+                                    {job.jobType === 'visit' ? 'Visit' : 'Service'}
+                                  </span>
+                                  <span className={cn(
+                                    "text-[8px] font-medium uppercase px-1 py-0.5 rounded",
+                                    statusConfig[job.status].bgColor,
+                                    statusConfig[job.status].color
+                                  )}>
+                                    {statusConfig[job.status].label}
+                                  </span>
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -1471,6 +1488,16 @@ const Schedule = () => {
                                   )}
                                 >
                                   {job.jobType === 'visit' ? 'Visit' : 'Service'}
+                                </Badge>
+                                <Badge 
+                                  variant="outline" 
+                                  className={cn(
+                                    "text-[10px] px-1 py-0 ml-auto",
+                                    statusConfig[job.status].bgColor,
+                                    statusConfig[job.status].color
+                                  )}
+                                >
+                                  {statusConfig[job.status].label}
                                 </Badge>
                               </div>
                               <p className="text-xs text-muted-foreground">{job.address}</p>
@@ -1664,21 +1691,35 @@ const Schedule = () => {
               </div>
 
               <div className="flex flex-wrap gap-2 pt-2">
-                {selectedJob.status === 'scheduled' && (
-                  <Button 
-                    className="flex-1 gap-2" 
-                    onClick={() => { 
-                      if (selectedJob.jobType === 'visit') {
-                        setShowVisitCompletion(true);
-                      } else {
-                        setShowCompletion(true);
-                      }
-                    }}
-                  >
-                    <CheckCircle className="h-4 w-4" />
-                    {selectedJob.jobType === 'visit' ? 'Complete Visit' : t.job.completeJob}
-                  </Button>
-                )}
+              {/* Complete button: 
+                  - For CLEANING jobs: Only the assigned cleaner can complete (not admin/manager)
+                  - For VISIT jobs: Admin/Manager can complete 
+              */}
+              {selectedJob.status === 'scheduled' && (
+                selectedJob.jobType === 'visit' ? (
+                  // Visits can be completed by admin/manager
+                  isAdminOrManager && (
+                    <Button 
+                      className="flex-1 gap-2" 
+                      onClick={() => setShowVisitCompletion(true)}
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      Complete Visit
+                    </Button>
+                  )
+                ) : (
+                  // Cleaning jobs can only be completed by the assigned cleaner
+                  isCleaner && selectedJob.employeeId === user?.id && (
+                    <Button 
+                      className="flex-1 gap-2" 
+                      onClick={() => setShowCompletion(true)}
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      {t.job.completeJob}
+                    </Button>
+                  )
+                )
+              )}
                 
                 {selectedJob.status === 'completed' && isAdminOrManager && (
                   <>
