@@ -22,8 +22,6 @@ import {
   Briefcase,
   Handshake,
   DollarSign,
-  Clock,
-  CalendarX,
   Bell,
   BookOpen
 } from 'lucide-react';
@@ -93,15 +91,6 @@ const Sidebar = () => {
     operationsItems.push({ path: '/my-off-requests', label: 'Off Requests', icon: CalendarOff });
   }
   
-  // Absences - Admin/Manager view of all absences
-  if (isAdminOrManager) {
-    operationsItems.push({ path: '/absences', label: 'Absences', icon: CalendarX });
-  }
-  
-  // Availability - Admin only can manage
-  if (isAdmin) {
-    operationsItems.push({ path: '/availability', label: 'Availability', icon: Clock });
-  }
   
   // Activity Log - Admin/Manager
   if (isAdminOrManager) {

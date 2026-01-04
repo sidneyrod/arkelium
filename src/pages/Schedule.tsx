@@ -8,7 +8,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   CalendarPlus, 
   ChevronLeft, 
@@ -20,7 +19,6 @@ import {
   List,
   CheckCircle,
   Send,
-  CalendarOff,
   Pencil,
   Trash2,
   Mail,
@@ -42,7 +40,6 @@ import useRoleAccess from '@/hooks/useRoleAccess';
 import AddJobDrawer from '@/components/schedule/AddJobDrawer';
 import JobCompletionModal, { PaymentData } from '@/components/modals/JobCompletionModal';
 import VisitCompletionModal, { VisitCompletionData } from '@/components/schedule/VisitCompletionModal';
-import OffRequestModal, { OffRequestType } from '@/components/modals/OffRequestModal';
 import ConfirmDialog from '@/components/modals/ConfirmDialog';
 import { notifyJobCreated, notifyJobUpdated, notifyJobCancelled, notifyVisitCreated, notifyJobCompleted, notifyInvoiceGenerated } from '@/hooks/useNotifications';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, startOfWeek, endOfWeek, addWeeks, subWeeks, isSameDay, addDays, subDays, parseISO } from 'date-fns';
@@ -71,16 +68,6 @@ interface ScheduledJob {
   visitRoute?: string;
 }
 
-interface AbsenceRequest {
-  id: string;
-  employeeId: string;
-  employeeName: string;
-  startDate: string;
-  endDate: string;
-  reason: string;
-  status: 'pending' | 'approved' | 'rejected';
-  createdAt: string;
-}
 
 const statusConfig: Record<JobStatus, { color: string; bgColor: string; label: string }> = {
   scheduled: { color: 'text-info', bgColor: 'bg-info/10 border-info/20', label: 'Scheduled' },
@@ -123,7 +110,7 @@ const Schedule = () => {
   
   const [view, setView] = useState<ViewType>(urlView || 'week');
   const [jobs, setJobs] = useState<ScheduledJob[]>([]);
-  const [absenceRequests, setAbsenceRequests] = useState<AbsenceRequest[]>([]);
+  
   const [selectedJob, setSelectedJob] = useState<ScheduledJob | null>(null);
   const [currentDate, setCurrentDate] = useState(() => {
     if (urlDate) {
@@ -138,7 +125,7 @@ const Schedule = () => {
   const [showAddJob, setShowAddJob] = useState(false);
   const [showCompletion, setShowCompletion] = useState(false);
   const [showVisitCompletion, setShowVisitCompletion] = useState(false);
-  const [showAbsenceRequest, setShowAbsenceRequest] = useState(false);
+  
   const [jobToDelete, setJobToDelete] = useState<ScheduledJob | null>(null);
   const [editingJob, setEditingJob] = useState<ScheduledJob | null>(null);
   const [employeeFilter, setEmployeeFilter] = useState('all');
@@ -241,56 +228,6 @@ const Schedule = () => {
     }
   }, [user]);
 
-  // Fetch absence requests
-  const fetchAbsenceRequests = useCallback(async () => {
-    try {
-      let companyId = user?.profile?.company_id;
-      if (!companyId) {
-        const { data: companyIdData } = await supabase.rpc('get_user_company_id');
-        companyId = companyIdData;
-      }
-      
-      if (!companyId) return;
-      
-      const { data, error } = await supabase
-        .from('absence_requests')
-        .select(`
-          id,
-          cleaner_id,
-          start_date,
-          end_date,
-          reason,
-          status,
-          created_at,
-          profiles:cleaner_id(first_name, last_name)
-        `)
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching absence requests:', error);
-        return;
-      }
-      
-      const mappedRequests: AbsenceRequest[] = (data || []).map((req: any) => ({
-        id: req.id,
-        employeeId: req.cleaner_id,
-        employeeName: req.profiles 
-          ? `${req.profiles.first_name || ''} ${req.profiles.last_name || ''}`.trim() || 'Unknown'
-          : 'Unknown',
-        startDate: req.start_date,
-        endDate: req.end_date,
-        reason: req.reason || '',
-        status: req.status,
-        createdAt: req.created_at,
-      }));
-      
-      setAbsenceRequests(mappedRequests);
-    } catch (error) {
-      console.error('Error in fetchAbsenceRequests:', error);
-    }
-  }, [user]);
-
   const [autoSendCashReceipt, setAutoSendCashReceipt] = useState(false);
   
   // Fetch invoice generation mode setting
@@ -324,10 +261,9 @@ const Schedule = () => {
   useEffect(() => {
     if (user) {
       fetchJobs();
-      fetchAbsenceRequests();
       fetchInvoiceSettings();
     }
-  }, [user, fetchJobs, fetchAbsenceRequests, fetchInvoiceSettings]);
+  }, [user, fetchJobs, fetchInvoiceSettings]);
 
   // For cleaners: only show their own jobs. For admin/manager: show all or filtered
   const baseJobs = isCleaner 
@@ -1072,46 +1008,6 @@ const Schedule = () => {
     }
   };
 
-  const handleAbsenceRequest = async (request: { startDate: string; endDate: string; reason: string; requestType?: string }) => {
-    try {
-      let companyId = user?.profile?.company_id;
-      if (!companyId) {
-        const { data: companyIdData } = await supabase.rpc('get_user_company_id');
-        companyId = companyIdData;
-      }
-      
-      if (!companyId || !user?.id) {
-        toast.error('Unable to submit request');
-        return;
-      }
-      
-      const { error } = await supabase
-        .from('absence_requests')
-        .insert({
-          company_id: companyId,
-          cleaner_id: user.id,
-          start_date: request.startDate,
-          end_date: request.endDate,
-          reason: request.reason,
-          request_type: request.requestType || 'time_off',
-          status: 'pending',
-        });
-      
-      if (error) {
-        console.error('Error submitting absence request:', error);
-        toast.error('Failed to submit absence request');
-        return;
-      }
-      
-      logActivity('absence_requested', `Absence request submitted for ${request.startDate} - ${request.endDate}`);
-      toast.success(t.schedule.absenceSubmitted);
-      
-      await fetchAbsenceRequests();
-    } catch (error) {
-      console.error('Error in handleAbsenceRequest:', error);
-      toast.error('Failed to submit absence request');
-    }
-  };
 
   const handleSendSchedule = () => {
     toast.success(t.schedule.scheduleSent);
@@ -1163,144 +1059,119 @@ const Schedule = () => {
   }
 
   return (
-    <div className="p-4 lg:p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header with Add Button */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Schedule</h1>
-          <p className="text-muted-foreground text-sm">Manage cleaning jobs and business visits</p>
-        </div>
-        {isAdminOrManager && (
-          <Button onClick={() => setShowAddJob(true)} className="gap-2">
-            <CalendarPlus className="h-4 w-4" />
-            {t.schedule.addJob}
+    <div className="p-4 lg:p-6 max-w-7xl mx-auto space-y-4">
+      {/* Controls - Compact header with calendar navigation */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={goToPrevious}>
+            <ChevronLeft className="h-4 w-4" />
           </Button>
-        )}
-      </div>
-
-      <Tabs defaultValue="calendar" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="calendar" className="gap-2">
-            <CalendarIcon className="h-4 w-4" />
-            Schedule
-          </TabsTrigger>
-          <TabsTrigger value="requests" className="gap-2">
-            <CalendarOff className="h-4 w-4" />
-            Days Off Requests
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="calendar" className="space-y-4">
-          {/* Controls */}
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" onClick={goToPrevious}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <div className="px-4 py-2 rounded-lg bg-card border border-border/50 min-w-[140px] text-center">
-                <span className="font-medium">{format(currentDate, view === 'month' ? 'MMMM yyyy' : 'MMM d, yyyy')}</span>
-              </div>
-              <Button variant="outline" size="icon" onClick={goToNext}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="sm" className="ml-2" onClick={goToToday}>
-                {t.schedule.today}
-              </Button>
-            </div>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Service Type Filter */}
-              <Select value={serviceTypeFilter} onValueChange={(v) => setServiceTypeFilter(v as 'all' | 'cleaning' | 'visit')}>
-                <SelectTrigger className="w-[130px] h-9">
-                  <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover">
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="cleaning">
-                    <span className="flex items-center gap-2">
-                      <Sparkles className="h-3.5 w-3.5 text-primary" />
-                      Cleaning
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="visit">
-                    <span className="flex items-center gap-2">
-                      <Eye className="h-3.5 w-3.5 text-purple-500" />
-                      Visit
-                    </span>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Employee Filter */}
-              <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
-                <SelectTrigger className="w-[150px] h-9">
-                  <User className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-                  <SelectValue placeholder={t.schedule.filterByEmployee} />
-                </SelectTrigger>
-                <SelectContent className="bg-popover">
-                  <SelectItem value="all">{t.schedule.allEmployees}</SelectItem>
-                  {uniqueEmployees.map(emp => (
-                    <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {/* Status Filter */}
-              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as 'all' | JobStatus)}>
-                <SelectTrigger className="w-[130px] h-9">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover">
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="scheduled">Scheduled</SelectItem>
-                  <SelectItem value="in-progress">In Progress</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Button variant="outline" size="sm" className="gap-2" onClick={handleSendSchedule}>
-                <Send className="h-4 w-4" />
-                <span className="hidden sm:inline">{t.schedule.sendSchedule}</span>
-              </Button>
-
-              <div className="flex items-center rounded-lg border border-border/50 p-0.5">
-                <Button 
-                  variant={view === 'day' ? 'secondary' : 'ghost'} 
-                  size="sm"
-                  onClick={() => setView('day')}
-                  className="h-7 px-2"
-                >
-                  {t.schedule.day}
-                </Button>
-                <Button 
-                  variant={view === 'week' ? 'secondary' : 'ghost'} 
-                  size="sm"
-                  onClick={() => setView('week')}
-                  className="h-7 px-2"
-                >
-                  {t.schedule.week}
-                </Button>
-                <Button 
-                  variant={view === 'month' ? 'secondary' : 'ghost'} 
-                  size="sm"
-                  onClick={() => setView('month')}
-                  className="h-7 px-2"
-                >
-                  {t.schedule.month}
-                </Button>
-                <Button 
-                  variant={view === 'timeline' ? 'secondary' : 'ghost'} 
-                  size="sm"
-                  onClick={() => setView('timeline')}
-                  className="h-7 px-2"
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+          <div className="px-4 py-2 rounded-lg bg-card border border-border/50 min-w-[140px] text-center">
+            <span className="font-medium">{format(currentDate, view === 'month' ? 'MMMM yyyy' : 'MMM d, yyyy')}</span>
           </div>
+          <Button variant="outline" size="icon" onClick={goToNext}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="sm" className="ml-2" onClick={goToToday}>
+            {t.schedule.today}
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Service Type Filter */}
+          <Select value={serviceTypeFilter} onValueChange={(v) => setServiceTypeFilter(v as 'all' | 'cleaning' | 'visit')}>
+            <SelectTrigger className="w-[130px] h-9">
+              <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+              <SelectValue placeholder="Type" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover">
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="cleaning">
+                <span className="flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  Cleaning
+                </span>
+              </SelectItem>
+              <SelectItem value="visit">
+                <span className="flex items-center gap-2">
+                  <Eye className="h-3.5 w-3.5 text-purple-500" />
+                  Visit
+                </span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Employee Filter */}
+          <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+            <SelectTrigger className="w-[150px] h-9">
+              <User className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+              <SelectValue placeholder={t.schedule.filterByEmployee} />
+            </SelectTrigger>
+            <SelectContent className="bg-popover">
+              <SelectItem value="all">{t.schedule.allEmployees}</SelectItem>
+              {uniqueEmployees.map(emp => (
+                <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Status Filter */}
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as 'all' | JobStatus)}>
+            <SelectTrigger className="w-[130px] h-9">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover">
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="scheduled">Scheduled</SelectItem>
+              <SelectItem value="in-progress">In Progress</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div className="flex items-center rounded-lg border border-border/50 p-0.5">
+            <Button 
+              variant={view === 'day' ? 'secondary' : 'ghost'} 
+              size="sm"
+              onClick={() => setView('day')}
+              className="h-7 px-2"
+            >
+              {t.schedule.day}
+            </Button>
+            <Button 
+              variant={view === 'week' ? 'secondary' : 'ghost'} 
+              size="sm"
+              onClick={() => setView('week')}
+              className="h-7 px-2"
+            >
+              {t.schedule.week}
+            </Button>
+            <Button 
+              variant={view === 'month' ? 'secondary' : 'ghost'} 
+              size="sm"
+              onClick={() => setView('month')}
+              className="h-7 px-2"
+            >
+              {t.schedule.month}
+            </Button>
+            <Button 
+              variant={view === 'timeline' ? 'secondary' : 'ghost'} 
+              size="sm"
+              onClick={() => setView('timeline')}
+              className="h-7 px-2"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {isAdminOrManager && (
+            <Button onClick={() => setShowAddJob(true)} className="gap-2">
+              <CalendarPlus className="h-4 w-4" />
+              {t.schedule.addJob}
+            </Button>
+          )}
+        </div>
+      </div>
 
           {/* Month View */}
           {view === 'month' && (
@@ -1642,46 +1513,6 @@ const Schedule = () => {
               </div>
             ))}
           </div>
-        </TabsContent>
-
-        <TabsContent value="requests" className="space-y-4">
-          <div className="flex justify-end">
-            <Button onClick={() => setShowAbsenceRequest(true)} size="sm" className="gap-2">
-              <CalendarOff className="h-4 w-4" />
-              Request Absence
-            </Button>
-          </div>
-          
-          <Card className="border-border/50">
-            <div className="p-4 border-b border-border/50">
-              <h3 className="text-base font-medium">Days Off Requests</h3>
-            </div>
-            <CardContent>
-              {absenceRequests.length > 0 ? (
-                <div className="space-y-2">
-                  {absenceRequests.map((request) => (
-                    <div key={request.id} className="flex items-center justify-between p-3 rounded-lg border border-border/50">
-                      <div>
-                        <p className="font-medium text-sm">{request.employeeName}</p>
-                        <p className="text-xs text-muted-foreground">{request.startDate} - {request.endDate}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{request.reason}</p>
-                      </div>
-                      <Badge variant={
-                        request.status === 'approved' ? 'default' :
-                        request.status === 'rejected' ? 'destructive' : 'secondary'
-                      } className="text-xs">
-                        {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center text-muted-foreground py-6 text-sm">No absence requests</p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
 
       {/* Job Details Dialog */}
       <Dialog open={!!selectedJob && !showCompletion} onOpenChange={() => setSelectedJob(null)}>
@@ -1849,12 +1680,6 @@ const Schedule = () => {
         onComplete={handleCompleteVisit}
       />
 
-      {/* Off Request Modal */}
-      <OffRequestModal
-        open={showAbsenceRequest}
-        onOpenChange={setShowAbsenceRequest}
-        onSubmit={(data) => handleAbsenceRequest({ ...data, startDate: data.startDate, endDate: data.endDate, reason: data.reason })}
-      />
 
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog

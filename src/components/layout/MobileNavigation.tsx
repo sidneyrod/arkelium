@@ -21,9 +21,7 @@ import {
   Briefcase,
   Handshake,
   DollarSign,
-  ChevronRight,
-  Clock,
-  CalendarX
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -87,12 +85,8 @@ const MobileNavigation = () => {
   operationsItems.push({ path: '/visit-history', label: 'Visit History', icon: MapPin });
   if (isAdminOrManager) {
     operationsItems.push({ path: '/off-requests', label: 'Off Requests', icon: CalendarOff });
-    operationsItems.push({ path: '/absences', label: 'Absences', icon: CalendarX });
   } else if (isCleaner) {
     operationsItems.push({ path: '/my-off-requests', label: 'Off Requests', icon: CalendarOff });
-  }
-  if (isAdmin) {
-    operationsItems.push({ path: '/availability', label: 'Availability', icon: Clock });
   }
   if (isAdminOrManager) {
     operationsItems.push({ path: '/activity-log', label: t.nav.activityLog, icon: ClipboardList });
