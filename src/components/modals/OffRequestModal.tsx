@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarIcon, CalendarOff, Palmtree, Clock, UserX, Stethoscope, Calendar as CalendarMonth } from 'lucide-react';
+import { CalendarIcon, CalendarOff, Palmtree, Clock, UserX, Stethoscope, Calendar as CalendarMonth, X } from 'lucide-react';
 import { differenceInDays, startOfMonth, endOfMonth, addMonths, format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { DateRange } from 'react-day-picker';
@@ -30,7 +30,7 @@ const formatDisplayDate = (date: Date): string => {
 };
 
 // Request Duration Types (what the user is requesting)
-export type OffRequestDurationType = 'day_off' | 'multi_day_off' | 'full_month_block';
+export type OffRequestDurationType = 'day_off' | 'multi_day_off' | 'non_consecutive_days' | 'full_month_block';
 
 // Reason Types (why they need it)
 export type OffRequestReasonType = 'personal' | 'medical' | 'vacation' | 'other';
@@ -48,6 +48,7 @@ interface OffRequestModalProps {
     requestType: OffRequestType;
     durationType?: OffRequestDurationType;
     reasonType?: OffRequestReasonType;
+    selectedDates?: string[]; // For non-consecutive days
   }) => void;
   employeeName?: string;
 }
@@ -68,6 +69,14 @@ const durationTypeConfig = {
     color: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
     description: 'Multiple consecutive days',
     descriptionPt: 'Múltiplos dias consecutivos',
+  },
+  non_consecutive_days: {
+    label: 'Non-Consecutive Days',
+    labelPt: 'Dias Não Consecutivos',
+    icon: CalendarMonth,
+    color: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
+    description: 'Select specific days (e.g., 5, 7, 14, 16)',
+    descriptionPt: 'Selecione dias específicos (ex: 5, 7, 14, 16)',
   },
   full_month_block: { 
     label: 'Full Month Block', 
@@ -125,12 +134,17 @@ const OffRequestModal = ({ open, onOpenChange, onSubmit, employeeName }: OffRequ
   const [selectedMonth, setSelectedMonth] = useState<Date | undefined>();
   const [singleDateCalendarOpen, setSingleDateCalendarOpen] = useState(false);
   const [rangeDateCalendarOpen, setRangeDateCalendarOpen] = useState(false);
+  const [nonConsecutiveCalendarOpen, setNonConsecutiveCalendarOpen] = useState(false);
+  
+  // Non-consecutive days selection
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
 
   // Handle duration type change
   const handleDurationTypeChange = (value: OffRequestDurationType) => {
     setDurationType(value);
     setDateRange(undefined);
     setSelectedMonth(undefined);
+    setSelectedDates([]);
     setErrors({});
   };
 
@@ -172,13 +186,50 @@ const OffRequestModal = ({ open, onOpenChange, onSubmit, employeeName }: OffRequ
     }
   };
 
+  // Handle non-consecutive date selection (toggle dates)
+  const handleNonConsecutiveDateSelect = (date: Date | undefined) => {
+    if (!date) return;
+    const safeDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
+    
+    setSelectedDates(prev => {
+      const existingIndex = prev.findIndex(d => 
+        d.getFullYear() === safeDate.getFullYear() &&
+        d.getMonth() === safeDate.getMonth() &&
+        d.getDate() === safeDate.getDate()
+      );
+      
+      if (existingIndex >= 0) {
+        // Remove date
+        return prev.filter((_, i) => i !== existingIndex);
+      } else {
+        // Add date
+        return [...prev, safeDate].sort((a, b) => a.getTime() - b.getTime());
+      }
+    });
+  };
+
+  // Remove a selected non-consecutive date
+  const removeNonConsecutiveDate = (dateToRemove: Date) => {
+    setSelectedDates(prev => prev.filter(d => 
+      !(d.getFullYear() === dateToRemove.getFullYear() &&
+        d.getMonth() === dateToRemove.getMonth() &&
+        d.getDate() === dateToRemove.getDate())
+    ));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     const newErrors: Record<string, string> = {};
     
-    if (!dateRange?.from) {
-      newErrors.date = isEnglish ? 'Start date is required' : 'Data inicial é obrigatória';
+    if (durationType === 'non_consecutive_days') {
+      if (selectedDates.length === 0) {
+        newErrors.date = isEnglish ? 'Select at least one date' : 'Selecione pelo menos uma data';
+      }
+    } else {
+      if (!dateRange?.from) {
+        newErrors.date = isEnglish ? 'Start date is required' : 'Data inicial é obrigatória';
+      }
     }
     
     // For day_off, set end date = start date if not set
@@ -188,7 +239,7 @@ const OffRequestModal = ({ open, onOpenChange, onSubmit, employeeName }: OffRequ
       finalEndDate = dateRange.from;
     }
     
-    if (!finalEndDate) {
+    if (durationType !== 'non_consecutive_days' && !finalEndDate) {
       newErrors.date = isEnglish ? 'End date is required' : 'Data final é obrigatória';
     }
     
@@ -201,15 +252,32 @@ const OffRequestModal = ({ open, onOpenChange, onSubmit, employeeName }: OffRequ
     
     const legacyType = mapToLegacyType(durationType, reasonType);
     
-    // Use formatLocalDate to prevent timezone issues
-    onSubmit({
-      startDate: formatLocalDate(dateRange!.from!),
-      endDate: formatLocalDate(finalEndDate!),
-      reason: observation.trim(),
-      requestType: legacyType,
-      durationType,
-      reasonType,
-    });
+    if (durationType === 'non_consecutive_days') {
+      // For non-consecutive days, use first and last date as range, but also pass all selected dates
+      const sortedDates = [...selectedDates].sort((a, b) => a.getTime() - b.getTime());
+      const firstDate = sortedDates[0];
+      const lastDate = sortedDates[sortedDates.length - 1];
+      
+      onSubmit({
+        startDate: formatLocalDate(firstDate),
+        endDate: formatLocalDate(lastDate),
+        reason: observation.trim(),
+        requestType: legacyType,
+        durationType,
+        reasonType,
+        selectedDates: sortedDates.map(d => formatLocalDate(d)),
+      });
+    } else {
+      // Use formatLocalDate to prevent timezone issues
+      onSubmit({
+        startDate: formatLocalDate(dateRange!.from!),
+        endDate: formatLocalDate(finalEndDate!),
+        reason: observation.trim(),
+        requestType: legacyType,
+        durationType,
+        reasonType,
+      });
+    }
     
     onOpenChange(false);
     setDateRange(undefined);
@@ -217,11 +285,14 @@ const OffRequestModal = ({ open, onOpenChange, onSubmit, employeeName }: OffRequ
     setDurationType('day_off');
     setReasonType('personal');
     setSelectedMonth(undefined);
+    setSelectedDates([]);
   };
 
-  const daysDiff = dateRange?.from && (dateRange?.to || dateRange?.from)
-    ? differenceInDays(dateRange.to || dateRange.from, dateRange.from) + 1 
-    : 0;
+  const daysDiff = durationType === 'non_consecutive_days'
+    ? selectedDates.length
+    : dateRange?.from && (dateRange?.to || dateRange?.from)
+      ? differenceInDays(dateRange.to || dateRange.from, dateRange.from) + 1 
+      : 0;
 
   const DurationIcon = durationTypeConfig[durationType].icon;
 
@@ -245,7 +316,7 @@ const OffRequestModal = ({ open, onOpenChange, onSubmit, employeeName }: OffRequ
             </div>
           )}
           
-          {/* Duration Type (Day Off / Multi-Day / Full Month) */}
+          {/* Duration Type (Day Off / Multi-Day / Non-Consecutive / Full Month) */}
           <div className="space-y-2">
             <Label className="font-semibold">
               {isEnglish ? 'Request Type' : 'Tipo de Solicitação'} *
@@ -284,7 +355,9 @@ const OffRequestModal = ({ open, onOpenChange, onSubmit, employeeName }: OffRequ
                 ? (isEnglish ? 'Date' : 'Data')
                 : durationType === 'full_month_block'
                   ? (isEnglish ? 'Month' : 'Mês')
-                  : (isEnglish ? 'Date Range' : 'Período')} *
+                  : durationType === 'non_consecutive_days'
+                    ? (isEnglish ? 'Select Days' : 'Selecionar Dias')
+                    : (isEnglish ? 'Date Range' : 'Período')} *
             </Label>
             
             {durationType === 'full_month_block' ? (
@@ -349,6 +422,79 @@ const OffRequestModal = ({ open, onOpenChange, onSubmit, employeeName }: OffRequ
                   />
                 </PopoverContent>
               </Popover>
+            ) : durationType === 'non_consecutive_days' ? (
+              // Non-consecutive days selection
+              <div className="space-y-3">
+                <Popover open={nonConsecutiveCalendarOpen} onOpenChange={setNonConsecutiveCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        selectedDates.length === 0 && "text-muted-foreground",
+                        errors.date && "border-destructive"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {selectedDates.length > 0 
+                        ? `${selectedDates.length} ${isEnglish ? 'days selected' : 'dias selecionados'}`
+                        : <span>{isEnglish ? 'Click to select days' : 'Clique para selecionar dias'}</span>
+                      }
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      initialFocus
+                      mode="single"
+                      selected={undefined}
+                      onSelect={handleNonConsecutiveDateSelect}
+                      numberOfMonths={2}
+                      disabled={(date) => date < new Date()}
+                      modifiers={{
+                        selected: selectedDates,
+                      }}
+                      modifiersStyles={{
+                        selected: { 
+                          backgroundColor: 'hsl(var(--primary))', 
+                          color: 'hsl(var(--primary-foreground))',
+                          borderRadius: '50%'
+                        }
+                      }}
+                    />
+                    <div className="p-3 border-t">
+                      <p className="text-xs text-muted-foreground">
+                        {isEnglish 
+                          ? 'Click on dates to select/deselect. Selected days will appear below.'
+                          : 'Clique nas datas para selecionar/desmarcar. Os dias selecionados aparecerão abaixo.'}
+                      </p>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                
+                {/* Show selected dates */}
+                {selectedDates.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedDates.map((date, idx) => (
+                      <Badge 
+                        key={idx} 
+                        variant="secondary" 
+                        className="gap-1 pr-1"
+                      >
+                        {format(date, 'dd/MM')}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-4 w-4 p-0 hover:bg-transparent"
+                          onClick={() => removeNonConsecutiveDate(date)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
             ) : (
               // Date range selection for multi-day
               <Popover open={rangeDateCalendarOpen} onOpenChange={setRangeDateCalendarOpen}>
@@ -450,16 +596,16 @@ const OffRequestModal = ({ open, onOpenChange, onSubmit, employeeName }: OffRequ
           <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
             <p className="text-sm text-amber-800 dark:text-amber-200">
               ⚠️ {isEnglish 
-                ? 'This request requires admin approval. Once approved, you will be completely blocked from the schedule during this period. No jobs can be assigned to you.'
-                : 'Esta solicitação requer aprovação do administrador. Uma vez aprovada, você será completamente bloqueado da agenda durante este período. Nenhum serviço poderá ser atribuído a você.'}
+                ? 'Once approved, you will be blocked from all job assignments on the selected dates.' 
+                : 'Uma vez aprovado, você será bloqueado de todas as atribuições de trabalho nas datas selecionadas.'}
             </p>
           </div>
           
-          <DialogFooter className="pt-4">
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {isEnglish ? 'Cancel' : 'Cancelar'}
             </Button>
-            <Button type="submit" disabled={!dateRange?.from}>
+            <Button type="submit">
               {isEnglish ? 'Submit Request' : 'Enviar Solicitação'}
             </Button>
           </DialogFooter>

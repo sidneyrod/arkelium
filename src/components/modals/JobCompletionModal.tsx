@@ -311,106 +311,57 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
             </CardContent>
           </Card>
 
-          {/* Photos */}
+          {/* After Photo Only - Before photos are captured when starting the service */}
           <div className="space-y-3">
             <h4 className="text-sm font-medium flex items-center gap-2">
               <Camera className="h-4 w-4 text-primary" />
-              {t.job.photos}
+              {t.job.after || 'After Photo'}
             </h4>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {/* Before Photo */}
-              <div className="space-y-2">
-                <Label>{t.job.before}</Label>
-                <input
-                  ref={beforePhotoRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => handleFileSelect('before', e)}
-                />
-                <div
-                  className={cn(
-                    "h-28 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-colors relative overflow-hidden",
-                    beforePhoto ? "border-success bg-success/5" : "border-border hover:border-primary hover:bg-muted/50",
-                    uploadingBefore && "pointer-events-none opacity-70"
-                  )}
-                  onClick={() => !uploadingBefore && !beforePhoto && beforePhotoRef.current?.click()}
-                >
-                  {uploadingBefore ? (
-                    <div className="text-center">
-                      <Loader2 className="h-6 w-6 mx-auto text-primary animate-spin" />
-                      <p className="text-xs text-muted-foreground mt-1">Uploading...</p>
-                    </div>
-                  ) : beforePhoto ? (
-                    <>
-                      <img src={beforePhoto} alt="Before" className="h-full w-full object-cover" />
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-1 right-1 h-6 w-6"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removePhoto('before');
-                        }}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </>
-                  ) : (
-                    <div className="text-center">
-                      <Upload className="h-6 w-6 mx-auto text-muted-foreground" />
-                      <p className="text-xs text-muted-foreground mt-1">{t.job.uploadBeforePhoto}</p>
-                    </div>
-                  )}
+            <p className="text-xs text-muted-foreground">
+              Upload a photo showing the completed work.
+            </p>
+            
+            <input
+              ref={afterPhotoRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => handleFileSelect('after', e)}
+            />
+            <div
+              className={cn(
+                "h-32 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-colors relative overflow-hidden",
+                afterPhoto ? "border-success bg-success/5" : "border-border hover:border-primary hover:bg-muted/50",
+                uploadingAfter && "pointer-events-none opacity-70"
+              )}
+              onClick={() => !uploadingAfter && !afterPhoto && afterPhotoRef.current?.click()}
+            >
+              {uploadingAfter ? (
+                <div className="text-center">
+                  <Loader2 className="h-6 w-6 mx-auto text-primary animate-spin" />
+                  <p className="text-xs text-muted-foreground mt-1">Uploading...</p>
                 </div>
-              </div>
-
-              {/* After Photo */}
-              <div className="space-y-2">
-                <Label>{t.job.after}</Label>
-                <input
-                  ref={afterPhotoRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => handleFileSelect('after', e)}
-                />
-                <div
-                  className={cn(
-                    "h-28 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-colors relative overflow-hidden",
-                    afterPhoto ? "border-success bg-success/5" : "border-border hover:border-primary hover:bg-muted/50",
-                    uploadingAfter && "pointer-events-none opacity-70"
-                  )}
-                  onClick={() => !uploadingAfter && !afterPhoto && afterPhotoRef.current?.click()}
-                >
-                  {uploadingAfter ? (
-                    <div className="text-center">
-                      <Loader2 className="h-6 w-6 mx-auto text-primary animate-spin" />
-                      <p className="text-xs text-muted-foreground mt-1">Uploading...</p>
-                    </div>
-                  ) : afterPhoto ? (
-                    <>
-                      <img src={afterPhoto} alt="After" className="h-full w-full object-cover" />
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-1 right-1 h-6 w-6"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removePhoto('after');
-                        }}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </>
-                  ) : (
-                    <div className="text-center">
-                      <Upload className="h-6 w-6 mx-auto text-muted-foreground" />
-                      <p className="text-xs text-muted-foreground mt-1">{t.job.uploadAfterPhoto}</p>
-                    </div>
-                  )}
+              ) : afterPhoto ? (
+                <>
+                  <img src={afterPhoto} alt="After" className="h-full w-full object-cover" />
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-1 right-1 h-6 w-6"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removePhoto('after');
+                    }}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </>
+              ) : (
+                <div className="text-center">
+                  <Upload className="h-6 w-6 mx-auto text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground mt-1">{t.job.uploadAfterPhoto}</p>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 

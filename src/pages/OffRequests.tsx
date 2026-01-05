@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { notifyOffRequestCreated } from '@/hooks/useNotifications';
 import PageHeader from '@/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,13 +25,16 @@ import {
   ArrowRight,
   Stethoscope,
   Search,
-  Filter
+  Filter,
+  Plus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format, differenceInDays, isPast, isFuture, startOfMonth, endOfMonth } from 'date-fns';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { notifyOffRequestApproved, notifyOffRequestRejected } from '@/hooks/useNotifications';
+import OffRequestModal from '@/components/modals/OffRequestModal';
+import { PageLoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface OffRequest {
   id: string;
@@ -108,11 +112,88 @@ const OffRequests = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('pending');
+  const [showRequestModal, setShowRequestModal] = useState(false);
   
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCleaner, setSelectedCleaner] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
+
+  // Handle admin submitting off request for themselves
+  const handleAdminSubmitRequest = async (request: {
+    startDate: string;
+    endDate: string;
+    reason: string;
+    requestType: string;
+    selectedDates?: string[];
+  }) => {
+    if (!user?.id || !user?.profile?.company_id) {
+      toast.error('User not authenticated');
+      return;
+    }
+
+    try {
+      // If non-consecutive days, create multiple requests
+      if (request.selectedDates && request.selectedDates.length > 0) {
+        // Create a separate request for each date
+        for (const dateStr of request.selectedDates) {
+          const { error } = await supabase
+            .from('absence_requests')
+            .insert({
+              cleaner_id: user.id,
+              company_id: user.profile.company_id,
+              start_date: dateStr,
+              end_date: dateStr,
+              reason: request.reason,
+              request_type: request.requestType,
+              status: 'approved', // Auto-approve for admin
+              approved_at: new Date().toISOString(),
+              approved_by: user.id,
+            });
+
+          if (error) {
+            console.error('Error creating off request:', error);
+            toast.error(isEnglish ? 'Failed to create request' : 'Falha ao criar solicitação');
+            return;
+          }
+        }
+        
+        toast.success(isEnglish 
+          ? `${request.selectedDates.length} off days created and auto-approved.`
+          : `${request.selectedDates.length} dias de folga criados e auto-aprovados.`);
+      } else {
+        // Single or range request
+        const { error } = await supabase
+          .from('absence_requests')
+          .insert({
+            cleaner_id: user.id,
+            company_id: user.profile.company_id,
+            start_date: request.startDate,
+            end_date: request.endDate,
+            reason: request.reason,
+            request_type: request.requestType,
+            status: 'approved', // Auto-approve for admin
+            approved_at: new Date().toISOString(),
+            approved_by: user.id,
+          });
+
+        if (error) {
+          console.error('Error creating off request:', error);
+          toast.error(isEnglish ? 'Failed to create request' : 'Falha ao criar solicitação');
+          return;
+        }
+
+        toast.success(isEnglish 
+          ? 'Off request created and auto-approved.'
+          : 'Solicitação de folga criada e auto-aprovada.');
+      }
+
+      await fetchRequests();
+    } catch (error) {
+      console.error('Error in handleAdminSubmitRequest:', error);
+      toast.error(isEnglish ? 'Failed to create request' : 'Falha ao criar solicitação');
+    }
+  };
 
   const fetchRequests = useCallback(async () => {
     try {
@@ -336,21 +417,25 @@ const OffRequests = () => {
   const rejectedCount = requests.filter(r => r.status === 'rejected').length;
 
   if (isLoading) {
-    return (
-      <div className="p-4 lg:p-6 max-w-4xl mx-auto flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <PageLoadingSpinner />;
   }
 
   return (
     <div className="container px-4 py-8 lg:px-8 space-y-6">
-      <PageHeader 
-        title={isEnglish ? "Off Requests" : "Solicitações de Folga"}
-        description={isEnglish 
-          ? "Review and manage employee off requests" 
-          : "Gerencie solicitações de folga dos funcionários"}
-      />
+      <div className="flex items-center justify-between">
+        <PageHeader 
+          title={isEnglish ? "Off Requests" : "Solicitações de Folga"}
+          description={isEnglish 
+            ? "Review and manage employee off requests" 
+            : "Gerencie solicitações de folga dos funcionários"}
+        />
+        {isAdminOrManager && (
+          <Button onClick={() => setShowRequestModal(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            {isEnglish ? 'New Request' : 'Nova Solicitação'}
+          </Button>
+        )}
+      </div>
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -643,6 +728,16 @@ const OffRequests = () => {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Off Request Modal for Admin */}
+      <OffRequestModal
+        open={showRequestModal}
+        onOpenChange={setShowRequestModal}
+        onSubmit={handleAdminSubmitRequest}
+        employeeName={user?.profile?.first_name 
+          ? `${user.profile.first_name} ${user.profile.last_name || ''}`.trim()
+          : undefined}
+      />
     </div>
   );
 };
