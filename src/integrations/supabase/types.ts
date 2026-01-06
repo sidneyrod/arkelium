@@ -2353,6 +2353,11 @@ export type Database = {
         Args: { p_company_id: string; p_date: string }
         Returns: boolean
       }
+      mark_all_notifications_as_read: { Args: never; Returns: number }
+      mark_notification_as_read: {
+        Args: { p_notification_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       account_type: "asset" | "liability" | "equity" | "revenue" | "expense"

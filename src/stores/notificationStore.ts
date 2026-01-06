@@ -93,10 +93,10 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     });
     
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true, read_at: new Date().toISOString() })
-        .eq('id', notificationId);
+      // Use RPC function that handles role_target='all' correctly
+      const { error } = await supabase.rpc('mark_notification_as_read', {
+        p_notification_id: notificationId
+      });
       
       if (error) {
         console.error('Error marking notification as read:', error);
@@ -135,11 +135,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     });
     
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true, read_at: new Date().toISOString() })
-        .eq('is_read', false)
-        .or(`recipient_user_id.eq.${userId},recipient_user_id.is.null`);
+      // Use RPC function that handles role_target='all' correctly
+      const { error } = await supabase.rpc('mark_all_notifications_as_read');
       
       if (error) {
         console.error('Error marking all notifications as read:', error);
