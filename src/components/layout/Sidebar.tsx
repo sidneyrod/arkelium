@@ -23,7 +23,8 @@ import {
   Handshake,
   DollarSign,
   Bell,
-  BookOpen
+  BookOpen,
+  CreditCard
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -115,6 +116,11 @@ const Sidebar = () => {
   // MODULE 3: FINANCIAL
   // =====================
   const financialItems: MenuItem[] = [];
+  
+  // Payments & Collections - Admin/Manager only (Central Financeira)
+  if (isAdminOrManager) {
+    financialItems.push({ path: '/payments', label: 'Payments & Collections', icon: CreditCard });
+  }
   
   // Financial Ledger - Admin/Manager only
   if (isAdminOrManager) {

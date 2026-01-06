@@ -150,12 +150,17 @@ export type Database = {
       cash_collections: {
         Row: {
           amount: number
+          approved_at: string | null
+          approved_by: string | null
           cash_handling: string
           cleaner_id: string
           client_id: string
           company_id: string
           compensation_status: string
           created_at: string
+          dispute_reason: string | null
+          disputed_at: string | null
+          disputed_by: string | null
           handled_at: string
           handled_by_user_id: string | null
           id: string
@@ -168,12 +173,17 @@ export type Database = {
         }
         Insert: {
           amount: number
+          approved_at?: string | null
+          approved_by?: string | null
           cash_handling: string
           cleaner_id: string
           client_id: string
           company_id: string
           compensation_status?: string
           created_at?: string
+          dispute_reason?: string | null
+          disputed_at?: string | null
+          disputed_by?: string | null
           handled_at?: string
           handled_by_user_id?: string | null
           id?: string
@@ -186,12 +196,17 @@ export type Database = {
         }
         Update: {
           amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
           cash_handling?: string
           cleaner_id?: string
           client_id?: string
           company_id?: string
           compensation_status?: string
           created_at?: string
+          dispute_reason?: string | null
+          disputed_at?: string | null
+          disputed_by?: string | null
           handled_at?: string
           handled_by_user_id?: string | null
           id?: string
@@ -203,6 +218,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cash_collections_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cash_collections_cleaner_id_fkey"
             columns: ["cleaner_id"]
@@ -222,6 +244,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_collections_disputed_by_fkey"
+            columns: ["disputed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {

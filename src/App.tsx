@@ -31,6 +31,7 @@ import VisitHistory from "./pages/VisitHistory";
 import Notifications from "./pages/Notifications";
 import Financial from "./pages/Financial";
 import Receipts from "./pages/Receipts";
+import PaymentsCollections from "./pages/PaymentsCollections";
 
 const queryClient = new QueryClient();
 
@@ -191,6 +192,7 @@ const AppRoutes = () => {
         <Route path="/completed-services" element={<AdminManagerRoute><CompletedServices /></AdminManagerRoute>} />
         <Route path="/calculator" element={<AdminManagerRoute><Calculator /></AdminManagerRoute>} />
         <Route path="/payroll" element={<AdminRoute><Payroll /></AdminRoute>} />
+        <Route path="/payments" element={<AdminManagerRoute><PaymentsCollections /></AdminManagerRoute>} />
         <Route path="/financial" element={<AdminManagerRoute><Financial /></AdminManagerRoute>} />
         <Route path="/receipts" element={<AdminManagerRoute><Receipts /></AdminManagerRoute>} />
         

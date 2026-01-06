@@ -15,6 +15,7 @@ export type ActivityType =
   | 'settings_updated' | 'login' | 'logout'
   | 'absence_requested' | 'absence_approved' | 'absence_rejected'
   | 'cash_kept_by_cleaner' | 'cash_delivered_to_office' | 'cash_compensation_settled'
+  | 'cash_approved' | 'cash_disputed' | 'cash_dispute_resolved' | 'cash_settled'
   | 'job_overdue_alert';
 
 export interface ActivityLog {
