@@ -98,6 +98,7 @@ export default function ForgotPassword() {
           ? 'bg-gradient-to-br from-[#0a1210] via-[#0d1a15] to-[#081410]'
           : 'bg-[#EDF3F0]'
       }`}
+      style={{ zoom: 0.85 }}
     >
 
 
