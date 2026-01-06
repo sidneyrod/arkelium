@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 
-export type NotificationType = 'job' | 'visit' | 'off_request' | 'invoice' | 'payroll' | 'system';
+export type NotificationType = 'job' | 'visit' | 'off_request' | 'invoice' | 'payroll' | 'system' | 'financial';
 export type NotificationSeverity = 'info' | 'warning' | 'critical';
 
 export interface Notification {

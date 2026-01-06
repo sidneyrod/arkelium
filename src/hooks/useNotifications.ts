@@ -332,3 +332,79 @@ export const notifyBroadcast = async (
     severity: 'info'
   });
 };
+
+// ===== CASH HANDLING NOTIFICATIONS =====
+
+// When cleaner keeps cash and requests admin approval
+export const notifyCashApprovalRequested = async (
+  cleanerName: string,
+  clientName: string,
+  amount: number,
+  cashCollectionId: string
+) => {
+  return createNotification({
+    role_target: 'admin',
+    title: 'Cash Approval Required',
+    message: `${cleanerName} kept $${amount.toFixed(2)} from ${clientName} and requests payroll deduction approval`,
+    type: 'financial',
+    severity: 'warning',
+    metadata: { 
+      cash_collection_id: cashCollectionId, 
+      cleaner_name: cleanerName, 
+      client_name: clientName,
+      amount 
+    }
+  });
+};
+
+// When admin approves cash - notify cleaner
+export const notifyCashApproved = async (
+  cleanerId: string,
+  amount: number,
+  clientName: string,
+  cashCollectionId: string
+) => {
+  return createNotification({
+    recipient_user_id: cleanerId,
+    title: 'Cash Payment Approved',
+    message: `Your cash payment of $${amount.toFixed(2)} from ${clientName} has been approved for payroll deduction`,
+    type: 'financial',
+    severity: 'info',
+    metadata: { cash_collection_id: cashCollectionId, client_name: clientName }
+  });
+};
+
+// When admin disputes cash - notify cleaner
+export const notifyCashDisputed = async (
+  cleanerId: string,
+  amount: number,
+  clientName: string,
+  reason: string,
+  cashCollectionId: string
+) => {
+  return createNotification({
+    recipient_user_id: cleanerId,
+    title: 'Cash Payment Disputed',
+    message: `Your cash payment of $${amount.toFixed(2)} from ${clientName} has been disputed: ${reason}`,
+    type: 'financial',
+    severity: 'critical',
+    metadata: { cash_collection_id: cashCollectionId, reason, client_name: clientName }
+  });
+};
+
+// When cash is settled in payroll - notify cleaner
+export const notifyCashSettled = async (
+  cleanerId: string,
+  amount: number,
+  periodName: string,
+  cashCollectionId: string
+) => {
+  return createNotification({
+    recipient_user_id: cleanerId,
+    title: 'Cash Deducted from Payroll',
+    message: `$${amount.toFixed(2)} has been deducted from your payroll for period "${periodName}"`,
+    type: 'financial',
+    severity: 'info',
+    metadata: { cash_collection_id: cashCollectionId, period_name: periodName }
+  });
+};

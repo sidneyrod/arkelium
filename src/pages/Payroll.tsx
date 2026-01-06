@@ -173,7 +173,7 @@ const Payroll = () => {
       );
       
       // Notify cleaner
-      await notifyCleanerOfCashSettlement(payment.cleaner_id, payment.amount);
+      await notifyCleanerOfCashSettlement(payment.cleaner_id, payment.amount, paymentId);
       
       toast.success(`Cash payment of $${payment.amount.toFixed(2)} marked as settled`);
       
@@ -184,22 +184,12 @@ const Payroll = () => {
     }
   };
 
-  // Notify cleaner of cash settlement
-  const notifyCleanerOfCashSettlement = async (cleanerId: string, amount: number) => {
+  // Notify cleaner of cash settlement using proper notification function
+  const notifyCleanerOfCashSettlement = async (cleanerId: string, amount: number, paymentId: string) => {
     try {
-      const { data: companyId } = await supabase.rpc('get_user_company_id');
-      if (!companyId) return;
-      
-      await supabase.from('notifications').insert({
-        company_id: companyId,
-        recipient_user_id: cleanerId,
-        role_target: null,
-        title: 'Cash Payment Settled',
-        message: `Your cash payment of $${amount.toFixed(2)} has been deducted from your payroll`,
-        type: 'payroll',
-        severity: 'info',
-        metadata: { amount }
-      } as any);
+      const { notifyCashSettled } = await import('@/hooks/useNotifications');
+      const periodName = currentPeriod?.period_name || 'Current Period';
+      await notifyCashSettled(cleanerId, amount, periodName, paymentId);
     } catch (error) {
       console.error('Error notifying cleaner:', error);
     }

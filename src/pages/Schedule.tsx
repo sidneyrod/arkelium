@@ -880,7 +880,7 @@ const Schedule = () => {
               ? 'pending' 
               : 'not_applicable';
             
-            await supabase.from('cash_collections').insert({
+            const { data: insertedCashCollection } = await supabase.from('cash_collections').insert({
               company_id: companyId,
               job_id: jobId,
               cleaner_id: job.employeeId || user?.id,
@@ -891,7 +891,7 @@ const Schedule = () => {
               compensation_status: compensationStatus,
               service_date: job.date,
               notes: paymentData.paymentNotes || null,
-            } as any);
+            } as any).select('id').single();
             
             // Log activity for cash handling
             logActivity(
@@ -900,6 +900,17 @@ const Schedule = () => {
               jobId,
               job.clientName
             );
+            
+            // Notify admin if cleaner is keeping cash (requires approval)
+            if (cashHandling === 'kept_by_cleaner' && insertedCashCollection?.id) {
+              const { notifyCashApprovalRequested } = await import('@/hooks/useNotifications');
+              await notifyCashApprovalRequested(
+                job.employeeName,
+                job.clientName,
+                paymentData.paymentAmount,
+                insertedCashCollection.id
+              );
+            }
           }
           
           // Skip invoice generation for cash payments

@@ -2380,6 +2380,7 @@ export type Database = {
         | "invoice"
         | "payroll"
         | "system"
+        | "financial"
       payment_method_type:
         | "cash"
         | "e_transfer"
@@ -2541,6 +2542,7 @@ export const Constants = {
         "invoice",
         "payroll",
         "system",
+        "financial",
       ],
       payment_method_type: [
         "cash",
