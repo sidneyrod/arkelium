@@ -297,9 +297,12 @@ const TopBar = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full h-14 bg-card border-b border-border" style={{ boxShadow: 'var(--shadow-header)' }}>
-      <div className="flex h-full items-center justify-between px-4 lg:px-6">
-        {/* Left: Search */}
-        <div className="hidden md:flex flex-1 max-w-md">
+      <div className="flex h-full items-center px-4 lg:px-6">
+        {/* Left spacer for symmetry */}
+        <div className="hidden md:flex flex-1" />
+        
+        {/* Center: Search */}
+        <div className="hidden md:flex flex-1 justify-center max-w-md">
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
@@ -405,7 +408,7 @@ const TopBar = () => {
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-1 justify-end">
           {/* Download Button */}
           <Tooltip>
             <TooltipTrigger asChild>

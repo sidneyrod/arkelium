@@ -12,7 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 // Map paths to labels
 const getPageLabel = (path: string, t: any): string => {
   const pathMap: Record<string, string> = {
-    '/': t?.nav?.home || 'Home',
+    '/': t?.nav?.dashboard || 'Dashboard',
     '/company': t?.nav?.company || 'Company',
     '/users': t?.nav?.users || 'Users',
     '/clients': t?.nav?.clients || 'Clients',
