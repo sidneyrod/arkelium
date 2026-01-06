@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { notifyInvoicePaid } from '@/hooks/useNotifications';
 import PageHeader from '@/components/ui/page-header';
@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { toast } from '@/hooks/use-toast';
 import { CancelInvoiceModal, DeleteInvoiceModal, RegenerateInvoiceModal } from '@/components/modals/InvoiceActionModals';
+import { PeriodSelector, DateRange } from '@/components/ui/period-selector';
 import { 
   FileText, 
   MoreHorizontal, 
@@ -33,9 +34,9 @@ import {
   RefreshCw,
   Lock
 } from 'lucide-react';
-import { format, parseISO, isWithinInterval } from 'date-fns';
+import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { formatSafeDate } from '@/lib/dates';
+import { formatSafeDate, toSafeLocalDate } from '@/lib/dates';
 
 type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled' | 'partially_paid';
 
@@ -74,12 +75,31 @@ const statusConfig: Record<InvoiceStatus, { color: string; bgColor: string; labe
 const Invoices = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
-  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   
   // Read URL params for filters
   const urlStatus = searchParams.get('status');
   const urlFrom = searchParams.get('from');
   const urlTo = searchParams.get('to');
+  
+  // Initialize date range from URL params or default to this month
+  const getInitialDateRange = (): DateRange => {
+    if (urlFrom && urlTo) {
+      try {
+        return {
+          startDate: toSafeLocalDate(urlFrom),
+          endDate: toSafeLocalDate(urlTo),
+        };
+      } catch {
+        // Fall back to this month
+      }
+    }
+    return {
+      startDate: startOfMonth(new Date()),
+      endDate: endOfMonth(new Date()),
+    };
+  };
   
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,7 +107,7 @@ const Invoices = () => {
   const [statusFilter, setStatusFilter] = useState<string>(urlStatus || 'all');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showPreview, setShowPreview] = useState(false);
-  const [dateRangeLabel, setDateRangeLabel] = useState<string | null>(null);
+  const [dateRange, setDateRange] = useState<DateRange>(getInitialDateRange);
   
   // Action modals
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -98,18 +118,15 @@ const Invoices = () => {
   const { hasRole } = useAuth();
   const isAdmin = hasRole(['admin']);
   
-  // Set date range label if URL params exist
-  useEffect(() => {
-    if (urlFrom && urlTo) {
-      try {
-        const from = parseISO(urlFrom);
-        const to = parseISO(urlTo);
-        setDateRangeLabel(`${format(from, 'MMM d')} - ${format(to, 'MMM d, yyyy')}`);
-      } catch {
-        setDateRangeLabel(null);
-      }
-    }
-  }, [urlFrom, urlTo]);
+  // Update URL when date range changes
+  const handleDateRangeChange = (newRange: DateRange) => {
+    setDateRange(newRange);
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('from', format(newRange.startDate, 'yyyy-MM-dd'));
+    newParams.set('to', format(newRange.endDate, 'yyyy-MM-dd'));
+    setSearchParams(newParams, { replace: true });
+  };
+  
   const [companyProfile, setCompanyProfile] = useState<any>(null);
 
   // Fetch invoices from Supabase
@@ -263,14 +280,15 @@ const Invoices = () => {
       // Status filter (from URL or dropdown)
       const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
       
-      // Date range filter from URL
+      // Date range filter - filter by service date
       let matchesDateRange = true;
-      if (urlFrom && urlTo && invoice.paidAt) {
+      if (dateRange.startDate && dateRange.endDate && invoice.serviceDate) {
         try {
-          const from = parseISO(urlFrom);
-          const to = parseISO(urlTo);
-          const paidDate = parseISO(invoice.paidAt);
-          matchesDateRange = isWithinInterval(paidDate, { start: from, end: to });
+          const serviceDate = toSafeLocalDate(invoice.serviceDate);
+          matchesDateRange = isWithinInterval(serviceDate, { 
+            start: dateRange.startDate, 
+            end: dateRange.endDate 
+          });
         } catch {
           matchesDateRange = true;
         }
@@ -278,7 +296,7 @@ const Invoices = () => {
       
       return matchesSearch && matchesStatus && matchesDateRange;
     });
-  }, [invoices, search, statusFilter, urlFrom, urlTo]);
+  }, [invoices, search, statusFilter, dateRange]);
 
   const stats = useMemo(() => {
     const total = invoices.length;
@@ -547,12 +565,10 @@ const Invoices = () => {
             <SelectItem value="overdue">Overdue</SelectItem>
           </SelectContent>
         </Select>
-        {dateRangeLabel && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-2 rounded-md">
-            <Calendar className="h-4 w-4" />
-            Period: {dateRangeLabel}
-          </div>
-        )}
+        <PeriodSelector 
+          value={dateRange}
+          onChange={handleDateRangeChange}
+        />
       </div>
 
       {/* Table */}
