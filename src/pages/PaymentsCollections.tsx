@@ -353,6 +353,9 @@ const PaymentsCollections = () => {
   // Handle approval/dispute
   const handleApproveCash = async (collectionId: string) => {
     try {
+      // Find the collection for notification
+      const collection = cashCollections.find(c => c.id === collectionId);
+      
       const { error } = await supabase
         .from('cash_collections')
         .update({
@@ -366,6 +369,18 @@ const PaymentsCollections = () => {
 
       logActivity('cash_approved', 'Cash collection approved', collectionId);
       toast.success('Cash collection approved');
+      
+      // Notify cleaner of approval
+      if (collection) {
+        const { notifyCashApproved } = await import('@/hooks/useNotifications');
+        await notifyCashApproved(
+          collection.cleaner_id,
+          collection.amount,
+          collection.client_name || 'Client',
+          collectionId
+        );
+      }
+      
       fetchData();
     } catch (error) {
       console.error('Error approving cash collection:', error);
@@ -375,6 +390,9 @@ const PaymentsCollections = () => {
 
   const handleDisputeCash = async (collectionId: string, reason: string) => {
     try {
+      // Find the collection for notification
+      const collection = cashCollections.find(c => c.id === collectionId);
+      
       const { error } = await supabase
         .from('cash_collections')
         .update({
@@ -389,6 +407,19 @@ const PaymentsCollections = () => {
 
       logActivity('cash_disputed', `Cash collection disputed: ${reason}`, collectionId);
       toast.success('Cash collection marked as disputed');
+      
+      // Notify cleaner of dispute
+      if (collection) {
+        const { notifyCashDisputed } = await import('@/hooks/useNotifications');
+        await notifyCashDisputed(
+          collection.cleaner_id,
+          collection.amount,
+          collection.client_name || 'Client',
+          reason,
+          collectionId
+        );
+      }
+      
       setShowApprovalModal(false);
       setSelectedCashCollection(null);
       fetchData();

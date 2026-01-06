@@ -90,11 +90,18 @@ export const NotificationSettings = () => {
     },
     ...(isAdminOrManager ? [{
       title: t.notifications?.financialNotifications || 'Financial Notifications',
-      description: t.notifications?.financialNotificationsDesc || 'Notifications about invoices and payments',
+      description: t.notifications?.financialNotificationsDesc || 'Notifications about invoices, payments and cash handling',
       settings: [
-        { key: 'notify_invoices', label: t.notifications?.invoices || 'Invoice updates and payments' }
+        { key: 'notify_invoices', label: t.notifications?.invoices || 'Invoice updates and payments' },
+        { key: 'notify_cash_requests', label: 'Cash approval requests from cleaners' }
       ]
-    }] : []),
+    }] : [{
+      title: 'Cash Payment Notifications',
+      description: 'Notifications about your cash payments',
+      settings: [
+        { key: 'notify_cash_status', label: 'Cash approval and dispute updates' }
+      ]
+    }]),
     {
       title: t.notifications?.payrollNotifications || 'Payroll Notifications',
       description: t.notifications?.payrollNotificationsDesc || 'Notifications about payroll and paystubs',
