@@ -74,31 +74,24 @@ const Sidebar = () => {
   // =====================
   const operationsItems: MenuItem[] = [];
   
-  // Schedule - All users (cleaners see only their jobs)
   operationsItems.push({ path: '/schedule', label: t.nav.schedule, icon: Calendar });
   
-  // Completed Services - Admin/Manager only
   if (isAdminOrManager) {
     operationsItems.push({ path: '/completed-services', label: 'Completed Services', icon: CheckCircle });
   }
   
-  // Visit History - All users (filtered by RLS for cleaners)
   operationsItems.push({ path: '/visit-history', label: 'Visit History', icon: MapPin });
   
-  // Off Requests - Different routes by role
   if (isAdminOrManager) {
     operationsItems.push({ path: '/off-requests', label: 'Off Requests', icon: CalendarOff });
   } else if (isCleaner) {
     operationsItems.push({ path: '/my-off-requests', label: 'Off Requests', icon: CalendarOff });
   }
   
-  
-  // Activity Log - Admin/Manager
   if (isAdminOrManager) {
     operationsItems.push({ path: '/activity-log', label: t.nav.activityLog, icon: ClipboardList });
   }
   
-  // Notifications - All users
   operationsItems.push({ path: '/notifications', label: 'Notifications', icon: Bell });
 
   // =============================
@@ -117,12 +110,10 @@ const Sidebar = () => {
   // =====================
   const financialItems: MenuItem[] = [];
   
-  // Payments & Collections - Admin/Manager only (Central Financeira)
   if (isAdminOrManager) {
     financialItems.push({ path: '/payments', label: 'Payments & Collections', icon: CreditCard });
   }
   
-  // Financial Ledger - Admin/Manager only
   if (isAdminOrManager) {
     financialItems.push({ path: '/financial', label: 'Ledger', icon: BookOpen });
   }
@@ -136,7 +127,6 @@ const Sidebar = () => {
     financialItems.push({ path: '/payroll', label: t.nav.payroll, icon: Wallet });
   }
   
-  // Cleaner Payroll Report
   if (isCleaner) {
     financialItems.push({ path: '/my-payroll', label: t.payroll.myPayroll, icon: Wallet });
   }
@@ -152,9 +142,6 @@ const Sidebar = () => {
     companyItems.push({ path: '/settings', label: t.nav.settings, icon: Settings });
   }
 
-  // Home item (standalone, not in a group)
-  const homeItem = { path: '/', label: t.nav.home, icon: Home };
-
   const renderHomeLink = () => {
     const active = isActive('/');
     
@@ -163,15 +150,15 @@ const Sidebar = () => {
         href="/"
         onClick={handleNavClick('/', t.nav.home)}
         className={cn(
-          "flex items-center gap-2 px-2 py-1.5 rounded-md text-[13px] font-medium transition-all duration-200 cursor-pointer",
+          "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer",
           active 
-            ? "bg-sidebar-accent text-sidebar-accent-foreground" 
-            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-          collapsed && "justify-center px-1.5"
+            ? "bg-primary text-primary-foreground" 
+            : "text-muted-foreground hover:bg-accent hover:text-foreground",
+          collapsed && "justify-center px-2"
         )}
       >
-        <Home className={cn("h-4 w-4 shrink-0", active && "text-primary")} />
-        {!collapsed && <span className="truncate">{t.nav.home}</span>}
+        <Home className="h-4 w-4 shrink-0" />
+        {!collapsed && <span>Dashboard</span>}
       </a>
     );
 
@@ -186,7 +173,7 @@ const Sidebar = () => {
             sideOffset={8}
             className="font-medium z-[9999] bg-popover border border-border shadow-lg px-3 py-1.5"
           >
-            <span>{t.nav.home}</span>
+            <span>Dashboard</span>
           </TooltipContent>
         </Tooltip>
       );
@@ -198,17 +185,17 @@ const Sidebar = () => {
   return (
     <TooltipProvider delayDuration={0}>
       <aside className={cn(
-        "hidden lg:flex flex-col h-screen sticky top-0 border-r border-border/50 bg-sidebar-background transition-all duration-300 ease-in-out",
-        collapsed ? "w-[52px]" : "w-48"
+        "hidden lg:flex flex-col h-screen sticky top-0 border-r border-border bg-sidebar-background transition-all duration-300 ease-in-out",
+        collapsed ? "w-[60px]" : "w-56"
       )}>
-        {/* Platform Logo - ARKELIUM */}
+        {/* Logo Section */}
         <div className={cn(
-          "flex items-center h-9 px-2 shrink-0 border-b border-sidebar-border/50",
-          collapsed ? "justify-center" : "justify-start gap-1.5"
+          "flex items-center h-14 px-4 shrink-0 border-b border-border",
+          collapsed ? "justify-center px-2" : "justify-start gap-2.5"
         )}>
           <div className={cn(
             "shrink-0 flex items-center justify-center",
-            collapsed ? "w-7 h-7" : "w-6 h-6"
+            collapsed ? "w-8 h-8" : "w-7 h-7"
           )}>
             <img 
               src={arkeliumLogo} 
@@ -217,16 +204,16 @@ const Sidebar = () => {
             />
           </div>
           {!collapsed && (
-            <span className="text-sm font-semibold tracking-tight text-foreground">
+            <span className="text-base font-semibold tracking-tight text-foreground">
               Arkelium
             </span>
           )}
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-1.5 px-1">
-          <div className="space-y-0.5">
-            {/* Home - Standalone */}
+        <nav className="flex-1 overflow-y-auto py-4 px-3">
+          <div className="space-y-1">
+            {/* Home */}
             {renderHomeLink()}
 
             {/* Module 1: Operations */}
@@ -243,7 +230,7 @@ const Sidebar = () => {
             {/* Module 2: Clients & Contracts */}
             {clientsItems.length > 0 && (
               <SidebarMenuGroup
-                title="Clients & Contracts"
+                title="Clients"
                 icon={Handshake}
                 items={clientsItems}
                 collapsed={collapsed}
@@ -260,7 +247,7 @@ const Sidebar = () => {
               />
             )}
 
-            {/* Module 4: Company Management - Admin only */}
+            {/* Module 4: Company Management */}
             {companyItems.length > 0 && (
               <SidebarMenuGroup
                 title="Company"
@@ -273,13 +260,13 @@ const Sidebar = () => {
         </nav>
 
         {/* Collapse Toggle */}
-        <div className="p-1.5 border-t border-sidebar-border shrink-0">
+        <div className="p-3 border-t border-border shrink-0">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setCollapsed(!collapsed)}
             className={cn(
-              "w-full h-7 text-xs",
+              "w-full h-9 text-sm text-muted-foreground hover:text-foreground",
               collapsed ? "justify-center px-0" : "justify-start"
             )}
           >
@@ -287,7 +274,7 @@ const Sidebar = () => {
               <ChevronRight className="h-4 w-4" />
             ) : (
               <>
-                <ChevronLeft className="h-4 w-4 mr-1.5" />
+                <ChevronLeft className="h-4 w-4 mr-2" />
                 <span>Collapse</span>
               </>
             )}

@@ -7,169 +7,141 @@
 @layer base {
   :root {
     /* =====================================================
-       LIGHT THEME - Premium Arkelium Design System
-       Modern, elegant, with strong brand identity
+       LIGHT THEME - Premium Enterprise SaaS Design
+       Clean, minimal, professional with dark accents
        ===================================================== */
     
-    /* Background tones - Off-white, elegant, less stark */
-    --background: 210 20% 98%;
-    --foreground: 220 20% 15%;
+    /* Background - Very light off-white */
+    --background: 220 20% 98%;
+    --foreground: 230 25% 14%;
 
-    /* Card - Subtle warm white */
+    /* Card - Pure white */
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 15%;
+    --card-foreground: 230 25% 14%;
 
     /* Popover */
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 15%;
+    --popover-foreground: 230 25% 14%;
 
-    /* Brand Primary - Arkelium Green (#0A6C53 / #14A67B) */
-    --primary: 162 80% 24%;
+    /* Brand Primary - Dark navy/charcoal for enterprise feel */
+    --primary: 230 25% 18%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Light green tint for backgrounds */
-    --secondary: 160 30% 96%;
-    --secondary-foreground: 162 70% 20%;
+    /* Secondary - Subtle gray */
+    --secondary: 220 15% 96%;
+    --secondary-foreground: 230 20% 25%;
 
-    /* Muted - Soft neutral gray */
-    --muted: 210 20% 94%;
-    --muted-foreground: 220 10% 45%;
+    /* Muted - Soft neutral */
+    --muted: 220 15% 95%;
+    --muted-foreground: 220 10% 46%;
 
-    /* Accent - Light sage */
-    --accent: 160 25% 94%;
-    --accent-foreground: 162 70% 20%;
+    /* Accent - Light hover state */
+    --accent: 220 15% 94%;
+    --accent-foreground: 230 25% 18%;
 
     /* Destructive */
-    --destructive: 0 70% 55%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Borders and inputs */
-    --border: 210 20% 88%;
-    --input: 210 20% 90%;
-    --ring: 162 80% 24%;
+    /* Borders and inputs - Very subtle */
+    --border: 220 15% 90%;
+    --input: 220 15% 92%;
+    --ring: 230 25% 18%;
 
-    --radius: 0.625rem;
+    --radius: 0.75rem;
 
-    /* Status Colors - SaaS Standard */
-    --success: 162 72% 34%;
+    /* Status Colors */
+    --success: 160 84% 39%;
     --success-foreground: 0 0% 100%;
-    --warning: 43 96% 56%;
+    --warning: 38 92% 50%;
     --warning-foreground: 30 80% 15%;
     --info: 217 91% 60%;
     --info-foreground: 0 0% 100%;
 
-    /* Premium Card Colors - Light Mode Only */
-    --card-green: 160 40% 95%;
-    --card-green-border: 162 60% 70%;
-    --card-blue: 210 50% 95%;
-    --card-blue-border: 210 70% 65%;
-    --card-gold: 40 50% 94%;
-    --card-gold-border: 40 60% 65%;
-    --card-orange: 25 60% 94%;
-    --card-orange-border: 25 70% 60%;
-    --card-purple: 270 40% 95%;
-    --card-purple-border: 270 50% 70%;
-    --card-teal: 180 40% 94%;
-    --card-teal-border: 180 50% 60%;
+    /* Premium Shadows - Very subtle, professional */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+    --shadow-md: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.03);
+    --shadow-lg: 0 4px 12px -2px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.03);
+    --shadow-xl: 0 12px 24px -4px rgb(0 0 0 / 0.08), 0 4px 8px -4px rgb(0 0 0 / 0.04);
+    --shadow-header: 0 1px 2px 0 rgb(0 0 0 / 0.03);
 
-    /* Premium Shadows - Subtle with brand tint */
-    --shadow-sm: 0 1px 2px 0 hsl(162 30% 20% / 0.04);
-    --shadow-md: 0 2px 8px -1px hsl(162 30% 20% / 0.06), 0 1px 3px -1px hsl(162 30% 20% / 0.04);
-    --shadow-lg: 0 8px 20px -4px hsl(162 30% 20% / 0.08), 0 4px 8px -4px hsl(162 30% 20% / 0.04);
-    --shadow-xl: 0 16px 32px -8px hsl(162 30% 20% / 0.12), 0 8px 16px -8px hsl(162 30% 20% / 0.06);
-    --shadow-header: 0 1px 3px 0 hsl(162 30% 20% / 0.06), 0 1px 2px -1px hsl(162 30% 20% / 0.04);
-
-    /* Sidebar - Premium light */
-    --sidebar-background: 210 25% 99%;
-    --sidebar-foreground: 220 20% 20%;
-    --sidebar-primary: 162 80% 24%;
+    /* Sidebar - White/Light */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 230 20% 25%;
+    --sidebar-primary: 230 25% 18%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 160 30% 95%;
-    --sidebar-accent-foreground: 162 70% 20%;
-    --sidebar-border: 210 20% 92%;
-    --sidebar-ring: 162 80% 24%;
+    --sidebar-accent: 220 15% 96%;
+    --sidebar-accent-foreground: 230 25% 18%;
+    --sidebar-border: 220 15% 92%;
+    --sidebar-ring: 230 25% 18%;
 
-    /* Chart colors - Arkelium brand spectrum */
-    --chart-1: 162 72% 34%;
-    --chart-2: 162 60% 45%;
-    --chart-3: 40 60% 55%;
-    --chart-4: 210 70% 55%;
-    --chart-5: 162 40% 60%;
+    /* Chart colors - Dark/Professional palette */
+    --chart-1: 230 25% 18%;
+    --chart-2: 220 15% 35%;
+    --chart-3: 160 84% 39%;
+    --chart-4: 217 91% 60%;
+    --chart-5: 38 92% 50%;
   }
 
   .dark {
     /* =====================================================
-       DARK THEME - Unchanged (kept as is)
+       DARK THEME - Enterprise Dark Mode
        ===================================================== */
-    --background: 160 20% 6%;
-    --foreground: 150 15% 92%;
+    --background: 230 20% 8%;
+    --foreground: 220 15% 92%;
 
-    --card: 160 18% 9%;
-    --card-foreground: 150 15% 92%;
+    --card: 230 18% 11%;
+    --card-foreground: 220 15% 92%;
 
-    --popover: 160 18% 9%;
-    --popover-foreground: 150 15% 92%;
+    --popover: 230 18% 11%;
+    --popover-foreground: 220 15% 92%;
 
-    --primary: 156 45% 45%;
-    --primary-foreground: 160 20% 6%;
+    --primary: 220 15% 92%;
+    --primary-foreground: 230 20% 8%;
 
-    --secondary: 160 15% 14%;
-    --secondary-foreground: 150 15% 85%;
+    --secondary: 230 15% 16%;
+    --secondary-foreground: 220 15% 85%;
 
-    --muted: 160 12% 16%;
-    --muted-foreground: 150 10% 55%;
+    --muted: 230 15% 18%;
+    --muted-foreground: 220 10% 55%;
 
-    --accent: 156 30% 18%;
-    --accent-foreground: 156 45% 65%;
+    --accent: 230 15% 20%;
+    --accent-foreground: 220 15% 92%;
 
     --destructive: 0 62% 45%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 160 12% 16%;
-    --input: 160 12% 18%;
-    --ring: 156 45% 45%;
+    --border: 230 15% 18%;
+    --input: 230 15% 20%;
+    --ring: 220 15% 70%;
 
-    --success: 156 55% 45%;
-    --success-foreground: 160 20% 6%;
+    --success: 160 60% 45%;
+    --success-foreground: 230 20% 8%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 6%;
     --info: 210 100% 60%;
     --info-foreground: 0 0% 6%;
 
-    /* Dark mode card colors */
-    --card-green: 160 25% 12%;
-    --card-green-border: 162 40% 30%;
-    --card-blue: 210 25% 12%;
-    --card-blue-border: 210 40% 35%;
-    --card-gold: 40 25% 12%;
-    --card-gold-border: 40 40% 35%;
-    --card-orange: 25 25% 12%;
-    --card-orange-border: 25 40% 35%;
-    --card-purple: 270 20% 14%;
-    --card-purple-border: 270 30% 40%;
-    --card-teal: 180 20% 12%;
-    --card-teal-border: 180 30% 35%;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.3);
+    --shadow-header: 0 1px 3px 0 rgb(0 0 0 / 0.4);
 
-    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.2);
-    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.25), 0 2px 4px -2px hsl(0 0% 0% / 0.15);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.3), 0 4px 6px -4px hsl(0 0% 0% / 0.15);
-    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.35), 0 8px 10px -6px hsl(0 0% 0% / 0.15);
-    --shadow-header: 0 1px 3px 0 hsl(0 0% 0% / 0.3);
+    --sidebar-background: 230 18% 10%;
+    --sidebar-foreground: 220 15% 90%;
+    --sidebar-primary: 220 15% 92%;
+    --sidebar-primary-foreground: 230 20% 8%;
+    --sidebar-accent: 230 15% 18%;
+    --sidebar-accent-foreground: 220 15% 90%;
+    --sidebar-border: 230 15% 16%;
+    --sidebar-ring: 220 15% 70%;
 
-    --sidebar-background: 160 18% 8%;
-    --sidebar-foreground: 150 15% 90%;
-    --sidebar-primary: 156 45% 45%;
-    --sidebar-primary-foreground: 160 20% 6%;
-    --sidebar-accent: 156 25% 16%;
-    --sidebar-accent-foreground: 156 45% 65%;
-    --sidebar-border: 160 12% 14%;
-    --sidebar-ring: 156 45% 45%;
-
-    --chart-1: 156 55% 50%;
-    --chart-2: 156 45% 60%;
-    --chart-3: 156 35% 45%;
-    --chart-4: 156 25% 55%;
-    --chart-5: 156 20% 65%;
+    --chart-1: 220 15% 75%;
+    --chart-2: 220 15% 60%;
+    --chart-3: 160 60% 50%;
+    --chart-4: 217 91% 65%;
+    --chart-5: 38 92% 55%;
   }
 }
 
@@ -189,6 +161,7 @@
 }
 
 @layer utilities {
+  /* Glass effects */
   .glass {
     @apply bg-card/80 backdrop-blur-xl border border-border/50;
   }
@@ -197,10 +170,12 @@
     @apply hover:bg-card/90 transition-colors duration-200;
   }
 
+  /* Text gradient */
   .text-gradient {
     @apply bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent;
   }
 
+  /* Animations */
   .animate-fade-up {
     animation: fade-up 0.5s ease-out forwards;
   }
@@ -217,10 +192,12 @@
     animation: slide-in-right 0.3s ease-out forwards;
   }
 
+  /* Card hover */
   .card-hover {
     @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5;
   }
 
+  /* Nav items */
   .nav-item {
     @apply relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200;
   }
@@ -233,68 +210,25 @@
     @apply text-muted-foreground hover:text-foreground hover:bg-muted/50;
   }
 
-  /* Premium card utilities for Light theme */
+  /* Premium card - Enterprise style */
   .premium-card {
-    @apply relative overflow-hidden rounded-xl border bg-card transition-all duration-300;
-    box-shadow: var(--shadow-md);
+    @apply relative overflow-hidden rounded-xl border border-border bg-card transition-all duration-200;
+    box-shadow: var(--shadow-sm);
   }
 
   .premium-card:hover {
-    box-shadow: var(--shadow-lg);
-    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
   }
 
-  /* Card color variants */
-  .card-variant-green {
-    background: hsl(var(--card-green));
-    border-color: hsl(var(--card-green-border));
+  /* Stat card - Clean enterprise style */
+  .stat-card {
+    @apply bg-card border border-border rounded-xl p-5 transition-all duration-200;
+    box-shadow: var(--shadow-sm);
   }
 
-  .card-variant-blue {
-    background: hsl(var(--card-blue));
-    border-color: hsl(var(--card-blue-border));
-  }
-
-  .card-variant-gold {
-    background: hsl(var(--card-gold));
-    border-color: hsl(var(--card-gold-border));
-  }
-
-  .card-variant-orange {
-    background: hsl(var(--card-orange));
-    border-color: hsl(var(--card-orange-border));
-  }
-
-  .card-variant-purple {
-    background: hsl(var(--card-purple));
-    border-color: hsl(var(--card-purple-border));
-  }
-
-  .card-variant-teal {
-    background: hsl(var(--card-teal));
-    border-color: hsl(var(--card-teal-border));
-  }
-
-  /* Section backgrounds for hierarchy */
-  .section-elevated {
-    @apply bg-card;
-  }
-
-  .section-subtle {
-    background: hsl(210 25% 97%);
-  }
-
-  .dark .section-subtle {
-    background: hsl(160 15% 8%);
-  }
-
-  /* Light theme accent utilities */
-  .accent-border {
-    @apply border-l-2 border-l-primary/40;
-  }
-  
-  .accent-hover {
-    @apply hover:border-primary/30 hover:bg-accent/50 transition-colors;
+  .stat-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
   }
 
   /* Typography hierarchy */
@@ -303,21 +237,20 @@
   }
 
   .heading-secondary {
-    color: hsl(220 15% 35%);
-    @apply font-medium;
-  }
-
-  .dark .heading-secondary {
-    color: hsl(150 10% 70%);
+    @apply text-foreground/80 font-medium;
   }
 
   .label-secondary {
-    color: hsl(220 10% 50%);
-    @apply text-sm;
+    @apply text-muted-foreground text-sm;
   }
 
-  .dark .label-secondary {
-    color: hsl(150 10% 55%);
+  /* Section backgrounds */
+  .section-elevated {
+    @apply bg-card;
+  }
+
+  .section-subtle {
+    @apply bg-muted/30;
   }
 }
 
@@ -365,8 +298,8 @@
 
 /* Scrollbar styling */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -391,5 +324,3 @@
 *:focus-visible {
   @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
 }
-
-/* Enterprise-grade visual refinements - no zoom needed */

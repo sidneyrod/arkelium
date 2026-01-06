@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ChevronDown, LucideIcon } from 'lucide-react';
+import { ChevronRight, LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -60,38 +60,38 @@ const SidebarMenuGroup = ({
   // Collapsed mode - show only group icon with tooltip
   if (collapsed) {
     return (
-      <div className="space-y-0.5">
+      <div className="py-1">
         <Tooltip delayDuration={0}>
           <TooltipTrigger asChild>
             <button
               onClick={() => setIsOpen(!isOpen)}
               className={cn(
-                "w-full flex items-center justify-center p-2 rounded-md transition-all duration-200",
+                "w-full flex items-center justify-center p-2 rounded-lg transition-all duration-200",
                 hasActiveItem 
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground" 
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                  ? "bg-primary text-primary-foreground" 
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
               )}
             >
-              <GroupIcon className={cn("h-4 w-4", hasActiveItem && "text-primary")} />
+              <GroupIcon className="h-4 w-4" />
             </button>
           </TooltipTrigger>
           <TooltipContent 
             side="right" 
             sideOffset={8}
-            className="font-medium z-[9999] bg-popover border border-border shadow-lg"
+            className="font-medium z-[9999] bg-popover border border-border shadow-lg p-2 min-w-[160px]"
           >
             <div className="space-y-1">
-              <p className="font-semibold text-xs text-muted-foreground uppercase tracking-wide">{title}</p>
+              <p className="font-semibold text-xs text-muted-foreground uppercase tracking-wide mb-2">{title}</p>
               {items.map(item => (
                 <a
                   key={item.path}
                   href={item.path}
                   onClick={handleItemClick(item)}
                   className={cn(
-                    "flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors",
+                    "flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors",
                     isActive(item.path) 
-                      ? "bg-primary/10 text-primary font-medium" 
-                      : "hover:bg-muted"
+                      ? "bg-primary text-primary-foreground font-medium" 
+                      : "hover:bg-accent"
                   )}
                 >
                   <item.icon className="h-3.5 w-3.5" />
@@ -107,51 +107,50 @@ const SidebarMenuGroup = ({
 
   // Expanded mode - show full collapsible group
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="py-1">
       <CollapsibleTrigger asChild>
         <button
           className={cn(
-            "w-full flex items-center justify-between px-2 py-1.5 rounded-md text-[13px] font-medium transition-all duration-200 group",
+            "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 group",
             hasActiveItem 
-              ? "text-sidebar-accent-foreground" 
-              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+              ? "text-foreground" 
+              : "text-muted-foreground hover:bg-accent hover:text-foreground"
           )}
         >
-          <div className="flex items-center gap-2">
-            <GroupIcon className={cn("h-4 w-4 shrink-0", hasActiveItem && "text-primary")} />
-            <span className="truncate">{title}</span>
+          <div className="flex items-center gap-2.5">
+            <GroupIcon className="h-4 w-4 shrink-0" />
+            <span>{title}</span>
           </div>
-          <ChevronDown 
+          <ChevronRight 
             className={cn(
-              "h-3.5 w-3.5 shrink-0 transition-transform duration-200",
-              isOpen ? "rotate-180" : "rotate-0"
+              "h-4 w-4 shrink-0 transition-transform duration-200 text-muted-foreground",
+              isOpen && "rotate-90"
             )} 
           />
         </button>
       </CollapsibleTrigger>
       <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
-        <ul className="mt-0.5 ml-3.5 space-y-0.5 border-l border-border/50 pl-1.5">
+        <div className="mt-1 ml-4 pl-3 border-l border-border space-y-0.5">
           {items.map((item) => {
             const active = isActive(item.path);
             return (
-              <li key={item.path}>
-                <a
-                  href={item.path}
-                  onClick={handleItemClick(item)}
-                  className={cn(
-                    "flex items-center gap-2 px-2 py-1 rounded-md text-[13px] transition-all duration-200 cursor-pointer",
-                    active 
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" 
-                      : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                  )}
-                >
-                  <item.icon className={cn("h-3.5 w-3.5 shrink-0", active && "text-primary")} />
-                  <span className="truncate">{item.label}</span>
-                </a>
-              </li>
+              <a
+                key={item.path}
+                href={item.path}
+                onClick={handleItemClick(item)}
+                className={cn(
+                  "flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm transition-all duration-200 cursor-pointer",
+                  active 
+                    ? "bg-primary text-primary-foreground font-medium" 
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                )}
+              >
+                <item.icon className="h-3.5 w-3.5 shrink-0" />
+                <span>{item.label}</span>
+              </a>
             );
           })}
-        </ul>
+        </div>
       </CollapsibleContent>
     </Collapsible>
   );

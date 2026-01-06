@@ -2,8 +2,6 @@ import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-export type StatCardVariant = 'default' | 'green' | 'blue' | 'gold' | 'orange' | 'purple' | 'teal';
-
 interface StatCardProps {
   title: string;
   value: string | number;
@@ -15,46 +13,8 @@ interface StatCardProps {
   className?: string;
   onClick?: () => void;
   tooltip?: string;
-  variant?: StatCardVariant;
+  variant?: 'default' | 'green' | 'blue' | 'gold' | 'orange' | 'purple' | 'teal';
 }
-
-const variantStyles: Record<StatCardVariant, { card: string; icon: string; iconBg: string }> = {
-  default: {
-    card: 'bg-card border-border/50',
-    icon: 'text-primary',
-    iconBg: 'bg-primary/10',
-  },
-  green: {
-    card: 'card-variant-green',
-    icon: 'text-[hsl(162,72%,34%)]',
-    iconBg: 'bg-[hsl(162,72%,34%)]/15',
-  },
-  blue: {
-    card: 'card-variant-blue',
-    icon: 'text-[hsl(217,91%,60%)]',
-    iconBg: 'bg-[hsl(217,91%,60%)]/15',
-  },
-  gold: {
-    card: 'card-variant-gold',
-    icon: 'text-[hsl(40,70%,45%)]',
-    iconBg: 'bg-[hsl(40,70%,45%)]/15',
-  },
-  orange: {
-    card: 'card-variant-orange',
-    icon: 'text-[hsl(25,80%,50%)]',
-    iconBg: 'bg-[hsl(25,80%,50%)]/15',
-  },
-  purple: {
-    card: 'card-variant-purple',
-    icon: 'text-[hsl(270,60%,55%)]',
-    iconBg: 'bg-[hsl(270,60%,55%)]/15',
-  },
-  teal: {
-    card: 'card-variant-teal',
-    icon: 'text-[hsl(180,60%,40%)]',
-    iconBg: 'bg-[hsl(180,60%,40%)]/15',
-  },
-};
 
 const StatCard = ({ 
   title, 
@@ -66,51 +26,39 @@ const StatCard = ({
   tooltip,
   variant = 'default'
 }: StatCardProps) => {
-  const styles = variantStyles[variant];
 
   const cardContent = (
     <div 
       className={cn(
-        "group relative overflow-hidden rounded-lg border p-3 transition-all duration-300",
-        styles.card,
-        "hover:-translate-y-0.5",
-        onClick && "cursor-pointer active:scale-[0.99]",
+        "stat-card group",
+        onClick && "cursor-pointer",
         className
       )}
-      style={{
-        boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
-      }}
       onClick={onClick}
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => e.key === 'Enter' && onClick() : undefined}
     >
       <div className="flex items-start justify-between">
-        <div className="space-y-0.5">
-          <p className="text-[11px] font-medium text-muted-foreground">{title}</p>
-          <p className="text-xl font-bold tracking-tight text-foreground">{value}</p>
+        <div className="space-y-1.5">
+          <p className="text-[13px] font-medium text-muted-foreground">{title}</p>
+          <p className="text-[28px] font-bold tracking-tight text-foreground leading-none">{value}</p>
           {trend && (
-            <div className={cn(
-              "inline-flex items-center gap-1 text-xs font-medium",
-              trend.isPositive ? "text-success" : "text-destructive"
-            )}>
-              <span>{trend.isPositive ? '↑' : '↓'}</span>
-              <span>{Math.abs(trend.value)}%</span>
-              <span className="text-muted-foreground">vs last month</span>
+            <div className="flex items-center gap-1.5 pt-1">
+              <span className={cn(
+                "text-xs font-medium",
+                trend.isPositive ? "text-success" : "text-destructive"
+              )}>
+                {trend.isPositive ? '+' : ''}{trend.value}%
+              </span>
+              <span className="text-xs text-muted-foreground">from last month</span>
             </div>
           )}
         </div>
-        <div className={cn(
-          "flex h-8 w-8 items-center justify-center rounded-md transition-transform duration-300 group-hover:scale-110",
-          styles.iconBg,
-          styles.icon
-        )}>
-          <Icon className="h-4 w-4" strokeWidth={1.75} />
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted/50 text-muted-foreground transition-colors group-hover:bg-muted">
+          <Icon className="h-5 w-5" strokeWidth={1.5} />
         </div>
       </div>
-      
-      {/* Subtle gradient overlay on hover */}
-      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-white/50 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 dark:from-white/5" />
     </div>
   );
 
