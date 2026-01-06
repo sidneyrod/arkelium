@@ -191,7 +191,7 @@ const Calculator = () => {
   const acceptedValue = estimates.filter(e => e.status === 'accepted').reduce((sum, e) => sum + e.totalAmount, 0);
 
   return (
-    <div className="container px-4 py-8 lg:px-8 space-y-8">
+    <div className="container px-4 py-3 lg:px-5 space-y-4">
       <PageHeader 
         title={t.calculator.title}
         description="Create and manage service estimates for clients"
@@ -203,12 +203,12 @@ const Calculator = () => {
       />
 
       {/* Summary Cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-2.5 sm:grid-cols-3">
         <Card className="border-border/50">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                <CalcIcon className="h-6 w-6 text-primary" />
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                <CalcIcon className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Estimates</p>
@@ -219,10 +219,10 @@ const Calculator = () => {
         </Card>
 
         <Card className="border-border/50">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-warning/10 flex items-center justify-center">
-                <Send className="h-6 w-6 text-warning" />
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-lg bg-warning/10 flex items-center justify-center">
+                <Send className="h-5 w-5 text-warning" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Pending Response</p>
@@ -233,10 +233,10 @@ const Calculator = () => {
         </Card>
 
         <Card className="border-border/50">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-success/10 flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-success" />
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-lg bg-success/10 flex items-center justify-center">
+                <DollarSign className="h-5 w-5 text-success" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Accepted Value</p>

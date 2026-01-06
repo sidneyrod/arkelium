@@ -168,7 +168,7 @@ const ActivityLog = () => {
   // Role-based access control - only admin and manager can view
   if (!hasRole(['admin', 'manager'])) {
     return (
-      <div className="p-4 lg:p-6 max-w-7xl mx-auto">
+      <div className="p-3 lg:p-4 max-w-7xl mx-auto">
         <Card className="border-destructive/50 bg-destructive/5">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <ShieldAlert className="h-12 w-12 text-destructive mb-4" />
@@ -279,14 +279,14 @@ const ActivityLog = () => {
 
   if (isLoading) {
     return (
-      <div className="p-4 lg:p-6 max-w-7xl mx-auto flex items-center justify-center min-h-[400px]">
+      <div className="p-3 lg:p-4 max-w-7xl mx-auto flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="p-4 lg:p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-3 lg:p-4 max-w-7xl mx-auto space-y-3">
       <PageHeader title={t.activityLog.title} description={t.activityLog.description} />
       
       {/* Filters */}
