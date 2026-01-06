@@ -16,9 +16,9 @@ interface PageHeaderProps {
 
 const PageHeader = ({ title, description, action, className, children }: PageHeaderProps) => {
   return (
-    <div className={cn("flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between", className)}>
-      <div className="space-y-0.5">
-        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+    <div className={cn("flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between", className)}>
+      <div className="space-y-0">
+        <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
         {description && (
           <p className="text-sm text-muted-foreground">{description}</p>
         )}

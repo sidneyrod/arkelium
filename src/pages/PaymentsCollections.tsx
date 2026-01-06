@@ -470,7 +470,7 @@ const PaymentsCollections = () => {
   }
 
   return (
-    <div className="container px-4 py-8 lg:px-8 space-y-8">
+    <div className="container px-3 py-4 lg:px-5 space-y-4">
       <PageHeader 
         title="Payments & Collections" 
         description="Central hub for all financial transactions and cash handling"
@@ -494,9 +494,9 @@ const PaymentsCollections = () => {
       />
 
       {/* KPI Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="border-border/50">
-          <CardContent className="pt-6">
+          <CardContent className="pt-4 pb-3">
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 rounded-xl bg-success/10 flex items-center justify-center">
                 <DollarSign className="h-6 w-6 text-success" />

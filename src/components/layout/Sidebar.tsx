@@ -199,16 +199,16 @@ const Sidebar = () => {
     <TooltipProvider delayDuration={0}>
       <aside className={cn(
         "hidden lg:flex flex-col h-screen sticky top-0 border-r border-border/50 bg-sidebar-background transition-all duration-300 ease-in-out",
-        collapsed ? "w-[60px]" : "w-52"
+        collapsed ? "w-[52px]" : "w-48"
       )}>
         {/* Platform Logo - ARKELIUM */}
         <div className={cn(
-          "flex items-center h-11 px-2.5 shrink-0 border-b border-sidebar-border/50",
-          collapsed ? "justify-center" : "justify-start gap-2"
+          "flex items-center h-9 px-2 shrink-0 border-b border-sidebar-border/50",
+          collapsed ? "justify-center" : "justify-start gap-1.5"
         )}>
           <div className={cn(
             "shrink-0 flex items-center justify-center",
-            collapsed ? "w-8 h-8" : "w-7 h-7"
+            collapsed ? "w-7 h-7" : "w-6 h-6"
           )}>
             <img 
               src={arkeliumLogo} 
@@ -224,7 +224,7 @@ const Sidebar = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-2 px-1.5">
+        <nav className="flex-1 overflow-y-auto py-1.5 px-1">
           <div className="space-y-0.5">
             {/* Home - Standalone */}
             {renderHomeLink()}
@@ -273,13 +273,13 @@ const Sidebar = () => {
         </nav>
 
         {/* Collapse Toggle */}
-        <div className="p-2 border-t border-sidebar-border shrink-0">
+        <div className="p-1.5 border-t border-sidebar-border shrink-0">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setCollapsed(!collapsed)}
             className={cn(
-              "w-full h-8 text-xs",
+              "w-full h-7 text-xs",
               collapsed ? "justify-center px-0" : "justify-start"
             )}
           >
