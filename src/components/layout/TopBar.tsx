@@ -298,12 +298,9 @@ const TopBar = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full h-14 bg-card border-b border-border" style={{ boxShadow: 'var(--shadow-header)' }}>
-      <div className="flex h-full items-center justify-between px-4 lg:px-6">
-        {/* Left spacer */}
-        <div className="hidden md:block w-[180px]" />
-        
-        {/* Center: Search - positioned absolutely for true center */}
-        <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 w-full max-w-md px-4">
+      <div className="relative flex h-full items-center px-4 lg:px-6">
+        {/* Center: Search (centered within the content area; automatically adapts to sidebar collapse) */}
+        <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2 w-full max-w-md px-4">
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
@@ -320,7 +317,7 @@ const TopBar = () => {
             {isSearching && (
               <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
             )}
-            
+
             {/* Search Results Dropdown */}
             {searchOpen && searchQuery && (
               <div className="absolute top-full left-0 right-0 mt-2 w-full bg-card border border-border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
@@ -409,7 +406,7 @@ const TopBar = () => {
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-2 flex-1 justify-end">
+        <div className="flex items-center gap-2 ml-auto">
           {/* Download Button */}
           <Tooltip>
             <TooltipTrigger asChild>

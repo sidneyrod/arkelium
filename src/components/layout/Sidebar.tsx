@@ -41,17 +41,25 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
 
-  // Auto-collapse on smaller desktop screens
+  // Auto-collapse on smaller desktop screens + expose sidebar width as CSS var (used to center TopBar search)
   useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 1280 && window.innerWidth >= 1024) {
+    const updateLayout = () => {
+      const width = window.innerWidth;
+
+      // Auto-collapse on smaller desktop screens
+      if (width < 1280 && width >= 1024) {
         setCollapsed(true);
       }
+
+      const isDesktop = width >= 1024;
+      const sidebarWidth = isDesktop ? (collapsed ? '60px' : '224px') : '0px';
+      document.documentElement.style.setProperty('--app-sidebar-width', sidebarWidth);
     };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+
+    updateLayout();
+    window.addEventListener('resize', updateLayout);
+    return () => window.removeEventListener('resize', updateLayout);
+  }, [collapsed]);
 
   // Role checks
   const isAdmin = hasRole(['admin']);
