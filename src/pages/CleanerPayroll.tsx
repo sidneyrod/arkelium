@@ -240,7 +240,7 @@ const CleanerPayroll = () => {
 
   if (isLoading) {
     return (
-      <div className="container px-4 py-6 lg:px-8 space-y-6">
+      <div className="container px-4 py-3 lg:px-5 space-y-3">
         <Skeleton className="h-10 w-48" />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Skeleton className="h-24" />
@@ -254,7 +254,7 @@ const CleanerPayroll = () => {
   }
 
   return (
-    <div className="container px-4 py-6 lg:px-8 space-y-6">
+    <div className="container px-4 py-3 lg:px-5 space-y-3">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <PageHeader 
           title={t.payroll.myPayroll}
@@ -264,7 +264,7 @@ const CleanerPayroll = () => {
       </div>
 
       {/* Hours Summary Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="border-border/50">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -331,7 +331,7 @@ const CleanerPayroll = () => {
       </div>
 
       {/* Earnings Summary */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-2.5 sm:grid-cols-3">
         <Card className="border-border/50 border-l-4 border-l-primary">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">

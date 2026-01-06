@@ -347,14 +347,14 @@ const Users = () => {
 
   if (isLoading) {
     return (
-      <div className="container px-4 py-8 lg:px-8 flex items-center justify-center min-h-[400px]">
+      <div className="container px-4 py-3 lg:px-5 flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="container px-4 py-8 lg:px-8 space-y-6">
+    <div className="container px-4 py-3 lg:px-5 space-y-3">
       <PageHeader 
         title={t.users.title}
         description="Manage employees and system users"

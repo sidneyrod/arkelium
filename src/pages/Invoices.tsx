@@ -458,21 +458,21 @@ const Invoices = () => {
 
   if (isLoading) {
     return (
-      <div className="container px-4 py-8 lg:px-8 flex items-center justify-center min-h-[400px]">
+      <div className="container px-4 py-3 lg:px-5 flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="container px-4 py-8 lg:px-8 space-y-6">
+    <div className="container px-4 py-3 lg:px-5 space-y-3">
       <PageHeader 
         title="Invoices"
         description="Manage invoices for completed cleaning services"
       />
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-2.5 md:grid-cols-4">
         <Card className="border-border/50">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">

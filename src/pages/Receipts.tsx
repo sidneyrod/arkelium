@@ -217,14 +217,14 @@ const Receipts = () => {
   const sentCount = filteredReceipts.filter(r => r.sent_at).length;
 
   return (
-    <div className="container px-4 py-8 lg:px-8 space-y-6">
+    <div className="container px-4 py-3 lg:px-5 space-y-3">
       <PageHeader 
         title="Payment Receipts"
         description="Manage cash payment receipts for completed services"
       />
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-2.5 md:grid-cols-3">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">

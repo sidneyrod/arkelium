@@ -81,13 +81,13 @@ const Settings = () => {
   };
 
   return (
-    <div className="container px-4 py-8 lg:px-8 space-y-8">
+    <div className="container px-4 py-3 lg:px-5 space-y-4">
       <PageHeader 
         title={t.settings.title}
         description="Customize your application preferences"
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         {/* Appearance */}
         <Card className="border-border/50">
           <CardHeader>
@@ -294,7 +294,7 @@ const Settings = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
                 <div className="space-y-0.5">
                   <Label>Auto-generate invoices</Label>

@@ -298,7 +298,7 @@ const Payroll = () => {
 
   if (isLoading) {
     return (
-      <div className="container px-4 py-8 lg:px-8 space-y-8">
+      <div className="container px-4 py-3 lg:px-5 space-y-4">
         <Skeleton className="h-10 w-48" />
         <div className="grid gap-4 sm:grid-cols-3">
           <Skeleton className="h-24" />
@@ -311,7 +311,7 @@ const Payroll = () => {
   }
 
   return (
-    <div className="container px-4 py-8 lg:px-8 space-y-8">
+    <div className="container px-4 py-3 lg:px-5 space-y-4">
       <PageHeader title={t.payroll.title} description="Manage employee payroll and compensation">
         <div className="flex gap-2">
           <Button variant="outline" className="gap-2" onClick={() => fetchPeriods()}>
@@ -354,12 +354,12 @@ const Payroll = () => {
         />
       )}
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-2.5 sm:grid-cols-3">
         <Card className="border-border/50">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-primary" />
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                <DollarSign className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Current Period Total</p>
@@ -369,10 +369,10 @@ const Payroll = () => {
           </CardContent>
         </Card>
         <Card className="border-border/50">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-info/10 flex items-center justify-center">
-                <Clock className="h-6 w-6 text-info" />
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-lg bg-info/10 flex items-center justify-center">
+                <Clock className="h-5 w-5 text-info" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Hours</p>
@@ -382,10 +382,10 @@ const Payroll = () => {
           </CardContent>
         </Card>
         <Card className="border-border/50">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-success/10 flex items-center justify-center">
-                <CheckCircle className="h-6 w-6 text-success" />
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-lg bg-success/10 flex items-center justify-center">
+                <CheckCircle className="h-5 w-5 text-success" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Employees</p>

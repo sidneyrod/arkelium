@@ -186,7 +186,7 @@ export default function Notifications() {
   };
 
   return (
-    <div className="container px-4 py-8 lg:px-8 space-y-6">
+    <div className="container px-4 py-3 lg:px-5 space-y-3">
       <PageHeader
         title={t.notifications?.title || 'Notifications'}
         description={t.notifications?.description || 'Manage your notifications and alerts'}
@@ -275,7 +275,7 @@ export default function Notifications() {
       </Card>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">

@@ -339,7 +339,7 @@ const CompletedServices = () => {
 
   if (isLoading) {
     return (
-      <div className="p-4 lg:p-6 max-w-7xl mx-auto flex items-center justify-center min-h-[400px]">
+      <div className="p-3 lg:p-4 max-w-7xl mx-auto flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -347,9 +347,9 @@ const CompletedServices = () => {
 
   if (!canViewServices) {
     return (
-      <div className="p-4 lg:p-6 max-w-7xl mx-auto">
+      <div className="p-3 lg:p-4 max-w-7xl mx-auto">
         <Card className="border-destructive/50 bg-destructive/5">
-          <CardContent className="p-6 text-center">
+          <CardContent className="p-4 text-center">
             <p className="text-destructive">You don't have permission to access this page.</p>
           </CardContent>
         </Card>
@@ -358,7 +358,7 @@ const CompletedServices = () => {
   }
 
   return (
-    <div className="p-4 lg:p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-3 lg:p-4 max-w-7xl mx-auto space-y-3">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <PageHeader 
           title="Completed Services"
@@ -367,7 +367,7 @@ const CompletedServices = () => {
         <PeriodSelector value={period} onChange={setPeriod} />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-2.5 md:grid-cols-3">
         <Card className="border-border/50">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">

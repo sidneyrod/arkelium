@@ -421,7 +421,7 @@ const OffRequests = () => {
   }
 
   return (
-    <div className="container px-4 py-8 lg:px-8 space-y-6">
+    <div className="container px-4 py-3 lg:px-5 space-y-3">
       <div className="flex items-center justify-between">
         <PageHeader 
           title={isEnglish ? "Off Requests" : "Solicitações de Folga"}
@@ -438,7 +438,7 @@ const OffRequests = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-2.5 md:grid-cols-4">
         <Card className="border-border/50 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all" 
               onClick={() => setActiveTab('pending')}>
           <CardContent className="p-4">

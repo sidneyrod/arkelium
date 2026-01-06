@@ -664,7 +664,7 @@ const Company = () => {
   }
 
   return (
-    <div className="p-4 lg:p-6 max-w-6xl mx-auto space-y-4">
+    <div className="p-3 lg:p-4 max-w-6xl mx-auto space-y-3">
       <PageHeader 
         title={t.company.title}
         description="Manage your company information, branding, and configuration"

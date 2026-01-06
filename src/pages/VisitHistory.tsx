@@ -320,9 +320,9 @@ const VisitHistory = () => {
   };
 
   return (
-    <div className="space-y-8 p-2">
+    <div className="space-y-4 p-2">
       {/* Header Section with more spacing */}
-      <div className="pt-4">
+      <div className="pt-3">
         <PageHeader 
           title="Visit History"
           description="Track, manage and convert all business visits"
