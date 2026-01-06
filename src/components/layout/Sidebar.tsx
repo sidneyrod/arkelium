@@ -157,11 +157,11 @@ const Sidebar = () => {
         href="/"
         onClick={handleNavClick('/', t.nav.home)}
         className={cn(
-          "flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm font-medium transition-all duration-200 cursor-pointer",
+          "flex items-center gap-2 px-2 py-1.5 rounded-md text-[13px] font-medium transition-all duration-200 cursor-pointer",
           active 
             ? "bg-sidebar-accent text-sidebar-accent-foreground" 
             : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-          collapsed && "justify-center px-2"
+          collapsed && "justify-center px-1.5"
         )}
       >
         <Home className={cn("h-4 w-4 shrink-0", active && "text-primary")} />
@@ -193,16 +193,16 @@ const Sidebar = () => {
     <TooltipProvider delayDuration={0}>
       <aside className={cn(
         "hidden lg:flex flex-col h-screen sticky top-0 border-r border-border/50 bg-sidebar-background transition-all duration-300 ease-in-out",
-        collapsed ? "w-[68px]" : "w-56"
+        collapsed ? "w-[60px]" : "w-52"
       )}>
         {/* Platform Logo - ARKELIUM */}
         <div className={cn(
-          "flex items-center h-14 px-3 shrink-0 border-b border-sidebar-border/50",
+          "flex items-center h-11 px-2.5 shrink-0 border-b border-sidebar-border/50",
           collapsed ? "justify-center" : "justify-start gap-2"
         )}>
           <div className={cn(
             "shrink-0 flex items-center justify-center",
-            collapsed ? "w-9 h-9" : "w-8 h-8"
+            collapsed ? "w-8 h-8" : "w-7 h-7"
           )}>
             <img 
               src={arkeliumLogo} 
@@ -211,15 +211,15 @@ const Sidebar = () => {
             />
           </div>
           {!collapsed && (
-            <span className="text-base font-semibold tracking-tight text-foreground">
+            <span className="text-sm font-semibold tracking-tight text-foreground">
               Arkelium
             </span>
           )}
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-3 px-2">
-          <div className="space-y-1">
+        <nav className="flex-1 overflow-y-auto py-2 px-1.5">
+          <div className="space-y-0.5">
             {/* Home - Standalone */}
             {renderHomeLink()}
 

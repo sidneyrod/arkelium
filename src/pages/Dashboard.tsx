@@ -342,12 +342,12 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="container px-6 lg:px-10 py-8 space-y-8">
+    <div className="container px-4 lg:px-6 py-4 space-y-4">
       {/* Welcome Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight heading-primary">{t.dashboard.welcome}, {userName}</h1>
-          <p className="label-secondary">{t.dashboard.subtitle}</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="space-y-0.5">
+          <h1 className="text-lg font-semibold tracking-tight heading-primary">{t.dashboard.welcome}, {userName}</h1>
+          <p className="text-sm label-secondary">{t.dashboard.subtitle}</p>
         </div>
         {isAdminOrManager && (
           <PeriodSelector value={period} onChange={setPeriod} />
@@ -357,9 +357,9 @@ const Dashboard = () => {
       {/* Stats Grid - Premium Cards with Color Variants */}
       {/* For cleaners: show only Today's Jobs and Upcoming Schedule */}
       {isCleaner ? (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Week Overview Cards */}
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard 
               title={t.dashboard.todayJobs} 
               value={stats.todayJobs.toString()} 
@@ -440,7 +440,7 @@ const Dashboard = () => {
           )}
         </div>
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <StatCard 
             title={t.dashboard.todayJobs} 
             value={stats.todayJobs.toString()} 
@@ -494,7 +494,7 @@ const Dashboard = () => {
 
       {/* Charts Row - Only for Admin/Manager */}
       {isAdminOrManager && (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-3 lg:grid-cols-2">
           {/* Jobs This Week */}
           <Card className="border-border/60 shadow-sm">
             <CardHeader className="pb-2">

@@ -343,8 +343,8 @@ const TopBar = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full h-14 bg-card/98 dark:bg-[hsl(160,18%,8%)]/95 backdrop-blur-xl border-b border-border/60 dark:border-[hsl(160,12%,14%)]" style={{ boxShadow: 'var(--shadow-header)' }}>
-      <div className="flex h-full items-center justify-between px-4 lg:px-6">
+    <header className="sticky top-0 z-50 w-full h-11 bg-card/98 dark:bg-[hsl(160,18%,8%)]/95 backdrop-blur-xl border-b border-border/60 dark:border-[hsl(160,12%,14%)]" style={{ boxShadow: 'var(--shadow-header)' }}>
+      <div className="flex h-full items-center justify-between px-3 lg:px-4">
         {/* Left: Empty space for layout balance */}
         <div className="flex items-center gap-2 min-w-0" />
 
@@ -361,7 +361,7 @@ const TopBar = () => {
                 if (e.target.value) setSearchOpen(true);
               }}
               onFocus={() => searchQuery && setSearchOpen(true)}
-              className="pl-9 h-9 bg-muted/50 dark:bg-[hsl(160,12%,12%)] border-border dark:border-[hsl(160,12%,18%)] text-sm placeholder:text-muted-foreground/70 focus:border-primary/50 focus:ring-primary/20"
+              className="pl-9 h-8 bg-muted/50 dark:bg-[hsl(160,12%,12%)] border-border dark:border-[hsl(160,12%,18%)] text-[13px] placeholder:text-muted-foreground/70 focus:border-primary/50 focus:ring-primary/20"
             />
             {isSearching && (
               <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />

@@ -102,7 +102,7 @@ const AppLayout = () => {
         <div className="flex-1 flex flex-col min-w-0">
           <TopBar />
           <WorkspaceTabs />
-          <main className="flex-1 pb-24 lg:pb-8 overflow-x-hidden">
+          <main className="flex-1 pb-16 lg:pb-4 overflow-x-hidden">
             <Outlet />
           </main>
         </div>

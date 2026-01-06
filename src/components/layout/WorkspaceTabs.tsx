@@ -183,7 +183,7 @@ const WorkspaceTabs = () => {
                   <div
                     onClick={() => handleTabClick(tab)}
                     className={cn(
-                      'group relative flex items-center gap-2 px-4 py-2.5 text-sm cursor-pointer border-r min-w-[120px] max-w-[200px] transition-all duration-200',
+                      'group relative flex items-center gap-1.5 px-3 py-2 text-[13px] cursor-pointer border-r min-w-[100px] max-w-[180px] transition-all duration-200',
                       tab.isActive
                         ? 'bg-primary/15 dark:bg-[hsl(156,45%,25%)] text-foreground dark:text-white shadow-[0_0_12px_hsl(156,45%,35%/0.2)] dark:shadow-[0_0_12px_hsl(156,45%,35%/0.3)] border-r-border dark:border-r-[hsl(160,12%,14%)]'
                         : 'bg-sidebar-background dark:bg-[hsl(160,18%,10%)] text-muted-foreground border-r-border dark:border-r-[hsl(160,12%,14%)] hover:bg-accent dark:hover:bg-[hsl(160,18%,14%)] hover:text-foreground dark:hover:text-[hsl(150,15%,75%)]'

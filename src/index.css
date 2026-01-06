@@ -392,15 +392,4 @@
   @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
 }
 
-/* =====================================================
-   ZOOM 90% - Reduz todo o conteúdo da aplicação
-   A barra do navegador permanece em 100%
-   ===================================================== */
-#root {
-  zoom: 0.9;
-}
-
-/* Remove scroll horizontal que pode aparecer com zoom */
-html {
-  overflow-x: hidden;
-}
+/* Enterprise-grade visual refinements - no zoom needed */

@@ -71,14 +71,14 @@ const StatCard = ({
   const cardContent = (
     <div 
       className={cn(
-        "group relative overflow-hidden rounded-xl border p-6 transition-all duration-300",
+        "group relative overflow-hidden rounded-lg border p-4 transition-all duration-300",
         styles.card,
-        "hover:-translate-y-1",
-        onClick && "cursor-pointer active:scale-[0.98]",
+        "hover:-translate-y-0.5",
+        onClick && "cursor-pointer active:scale-[0.99]",
         className
       )}
       style={{
-        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
       }}
       onClick={onClick}
       role={onClick ? "button" : undefined}
@@ -86,9 +86,9 @@ const StatCard = ({
       onKeyDown={onClick ? (e) => e.key === 'Enter' && onClick() : undefined}
     >
       <div className="flex items-start justify-between">
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="text-3xl font-bold tracking-tight text-foreground">{value}</p>
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-muted-foreground">{title}</p>
+          <p className="text-2xl font-bold tracking-tight text-foreground">{value}</p>
           {trend && (
             <div className={cn(
               "inline-flex items-center gap-1 text-xs font-medium",
@@ -101,11 +101,11 @@ const StatCard = ({
           )}
         </div>
         <div className={cn(
-          "flex h-14 w-14 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110",
+          "flex h-10 w-10 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110",
           styles.iconBg,
           styles.icon
         )}>
-          <Icon className="h-7 w-7" strokeWidth={1.75} />
+          <Icon className="h-5 w-5" strokeWidth={1.75} />
         </div>
       </div>
       

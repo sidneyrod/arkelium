@@ -111,26 +111,26 @@ const SidebarMenuGroup = ({
       <CollapsibleTrigger asChild>
         <button
           className={cn(
-            "w-full flex items-center justify-between px-2.5 py-2 rounded-md text-sm font-medium transition-all duration-200 group",
+            "w-full flex items-center justify-between px-2 py-1.5 rounded-md text-[13px] font-medium transition-all duration-200 group",
             hasActiveItem 
               ? "text-sidebar-accent-foreground" 
               : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
           )}
         >
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <GroupIcon className={cn("h-4 w-4 shrink-0", hasActiveItem && "text-primary")} />
             <span className="truncate">{title}</span>
           </div>
           <ChevronDown 
             className={cn(
-              "h-4 w-4 shrink-0 transition-transform duration-200",
+              "h-3.5 w-3.5 shrink-0 transition-transform duration-200",
               isOpen ? "rotate-180" : "rotate-0"
             )} 
           />
         </button>
       </CollapsibleTrigger>
       <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
-        <ul className="mt-0.5 ml-4 space-y-0.5 border-l border-border/50 pl-2">
+        <ul className="mt-0.5 ml-3.5 space-y-0.5 border-l border-border/50 pl-1.5">
           {items.map((item) => {
             const active = isActive(item.path);
             return (
@@ -139,7 +139,7 @@ const SidebarMenuGroup = ({
                   href={item.path}
                   onClick={handleItemClick(item)}
                   className={cn(
-                    "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-all duration-200 cursor-pointer",
+                    "flex items-center gap-2 px-2 py-1 rounded-md text-[13px] transition-all duration-200 cursor-pointer",
                     active 
                       ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" 
                       : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"

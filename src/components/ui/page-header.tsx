@@ -16,17 +16,17 @@ interface PageHeaderProps {
 
 const PageHeader = ({ title, description, action, className, children }: PageHeaderProps) => {
   return (
-    <div className={cn("flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between", className)}>
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+    <div className={cn("flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between", className)}>
+      <div className="space-y-0.5">
+        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
         {description && (
           <p className="text-sm text-muted-foreground">{description}</p>
         )}
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         {children}
         {action && (
-          <Button onClick={action.onClick} className="gap-2">
+          <Button onClick={action.onClick} size="sm" className="gap-1.5 h-8">
             {action.icon ? <action.icon className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             {action.label}
           </Button>
