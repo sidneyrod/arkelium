@@ -46,7 +46,7 @@ const getTabIdFromPath = (path: string) => {
 const getDefaultTabs = (): WorkspaceTab[] => [{
   id: 'dashboard',
   path: '/',
-  label: 'Home',
+  label: 'Dashboard',
   isActive: true,
 }];
 

@@ -606,37 +606,35 @@ const Dashboard = () => {
       {/* Cash Pending + Alerts Section - Only for Admin/Manager */}
       {isAdminOrManager && (
         <div className="space-y-3">
-          <div className="grid gap-3 lg:grid-cols-3">
-            {/* Cash Pending Card */}
-            <CashPendingCard />
-            
-            {/* Alerts Grid */}
-            <div className="lg:col-span-2 space-y-2">
-              <h2 className="text-base font-semibold heading-secondary">{t.dashboard.alerts}</h2>
-              <div className="grid gap-2.5 grid-cols-2">
-                <AlertCard 
-                  type="delayed" 
-                  title={t.dashboard.delayedJobs} 
-                  count={alertStats.delayedJobs} 
-                />
-                <AlertCard 
-                  type="invoice" 
-                  title={t.dashboard.pendingInvoices} 
-                  count={alertStats.pendingInvoices} 
-                />
-                <AlertCard 
-                  type="conflict" 
-                  title="Pending Off Requests" 
-                  count={alertStats.pendingOffRequests} 
-                />
-                <AlertCard 
-                  type="churn" 
-                  title={t.dashboard.scheduleConflicts} 
-                  count={alertStats.scheduleConflicts} 
-                />
-              </div>
+          {/* Alerts Section - Full width grid */}
+          <div className="space-y-2">
+            <h2 className="text-base font-semibold heading-secondary">{t.dashboard.alerts}</h2>
+            <div className="grid gap-2.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+              <AlertCard 
+                type="delayed" 
+                title={t.dashboard.delayedJobs} 
+                count={alertStats.delayedJobs} 
+              />
+              <AlertCard 
+                type="invoice" 
+                title={t.dashboard.pendingInvoices} 
+                count={alertStats.pendingInvoices} 
+              />
+              <AlertCard 
+                type="conflict" 
+                title="Pending Off Requests" 
+                count={alertStats.pendingOffRequests} 
+              />
+              <AlertCard 
+                type="churn" 
+                title={t.dashboard.scheduleConflicts} 
+                count={alertStats.scheduleConflicts} 
+              />
             </div>
           </div>
+          
+          {/* Cash Pending Card - Separate section */}
+          <CashPendingCard />
         </div>
       )}
     </div>
