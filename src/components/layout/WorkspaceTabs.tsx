@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { cn } from '@/lib/utils';
-import { X, Circle } from 'lucide-react';
+import { X, Circle, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   ContextMenu,
@@ -29,7 +29,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 const WorkspaceTabs = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { activeTabId, closeTab, setActiveTab, closeAllTabs, closeOtherTabs, currentUserId, userTabs } = useWorkspaceStore();
+  const { activeTabId, closeTab, setActiveTab, closeAllTabs, closeOtherTabs, reorderTabs, currentUserId, userTabs } = useWorkspaceStore();
   
   // Get current user's tabs
   const tabs = currentUserId && userTabs[currentUserId] ? userTabs[currentUserId] : [];
@@ -37,9 +37,13 @@ const WorkspaceTabs = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
+  const [isScrollDragging, setIsScrollDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+  
+  // Tab reordering state
+  const [draggedTabIndex, setDraggedTabIndex] = useState<number | null>(null);
+  const [dragOverTabIndex, setDragOverTabIndex] = useState<number | null>(null);
 
   // Handle horizontal scroll with mouse wheel
   useEffect(() => {
@@ -57,18 +61,21 @@ const WorkspaceTabs = () => {
     return () => container.removeEventListener('wheel', handleWheel);
   }, []);
 
-  // Drag-to-scroll handlers
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  // Drag-to-scroll handlers (for scrolling the container)
+  const handleScrollMouseDown = useCallback((e: React.MouseEvent) => {
+    // Only trigger scroll drag if clicking on the container background, not on a tab
+    if ((e.target as HTMLElement).closest('[data-tab]')) return;
+    
     const container = scrollContainerRef.current;
     if (!container) return;
     
-    setIsDragging(true);
+    setIsScrollDragging(true);
     setStartX(e.pageX - container.offsetLeft);
     setScrollLeft(container.scrollLeft);
   }, []);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragging) return;
+  const handleScrollMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isScrollDragging) return;
     const container = scrollContainerRef.current;
     if (!container) return;
     
@@ -76,14 +83,48 @@ const WorkspaceTabs = () => {
     const x = e.pageX - container.offsetLeft;
     const walk = (x - startX) * 1.5;
     container.scrollLeft = scrollLeft - walk;
-  }, [isDragging, startX, scrollLeft]);
+  }, [isScrollDragging, startX, scrollLeft]);
 
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
+  const handleScrollMouseUp = useCallback(() => {
+    setIsScrollDragging(false);
   }, []);
 
-  const handleMouseLeave = useCallback(() => {
-    setIsDragging(false);
+  const handleScrollMouseLeave = useCallback(() => {
+    setIsScrollDragging(false);
+  }, []);
+
+  // Tab reordering handlers
+  const handleTabDragStart = useCallback((e: React.DragEvent, index: number) => {
+    setDraggedTabIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', index.toString());
+  }, []);
+
+  const handleTabDragOver = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverTabIndex(index);
+  }, []);
+
+  const handleTabDragLeave = useCallback(() => {
+    setDragOverTabIndex(null);
+  }, []);
+
+  const handleTabDrop = useCallback((e: React.DragEvent, toIndex: number) => {
+    e.preventDefault();
+    const fromIndex = draggedTabIndex;
+    
+    if (fromIndex !== null && fromIndex !== toIndex) {
+      reorderTabs(fromIndex, toIndex);
+    }
+    
+    setDraggedTabIndex(null);
+    setDragOverTabIndex(null);
+  }, [draggedTabIndex, reorderTabs]);
+
+  const handleTabDragEnd = useCallback(() => {
+    setDraggedTabIndex(null);
+    setDragOverTabIndex(null);
   }, []);
 
   // Update fade indicators based on scroll position
@@ -168,27 +209,39 @@ const WorkspaceTabs = () => {
           ref={scrollContainerRef}
           className={cn(
             "flex items-center overflow-x-auto scrollbar-hide scroll-smooth select-none",
-            isDragging && "cursor-grabbing"
+            isScrollDragging && "cursor-grabbing"
           )}
-          style={{ scrollBehavior: isDragging ? 'auto' : 'smooth' }}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseLeave}
+          style={{ scrollBehavior: isScrollDragging ? 'auto' : 'smooth' }}
+          onMouseDown={handleScrollMouseDown}
+          onMouseMove={handleScrollMouseMove}
+          onMouseUp={handleScrollMouseUp}
+          onMouseLeave={handleScrollMouseLeave}
         >
           <div className="flex items-center min-w-0 whitespace-nowrap">
-            {tabs.map((tab) => (
+            {tabs.map((tab, index) => (
               <ContextMenu key={tab.id}>
                 <ContextMenuTrigger>
                   <div
+                    data-tab
+                    draggable
+                    onDragStart={(e) => handleTabDragStart(e, index)}
+                    onDragOver={(e) => handleTabDragOver(e, index)}
+                    onDragLeave={handleTabDragLeave}
+                    onDrop={(e) => handleTabDrop(e, index)}
+                    onDragEnd={handleTabDragEnd}
                     onClick={() => handleTabClick(tab)}
                     className={cn(
                       'group relative flex items-center gap-1 px-2.5 py-1.5 text-xs cursor-pointer border-r min-w-[90px] max-w-[160px] transition-all duration-200',
                       tab.isActive
                         ? 'bg-primary/15 dark:bg-[hsl(220,25%,20%)] text-foreground dark:text-white border-r-border dark:border-r-[hsl(220,15%,14%)]'
-                        : 'bg-sidebar-background dark:bg-[hsl(220,20%,10%)] text-muted-foreground border-r-border dark:border-r-[hsl(220,15%,14%)] hover:bg-accent dark:hover:bg-[hsl(220,20%,14%)] hover:text-foreground dark:hover:text-[hsl(220,15%,75%)]'
+                        : 'bg-sidebar-background dark:bg-[hsl(220,20%,10%)] text-muted-foreground border-r-border dark:border-r-[hsl(220,15%,14%)] hover:bg-accent dark:hover:bg-[hsl(220,20%,14%)] hover:text-foreground dark:hover:text-[hsl(220,15%,75%)]',
+                      draggedTabIndex === index && 'opacity-50',
+                      dragOverTabIndex === index && draggedTabIndex !== index && 'border-l-2 border-l-primary'
                     )}
                   >
+                    {/* Drag handle - visible on hover */}
+                    <GripVertical className="h-3 w-3 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab flex-shrink-0" />
+                    
                     {/* Unsaved changes indicator */}
                     {tab.hasUnsavedChanges && (
                       <Tooltip>

@@ -14,6 +14,7 @@ import {
   User,
   Download
 } from 'lucide-react';
+import { useSidebar } from '@/components/ui/sidebar';
 import ChangePasswordModal from '@/components/modals/ChangePasswordModal';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { cn } from '@/lib/utils';
@@ -295,11 +296,15 @@ const TopBar = () => {
     }
   };
 
+  // Get sidebar state for responsive centering
+  const { state: sidebarState } = useSidebar();
+  const isCollapsed = sidebarState === 'collapsed';
+
   return (
     <header className="sticky top-0 z-50 w-full h-14 bg-card border-b border-border" style={{ boxShadow: 'var(--shadow-header)' }}>
       <div className="flex h-full items-center px-4 lg:px-6">
-        {/* Left spacer for symmetry */}
-        <div className="hidden md:flex flex-1" />
+        {/* Left spacer - adjusts based on sidebar state for proportional centering */}
+        <div className={cn("hidden md:flex", isCollapsed ? "w-8" : "flex-1")} />
         
         {/* Center: Search */}
         <div className="hidden md:flex flex-1 justify-center max-w-md">

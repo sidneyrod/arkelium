@@ -31,6 +31,7 @@ interface WorkspaceState {
   updateTabFormState: (id: string, formState: Record<string, any>) => void;
   closeAllTabs: () => void;
   closeOtherTabs: (id: string) => void;
+  reorderTabs: (fromIndex: number, toIndex: number) => void;
   
   // Computed getter for current user tabs
   tabs: WorkspaceTab[];
@@ -291,6 +292,28 @@ export const useWorkspaceStore = create<WorkspaceState>()(
             })),
           },
           activeTabId: id,
+        });
+      },
+
+      reorderTabs: (fromIndex: number, toIndex: number) => {
+        const { currentUserId, userTabs } = get();
+        
+        if (!currentUserId) return;
+        
+        const tabs = [...(userTabs[currentUserId] || [])];
+        
+        if (fromIndex < 0 || fromIndex >= tabs.length || toIndex < 0 || toIndex >= tabs.length) {
+          return;
+        }
+        
+        const [movedTab] = tabs.splice(fromIndex, 1);
+        tabs.splice(toIndex, 0, movedTab);
+        
+        set({
+          userTabs: {
+            ...userTabs,
+            [currentUserId]: tabs,
+          },
         });
       },
     }),
