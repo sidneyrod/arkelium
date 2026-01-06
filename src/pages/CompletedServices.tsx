@@ -187,6 +187,19 @@ const CompletedServices = () => {
         const service = services.find(s => s.id === serviceId);
         if (!service) continue;
 
+        // DEFENSE-IN-DEPTH: Check if job was paid in cash (receipt already generated)
+        const { data: jobPaymentData } = await supabase
+          .from('jobs')
+          .select('payment_method')
+          .eq('id', serviceId)
+          .maybeSingle();
+        
+        if (jobPaymentData?.payment_method === 'cash') {
+          console.log(`Skipping job ${serviceId} - cash payment (receipt already generated)`);
+          invoicesSkipped++;
+          continue;
+        }
+
         // IDEMPOTENCY CHECK: Verify invoice doesn't already exist before inserting
         const { data: existingInvoice } = await supabase
           .from('invoices')
