@@ -313,13 +313,13 @@ const TopBar = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full h-14 bg-card border-b border-border" style={{ boxShadow: 'var(--shadow-header)' }}>
-      <div className="flex h-full items-center px-4 lg:px-6">
+      <div className="flex h-full items-center justify-between px-4 lg:px-6">
         {/* Left spacer - matches the width of the right actions for proportional centering */}
         <div className="hidden md:block shrink-0" style={{ width: rightActionsWidth }} />
 
         {/* Center: Search */}
-        <div className="hidden md:flex flex-1 justify-center">
-          <div className="relative w-full max-w-md">
+        <div className="hidden md:flex flex-1 justify-center px-4">
+          <div className="relative w-full max-w-lg">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               type="text"
