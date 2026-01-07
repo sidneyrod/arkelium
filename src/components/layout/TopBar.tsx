@@ -302,10 +302,7 @@ const TopBar = () => {
       <div className="flex h-full items-center justify-between px-4 lg:px-6">
         {/* Center: Search */}
         <div className="hidden md:flex flex-1 justify-center px-4">
-          <div
-            className="relative w-full max-w-lg"
-            style={{ transform: 'translateX(calc(var(--app-sidebar-width, 0px) / -2))' }}
-          >
+          <div className="relative w-full max-w-lg">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               type="text"

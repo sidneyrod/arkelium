@@ -9,8 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
+import { DatePickerDialog } from '@/components/ui/date-picker-dialog';
 import { Activity, User, Users, FileText, Calendar as CalendarIcon, DollarSign, Settings, LogIn, LogOut, CalendarOff, ShieldAlert, Search, Filter, X, Loader2, Banknote } from 'lucide-react';
 import { format, formatDistanceToNow, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -143,8 +142,7 @@ const ActivityLog = () => {
             created_at,
             details,
             user_id,
-            performed_by_user_id,
-            profiles!activity_logs_performed_by_user_id_fkey (first_name, last_name)
+            performed_by_user_id
           `)
           .eq('company_id', user.profile.company_id)
           .order('created_at', { ascending: false })
@@ -155,10 +153,29 @@ const ActivityLog = () => {
           return;
         }
 
+        // Fetch performer names separately for logs that have performed_by_user_id
+        const logsWithPerformerId = (data || []).filter((log: any) => log.performed_by_user_id);
+        const performerIds = [...new Set(logsWithPerformerId.map((log: any) => log.performed_by_user_id))];
+        
+        let performersMap: Record<string, { first_name: string | null; last_name: string | null }> = {};
+        
+        if (performerIds.length > 0) {
+          const { data: performers } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name')
+            .in('id', performerIds);
+          
+          if (performers) {
+            performers.forEach((p: any) => {
+              performersMap[p.id] = { first_name: p.first_name, last_name: p.last_name };
+            });
+          }
+        }
+
         // Transform data to match expected interface
         const transformedData = (data || []).map((log: any) => ({
           ...log,
-          performer: log.profiles || null
+          performer: log.performed_by_user_id ? performersMap[log.performed_by_user_id] || null : null
         })) as unknown as ActivityLogEntry[];
 
         setLogs(transformedData);
@@ -338,33 +355,19 @@ const ActivityLog = () => {
             </Select>
 
             {/* Date Range */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 gap-2 w-full lg:w-auto">
-                  <CalendarIcon className="h-4 w-4" />
-                  {dateRange.from ? (
-                    dateRange.to ? (
-                      <span>{format(dateRange.from, 'MMM d')} - {format(dateRange.to, 'MMM d')}</span>
-                    ) : (
-                      <span>From {format(dateRange.from, 'MMM d')}</span>
-                    )
-                  ) : (
-                    <span>Date Range</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-popover" align="end">
-                <Calendar
-                  mode="range"
-                  selected={{ from: dateRange.from, to: dateRange.to }}
-                  onSelect={(range) => { 
-                    setDateRange({ from: range?.from, to: range?.to }); 
-                    setCurrentPage(1); 
-                  }}
-                  numberOfMonths={2}
-                />
-              </PopoverContent>
-            </Popover>
+            <div className="w-full lg:w-auto">
+              <DatePickerDialog
+                mode="range"
+                selected={{ from: dateRange.from, to: dateRange.to }}
+                onSelect={(range) => { 
+                  const r = range as { from?: Date; to?: Date } | undefined;
+                  setDateRange({ from: r?.from, to: r?.to }); 
+                  setCurrentPage(1); 
+                }}
+                placeholder="Date Range"
+                className="h-9 w-full lg:w-auto"
+              />
+            </div>
 
             {/* Clear Filters */}
             {hasActiveFilters && (
