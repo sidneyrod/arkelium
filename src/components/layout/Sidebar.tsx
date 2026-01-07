@@ -193,7 +193,7 @@ const Sidebar = () => {
   return (
     <TooltipProvider delayDuration={0}>
       <aside className={cn(
-        "hidden lg:flex flex-col h-screen sticky top-0 border-r border-border bg-sidebar-background transition-all duration-300 ease-in-out",
+        "hidden lg:flex flex-col h-screen sticky top-0 border-r border-border bg-sidebar-background transition-all duration-300 ease-in-out relative",
         collapsed ? "w-[60px]" : "w-56"
       )}>
         {/* Logo Section */}
@@ -219,7 +219,7 @@ const Sidebar = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3">
+        <nav className="flex-1 overflow-y-auto py-4 px-3 pb-12">
           <div className="space-y-1">
             {/* Home */}
             {renderHomeLink()}
@@ -267,27 +267,25 @@ const Sidebar = () => {
           </div>
         </nav>
 
-        {/* Collapse Toggle - positioned at absolute bottom */}
-        <div className="mt-auto shrink-0">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setCollapsed(!collapsed)}
-            className={cn(
-              "w-full h-8 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-none border-t border-border",
-              collapsed ? "justify-center px-0" : "justify-start px-3"
-            )}
-          >
-            {collapsed ? (
-              <ChevronRight className="h-3.5 w-3.5" />
-            ) : (
-              <>
-                <ChevronLeft className="h-3.5 w-3.5 mr-2" />
-                <span>Collapse</span>
-              </>
-            )}
-          </Button>
-        </div>
+        {/* Collapse Toggle - absolute bottom position */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setCollapsed(!collapsed)}
+          className={cn(
+            "absolute bottom-0 left-0 right-0 h-8 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-none border-t border-border",
+            collapsed ? "justify-center px-0" : "justify-start px-3"
+          )}
+        >
+          {collapsed ? (
+            <ChevronRight className="h-3.5 w-3.5" />
+          ) : (
+            <>
+              <ChevronLeft className="h-3.5 w-3.5 mr-2" />
+              <span>Collapse</span>
+            </>
+          )}
+        </Button>
       </aside>
     </TooltipProvider>
   );
