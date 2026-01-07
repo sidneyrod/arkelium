@@ -267,22 +267,22 @@ const Sidebar = () => {
           </div>
         </nav>
 
-        {/* Collapse Toggle */}
-        <div className="p-3 border-t border-border shrink-0">
+        {/* Collapse Toggle - positioned at absolute bottom */}
+        <div className="mt-auto shrink-0">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setCollapsed(!collapsed)}
             className={cn(
-              "w-full h-9 text-sm text-muted-foreground hover:text-foreground",
-              collapsed ? "justify-center px-0" : "justify-start"
+              "w-full h-8 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-none border-t border-border",
+              collapsed ? "justify-center px-0" : "justify-start px-3"
             )}
           >
             {collapsed ? (
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-3.5 w-3.5" />
             ) : (
               <>
-                <ChevronLeft className="h-4 w-4 mr-2" />
+                <ChevronLeft className="h-3.5 w-3.5 mr-2" />
                 <span>Collapse</span>
               </>
             )}
