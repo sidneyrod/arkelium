@@ -936,6 +936,57 @@ export type Database = {
           },
         ]
       }
+      custom_roles: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_system: boolean | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_roles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_roles_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       extra_fees: {
         Row: {
           amount: number
@@ -2046,6 +2097,47 @@ export type Database = {
           },
         ]
       }
+      permissions: {
+        Row: {
+          action: string
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_system: boolean | null
+          module: string
+          updated_at: string
+        }
+        Insert: {
+          action: string
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean | null
+          module: string
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean | null
+          module?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           address: string | null
@@ -2060,6 +2152,7 @@ export type Database = {
           fixed_amount_per_job: number | null
           hourly_rate: number | null
           id: string
+          last_login_at: string | null
           last_name: string | null
           must_change_password: boolean | null
           payment_model: string | null
@@ -2084,6 +2177,7 @@ export type Database = {
           fixed_amount_per_job?: number | null
           hourly_rate?: number | null
           id: string
+          last_login_at?: string | null
           last_name?: string | null
           must_change_password?: boolean | null
           payment_model?: string | null
@@ -2108,6 +2202,7 @@ export type Database = {
           fixed_amount_per_job?: number | null
           hourly_rate?: number | null
           id?: string
+          last_login_at?: string | null
           last_name?: string | null
           must_change_password?: boolean | null
           payment_model?: string | null
@@ -2125,6 +2220,51 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_permissions: {
+        Row: {
+          company_id: string
+          created_at: string
+          granted: boolean | null
+          id: string
+          permission_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          granted?: boolean | null
+          id?: string
+          permission_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          granted?: boolean | null
+          id?: string
+          permission_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
             referencedColumns: ["id"]
           },
         ]
@@ -2344,9 +2484,25 @@ export type Database = {
         }[]
       }
       get_user_company_id: { Args: never; Returns: string }
+      get_user_permissions: {
+        Args: never
+        Returns: {
+          action: string
+          granted: boolean
+          module: string
+        }[]
+      }
+      has_permission: {
+        Args: { p_action: string; p_module: string }
+        Returns: boolean
+      }
       has_role: {
         Args: { _role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
+      }
+      initialize_company_permissions: {
+        Args: { p_company_id: string }
+        Returns: undefined
       }
       is_admin_or_manager: { Args: never; Returns: boolean }
       is_period_open: {
