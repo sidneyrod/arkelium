@@ -8,10 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DatePickerDialog } from '@/components/ui/date-picker-dialog';
 import { Separator } from '@/components/ui/separator';
-import { CalendarIcon, Loader2, AlertTriangle, CalendarOff, Sparkles, Eye, DollarSign } from 'lucide-react';
+import { Loader2, AlertTriangle, CalendarOff, Sparkles, Eye, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ScheduledJob } from '@/stores/scheduleStore';
@@ -436,23 +435,16 @@ const AddJobDrawer = ({ open, onOpenChange, onSave, job, preselectedDate, presel
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label className="text-sm">Date</Label>
-                <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(formData.date, 'MMM d, yyyy')}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={formData.date}
-                      onSelect={handleDateSelect}
-                      initialFocus
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
+                <DatePickerDialog
+                  mode="single"
+                  selected={formData.date}
+                  onSelect={(date) => {
+                    if (date) {
+                      const safeDate = new Date((date as Date).getFullYear(), (date as Date).getMonth(), (date as Date).getDate(), 12, 0, 0);
+                      setFormData(prev => ({ ...prev, date: safeDate }));
+                    }
+                  }}
+                />
               </div>
               
               <div className="space-y-2">

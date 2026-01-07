@@ -1,15 +1,14 @@
 import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DatePickerDialog } from '@/components/ui/date-picker-dialog';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { toast } from '@/hooks/use-toast';
 import { format, isWithinInterval } from 'date-fns';
-import { Calendar as CalendarIcon, FileSpreadsheet, FileText, Download, Loader2 } from 'lucide-react';
+import { FileSpreadsheet, FileText, Download, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DateRange } from 'react-day-picker';
 
@@ -271,41 +270,12 @@ export const GenerateReportModal = ({ open, onOpenChange }: GenerateReportModalP
           {/* Date Range Selection */}
           <div className="space-y-2">
             <Label>Select Period *</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    'w-full justify-start text-left font-normal',
-                    !dateRange && 'text-muted-foreground'
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange?.from ? (
-                    dateRange.to ? (
-                      <>
-                        {format(dateRange.from, 'LLL dd, y')} - {format(dateRange.to, 'LLL dd, y')}
-                      </>
-                    ) : (
-                      format(dateRange.from, 'LLL dd, y')
-                    )
-                  ) : (
-                    'Select date range'
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
-                <Calendar
-                  initialFocus
-                  mode="range"
-                  defaultMonth={dateRange?.from}
-                  selected={dateRange}
-                  onSelect={setDateRange}
-                  numberOfMonths={2}
-                  className="pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
+            <DatePickerDialog
+              mode="range"
+              selected={dateRange}
+              onSelect={(range) => setDateRange(range as DateRange | undefined)}
+              placeholder="Select date range"
+            />
             <p className="text-xs text-muted-foreground">
               Report will include only invoices with status "Paid" or "Partially Paid"
             </p>

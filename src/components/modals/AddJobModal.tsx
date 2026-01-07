@@ -8,9 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Loader2, AlertTriangle, CalendarOff } from 'lucide-react';
+import { DatePickerDialog } from '@/components/ui/date-picker-dialog';
+import { Loader2, AlertTriangle, CalendarOff } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ScheduledJob } from '@/stores/scheduleStore';
@@ -438,23 +437,17 @@ const AddJobModal = ({ open, onOpenChange, onSave, job, preselectedDate, presele
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label className="text-xs">{t.job.date}</Label>
-                <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-full h-9 justify-start text-left font-normal text-sm")}>
-                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                      {format(formData.date, 'MMM d, yyyy')}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={formData.date}
-                      onSelect={handleDateSelect}
-                      initialFocus
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
+                <DatePickerDialog
+                  mode="single"
+                  selected={formData.date}
+                  onSelect={(date) => {
+                    if (date) {
+                      const safeDate = new Date((date as Date).getFullYear(), (date as Date).getMonth(), (date as Date).getDate(), 12, 0, 0);
+                      setFormData(prev => ({ ...prev, date: safeDate }));
+                    }
+                  }}
+                  className="h-9"
+                />
               </div>
               
               <div className="space-y-1.5">
