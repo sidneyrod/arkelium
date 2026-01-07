@@ -11,7 +11,8 @@ import {
   Search,
   Loader2,
   Key,
-  User
+  User,
+  Building2
 } from 'lucide-react';
 
 import ChangePasswordModal from '@/components/modals/ChangePasswordModal';
@@ -424,6 +425,12 @@ const TopBar = () => {
 
         {/* Right: Actions */}
         <div ref={rightActionsRef} className="flex items-center gap-2 shrink-0">
+          {/* Active Company Indicator */}
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-md border border-border">
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground max-w-32 truncate">{companyInfo.name}</span>
+          </div>
+
           {/* Notifications */}
           <NotificationBell />
 

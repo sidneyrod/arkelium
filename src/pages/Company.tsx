@@ -1296,13 +1296,6 @@ const Company = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Save Button */}
-      <div className="flex justify-end pt-2">
-        <Button onClick={handleSave} disabled={isLoading || !hasChanges} className="gap-2">
-          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          {isLoading ? t.common.loading : t.common.save}
-        </Button>
-      </div>
 
       {/* Fee Modal */}
       <Dialog open={feeModalOpen} onOpenChange={setFeeModalOpen}>
