@@ -158,6 +158,10 @@ const Company = () => {
     timezone: 'America/Toronto'
   });
 
+  // Edit company modal state
+  const [editCompanyModalOpen, setEditCompanyModalOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+
   const companyId = selectedCompanyId || user?.profile?.company_id;
 
   // Check if there are changes
@@ -295,6 +299,88 @@ const Company = () => {
       });
     } finally {
       setIsRegistering(false);
+    }
+  };
+
+  // Handle delete company
+  const handleDeleteCompany = async (companyIdToDelete: string) => {
+    if (!confirm('Are you sure you want to delete this company? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('companies')
+        .delete()
+        .eq('id', companyIdToDelete);
+
+      if (error) throw error;
+
+      setCompaniesList(prev => prev.filter(c => c.id !== companyIdToDelete));
+      
+      // If deleted company was selected, switch to another one
+      if (selectedCompanyId === companyIdToDelete) {
+        const remaining = companiesList.filter(c => c.id !== companyIdToDelete);
+        setSelectedCompanyId(remaining.length > 0 ? remaining[0].id : null);
+      }
+
+      toast({
+        title: t.common.success,
+        description: 'Company deleted successfully'
+      });
+    } catch (error) {
+      console.error('Error deleting company:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete company',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // Handle edit company save
+  const handleEditCompanySave = async () => {
+    if (!selectedCompanyId) return;
+    
+    setIsEditing(true);
+    try {
+      const { error } = await supabase
+        .from('companies')
+        .update({
+          trade_name: profile.trade_name,
+          legal_name: profile.legal_name,
+          address: profile.address,
+          city: profile.city,
+          province: profile.province,
+          postal_code: profile.postal_code,
+          email: profile.email,
+          phone: profile.phone,
+          website: profile.website,
+          timezone: profile.timezone
+        })
+        .eq('id', selectedCompanyId);
+
+      if (error) throw error;
+
+      // Update the list with new trade name
+      setCompaniesList(prev => prev.map(c => 
+        c.id === selectedCompanyId ? { ...c, trade_name: profile.trade_name } : c
+      ));
+
+      setEditCompanyModalOpen(false);
+      toast({
+        title: t.common.success,
+        description: 'Company updated successfully'
+      });
+    } catch (error) {
+      console.error('Error updating company:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update company',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsEditing(false);
     }
   };
 
@@ -827,140 +913,68 @@ const Company = () => {
           </div>
         </div>
 
-        {/* Profile Tab */}
+        {/* Profile Tab - Companies List */}
         <TabsContent value="profile" className="space-y-4 mt-4">
           <Card className="border-border/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-primary" />
-                {t.company.businessInfo}
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Your company's legal and contact information
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="space-y-1">
-                  <Label htmlFor="companyName" className="text-xs">{t.company.companyName}</Label>
-                  <Input 
-                    id="companyName" 
-                    value={profile.trade_name}
-                    onChange={(e) => setProfile(prev => ({ ...prev, trade_name: e.target.value }))}
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="legalName" className="text-xs">{t.company.legalName}</Label>
-                  <Input 
-                    id="legalName" 
-                    value={profile.legal_name}
-                    onChange={(e) => setProfile(prev => ({ ...prev, legal_name: e.target.value }))}
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div className="space-y-1 sm:col-span-2 lg:col-span-1">
-                  <Label htmlFor="address" className="text-xs">{t.company.address}</Label>
-                  <Input 
-                    id="address" 
-                    value={profile.address}
-                    onChange={(e) => setProfile(prev => ({ ...prev, address: e.target.value }))}
-                    className="h-8 text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="space-y-1">
-                  <Label htmlFor="city" className="text-xs">{t.company.city}</Label>
-                  <Input 
-                    id="city" 
-                    value={profile.city}
-                    onChange={(e) => setProfile(prev => ({ ...prev, city: e.target.value }))}
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="province" className="text-xs">{t.company.province}</Label>
-                  <Select 
-                    value={profile.province} 
-                    onValueChange={(value) => setProfile(prev => ({ ...prev, province: value }))}
-                  >
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue placeholder="Select province" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover">
-                      {canadianProvinces.map(province => (
-                        <SelectItem key={province} value={province}>{province}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="postalCode" className="text-xs">{t.company.postalCode}</Label>
-                  <Input 
-                    id="postalCode" 
-                    value={profile.postal_code}
-                    onChange={(e) => setProfile(prev => ({ ...prev, postal_code: e.target.value }))}
-                    className="h-8 text-sm"
-                  />
-                </div>
-              </div>
-
-              <Separator className="my-2" />
-
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="space-y-1">
-                  <Label htmlFor="email" className="text-xs">{t.auth.email}</Label>
-                  <Input 
-                    id="email" 
-                    type="email"
-                    value={profile.email}
-                    onChange={(e) => setProfile(prev => ({ ...prev, email: e.target.value }))}
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="phone" className="text-xs">{t.company.phone}</Label>
-                  <Input 
-                    id="phone" 
-                    value={profile.phone}
-                    onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="website" className="text-xs">Website</Label>
-                  <Input 
-                    id="website" 
-                    type="url"
-                    value={profile.website}
-                    onChange={(e) => setProfile(prev => ({ ...prev, website: e.target.value }))}
-                    placeholder="www.company.com"
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="timezone" className="text-xs flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    Timezone
-                  </Label>
-                  <Select 
-                    value={profile.timezone} 
-                    onValueChange={(value) => setProfile(prev => ({ ...prev, timezone: value }))}
-                  >
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue placeholder="Select timezone" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover">
-                      {CANADIAN_TIMEZONES.map(tz => (
-                        <SelectItem key={tz.value} value={tz.value}>
-                          {tz.label} ({tz.offset})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+            <CardContent className="pt-4">
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Company Name</th>
+                      <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Legal Name</th>
+                      <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">City</th>
+                      <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Email</th>
+                      <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Phone</th>
+                      <th className="text-right text-xs font-medium text-muted-foreground px-4 py-3">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {companiesList.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="text-center text-sm text-muted-foreground py-8">
+                          No companies registered yet
+                        </td>
+                      </tr>
+                    ) : (
+                      companiesList.map((company) => {
+                        const companyDetails = company.id === selectedCompanyId ? profile : null;
+                        return (
+                          <tr key={company.id} className={`hover:bg-muted/30 ${company.id === selectedCompanyId ? 'bg-primary/5' : ''}`}>
+                            <td className="px-4 py-3 text-sm font-medium">{company.trade_name}</td>
+                            <td className="px-4 py-3 text-sm text-muted-foreground">{companyDetails?.legal_name || '-'}</td>
+                            <td className="px-4 py-3 text-sm text-muted-foreground">{companyDetails?.city || '-'}</td>
+                            <td className="px-4 py-3 text-sm text-muted-foreground">{companyDetails?.email || '-'}</td>
+                            <td className="px-4 py-3 text-sm text-muted-foreground">{companyDetails?.phone || '-'}</td>
+                            <td className="px-4 py-3 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => {
+                                    setSelectedCompanyId(company.id);
+                                    setEditCompanyModalOpen(true);
+                                  }}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => handleDeleteCompany(company.id)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
               </div>
             </CardContent>
           </Card>
@@ -1475,6 +1489,140 @@ const Company = () => {
             <Button onClick={handleRegisterCompany} disabled={isRegistering}>
               {isRegistering ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               {isRegistering ? 'Registering...' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Company Modal */}
+      <Dialog open={editCompanyModalOpen} onOpenChange={setEditCompanyModalOpen}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5" />
+              Edit Company
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="edit-trade-name">Company Name *</Label>
+                <Input
+                  id="edit-trade-name"
+                  value={profile.trade_name}
+                  onChange={(e) => setProfile(prev => ({ ...prev, trade_name: e.target.value }))}
+                  placeholder="Trade name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-legal-name">Legal Name *</Label>
+                <Input
+                  id="edit-legal-name"
+                  value={profile.legal_name}
+                  onChange={(e) => setProfile(prev => ({ ...prev, legal_name: e.target.value }))}
+                  placeholder="Legal business name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-address">Address</Label>
+                <Input
+                  id="edit-address"
+                  value={profile.address}
+                  onChange={(e) => setProfile(prev => ({ ...prev, address: e.target.value }))}
+                  placeholder="Street address"
+                />
+              </div>
+            </div>
+            
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="edit-city">City</Label>
+                <Input
+                  id="edit-city"
+                  value={profile.city}
+                  onChange={(e) => setProfile(prev => ({ ...prev, city: e.target.value }))}
+                  placeholder="City"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-province">Province</Label>
+                <Select 
+                  value={profile.province} 
+                  onValueChange={(value) => setProfile(prev => ({ ...prev, province: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select province" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover">
+                    {canadianProvinces.map(province => (
+                      <SelectItem key={province} value={province}>{province}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-postal-code">Postal Code</Label>
+                <Input
+                  id="edit-postal-code"
+                  value={profile.postal_code}
+                  onChange={(e) => setProfile(prev => ({ ...prev, postal_code: e.target.value }))}
+                  placeholder="A1A 1A1"
+                />
+              </div>
+            </div>
+            
+            <div className="grid gap-4 sm:grid-cols-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={profile.email}
+                  onChange={(e) => setProfile(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="contact@company.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-phone">Phone</Label>
+                <Input
+                  id="edit-phone"
+                  value={profile.phone}
+                  onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="(416) 555-0100"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-website">Website</Label>
+                <Input
+                  id="edit-website"
+                  value={profile.website}
+                  onChange={(e) => setProfile(prev => ({ ...prev, website: e.target.value }))}
+                  placeholder="https://www.company.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-timezone">Timezone</Label>
+                <Select 
+                  value={profile.timezone} 
+                  onValueChange={(value) => setProfile(prev => ({ ...prev, timezone: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select timezone" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover">
+                    {CANADIAN_TIMEZONES.map(tz => (
+                      <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditCompanyModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleEditCompanySave} disabled={isEditing}>
+              {isEditing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+              {isEditing ? 'Saving...' : 'Save'}
             </Button>
           </DialogFooter>
         </DialogContent>
