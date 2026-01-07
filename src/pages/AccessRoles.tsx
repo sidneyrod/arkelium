@@ -86,7 +86,7 @@ const AccessRoles = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Access & Roles" subtitle="Manage users, roles, and permissions across the system" />
+      <PageHeader title="Access & Roles" description="Manage users, roles, and permissions across the system" />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-3">
           <TabsTrigger value="users" className="flex items-center gap-2"><Users className="h-4 w-4" /><span className="hidden sm:inline">Users</span></TabsTrigger>

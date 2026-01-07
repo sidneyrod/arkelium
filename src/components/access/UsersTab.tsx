@@ -162,8 +162,20 @@ const UsersTab = ({ users, loading, onUpdate }: UsersTabProps) => {
       <AddUserModal
         open={showAddModal || !!editUser}
         onOpenChange={(open) => { if (!open) { setShowAddModal(false); setEditUser(null); } }}
-        onUserChange={onUpdate}
-        editUser={editUser ? { id: editUser.id, email: editUser.email, firstName: editUser.firstName, lastName: editUser.lastName, role: editUser.role, phone: editUser.phone || '' } : undefined}
+        onSubmit={onUpdate}
+        editUser={editUser ? { 
+          id: editUser.id, 
+          name: `${editUser.firstName} ${editUser.lastName}`.trim(), 
+          email: editUser.email, 
+          phone: editUser.phone || '',
+          address: '',
+          city: '',
+          province_address: '',
+          country: 'Canada',
+          postalCode: '',
+          role: editUser.role as 'admin' | 'manager' | 'supervisor' | 'cleaner',
+          isActive: editUser.status === 'active',
+        } : undefined}
       />
     </Card>
   );
