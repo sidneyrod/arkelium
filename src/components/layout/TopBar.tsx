@@ -2,7 +2,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   Moon,
   Sun,
@@ -296,27 +296,10 @@ const TopBar = () => {
     }
   };
 
-  // Measure right actions width for proportional centering
-  const rightActionsRef = useRef<HTMLDivElement>(null);
-  const [rightActionsWidth, setRightActionsWidth] = useState(0);
-
-  useEffect(() => {
-    const updateWidth = () => {
-      if (rightActionsRef.current) {
-        setRightActionsWidth(rightActionsRef.current.offsetWidth);
-      }
-    };
-    updateWidth();
-    window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
-  }, []);
 
   return (
     <header className="sticky top-0 z-50 w-full h-14 bg-card border-b border-border" style={{ boxShadow: 'var(--shadow-header)' }}>
       <div className="flex h-full items-center justify-between px-4 lg:px-6">
-        {/* Left spacer - matches the width of the right actions for proportional centering */}
-        <div className="hidden md:block shrink-0" style={{ width: rightActionsWidth }} />
-
         {/* Center: Search */}
         <div className="hidden md:flex flex-1 justify-center px-4">
           <div className="relative w-full max-w-lg">
@@ -424,7 +407,7 @@ const TopBar = () => {
         </div>
 
         {/* Right: Actions */}
-        <div ref={rightActionsRef} className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           {/* Active Company Indicator */}
           <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-md border border-border">
             <Building2 className="h-4 w-4 text-muted-foreground" />
