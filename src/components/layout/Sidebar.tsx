@@ -24,7 +24,8 @@ import {
   DollarSign,
   Bell,
   BookOpen,
-  CreditCard
+  CreditCard,
+  Shield
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -145,6 +146,7 @@ const Sidebar = () => {
   const companyItems: MenuItem[] = [];
   
   if (isAdmin) {
+    companyItems.push({ path: '/access-roles', label: 'Access & Roles', icon: Shield });
     companyItems.push({ path: '/users', label: t.nav.users, icon: Users });
     companyItems.push({ path: '/company', label: t.nav.company, icon: Building2 });
     companyItems.push({ path: '/settings', label: t.nav.settings, icon: Settings });

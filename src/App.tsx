@@ -32,6 +32,7 @@ import Notifications from "./pages/Notifications";
 import Financial from "./pages/Financial";
 import Receipts from "./pages/Receipts";
 import PaymentsCollections from "./pages/PaymentsCollections";
+import AccessRoles from "./pages/AccessRoles";
 
 const queryClient = new QueryClient();
 
@@ -167,6 +168,7 @@ const AppRoutes = () => {
         <Route path="/schedule" element={<Schedule />} />
         
         {/* Admin-only routes */}
+        <Route path="/access-roles" element={<AdminRoute><AccessRoles /></AdminRoute>} />
         <Route path="/company" element={<AdminRoute><Company /></AdminRoute>} />
         <Route path="/users" element={<AdminRoute><Users /></AdminRoute>} />
         <Route path="/settings" element={<AdminRoute><Settings /></AdminRoute>} />
