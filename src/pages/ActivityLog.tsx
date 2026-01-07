@@ -143,7 +143,8 @@ const ActivityLog = () => {
             created_at,
             details,
             user_id,
-            performer:performed_by_user_id (first_name, last_name)
+            performed_by_user_id,
+            profiles!activity_logs_performed_by_user_id_fkey (first_name, last_name)
           `)
           .eq('company_id', user.profile.company_id)
           .order('created_at', { ascending: false })
@@ -154,7 +155,13 @@ const ActivityLog = () => {
           return;
         }
 
-        setLogs((data || []) as unknown as ActivityLogEntry[]);
+        // Transform data to match expected interface
+        const transformedData = (data || []).map((log: any) => ({
+          ...log,
+          performer: log.profiles || null
+        })) as unknown as ActivityLogEntry[];
+
+        setLogs(transformedData);
       } catch (err) {
         console.error('Error in fetchLogs:', err);
       } finally {
