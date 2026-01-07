@@ -2,11 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import PageHeader from '@/components/ui/page-header';
-import { Users, Shield, Lock } from 'lucide-react';
-import UsersTab from '@/components/access/UsersTab';
+import { Shield, Lock } from 'lucide-react';
 import RolesTab from '@/components/access/RolesTab';
-import PermissionsTab from '@/components/access/PermissionsTab';
+import UserPermissionsTab from '@/components/access/UserPermissionsTab';
 import { toast } from 'sonner';
 
 export interface UserWithRole {
@@ -37,7 +35,7 @@ export interface RolePermission {
 
 const AccessRoles = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState('roles');
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [rolePermissions, setRolePermissions] = useState<RolePermission[]>([]);
@@ -85,17 +83,30 @@ const AccessRoles = () => {
   }, [fetchUsers, fetchPermissions]);
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="Access & Roles" description="Manage users, roles, and permissions across the system" />
+    <div className="space-y-3">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-3">
-          <TabsTrigger value="users" className="flex items-center gap-2"><Users className="h-4 w-4" /><span className="hidden sm:inline">Users</span></TabsTrigger>
-          <TabsTrigger value="roles" className="flex items-center gap-2"><Shield className="h-4 w-4" /><span className="hidden sm:inline">Roles</span></TabsTrigger>
-          <TabsTrigger value="permissions" className="flex items-center gap-2"><Lock className="h-4 w-4" /><span className="hidden sm:inline">Permissions</span></TabsTrigger>
+        <TabsList className="grid w-full max-w-xs grid-cols-2">
+          <TabsTrigger value="roles" className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            <span className="hidden sm:inline">Roles</span>
+          </TabsTrigger>
+          <TabsTrigger value="permissions" className="flex items-center gap-2">
+            <Lock className="h-4 w-4" />
+            <span className="hidden sm:inline">Permissions</span>
+          </TabsTrigger>
         </TabsList>
-        <TabsContent value="users" className="mt-6"><UsersTab users={users} loading={loading} onUpdate={fetchUsers} /></TabsContent>
-        <TabsContent value="roles" className="mt-6"><RolesTab onUpdate={fetchPermissions} /></TabsContent>
-        <TabsContent value="permissions" className="mt-6"><PermissionsTab permissions={permissions} rolePermissions={rolePermissions} loading={loading} onUpdate={fetchPermissions} /></TabsContent>
+        <TabsContent value="roles" className="mt-4">
+          <RolesTab onUpdate={fetchPermissions} />
+        </TabsContent>
+        <TabsContent value="permissions" className="mt-4">
+          <UserPermissionsTab 
+            users={users} 
+            permissions={permissions} 
+            rolePermissions={rolePermissions} 
+            loading={loading} 
+            onUpdate={fetchPermissions} 
+          />
+        </TabsContent>
       </Tabs>
     </div>
   );
