@@ -182,29 +182,31 @@ export function PeriodSelector({ value, onChange, className }: PeriodSelectorPro
             </div>
           ) : (
             // Custom Date Range Picker
-            <div className="p-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">{labels.from}</label>
-                  <Calendar
-                    mode="single"
-                    selected={customStart}
-                    onSelect={setCustomStart}
-                    className="p-0 pointer-events-auto"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">{labels.to}</label>
-                  <Calendar
-                    mode="single"
-                    selected={customEnd}
-                    onSelect={setCustomEnd}
-                    disabled={(date) => customStart ? date < customStart : false}
-                    className="p-0 pointer-events-auto"
-                  />
+            <div className="flex flex-col">
+              <div className="p-4 max-h-[60vh] overflow-y-auto">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">{labels.from}</label>
+                    <Calendar
+                      mode="single"
+                      selected={customStart}
+                      onSelect={setCustomStart}
+                      className="p-0 pointer-events-auto"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">{labels.to}</label>
+                    <Calendar
+                      mode="single"
+                      selected={customEnd}
+                      onSelect={setCustomEnd}
+                      disabled={(date) => customStart ? date < customStart : false}
+                      className="p-0 pointer-events-auto"
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 p-4 border-t bg-background sticky bottom-0">
                 <Button 
                   variant="outline"
                   onClick={handleCustomCancel} 
