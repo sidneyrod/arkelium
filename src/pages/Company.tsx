@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
-import PageHeader from '@/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -139,7 +138,27 @@ const Company = () => {
   const [editingChecklist, setEditingChecklist] = useState<ChecklistItem | null>(null);
   const [checklistForm, setChecklistForm] = useState({ name: '' });
 
-  const companyId = user?.profile?.company_id;
+  // Company selection state
+  const [companiesList, setCompaniesList] = useState<{ id: string; trade_name: string }[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  
+  // Register company modal state
+  const [registerModalOpen, setRegisterModalOpen] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [newCompanyForm, setNewCompanyForm] = useState<CompanyProfile>({
+    trade_name: '',
+    legal_name: '',
+    address: '',
+    city: '',
+    province: 'Ontario',
+    postal_code: '',
+    email: '',
+    phone: '',
+    website: '',
+    timezone: 'America/Toronto'
+  });
+
+  const companyId = selectedCompanyId || user?.profile?.company_id;
 
   // Check if there are changes
   const checkForChanges = useCallback(() => {
@@ -178,6 +197,106 @@ const Company = () => {
     // Update workspace tab to show unsaved indicator
     setTabUnsavedChanges('company', changed);
   }, [checkForChanges, setTabUnsavedChanges]);
+
+  // Fetch companies list
+  useEffect(() => {
+    const fetchCompaniesList = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('companies')
+          .select('id, trade_name')
+          .order('trade_name');
+        
+        if (error) throw error;
+        
+        if (data) {
+          setCompaniesList(data);
+          // Set initial selection to user's company
+          if (user?.profile?.company_id && !selectedCompanyId) {
+            setSelectedCompanyId(user.profile.company_id);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching companies list:', error);
+      }
+    };
+
+    fetchCompaniesList();
+  }, [user?.profile?.company_id]);
+
+  // Handle company selection change
+  const handleCompanyChange = async (newCompanyId: string) => {
+    setSelectedCompanyId(newCompanyId);
+    setIsFetching(true);
+  };
+
+  // Handle register new company
+  const handleRegisterCompany = async () => {
+    if (!newCompanyForm.trade_name.trim() || !newCompanyForm.legal_name.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Company Name and Legal Name are required',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsRegistering(true);
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .insert({
+          trade_name: newCompanyForm.trade_name,
+          legal_name: newCompanyForm.legal_name,
+          address: newCompanyForm.address,
+          city: newCompanyForm.city,
+          province: newCompanyForm.province,
+          postal_code: newCompanyForm.postal_code,
+          email: newCompanyForm.email,
+          phone: newCompanyForm.phone,
+          website: newCompanyForm.website,
+          timezone: newCompanyForm.timezone
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Add to list and select it
+      if (data) {
+        setCompaniesList(prev => [...prev, { id: data.id, trade_name: data.trade_name }]);
+        setSelectedCompanyId(data.id);
+      }
+
+      setRegisterModalOpen(false);
+      setNewCompanyForm({
+        trade_name: '',
+        legal_name: '',
+        address: '',
+        city: '',
+        province: 'Ontario',
+        postal_code: '',
+        email: '',
+        phone: '',
+        website: '',
+        timezone: 'America/Toronto'
+      });
+
+      toast({
+        title: t.common.success,
+        description: 'Company registered successfully'
+      });
+    } catch (error) {
+      console.error('Error registering company:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to register company',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsRegistering(false);
+    }
+  };
 
   // Fetch all company data
   useEffect(() => {
@@ -665,30 +784,48 @@ const Company = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      <PageHeader 
-        title={t.company.title}
-        description="Manage your company information, branding, and configuration"
-      />
-
       <Tabs defaultValue="profile" className="space-y-4">
-        <TabsList className="h-auto p-1 gap-2 bg-muted/50">
-          <TabsTrigger value="profile" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
-            <Building2 className="h-4 w-4" />
-            <span className="hidden sm:inline">{t.company.profile}</span>
-          </TabsTrigger>
-          <TabsTrigger value="branding" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
-            <Palette className="h-4 w-4" />
-            <span className="hidden sm:inline">{t.company.branding}</span>
-          </TabsTrigger>
-          <TabsTrigger value="estimates" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
-            <Settings2 className="h-4 w-4" />
-            <span className="hidden sm:inline">{t.company.estimateConfig}</span>
-          </TabsTrigger>
-          <TabsTrigger value="schedule" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
-            <Calendar className="h-4 w-4" />
-            <span className="hidden sm:inline">Schedule Config</span>
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <TabsList className="h-auto p-1 gap-2 bg-muted/50">
+            <TabsTrigger value="profile" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
+              <Building2 className="h-4 w-4" />
+              <span className="hidden sm:inline">{t.company.profile}</span>
+            </TabsTrigger>
+            <TabsTrigger value="branding" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
+              <Palette className="h-4 w-4" />
+              <span className="hidden sm:inline">{t.company.branding}</span>
+            </TabsTrigger>
+            <TabsTrigger value="estimates" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
+              <Settings2 className="h-4 w-4" />
+              <span className="hidden sm:inline">{t.company.estimateConfig}</span>
+            </TabsTrigger>
+            <TabsTrigger value="schedule" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
+              <Calendar className="h-4 w-4" />
+              <span className="hidden sm:inline">Schedule Config</span>
+            </TabsTrigger>
+          </TabsList>
+          
+          <div className="flex items-center gap-2">
+            <Select value={selectedCompanyId || ''} onValueChange={handleCompanyChange}>
+              <SelectTrigger className="w-[200px] h-8 text-sm">
+                <SelectValue placeholder="Select company" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover">
+                {companiesList.map(company => (
+                  <SelectItem key={company.id} value={company.id}>{company.trade_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button 
+              size="sm" 
+              onClick={() => setRegisterModalOpen(true)}
+              className="gap-1 h-8"
+            >
+              <Plus className="h-4 w-4" />
+              Register Company
+            </Button>
+          </div>
+        </div>
 
         {/* Profile Tab */}
         <TabsContent value="profile" className="space-y-4 mt-4">
@@ -1205,6 +1342,140 @@ const Company = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setChecklistModalOpen(false)}>Cancel</Button>
             <Button onClick={handleSaveChecklist}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Register Company Modal */}
+      <Dialog open={registerModalOpen} onOpenChange={setRegisterModalOpen}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              Register New Company
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="new-trade-name">Company Name *</Label>
+                <Input
+                  id="new-trade-name"
+                  value={newCompanyForm.trade_name}
+                  onChange={(e) => setNewCompanyForm(prev => ({ ...prev, trade_name: e.target.value }))}
+                  placeholder="Trade name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-legal-name">Legal Name *</Label>
+                <Input
+                  id="new-legal-name"
+                  value={newCompanyForm.legal_name}
+                  onChange={(e) => setNewCompanyForm(prev => ({ ...prev, legal_name: e.target.value }))}
+                  placeholder="Legal business name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-address">Address</Label>
+                <Input
+                  id="new-address"
+                  value={newCompanyForm.address}
+                  onChange={(e) => setNewCompanyForm(prev => ({ ...prev, address: e.target.value }))}
+                  placeholder="Street address"
+                />
+              </div>
+            </div>
+            
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="new-city">City</Label>
+                <Input
+                  id="new-city"
+                  value={newCompanyForm.city}
+                  onChange={(e) => setNewCompanyForm(prev => ({ ...prev, city: e.target.value }))}
+                  placeholder="City"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-province">Province</Label>
+                <Select 
+                  value={newCompanyForm.province} 
+                  onValueChange={(value) => setNewCompanyForm(prev => ({ ...prev, province: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select province" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover">
+                    {canadianProvinces.map(province => (
+                      <SelectItem key={province} value={province}>{province}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-postal-code">Postal Code</Label>
+                <Input
+                  id="new-postal-code"
+                  value={newCompanyForm.postal_code}
+                  onChange={(e) => setNewCompanyForm(prev => ({ ...prev, postal_code: e.target.value }))}
+                  placeholder="A1A 1A1"
+                />
+              </div>
+            </div>
+            
+            <div className="grid gap-4 sm:grid-cols-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-email">Email</Label>
+                <Input
+                  id="new-email"
+                  type="email"
+                  value={newCompanyForm.email}
+                  onChange={(e) => setNewCompanyForm(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="contact@company.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-phone">Phone</Label>
+                <Input
+                  id="new-phone"
+                  value={newCompanyForm.phone}
+                  onChange={(e) => setNewCompanyForm(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="(416) 555-0100"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-website">Website</Label>
+                <Input
+                  id="new-website"
+                  value={newCompanyForm.website}
+                  onChange={(e) => setNewCompanyForm(prev => ({ ...prev, website: e.target.value }))}
+                  placeholder="https://www.company.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-timezone">Timezone</Label>
+                <Select 
+                  value={newCompanyForm.timezone} 
+                  onValueChange={(value) => setNewCompanyForm(prev => ({ ...prev, timezone: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select timezone" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover">
+                    {CANADIAN_TIMEZONES.map(tz => (
+                      <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRegisterModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleRegisterCompany} disabled={isRegistering}>
+              {isRegistering ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {isRegistering ? 'Registering...' : 'Save'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

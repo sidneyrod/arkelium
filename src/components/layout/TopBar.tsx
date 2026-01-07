@@ -11,8 +11,7 @@ import {
   Search,
   Loader2,
   Key,
-  User,
-  Download
+  User
 } from 'lucide-react';
 
 import ChangePasswordModal from '@/components/modals/ChangePasswordModal';
@@ -425,16 +424,6 @@ const TopBar = () => {
 
         {/* Right: Actions */}
         <div ref={rightActionsRef} className="flex items-center gap-2 shrink-0">
-          {/* Download Button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-9 px-3 text-muted-foreground hover:text-foreground">
-                <Download className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Download report</TooltipContent>
-          </Tooltip>
-
           {/* Notifications */}
           <NotificationBell />
 
