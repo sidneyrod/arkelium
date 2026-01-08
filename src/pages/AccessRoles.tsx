@@ -83,9 +83,9 @@ const AccessRoles = () => {
   }, [fetchUsers, fetchPermissions]);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-6 pt-4">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full max-w-xs grid-cols-2">
+        <TabsList className="grid w-full max-w-xs grid-cols-2 mb-6">
           <TabsTrigger value="roles" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
             <span className="hidden sm:inline">Roles</span>
@@ -95,10 +95,10 @@ const AccessRoles = () => {
             <span className="hidden sm:inline">Permissions</span>
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="roles" className="mt-4">
+        <TabsContent value="roles" className="mt-6">
           <RolesTab onUpdate={fetchPermissions} />
         </TabsContent>
-        <TabsContent value="permissions" className="mt-4">
+        <TabsContent value="permissions" className="mt-6">
           <UserPermissionsTab 
             users={users} 
             permissions={permissions} 

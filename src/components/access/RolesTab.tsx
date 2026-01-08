@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Loader2, Lock, Edit, Trash2 } from 'lucide-react';
+import { Plus, Loader2, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -25,11 +25,6 @@ interface RolesTabProps {
   onUpdate: () => void;
 }
 
-const SYSTEM_ROLES = [
-  { name: 'Admin', description: 'Full system access. Cannot be modified.', isSystem: true },
-  { name: 'Manager', description: 'Operational access without admin privileges.', isSystem: true },
-  { name: 'Cleaner', description: 'Limited access for field workers.', isSystem: true },
-];
 
 const RolesTab = ({ onUpdate }: RolesTabProps) => {
   const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
@@ -90,38 +85,29 @@ const RolesTab = ({ onUpdate }: RolesTabProps) => {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Lock className="h-5 w-5" />System Roles</CardTitle>
-          <CardDescription>Default roles that cannot be deleted. Admin permissions are immutable.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Description</TableHead><TableHead>Type</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {SYSTEM_ROLES.map((role) => (
-                  <TableRow key={role.name}>
-                    <TableCell className="font-medium">{role.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{role.description}</TableCell>
-                    <TableCell><Badge variant="secondary"><Lock className="h-3 w-3 mr-1" />System</Badge></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <div><CardTitle>Custom Roles</CardTitle><CardDescription>Create additional roles for your organization.</CardDescription></div>
-          <Button onClick={() => { setEditRole(null); setFormData({ name: '', description: '' }); setShowAddDialog(true); }} size="sm"><Plus className="h-4 w-4 mr-2" />Add Role</Button>
+          <div>
+            <CardTitle>Roles</CardTitle>
+            <CardDescription>Manage roles for your organization.</CardDescription>
+          </div>
+          <Button onClick={() => { setEditRole(null); setFormData({ name: '', description: '' }); setShowAddDialog(true); }} size="sm">
+            <Plus className="h-4 w-4 mr-2" />Add Role
+          </Button>
         </CardHeader>
         <CardContent>
-          {customRoles.length === 0 ? <div className="text-center py-8 text-muted-foreground">No custom roles created yet.</div> : (
+          {customRoles.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">No roles created yet.</div>
+          ) : (
             <div className="rounded-md border">
               <Table>
-                <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Description</TableHead><TableHead>Created</TableHead><TableHead className="w-[100px]"></TableHead></TableRow></TableHeader>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="w-[100px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
                 <TableBody>
                   {customRoles.map((role) => (
                     <TableRow key={role.id}>
@@ -130,8 +116,12 @@ const RolesTab = ({ onUpdate }: RolesTabProps) => {
                       <TableCell className="text-muted-foreground">{format(new Date(role.createdAt), 'MMM d, yyyy')}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditRole(role); setFormData({ name: role.name, description: role.description || '' }); setShowAddDialog(true); }}><Edit className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteRole(role)}><Trash2 className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditRole(role); setFormData({ name: role.name, description: role.description || '' }); setShowAddDialog(true); }}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteRole(role)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
