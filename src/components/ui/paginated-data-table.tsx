@@ -32,7 +32,7 @@ interface PaginatedDataTableProps<T> {
   pageSizeOptions?: number[];
 }
 
-function PaginatedDataTable<T extends { id: string | number }>({
+export function PaginatedDataTable<T extends { id: string | number }>({
   columns,
   data,
   isLoading = false,
