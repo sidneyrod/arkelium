@@ -15,6 +15,7 @@ const getPageLabel = (path: string, t: any): string => {
     '/': t?.nav?.dashboard || 'Dashboard',
     '/company': t?.nav?.company || 'Company',
     '/users': t?.nav?.users || 'Users',
+    '/access-roles': 'Access & Roles',
     '/clients': t?.nav?.clients || 'Clients',
     '/contracts': t?.nav?.contracts || 'Contracts',
     '/schedule': t?.nav?.schedule || 'Schedule',
@@ -83,12 +84,13 @@ const AppLayout = () => {
       return tabBasePath === currentPath;
     });
     
+    const label = getPageLabel(currentPath, t);
+
     if (!existingTab) {
-      const label = getPageLabel(currentPath, t);
       openTab(fullPath, label);
-    } else if (existingTab.id !== activeTabId) {
-      // Activate the existing tab and update its path with new query params
-      openTab(fullPath, existingTab.label);
+    } else {
+      // Keep tab metadata in sync (label + query params)
+      openTab(fullPath, label);
     }
   }, [location.pathname, location.search, openTab, tabs, t, activeTabId]);
 

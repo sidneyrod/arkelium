@@ -179,15 +179,15 @@ const UserPermissionsTab = ({ users, permissions, rolePermissions, loading, onUp
       </Card>
 
       <Dialog open={showPermissionDialog} onOpenChange={setShowPermissionDialog}>
-        <DialogContent className="max-w-2xl max-h-[70vh]">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl h-[min(80vh,720px)] flex flex-col overflow-hidden">
+          <DialogHeader className="shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
               Permissions for {selectedUser?.firstName} {selectedUser?.lastName}
             </DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-4">
+          <div className="space-y-4 flex-1 min-h-0">
             <div className="flex items-center gap-2">
               <Search className="h-4 w-4 text-muted-foreground" />
               <Input
@@ -203,8 +203,8 @@ const UserPermissionsTab = ({ users, permissions, rolePermissions, loading, onUp
               <span className="ml-2">— Changes apply to all users with this role.</span>
             </p>
 
-            <ScrollArea className="h-[280px] pr-4">
-              <div className="space-y-3 pb-4">
+            <ScrollArea className="flex-1 min-h-0 pr-4">
+              <div className="space-y-3 pb-6">
                 {filteredModules.map((module) => (
                   <div key={module} className="border rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
@@ -240,7 +240,7 @@ const UserPermissionsTab = ({ users, permissions, rolePermissions, loading, onUp
             </ScrollArea>
           </div>
 
-          <DialogFooter className="mt-4">
+          <DialogFooter className="mt-4 shrink-0">
             <Button variant="outline" onClick={() => setShowPermissionDialog(false)}>
               Close
             </Button>
