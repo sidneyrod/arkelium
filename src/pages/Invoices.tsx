@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { notifyInvoicePaid } from '@/hooks/useNotifications';
 import PageHeader from '@/components/ui/page-header';
 import SearchInput from '@/components/ui/search-input';
-import { PaginatedDataTable, Column } from '@/components/ui/paginated-data-table';
+import PaginatedDataTable, { Column } from '@/components/ui/paginated-data-table';
 import { useServerPagination } from '@/hooks/useServerPagination';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
