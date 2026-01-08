@@ -77,19 +77,27 @@ const AppLayout = () => {
   useEffect(() => {
     const currentPath = location.pathname;
     const fullPath = location.pathname + location.search;
-    
+
     // Find existing tab by comparing base path (without query params)
     const existingTab = tabs.find(tab => {
       const tabBasePath = tab.path.split('?')[0];
       return tabBasePath === currentPath;
     });
-    
+
     const label = getPageLabel(currentPath, t);
 
     if (!existingTab) {
       openTab(fullPath, label);
-    } else {
-      // Keep tab metadata in sync (label + query params)
+      return;
+    }
+
+    // Avoid infinite update loops: only sync when something actually changed
+    const shouldSync =
+      existingTab.path !== fullPath ||
+      existingTab.label !== label ||
+      existingTab.id !== activeTabId;
+
+    if (shouldSync) {
       openTab(fullPath, label);
     }
   }, [location.pathname, location.search, openTab, tabs, t, activeTabId]);
