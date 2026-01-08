@@ -179,7 +179,7 @@ const UserPermissionsTab = ({ users, permissions, rolePermissions, loading, onUp
       </Card>
 
       <Dialog open={showPermissionDialog} onOpenChange={setShowPermissionDialog}>
-        <DialogContent className="max-w-2xl flex flex-col max-h-[80vh]">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
@@ -187,7 +187,7 @@ const UserPermissionsTab = ({ users, permissions, rolePermissions, loading, onUp
             </DialogTitle>
           </DialogHeader>
           
-          <div className="flex flex-col flex-1 min-h-0 space-y-4">
+          <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Search className="h-4 w-4 text-muted-foreground" />
               <Input
@@ -203,7 +203,7 @@ const UserPermissionsTab = ({ users, permissions, rolePermissions, loading, onUp
               <span className="ml-2">— Changes apply to all users with this role.</span>
             </p>
 
-            <ScrollArea className="flex-1 min-h-0 pr-4">
+            <ScrollArea className="h-[350px] pr-4">
               <div className="space-y-3 pb-4">
                 {filteredModules.map((module) => (
                   <div key={module} className="border rounded-lg p-3">
