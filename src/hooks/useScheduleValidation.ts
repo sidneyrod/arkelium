@@ -155,14 +155,18 @@ export const useScheduleValidation = () => {
       const unavailableCleanerIds = new Set((absences || []).map(a => a.cleaner_id));
       
       // Get all jobs for this date to find busy cleaners
-      const { data: existingJobs } = await supabase
+      let jobsQuery = supabase
         .from('jobs')
         .select('cleaner_id, start_time, duration_minutes')
         .eq('company_id', companyId)
         .eq('scheduled_date', date)
-        .neq('status', 'cancelled')
-        .neq('id', excludeJobId || '');
+        .neq('status', 'cancelled');
       
+      if (excludeJobId) {
+        jobsQuery = jobsQuery.neq('id', excludeJobId);
+      }
+      
+      const { data: existingJobs } = await jobsQuery;
       for (const job of existingJobs || []) {
         if (!job.cleaner_id) continue;
         
@@ -204,13 +208,17 @@ export const useScheduleValidation = () => {
     try {
       // Check for duplicate email
       if (clientData.email) {
-        const { data: emailMatch } = await supabase
+        let emailQuery = supabase
           .from('clients')
           .select('id, name')
           .eq('company_id', companyId)
-          .eq('email', clientData.email)
-          .neq('id', excludeClientId || '');
+          .eq('email', clientData.email);
         
+        if (excludeClientId) {
+          emailQuery = emailQuery.neq('id', excludeClientId);
+        }
+        
+        const { data: emailMatch } = await emailQuery;
         if (emailMatch && emailMatch.length > 0) {
           return {
             isValid: false,
@@ -221,14 +229,18 @@ export const useScheduleValidation = () => {
       
       // Check for duplicate name + phone
       if (clientData.name && clientData.phone) {
-        const { data: namePhoneMatch } = await supabase
+        let namePhoneQuery = supabase
           .from('clients')
           .select('id')
           .eq('company_id', companyId)
           .eq('name', clientData.name)
-          .eq('phone', clientData.phone)
-          .neq('id', excludeClientId || '');
+          .eq('phone', clientData.phone);
         
+        if (excludeClientId) {
+          namePhoneQuery = namePhoneQuery.neq('id', excludeClientId);
+        }
+        
+        const { data: namePhoneMatch } = await namePhoneQuery;
         if (namePhoneMatch && namePhoneMatch.length > 0) {
           return {
             isValid: false,
@@ -298,13 +310,17 @@ export const useScheduleValidation = () => {
   ): Promise<ValidationResult> => {
     
     try {
-      const { data: existingUsers } = await supabase
+      let usersQuery = supabase
         .from('profiles')
         .select('id, first_name, last_name')
         .eq('company_id', companyId)
-        .eq('email', email)
-        .neq('id', excludeUserId || '');
+        .eq('email', email);
       
+      if (excludeUserId) {
+        usersQuery = usersQuery.neq('id', excludeUserId);
+      }
+      
+      const { data: existingUsers } = await usersQuery;
       if (existingUsers && existingUsers.length > 0) {
         const userName = `${existingUsers[0].first_name || ''} ${existingUsers[0].last_name || ''}`.trim();
         return {
@@ -362,14 +378,18 @@ export const useScheduleValidation = () => {
   ): Promise<ValidationResult> => {
     
     try {
-      const { data: activeContracts } = await supabase
+      let contractsQuery = supabase
         .from('contracts')
         .select('id, contract_number')
         .eq('client_id', clientId)
         .eq('company_id', companyId)
-        .eq('status', 'active')
-        .neq('id', excludeContractId || '');
+        .eq('status', 'active');
       
+      if (excludeContractId) {
+        contractsQuery = contractsQuery.neq('id', excludeContractId);
+      }
+      
+      const { data: activeContracts } = await contractsQuery;
       if (activeContracts && activeContracts.length > 0) {
         return {
           isValid: false,
