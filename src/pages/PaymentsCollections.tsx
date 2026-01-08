@@ -470,7 +470,7 @@ const PaymentsCollections = () => {
   }
 
   return (
-    <div className="p-2 lg:p-3 space-y-2">
+    <div className="p-2 lg:p-3 space-y-2 pt-0">
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={fetchData}>
           <RefreshCw className="h-4 w-4 mr-2" />
