@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import StatusBadge from '@/components/ui/status-badge';
 import PeriodSelector from '@/components/ui/period-selector';
-import { PaginatedDataTable, Column } from '@/components/ui/paginated-data-table';
+import PaginatedDataTable, { Column } from '@/components/ui/paginated-data-table';
 import { useServerPagination } from '@/hooks/useServerPagination';
 import SearchInput from '@/components/ui/search-input';
 import { 
@@ -700,7 +700,7 @@ const PaymentsCollections = () => {
         <CashApprovalModal
           open={showApprovalModal}
           onOpenChange={setShowApprovalModal}
-          collection={selectedCashCollection}
+          cashCollection={selectedCashCollection}
           onApprove={() => handleApproveCash(selectedCashCollection.id)}
           onDispute={(reason) => handleDisputeCash(selectedCashCollection.id, reason)}
         />
