@@ -470,23 +470,24 @@ const PaymentsCollections = () => {
   }
 
   return (
-    <div className="p-2 lg:p-3 space-y-2 pt-0">
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={fetchData}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
-        <Button variant="outline" onClick={exportToCSV}>
-          <Download className="h-4 w-4 mr-2" />
-          Export CSV
-        </Button>
+    <div className="p-2 lg:p-3 space-y-2">
+      {/* Period Selector + Actions */}
+      <div className="flex items-center justify-between gap-2">
+        <PeriodSelector
+          value={dateRange}
+          onChange={setDateRange}
+        />
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={fetchData}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+          <Button variant="outline" onClick={exportToCSV}>
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+        </div>
       </div>
-
-      {/* Period Selector */}
-      <PeriodSelector
-        value={dateRange}
-        onChange={setDateRange}
-      />
 
       {/* KPI Cards */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
