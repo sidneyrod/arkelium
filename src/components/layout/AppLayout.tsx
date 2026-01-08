@@ -35,6 +35,7 @@ const getPageLabel = (path: string, t: any): string => {
     '/absences': t?.nav?.absences || 'Absences',
     '/my-payroll': t?.nav?.myPayroll || 'My Payroll',
     '/cleaner-payroll': t?.nav?.myPayroll || 'My Payroll',
+    '/payments': 'Payments & Collections',
   };
   return pathMap[path] || 'Page';
 };

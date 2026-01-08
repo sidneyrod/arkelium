@@ -471,21 +471,16 @@ const PaymentsCollections = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      <PageHeader 
-        title="Payments & Collections" 
-        description="Central hub for all financial transactions and cash handling"
-      >
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={fetchData}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-          <Button variant="outline" onClick={exportToCSV}>
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
-          </Button>
-        </div>
-      </PageHeader>
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={fetchData}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
+        <Button variant="outline" onClick={exportToCSV}>
+          <Download className="h-4 w-4 mr-2" />
+          Export CSV
+        </Button>
+      </div>
 
       {/* Period Selector */}
       <PeriodSelector
