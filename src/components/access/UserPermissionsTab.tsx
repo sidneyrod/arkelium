@@ -187,58 +187,56 @@ const UserPermissionsTab = ({ users, permissions, rolePermissions, loading, onUp
             </DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-4 flex-1 min-h-0">
-            <div className="flex items-center gap-2">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search screens..."
-                value={moduleSearch}
-                onChange={(e) => setModuleSearch(e.target.value)}
-                className="flex-1"
-              />
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              Role: <Badge variant="outline" className="ml-1 capitalize">{selectedUser?.role}</Badge>
-              <span className="ml-2">— Changes apply to all users with this role.</span>
-            </p>
-
-            <ScrollArea className="flex-1 min-h-0 pr-4">
-              <div className="space-y-3 pb-6">
-                {filteredModules.map((module) => (
-                  <div key={module} className="border rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-sm">{MODULE_LABELS[module] || module}</h4>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {groupedPermissions[module].map((permission) => {
-                        const isGranted = selectedUser ? isPermissionGranted(selectedUser.role, permission.id) : false;
-                        const isSaving = saving === permission.id;
-                        return (
-                          <label
-                            key={permission.id}
-                            className={`flex items-center gap-2 p-2 rounded-md border cursor-pointer transition-colors ${
-                              isGranted ? 'bg-primary/10 border-primary/30' : 'hover:bg-muted/50'
-                            }`}
-                          >
-                            {isSaving ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Checkbox
-                                checked={isGranted}
-                                onCheckedChange={(checked) => handlePermissionChange(permission, !!checked)}
-                              />
-                            )}
-                            <span className="text-xs">{ACTION_LABELS[permission.action] || permission.action}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
+          <div className="flex items-center gap-2 shrink-0">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search screens..."
+              value={moduleSearch}
+              onChange={(e) => setModuleSearch(e.target.value)}
+              className="flex-1"
+            />
           </div>
+
+          <p className="text-xs text-muted-foreground shrink-0">
+            Role: <Badge variant="outline" className="ml-1 capitalize">{selectedUser?.role}</Badge>
+            <span className="ml-2">— Changes apply to all users with this role.</span>
+          </p>
+
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="space-y-3 pr-4 pb-4">
+              {filteredModules.map((module) => (
+                <div key={module} className="border rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium text-sm">{MODULE_LABELS[module] || module}</h4>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {groupedPermissions[module].map((permission) => {
+                      const isGranted = selectedUser ? isPermissionGranted(selectedUser.role, permission.id) : false;
+                      const isSaving = saving === permission.id;
+                      return (
+                        <label
+                          key={permission.id}
+                          className={`flex items-center gap-2 p-2 rounded-md border cursor-pointer transition-colors ${
+                            isGranted ? 'bg-primary/10 border-primary/30' : 'hover:bg-muted/50'
+                          }`}
+                        >
+                          {isSaving ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Checkbox
+                              checked={isGranted}
+                              onCheckedChange={(checked) => handlePermissionChange(permission, !!checked)}
+                            />
+                          )}
+                          <span className="text-xs">{ACTION_LABELS[permission.action] || permission.action}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
 
           <DialogFooter className="mt-4 shrink-0">
             <Button variant="outline" onClick={() => setShowPermissionDialog(false)}>
