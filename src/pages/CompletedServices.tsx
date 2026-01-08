@@ -6,7 +6,8 @@ import { notifyInvoiceGenerated } from '@/hooks/useNotifications';
 import { formatSafeDate, formatDateTime } from '@/lib/dates';
 import PageHeader from '@/components/ui/page-header';
 import SearchInput from '@/components/ui/search-input';
-import DataTable, { Column } from '@/components/ui/data-table';
+import { PaginatedDataTable, Column } from '@/components/ui/paginated-data-table';
+import { useServerPagination } from '@/hooks/useServerPagination';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -39,10 +40,9 @@ const CompletedServices = () => {
   const { t } = useLanguage();
   const { user, hasRole } = useAuth();
   
-  const [services, setServices] = useState<CompletedService[]>([]);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showGenerateDialog, setShowGenerateDialog] = useState(false);
   const [invoiceFrequency, setInvoiceFrequency] = useState<'weekly' | 'biweekly' | 'monthly'>('weekly');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -53,81 +53,85 @@ const CompletedServices = () => {
 
   const isAdmin = hasRole(['admin']);
   const isManager = hasRole(['manager']);
-  // RULE: Only ADMIN can generate invoices
   const canGenerateInvoices = isAdmin;
   const canViewServices = isAdmin || isManager;
 
-  // Use RPC to get pending invoices (single source of truth from database)
-  const fetchCompletedServices = useCallback(async () => {
-    try {
-      // Call the RPC function - it handles role check internally
-      const { data: pendingServices, error } = await supabase
-        .rpc('get_completed_services_pending_invoices');
-      
-      if (error) {
-        console.error('Error fetching pending invoices:', error);
-        setIsLoading(false);
-        return;
-      }
+  const companyId = user?.profile?.company_id;
 
-      // Map the RPC response to our CompletedService interface
-      const mappedServices: CompletedService[] = (pendingServices || []).map((job: any) => ({
-        id: job.id,
-        clientId: job.client_id,
-        clientName: job.client_name || 'Unknown',
-        address: job.address || 'No address',
-        date: job.scheduled_date, // date-only string from database
-        duration: job.duration_minutes ? `${job.duration_minutes / 60}h` : '2h',
-        employeeName: job.cleaner_first_name && job.cleaner_last_name
-          ? `${job.cleaner_first_name} ${job.cleaner_last_name}`.trim()
-          : job.cleaner_first_name || job.cleaner_last_name || 'Unassigned',
-        jobType: job.job_type || 'Standard Clean',
-        completedAt: job.completed_at,
-      }));
-      
-      setServices(mappedServices);
-      setIsLoading(false);
-    } catch (error) {
-      console.error('Error in fetchCompletedServices:', error);
-      setIsLoading(false);
-    }
-  }, []);
-
+  // Debounce search
   useEffect(() => {
-    if (user) {
-      fetchCompletedServices();
-    }
-  }, [user, fetchCompletedServices]);
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
-  // Filter by search and period
-  const filteredServices = useMemo(() => {
-    return services.filter(service => {
-      // Search filter
-      const matchesSearch = service.clientName.toLowerCase().includes(search.toLowerCase()) ||
-        service.employeeName.toLowerCase().includes(search.toLowerCase()) ||
-        service.address.toLowerCase().includes(search.toLowerCase());
-      
-      if (!matchesSearch) return false;
-      
-      // Period filter
-      if (period.startDate && period.endDate && service.date) {
+  // Server-side pagination fetch function
+  const fetchServices = useCallback(async (from: number, to: number): Promise<{ data: CompletedService[]; count: number }> => {
+    if (!companyId) return { data: [], count: 0 };
+
+    // Using the RPC function for pending invoices
+    const { data: allPendingServices, error } = await supabase
+      .rpc('get_completed_services_pending_invoices');
+    
+    if (error) {
+      console.error('Error fetching pending invoices:', error);
+      return { data: [], count: 0 };
+    }
+
+    let mappedServices: CompletedService[] = (allPendingServices || []).map((job: any) => ({
+      id: job.id,
+      clientId: job.client_id,
+      clientName: job.client_name || 'Unknown',
+      address: job.address || 'No address',
+      date: job.scheduled_date,
+      duration: job.duration_minutes ? `${job.duration_minutes / 60}h` : '2h',
+      employeeName: job.cleaner_first_name && job.cleaner_last_name
+        ? `${job.cleaner_first_name} ${job.cleaner_last_name}`.trim()
+        : job.cleaner_first_name || job.cleaner_last_name || 'Unassigned',
+      jobType: job.job_type || 'Standard Clean',
+      completedAt: job.completed_at,
+    }));
+
+    // Apply search filter
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase();
+      mappedServices = mappedServices.filter(s =>
+        s.clientName.toLowerCase().includes(q) ||
+        s.employeeName.toLowerCase().includes(q) ||
+        s.address.toLowerCase().includes(q)
+      );
+    }
+
+    // Apply period filter
+    if (period.startDate && period.endDate) {
+      mappedServices = mappedServices.filter(s => {
         try {
-          const serviceDate = parseISO(service.date);
-          if (!isWithinInterval(serviceDate, { start: period.startDate, end: period.endDate })) {
-            return false;
-          }
+          const serviceDate = parseISO(s.date);
+          return isWithinInterval(serviceDate, { start: period.startDate!, end: period.endDate! });
         } catch {
-          // Invalid date
+          return true;
         }
-      }
-      
-      return true;
-    });
-  }, [services, search, period]);
+      });
+    }
+
+    // Apply pagination client-side (RPC doesn't support range)
+    const totalCount = mappedServices.length;
+    const paginatedServices = mappedServices.slice(from, to + 1);
+
+    return { data: paginatedServices, count: totalCount };
+  }, [companyId, debouncedSearch, period]);
+
+  const {
+    data: services,
+    isLoading,
+    pagination,
+    setPage,
+    setPageSize,
+    refresh: refreshServices,
+  } = useServerPagination<CompletedService>(fetchServices, { pageSize: 25 });
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedServices(filteredServices.map(s => s.id));
+      setSelectedServices(services.map(s => s.id));
     } else {
       setSelectedServices([]);
     }
@@ -142,7 +146,6 @@ const CompletedServices = () => {
   };
 
   const handleGenerateInvoices = async () => {
-    // RULE: Only ADMIN can generate invoices
     if (!isAdmin) {
       toast.error('Only administrators can generate invoices');
       return;
@@ -156,12 +159,6 @@ const CompletedServices = () => {
     setIsGenerating(true);
 
     try {
-      let companyId = user?.profile?.company_id;
-      if (!companyId) {
-        const { data: companyIdData } = await supabase.rpc('get_user_company_id');
-        companyId = companyIdData;
-      }
-
       if (!companyId) {
         toast.error('Unable to identify company');
         setIsGenerating(false);
@@ -187,7 +184,7 @@ const CompletedServices = () => {
         const service = services.find(s => s.id === serviceId);
         if (!service) continue;
 
-        // DEFENSE-IN-DEPTH: Check if job was paid in cash (receipt already generated)
+        // Check if job was paid in cash
         const { data: jobPaymentData } = await supabase
           .from('jobs')
           .select('payment_method')
@@ -195,12 +192,11 @@ const CompletedServices = () => {
           .maybeSingle();
         
         if (jobPaymentData?.payment_method === 'cash') {
-          console.log(`Skipping job ${serviceId} - cash payment (receipt already generated)`);
           invoicesSkipped++;
           continue;
         }
 
-        // IDEMPOTENCY CHECK: Verify invoice doesn't already exist before inserting
+        // Check if invoice already exists
         const { data: existingInvoice } = await supabase
           .from('invoices')
           .select('id')
@@ -209,7 +205,6 @@ const CompletedServices = () => {
           .maybeSingle();
         
         if (existingInvoice) {
-          console.log(`Skipping job ${serviceId} - invoice already exists`);
           invoicesSkipped++;
           continue;
         }
@@ -249,9 +244,7 @@ const CompletedServices = () => {
           .single();
 
         if (invoiceError) {
-          // Handle unique constraint violation gracefully
           if (invoiceError.code === '23505') {
-            console.log(`Invoice already exists for job ${serviceId}`);
             invoicesSkipped++;
             continue;
           }
@@ -259,13 +252,10 @@ const CompletedServices = () => {
           continue;
         }
 
-        // Notify admin about the generated invoice
         await notifyInvoiceGenerated(invoiceNumber, service.clientName, total, invoiceData.id);
-
         invoicesCreated++;
       }
 
-      // Report results including any skipped
       if (invoicesSkipped > 0) {
         toast.success(`${invoicesCreated} invoice(s) generated, ${invoicesSkipped} already existed`);
       } else {
@@ -273,7 +263,7 @@ const CompletedServices = () => {
       }
       setShowGenerateDialog(false);
       setSelectedServices([]);
-      await fetchCompletedServices();
+      await refreshServices();
     } catch (error) {
       console.error('Error generating invoices:', error);
       toast.error('Failed to generate invoices');
@@ -328,7 +318,6 @@ const CompletedServices = () => {
     },
   ];
 
-  const totalServices = filteredServices.length;
   const selectedCount = selectedServices.length;
   const estimatedTotal = selectedServices.reduce((acc, id) => {
     const service = services.find(s => s.id === id);
@@ -336,14 +325,6 @@ const CompletedServices = () => {
     const hours = parseFloat(service.duration.replace(/[^0-9.]/g, '')) || 2;
     return acc + (hours * 35);
   }, 0);
-
-  if (isLoading) {
-    return (
-      <div className="p-2 lg:p-3 flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   if (!canViewServices) {
     return (
@@ -376,7 +357,7 @@ const CompletedServices = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Pending Invoices</p>
-                <p className="text-2xl font-bold">{totalServices}</p>
+                <p className="text-2xl font-bold">{pagination.totalCount}</p>
               </div>
             </div>
           </CardContent>
@@ -412,7 +393,7 @@ const CompletedServices = () => {
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex items-center gap-2">
           <Checkbox 
-            checked={selectedServices.length === filteredServices.length && filteredServices.length > 0}
+            checked={selectedServices.length === services.length && services.length > 0}
             onCheckedChange={handleSelectAll}
           />
           <span className="text-sm text-muted-foreground">Select All</span>
@@ -424,7 +405,6 @@ const CompletedServices = () => {
             onChange={setSearch}
             className="max-w-sm"
           />
-          {/* RULE: Only ADMIN can generate invoices */}
           {isAdmin ? (
             <Button 
               onClick={() => setShowGenerateDialog(true)}
@@ -442,9 +422,13 @@ const CompletedServices = () => {
         </div>
       </div>
 
-      <DataTable 
+      <PaginatedDataTable 
         columns={columns}
-        data={filteredServices}
+        data={services}
+        isLoading={isLoading}
+        pagination={pagination}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
         emptyMessage="No completed services pending invoices."
       />
 
@@ -496,14 +480,8 @@ const CompletedServices = () => {
               Cancel
             </Button>
             <Button onClick={handleGenerateInvoices} disabled={isGenerating}>
-              {isGenerating ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                'Generate Invoices'
-              )}
+              {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Generate Invoices
             </Button>
           </DialogFooter>
         </DialogContent>

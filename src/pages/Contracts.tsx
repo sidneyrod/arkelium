@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import PageHeader from '@/components/ui/page-header';
 import SearchInput from '@/components/ui/search-input';
-import DataTable, { Column } from '@/components/ui/data-table';
+import { PaginatedDataTable, Column } from '@/components/ui/paginated-data-table';
+import { useServerPagination } from '@/hooks/useServerPagination';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -94,7 +95,7 @@ const Contracts = () => {
   const { t, language } = useLanguage();
   const { user } = useAuth();
   const [search, setSearch] = useState('');
-  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [clients, setClients] = useState<Client[]>([]);
   const [companyData, setCompanyData] = useState<CompanyData | null>(null);
   const [brandingData, setBrandingData] = useState<BrandingData | null>(null);
@@ -104,179 +105,127 @@ const Contracts = () => {
   const [deleteContract, setDeleteContract] = useState<Contract | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState<string | null>(null);
   const [isSendingSms, setIsSendingSms] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch clients from database
+  const companyId = user?.profile?.company_id;
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Server-side pagination fetch function
+  const fetchContracts = useCallback(async (from: number, to: number): Promise<{ data: Contract[]; count: number }> => {
+    if (!companyId) return { data: [], count: 0 };
+
+    let query = supabase
+      .from('contracts')
+      .select(`
+        id,
+        client_id,
+        status,
+        frequency,
+        services,
+        monthly_value,
+        start_date,
+        clients(id, name, email, phone),
+        client_locations(address, city)
+      `, { count: 'exact' })
+      .eq('company_id', companyId);
+
+    // Apply search filter server-side
+    if (debouncedSearch) {
+      query = query.or(`clients.name.ilike.%${debouncedSearch}%`);
+    }
+
+    query = query
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      console.error('Error fetching contracts:', error);
+      return { data: [], count: 0 };
+    }
+
+    const mappedContracts: Contract[] = (data || []).map((contract: any) => ({
+      id: contract.id,
+      clientId: contract.client_id,
+      clientName: contract.clients?.name || 'Unknown',
+      clientEmail: contract.clients?.email,
+      clientPhone: contract.clients?.phone,
+      location: contract.client_locations?.address 
+        ? `${contract.client_locations.address}, ${contract.client_locations.city || ''}`
+        : 'No location',
+      frequency: contract.frequency === 'bi-weekly' ? 'biweekly' : (contract.frequency || 'weekly') as Contract['frequency'],
+      services: contract.services || [],
+      status: contract.status as Contract['status'],
+      value: contract.monthly_value || 0,
+      avgDuration: '3h',
+      startDate: contract.start_date || '',
+      hoursPerWeek: 4,
+      hourlyRate: 45,
+    }));
+
+    return { data: mappedContracts, count: count || 0 };
+  }, [companyId, debouncedSearch]);
+
+  const {
+    data: contracts,
+    isLoading,
+    pagination,
+    setPage,
+    setPageSize,
+    refresh: refreshContracts,
+  } = useServerPagination<Contract>(fetchContracts, { pageSize: 25 });
+
+  // Fetch clients for modal
   useEffect(() => {
     const fetchClients = async () => {
-      // Get company_id from user profile or from database function
-      let companyId = user?.profile?.company_id;
-      
-      if (!companyId) {
-        // Try to get company_id from database function
-        const { data: companyIdData, error: companyIdError } = await supabase.rpc('get_user_company_id');
-        if (companyIdError) {
-          console.error('Error getting company_id:', companyIdError);
-          return;
-        }
-        companyId = companyIdData;
-      }
-      
-      if (!companyId) {
-        console.log('No company_id available for fetching clients');
-        return;
-      }
+      if (!companyId) return;
       
       const { data, error } = await supabase
         .from('clients')
         .select('id, name, email, phone')
         .eq('company_id', companyId);
       
-      if (error) {
-        console.error('Error fetching clients:', error);
-        return;
+      if (!error) {
+        setClients(data || []);
       }
-      
-      console.log('Clients fetched:', data);
-      setClients(data || []);
     };
 
-    if (user) {
-      fetchClients();
-    }
-  }, [user]);
-
-  // Fetch contracts from database
-  useEffect(() => {
-    const fetchContracts = async () => {
-      let companyId = user?.profile?.company_id;
-      
-      if (!companyId) {
-        const { data: companyIdData, error: companyIdError } = await supabase.rpc('get_user_company_id');
-        if (companyIdError) {
-          console.error('Error getting company_id:', companyIdError);
-          setIsLoading(false);
-          return;
-        }
-        companyId = companyIdData;
-      }
-      
-      if (!companyId) {
-        setIsLoading(false);
-        return;
-      }
-      
-      setIsLoading(true);
-      
-      const { data, error } = await supabase
-        .from('contracts')
-        .select(`
-          id,
-          client_id,
-          status,
-          frequency,
-          services,
-          monthly_value,
-          start_date,
-          clients(id, name, email, phone),
-          client_locations(address, city)
-        `)
-        .eq('company_id', companyId);
-      
-      if (error) {
-        console.error('Error fetching contracts:', error);
-        setIsLoading(false);
-        return;
-      }
-      
-      const mappedContracts: Contract[] = (data || []).map((contract: any) => ({
-        id: contract.id,
-        clientId: contract.client_id,
-        clientName: contract.clients?.name || 'Unknown',
-        clientEmail: contract.clients?.email,
-        clientPhone: contract.clients?.phone,
-        location: contract.client_locations?.address 
-          ? `${contract.client_locations.address}, ${contract.client_locations.city || ''}`
-          : 'No location',
-        frequency: contract.frequency === 'bi-weekly' ? 'biweekly' : (contract.frequency || 'weekly') as Contract['frequency'],
-        services: contract.services || [],
-        status: contract.status as Contract['status'],
-        value: contract.monthly_value || 0,
-        avgDuration: '3h',
-        startDate: contract.start_date || '',
-        hoursPerWeek: 4,
-        hourlyRate: 45,
-      }));
-      
-      setContracts(mappedContracts);
-      setIsLoading(false);
-    };
-
-    if (user) {
-      fetchContracts();
-    }
-  }, [user]);
+    if (user) fetchClients();
+  }, [user, companyId]);
 
   // Fetch company and branding data for PDF generation
   useEffect(() => {
     const fetchCompanyData = async () => {
-      let companyId = user?.profile?.company_id;
-      
-      if (!companyId) {
-        const { data: companyIdData, error: companyIdError } = await supabase.rpc('get_user_company_id');
-        if (companyIdError) {
-          console.error('Error getting company_id:', companyIdError);
-          return;
-        }
-        companyId = companyIdData;
-      }
-      
       if (!companyId) return;
       
-      const { data: company, error: companyError } = await supabase
+      const { data: company } = await supabase
         .from('companies')
         .select('id, trade_name, legal_name, email, phone, address, city, province, postal_code')
         .eq('id', companyId)
         .maybeSingle();
       
-      if (companyError) {
-        console.error('Error fetching company:', companyError);
-        return;
-      }
-      
       setCompanyData(company);
       
-      const { data: branding, error: brandingError } = await supabase
+      const { data: branding } = await supabase
         .from('company_branding')
         .select('logo_url, primary_color, secondary_color, accent_color')
         .eq('company_id', companyId)
         .maybeSingle();
       
-      if (!brandingError && branding) {
-        setBrandingData(branding);
-      }
+      if (branding) setBrandingData(branding);
     };
 
-    if (user) {
-      fetchCompanyData();
-    }
-  }, [user]);
-
-  const filteredContracts = contracts.filter(contract =>
-    contract.clientName.toLowerCase().includes(search.toLowerCase()) ||
-    contract.location.toLowerCase().includes(search.toLowerCase())
-  );
+    if (user) fetchCompanyData();
+  }, [user, companyId]);
 
   const { validateContractActive } = useScheduleValidation();
 
   const handleAddContract = async (contractData: ContractFormData) => {
-    let companyId = user?.profile?.company_id;
-    
-    if (!companyId) {
-      const { data: companyIdData } = await supabase.rpc('get_user_company_id');
-      companyId = companyIdData;
-    }
-    
     if (!companyId) {
       toast({
         title: t.common.error,
@@ -297,7 +246,6 @@ const Contracts = () => {
       return;
     }
 
-    // Validate: only 1 active contract per client
     if (contractData.status === 'active') {
       const validation = await validateContractActive(
         contractData.clientId, 
@@ -315,7 +263,6 @@ const Contracts = () => {
     }
     
     if (editContract) {
-      // Update existing contract
       const { error } = await supabase
         .from('contracts')
         .update({
@@ -330,43 +277,16 @@ const Contracts = () => {
         .eq('id', editContract.id);
       
       if (error) {
-        toast({
-          title: t.common.error,
-          description: 'Failed to update contract.',
-          variant: 'destructive',
-        });
+        toast({ title: t.common.error, description: 'Failed to update contract.', variant: 'destructive' });
         return;
       }
       
-      setContracts(prev => prev.map(c => 
-        c.id === editContract.id 
-          ? { 
-              ...c, 
-              clientId: contractData.clientId,
-              clientName: client?.name || c.clientName,
-              clientEmail: client?.email,
-              clientPhone: client?.phone,
-              location: contractData.serviceLocation,
-              frequency: (contractData.billingFrequency === 'bi-weekly' ? 'biweekly' : contractData.billingFrequency === 'monthly' ? 'monthly' : 'weekly') as Contract['frequency'],
-              services: contractData.cleaningScope.split(',').map(s => s.trim()).filter(Boolean),
-              status: contractData.status,
-              value: contractData.hoursPerWeek * contractData.hourlyRate,
-              hoursPerWeek: contractData.hoursPerWeek,
-              hourlyRate: contractData.hourlyRate,
-              startDate: contractData.startDate?.toISOString().split('T')[0] || c.startDate,
-            } 
-          : c
-      ));
       setEditContract(null);
-      toast({
-        title: t.common.success,
-        description: 'Contract updated successfully.',
-      });
+      toast({ title: t.common.success, description: 'Contract updated successfully.' });
     } else {
-      // Create new contract
       const contractNumber = `CNT-${Date.now()}`;
       
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('contracts')
         .insert({
           company_id: companyId,
@@ -378,41 +298,18 @@ const Contracts = () => {
           monthly_value: contractData.hoursPerWeek * contractData.hourlyRate,
           start_date: contractData.startDate?.toISOString().split('T')[0],
           notes: contractData.specialNotes,
-        })
-        .select()
-        .single();
+        });
       
       if (error) {
-        toast({
-          title: t.common.error,
-          description: 'Failed to create contract.',
-          variant: 'destructive',
-        });
+        toast({ title: t.common.error, description: 'Failed to create contract.', variant: 'destructive' });
         return;
       }
       
-      const newContract: Contract = {
-        id: data.id,
-        clientId: contractData.clientId,
-        clientName: client?.name || 'Unknown',
-        clientEmail: client?.email,
-        clientPhone: client?.phone,
-        location: contractData.serviceLocation,
-        frequency: contractData.billingFrequency === 'bi-weekly' ? 'biweekly' : contractData.billingFrequency === 'monthly' ? 'monthly' : 'weekly',
-        services: contractData.cleaningScope.split(',').map(s => s.trim()).filter(Boolean),
-        status: contractData.status,
-        value: contractData.hoursPerWeek * contractData.hourlyRate,
-        avgDuration: `${contractData.hoursPerWeek}h`,
-        startDate: contractData.startDate?.toISOString().split('T')[0] || '',
-        hoursPerWeek: contractData.hoursPerWeek,
-        hourlyRate: contractData.hourlyRate,
-      };
-      setContracts(prev => [...prev, newContract]);
-      toast({
-        title: t.common.success,
-        description: 'Contract created successfully.',
-      });
+      toast({ title: t.common.success, description: 'Contract created successfully.' });
     }
+    
+    refreshContracts();
+    setIsAddModalOpen(false);
   };
 
   const handleDeleteContract = async () => {
@@ -421,23 +318,16 @@ const Contracts = () => {
         .from('contracts')
         .delete()
         .eq('id', deleteContract.id)
-        .eq('company_id', user?.profile?.company_id);
+        .eq('company_id', companyId);
       
       if (error) {
-        toast({
-          title: t.common.error,
-          description: 'Failed to delete contract.',
-          variant: 'destructive',
-        });
+        toast({ title: t.common.error, description: 'Failed to delete contract.', variant: 'destructive' });
         return;
       }
       
-      setContracts(prev => prev.filter(c => c.id !== deleteContract.id));
-      toast({
-        title: t.common.success,
-        description: t.contracts.contractDeleted,
-      });
+      toast({ title: t.common.success, description: t.contracts.contractDeleted });
       setDeleteContract(null);
+      refreshContracts();
     }
   };
 
@@ -472,27 +362,17 @@ const Contracts = () => {
 
   const handleViewPdf = (contract: Contract) => {
     if (!contract.clientId || contract.clientName === 'Unknown') {
-      toast({
-        title: t.common.error,
-        description: 'Cannot generate PDF: No valid client linked to this contract.',
-        variant: 'destructive',
-      });
+      toast({ title: t.common.error, description: 'Cannot generate PDF: No valid client linked to this contract.', variant: 'destructive' });
       return;
     }
 
     if (!companyData) {
-      toast({
-        title: t.common.error,
-        description: 'Company data not loaded. Please try again.',
-        variant: 'destructive',
-      });
+      toast({ title: t.common.error, description: 'Company data not loaded. Please try again.', variant: 'destructive' });
       return;
     }
 
     try {
       const pdfData = buildContractPdfData(contract);
-      
-      // Build company profile from database data
       const companyProfile = {
         companyName: companyData.trade_name || companyData.legal_name,
         legalName: companyData.legal_name,
@@ -506,8 +386,6 @@ const Contracts = () => {
         businessNumber: '',
         gstHstNumber: '',
       };
-      
-      // Build branding from database data
       const branding = {
         logoUrl: brandingData?.logo_url || '',
         primaryColor: brandingData?.primary_color || '#1a3d2e',
@@ -518,61 +396,32 @@ const Contracts = () => {
       const htmlContent = generateContractPdf(pdfData, companyProfile, branding, language);
       openPdfPreview(htmlContent, `contract-${contract.id}-${contract.clientName}`);
       
-      toast({
-        title: t.common.success,
-        description: `Contract PDF for ${contract.clientName} is ready.`,
-      });
-    } catch (error) {
-      toast({
-        title: t.common.error,
-        description: 'Failed to generate PDF. Please try again.',
-        variant: 'destructive',
-      });
+      toast({ title: t.common.success, description: `Contract PDF for ${contract.clientName} is ready.` });
+    } catch {
+      toast({ title: t.common.error, description: 'Failed to generate PDF. Please try again.', variant: 'destructive' });
     }
   };
 
   const handleSendEmail = async (contract: Contract) => {
     if (!contract.clientId || contract.clientName === 'Unknown') {
-      toast({
-        title: t.common.error,
-        description: 'Cannot send email: No valid client linked to this contract.',
-        variant: 'destructive',
-      });
+      toast({ title: t.common.error, description: 'Cannot send email: No valid client linked to this contract.', variant: 'destructive' });
       return;
     }
-
     setIsSendingEmail(contract.id);
-    
-    // Simulate API call - in production, this would call a backend endpoint
     await new Promise(resolve => setTimeout(resolve, 1500));
-    
     setIsSendingEmail(null);
-    toast({
-      title: t.common.success,
-      description: `Contract sent to ${contract.clientName} via email.`,
-    });
+    toast({ title: t.common.success, description: `Contract sent to ${contract.clientName} via email.` });
   };
 
   const handleSendSms = async (contract: Contract) => {
     if (!contract.clientId || contract.clientName === 'Unknown') {
-      toast({
-        title: t.common.error,
-        description: 'Cannot send SMS: No valid client linked to this contract.',
-        variant: 'destructive',
-      });
+      toast({ title: t.common.error, description: 'Cannot send SMS: No valid client linked to this contract.', variant: 'destructive' });
       return;
     }
-
     setIsSendingSms(contract.id);
-    
-    // Simulate API call - in production, this would call a backend endpoint
     await new Promise(resolve => setTimeout(resolve, 1500));
-    
     setIsSendingSms(null);
-    toast({
-      title: t.common.success,
-      description: `Contract link sent to ${contract.clientName} via SMS.`,
-    });
+    toast({ title: t.common.success, description: `Contract link sent to ${contract.clientName} via SMS.` });
   };
 
   const columns: Column<Contract>[] = [
@@ -615,9 +464,7 @@ const Contracts = () => {
     {
       key: 'value',
       header: t.contracts.value,
-      render: (contract) => (
-        <span className="font-medium">${contract.value}</span>
-      ),
+      render: (contract) => <span className="font-medium">${contract.value}</span>,
     },
     {
       key: 'status',
@@ -647,22 +494,14 @@ const Contracts = () => {
               onClick={(e) => { e.stopPropagation(); handleSendEmail(contract); }}
               disabled={isSendingEmail === contract.id}
             >
-              {isSendingEmail === contract.id ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Mail className="h-4 w-4 mr-2" />
-              )}
+              {isSendingEmail === contract.id ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
               {t.contracts.sendEmail}
             </DropdownMenuItem>
             <DropdownMenuItem 
               onClick={(e) => { e.stopPropagation(); handleSendSms(contract); }}
               disabled={isSendingSms === contract.id}
             >
-              {isSendingSms === contract.id ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <MessageSquare className="h-4 w-4 mr-2" />
-              )}
+              {isSendingSms === contract.id ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <MessageSquare className="h-4 w-4 mr-2" />}
               {t.contracts.sendSms}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditModal(contract); }}>
@@ -701,11 +540,15 @@ const Contracts = () => {
         className="max-w-sm"
       />
 
-      <DataTable 
+      <PaginatedDataTable 
         columns={columns}
-        data={filteredContracts}
+        data={contracts}
+        isLoading={isLoading}
+        pagination={pagination}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
         onRowClick={setSelectedContract}
-        emptyMessage={isLoading ? 'Loading...' : t.common.noData}
+        emptyMessage={t.common.noData}
       />
 
       {/* Contract Details Dialog */}

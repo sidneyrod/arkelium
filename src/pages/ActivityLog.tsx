@@ -1,20 +1,20 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import PageHeader from '@/components/ui/page-header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PaginatedDataTable, Column } from '@/components/ui/paginated-data-table';
+import { useServerPagination } from '@/hooks/useServerPagination';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePickerDialog } from '@/components/ui/date-picker-dialog';
-import { Activity, User, Users, FileText, Calendar as CalendarIcon, DollarSign, Settings, LogIn, LogOut, CalendarOff, ShieldAlert, Search, Filter, X, Loader2, Banknote } from 'lucide-react';
-import { format, formatDistanceToNow, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { Activity, User, Users, FileText, Calendar as CalendarIcon, DollarSign, Settings, LogIn, LogOut, CalendarOff, ShieldAlert, Search, X, Banknote } from 'lucide-react';
+import { format, formatDistanceToNow, startOfDay, endOfDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 
-// Activity types for the system
 type ActivityAction = 
   | 'user_created' | 'user_updated' | 'user_deleted'
   | 'client_created' | 'client_updated' | 'client_deleted' | 'client_inactivated'
@@ -44,10 +44,8 @@ interface ActivityLogEntry {
     entityName?: string;
     [key: string]: unknown;
   } | null;
-  performer: {
-    first_name: string | null;
-    last_name: string | null;
-  } | null;
+  performer_first_name: string | null;
+  performer_last_name: string | null;
   user_id: string | null;
 }
 
@@ -105,91 +103,116 @@ const activityIcons: Record<string, { icon: typeof Activity; color: string }> = 
   cash_compensation_settled: { icon: Banknote, color: 'text-primary' },
 };
 
-const ITEMS_PER_PAGE = 20;
-
 const ActivityLog = () => {
   const { t } = useLanguage();
   const { hasRole, user } = useAuth();
   
-  // Activity logs from Supabase
-  const [logs, setLogs] = useState<ActivityLogEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  
-  // Filter states
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedUser, setSelectedUser] = useState<string>('all');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
     from: undefined,
     to: undefined,
   });
-  const [currentPage, setCurrentPage] = useState(1);
 
-  // Fetch activity logs from Supabase
+  const companyId = user?.profile?.company_id;
+
+  // Debounce search
   useEffect(() => {
-    const fetchLogs = async () => {
-      if (!user?.profile?.company_id) return;
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-      try {
-        setIsLoading(true);
-        const { data, error } = await supabase
-          .from('activity_logs')
-          .select(`
-            id,
-            action,
-            entity_type,
-            entity_id,
-            created_at,
-            details,
-            user_id,
-            performed_by_user_id
-          `)
-          .eq('company_id', user.profile.company_id)
-          .order('created_at', { ascending: false })
-          .limit(500);
+  // Server-side pagination fetch function
+  const fetchLogs = useCallback(async (from: number, to: number): Promise<{ data: ActivityLogEntry[]; count: number }> => {
+    if (!companyId) return { data: [], count: 0 };
 
-        if (error) {
-          console.error('Error fetching activity logs:', error);
-          return;
-        }
+    // First get logs with pagination
+    let query = supabase
+      .from('activity_logs')
+      .select('id, action, entity_type, entity_id, created_at, details, user_id, performed_by_user_id', { count: 'exact' })
+      .eq('company_id', companyId);
 
-        // Fetch performer names separately for logs that have performed_by_user_id
-        const logsWithPerformerId = (data || []).filter((log: any) => log.performed_by_user_id);
-        const performerIds = [...new Set(logsWithPerformerId.map((log: any) => log.performed_by_user_id))];
-        
-        let performersMap: Record<string, { first_name: string | null; last_name: string | null }> = {};
-        
-        if (performerIds.length > 0) {
-          const { data: performers } = await supabase
-            .from('profiles')
-            .select('id, first_name, last_name')
-            .in('id', performerIds);
-          
-          if (performers) {
-            performers.forEach((p: any) => {
-              performersMap[p.id] = { first_name: p.first_name, last_name: p.last_name };
-            });
-          }
-        }
+    // Filter by action type
+    if (selectedType !== 'all') {
+      query = query.eq('action', selectedType);
+    }
 
-        // Transform data to match expected interface
-        const transformedData = (data || []).map((log: any) => ({
-          ...log,
-          performer: log.performed_by_user_id ? performersMap[log.performed_by_user_id] || null : null
-        })) as unknown as ActivityLogEntry[];
+    // Filter by date range
+    if (dateRange.from) {
+      query = query.gte('created_at', startOfDay(dateRange.from).toISOString());
+    }
+    if (dateRange.to) {
+      query = query.lte('created_at', endOfDay(dateRange.to).toISOString());
+    }
 
-        setLogs(transformedData);
-      } catch (err) {
-        console.error('Error in fetchLogs:', err);
-      } finally {
-        setIsLoading(false);
+    query = query
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      console.error('Error fetching activity logs:', error);
+      return { data: [], count: 0 };
+    }
+
+    // Fetch performer names separately
+    const performerIds = [...new Set((data || []).filter((log: any) => log.performed_by_user_id).map((log: any) => log.performed_by_user_id))];
+    
+    let performersMap: Record<string, { first_name: string | null; last_name: string | null }> = {};
+    
+    if (performerIds.length > 0) {
+      const { data: performers } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .in('id', performerIds);
+      
+      if (performers) {
+        performers.forEach((p: any) => {
+          performersMap[p.id] = { first_name: p.first_name, last_name: p.last_name };
+        });
       }
-    };
+    }
 
-    fetchLogs();
-  }, [user?.profile?.company_id]);
+    const transformedData = (data || []).map((log: any) => {
+      const performer = log.performed_by_user_id ? performersMap[log.performed_by_user_id] : null;
+      return {
+        ...log,
+        performer_first_name: performer?.first_name || null,
+        performer_last_name: performer?.last_name || null,
+      };
+    }) as ActivityLogEntry[];
 
-  // Role-based access control - only admin and manager can view
+    // Client-side search filter (for description search)
+    let filteredData = transformedData;
+    if (debouncedSearch) {
+      const query = debouncedSearch.toLowerCase();
+      filteredData = transformedData.filter(log => {
+        const description = (log.details?.description || '').toLowerCase();
+        const entityName = (log.details?.entityName || '').toLowerCase();
+        const userName = `${log.performer_first_name || ''} ${log.performer_last_name || ''}`.toLowerCase();
+        const action = log.action.toLowerCase();
+        return description.includes(query) || entityName.includes(query) || userName.includes(query) || action.includes(query);
+      });
+    }
+
+    return { data: filteredData, count: count || 0 };
+  }, [companyId, selectedType, dateRange.from, dateRange.to, debouncedSearch]);
+
+  const {
+    data: logs,
+    isLoading,
+    pagination,
+    setPage,
+    setPageSize,
+  } = useServerPagination<ActivityLogEntry>(fetchLogs, { pageSize: 25 });
+
+  // Get unique action types for filter dropdown
+  const actionTypes = useMemo(() => {
+    return Object.keys(activityIcons).sort();
+  }, []);
+
   if (!hasRole(['admin', 'manager'])) {
     return (
       <div className="p-2 lg:p-3">
@@ -204,75 +227,7 @@ const ActivityLog = () => {
     );
   }
 
-  // Get unique users from logs
-  const uniqueUsers = useMemo(() => {
-    const users = new Map<string, string>();
-    logs.forEach(log => {
-      if (log.performer) {
-        const name = `${log.performer.first_name || ''} ${log.performer.last_name || ''}`.trim();
-        if (name && log.user_id) {
-          users.set(log.user_id, name);
-        }
-      }
-    });
-    return Array.from(users.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
-  }, [logs]);
-
-  // Get unique action types from logs
-  const actionTypes = useMemo(() => {
-    const types = new Set(logs.map(log => log.action));
-    return Array.from(types).sort();
-  }, [logs]);
-
-  // Filtered logs
-  const filteredLogs = useMemo(() => {
-    return logs.filter(log => {
-      // Search filter
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const description = log.details?.description?.toLowerCase() || '';
-        const entityName = log.details?.entityName?.toLowerCase() || '';
-        const userName = log.performer ? `${log.performer.first_name || ''} ${log.performer.last_name || ''}`.toLowerCase() : '';
-        const action = log.action.toLowerCase();
-        if (!description.includes(query) && !entityName.includes(query) && !userName.includes(query) && !action.includes(query)) {
-          return false;
-        }
-      }
-
-      // User filter
-      if (selectedUser !== 'all' && log.user_id !== selectedUser) return false;
-
-      // Type filter
-      if (selectedType !== 'all' && log.action !== selectedType) return false;
-
-      // Date range filter
-      if (dateRange.from || dateRange.to) {
-        const logDate = new Date(log.created_at);
-        if (dateRange.from && dateRange.to) {
-          if (!isWithinInterval(logDate, { 
-            start: startOfDay(dateRange.from), 
-            end: endOfDay(dateRange.to) 
-          })) return false;
-        } else if (dateRange.from) {
-          if (logDate < startOfDay(dateRange.from)) return false;
-        } else if (dateRange.to) {
-          if (logDate > endOfDay(dateRange.to)) return false;
-        }
-      }
-
-      return true;
-    });
-  }, [logs, searchQuery, selectedUser, selectedType, dateRange]);
-
-  // Pagination
-  const totalPages = Math.ceil(filteredLogs.length / ITEMS_PER_PAGE);
-  const paginatedLogs = filteredLogs.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
-
   const getTypeLabel = (action: string): string => {
-    // Convert snake_case to Title Case
     return action.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
 
@@ -285,29 +240,64 @@ const ActivityLog = () => {
   };
 
   const getPerformerName = (log: ActivityLogEntry): string => {
-    if (log.performer) {
-      return `${log.performer.first_name || ''} ${log.performer.last_name || ''}`.trim() || 'Unknown User';
+    if (log.performer_first_name || log.performer_last_name) {
+      return `${log.performer_first_name || ''} ${log.performer_last_name || ''}`.trim() || 'Unknown User';
     }
     return 'System';
   };
 
   const clearFilters = () => {
     setSearchQuery('');
-    setSelectedUser('all');
     setSelectedType('all');
     setDateRange({ from: undefined, to: undefined });
-    setCurrentPage(1);
   };
 
-  const hasActiveFilters = searchQuery || selectedUser !== 'all' || selectedType !== 'all' || dateRange.from || dateRange.to;
+  const hasActiveFilters = searchQuery || selectedType !== 'all' || dateRange.from || dateRange.to;
 
-  if (isLoading) {
-    return (
-      <div className="p-2 lg:p-3 flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  const columns: Column<ActivityLogEntry>[] = [
+    {
+      key: 'action',
+      header: 'Activity',
+      render: (log) => {
+        const config = activityIcons[log.action] || { icon: Activity, color: 'text-muted-foreground' };
+        const Icon = config.icon;
+        return (
+          <div className="flex items-center gap-3">
+            <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center bg-muted shrink-0", config.color)}>
+              <Icon className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium truncate">{getDescription(log)}</p>
+              <p className="text-xs text-muted-foreground">{getPerformerName(log)}</p>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'type',
+      header: 'Type',
+      render: (log) => (
+        <Badge variant="outline" className="text-xs">{getTypeLabel(log.action)}</Badge>
+      ),
+    },
+    {
+      key: 'entity_type',
+      header: 'Entity',
+      render: (log) => (
+        <span className="text-sm text-muted-foreground capitalize">{log.entity_type || '-'}</span>
+      ),
+    },
+    {
+      key: 'created_at',
+      header: 'Time',
+      render: (log) => (
+        <span className="text-sm text-muted-foreground" title={format(new Date(log.created_at), 'PPpp')}>
+          {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
+        </span>
+      ),
+    },
+  ];
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
@@ -323,26 +313,13 @@ const ActivityLog = () => {
               <Input
                 placeholder="Search by description, user, or action..."
                 value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 h-9"
               />
             </div>
 
-            {/* User Filter */}
-            <Select value={selectedUser} onValueChange={(v) => { setSelectedUser(v); setCurrentPage(1); }}>
-              <SelectTrigger className="w-full lg:w-[180px] h-9">
-                <SelectValue placeholder="Filter by user" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover">
-                <SelectItem value="all">All Users</SelectItem>
-                {uniqueUsers.map(u => (
-                  <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
             {/* Type Filter */}
-            <Select value={selectedType} onValueChange={(v) => { setSelectedType(v); setCurrentPage(1); }}>
+            <Select value={selectedType} onValueChange={setSelectedType}>
               <SelectTrigger className="w-full lg:w-[180px] h-9">
                 <SelectValue placeholder="Filter by action" />
               </SelectTrigger>
@@ -362,7 +339,6 @@ const ActivityLog = () => {
                 onSelect={(range) => { 
                   const r = range as { from?: Date; to?: Date } | undefined;
                   setDateRange({ from: r?.from, to: r?.to }); 
-                  setCurrentPage(1); 
                 }}
                 placeholder="Date Range"
                 className="h-9 w-full lg:w-auto"
@@ -380,84 +356,16 @@ const ActivityLog = () => {
         </CardContent>
       </Card>
 
-      {/* Results Count */}
-      <div className="text-sm text-muted-foreground">
-        Showing {paginatedLogs.length} of {filteredLogs.length} results
-      </div>
-      
-      {/* Activity List */}
-      <Card className="border-border/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-medium flex items-center gap-2">
-            <Activity className="h-4 w-4 text-primary" />
-            {t.activityLog.recentActivity}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[500px] pr-4">
-            <div className="space-y-3">
-              {paginatedLogs.map((log) => {
-                const config = activityIcons[log.action] || { icon: Activity, color: 'text-muted-foreground' };
-                const Icon = config.icon;
-                return (
-                  <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg border border-border/50 bg-card hover:bg-muted/30 transition-colors">
-                    <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center bg-muted shrink-0", config.color)}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-medium truncate">{getDescription(log)}</p>
-                        <Badge variant="outline" className="shrink-0 text-xs">{getTypeLabel(log.action)}</Badge>
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
-                        <span className="font-medium">{getPerformerName(log)}</span>
-                        <span>•</span>
-                        <span title={format(new Date(log.created_at), 'PPpp')}>
-                          {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
-                        </span>
-                        {log.entity_type && (
-                          <>
-                            <span>•</span>
-                            <span className="capitalize">{log.entity_type}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              {paginatedLogs.length === 0 && (
-                <p className="text-center text-muted-foreground py-8">{t.activityLog.noActivity}</p>
-              )}
-            </div>
-          </ScrollArea>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t border-border/50">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-              >
-                Next
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Activity Table */}
+      <PaginatedDataTable
+        columns={columns}
+        data={logs}
+        isLoading={isLoading}
+        pagination={pagination}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        emptyMessage={t.activityLog.noActivity}
+      />
     </div>
   );
 };

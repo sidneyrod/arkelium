@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import PageHeader from '@/components/ui/page-header';
+import { PaginatedDataTable, Column } from '@/components/ui/paginated-data-table';
+import { useServerPagination } from '@/hooks/useServerPagination';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,15 +18,11 @@ import {
   Clock,
   Eye,
   X,
-  Loader2,
   Filter,
-  ChevronLeft,
-  ChevronRight,
   Building2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import VisitDetailModal from '@/components/visits/VisitDetailModal';
 
 export interface Visit {
@@ -51,8 +49,7 @@ export interface Visit {
   completedAt?: string;
 }
 
-type PeriodFilter = 'today' | 'week' | 'month' | 'custom' | 'all';
-type OriginFilter = 'all' | 'admin' | 'cleaner' | 'referral' | 'lead';
+type PeriodFilter = 'today' | 'week' | 'month' | 'all';
 
 const statusConfig = {
   scheduled: { color: 'text-info', bgColor: 'bg-info/10 border-info/20', label: 'Scheduled' },
@@ -61,248 +58,191 @@ const statusConfig = {
   'no-show': { color: 'text-destructive', bgColor: 'bg-destructive/10 border-destructive/20', label: 'No Show' },
 };
 
-const ITEMS_PER_PAGE = 10;
-
 const VisitHistory = () => {
   const { t } = useLanguage();
   const { user, hasRole } = useAuth();
   const isAdmin = hasRole(['admin']);
   const isAdminOrManager = hasRole(['admin', 'manager']);
   
-  const [visits, setVisits] = useState<Visit[]>([]);
-  const [filteredVisits, setFilteredVisits] = useState<Visit[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // Filters
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('all');
-  const [customStartDate, setCustomStartDate] = useState('');
-  const [customEndDate, setCustomEndDate] = useState('');
   const [clientFilter, setClientFilter] = useState('all');
   const [employeeFilter, setEmployeeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [purposeFilter, setPurposeFilter] = useState('all');
-  const [originFilter, setOriginFilter] = useState<OriginFilter>('all');
   
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  
-  // Modals - Visit History is read-only, only view modal is available
   const [selectedVisit, setSelectedVisit] = useState<Visit | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
-  // Unique filter options
+  // Filter options (populated from initial query)
   const [clients, setClients] = useState<{id: string, name: string}[]>([]);
   const [employees, setEmployees] = useState<{id: string, name: string}[]>([]);
-  const [purposes, setPurposes] = useState<string[]>([]);
 
-  // Fetch visits from Supabase
-  const fetchVisits = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      let companyId = user?.profile?.company_id;
-      if (!companyId) {
-        const { data: companyIdData } = await supabase.rpc('get_user_company_id');
-        companyId = companyIdData;
-      }
-      
-      if (!companyId) {
-        setIsLoading(false);
-        return;
-      }
+  const companyId = user?.profile?.company_id;
 
-      // Build query for visits only
-      let query = supabase
-        .from('jobs')
-        .select(`
-          id,
-          client_id,
-          cleaner_id,
-          location_id,
-          scheduled_date,
-          start_time,
-          duration_minutes,
-          status,
-          job_type,
-          visit_purpose,
-          visit_route,
-          notes,
-          created_at,
-          completed_at,
-          clients(id, name, email, phone),
-          profiles:cleaner_id(id, first_name, last_name),
-          client_locations(id, address, city)
-        `)
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Fetch filter options once
+  useEffect(() => {
+    const fetchFilterOptions = async () => {
+      if (!companyId) return;
+
+      // Fetch clients
+      const { data: clientsData } = await supabase
+        .from('clients')
+        .select('id, name')
         .eq('company_id', companyId)
-        .eq('job_type', 'visit')
-        .order('scheduled_date', { ascending: false });
+        .order('name');
+      
+      if (clientsData) setClients(clientsData);
 
-      // For cleaners, only show their assigned visits
-      if (!isAdminOrManager) {
-        query = query.eq('cleaner_id', user?.id);
+      // Fetch employees (cleaners)
+      const { data: employeesData } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .eq('company_id', companyId)
+        .eq('role', 'cleaner');
+      
+      if (employeesData) {
+        setEmployees(employeesData.map(e => ({
+          id: e.id,
+          name: `${e.first_name || ''} ${e.last_name || ''}`.trim() || 'Unknown'
+        })));
       }
+    };
 
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('Error fetching visits:', error);
-        toast.error('Failed to load visits');
-        setIsLoading(false);
-        return;
-      }
-      
-      const mappedVisits: Visit[] = (data || []).map((visit: any) => ({
-        id: visit.id,
-        clientId: visit.client_id,
-        clientName: visit.clients?.name || 'Unknown',
-        clientEmail: visit.clients?.email,
-        clientPhone: visit.clients?.phone,
-        address: visit.client_locations?.address || 'No address',
-        city: visit.client_locations?.city,
-        locationId: visit.location_id,
-        date: visit.scheduled_date,
-        time: visit.start_time?.slice(0, 5) || '09:00',
-        duration: visit.duration_minutes ? `${visit.duration_minutes / 60}h` : '1h',
-        employeeId: visit.cleaner_id || '',
-        employeeName: visit.profiles 
-          ? `${visit.profiles.first_name || ''} ${visit.profiles.last_name || ''}`.trim() || 'Unassigned'
-          : 'Unassigned',
-        status: visit.status as Visit['status'],
-        visitType: 'Business Visit',
-        visitPurpose: visit.visit_purpose,
-        visitRoute: visit.visit_route,
-        notes: visit.notes,
-        createdAt: visit.created_at,
-        completedAt: visit.completed_at,
-      }));
-      
-      setVisits(mappedVisits);
-      
-      // Extract unique filter options
-      const uniqueClients = Array.from(new Map(
-        mappedVisits.map(v => [v.clientId, { id: v.clientId, name: v.clientName }])
-      ).values());
-      const uniqueEmployees = Array.from(new Map(
-        mappedVisits.filter(v => v.employeeId).map(v => [v.employeeId, { id: v.employeeId, name: v.employeeName }])
-      ).values());
-      const uniquePurposes = Array.from(new Set(
-        mappedVisits.map(v => v.visitPurpose).filter(Boolean)
-      )) as string[];
-      
-      setClients(uniqueClients);
-      setEmployees(uniqueEmployees);
-      setPurposes(uniquePurposes);
-      setIsLoading(false);
-    } catch (error) {
-      console.error('Error in fetchVisits:', error);
-      setIsLoading(false);
-    }
-  }, [user, isAdminOrManager]);
+    fetchFilterOptions();
+  }, [companyId]);
 
-  useEffect(() => {
-    if (user) {
-      fetchVisits();
-    }
-  }, [user, fetchVisits]);
+  // Server-side pagination fetch function
+  const fetchVisits = useCallback(async (from: number, to: number): Promise<{ data: Visit[]; count: number }> => {
+    if (!companyId) return { data: [], count: 0 };
 
-  // Apply filters
-  useEffect(() => {
-    let result = [...visits];
-    
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(v => 
-        v.clientName.toLowerCase().includes(query) ||
-        v.employeeName.toLowerCase().includes(query) ||
-        v.address.toLowerCase().includes(query) ||
-        (v.visitPurpose && v.visitPurpose.toLowerCase().includes(query)) ||
-        v.status.toLowerCase().includes(query)
-      );
+    let query = supabase
+      .from('jobs')
+      .select('id, client_id, cleaner_id, location_id, scheduled_date, start_time, duration_minutes, status, job_type, visit_purpose, visit_route, notes, created_at, completed_at, clients(id, name, email, phone), client_locations(id, address, city)', { count: 'exact' })
+      .eq('company_id', companyId)
+      .eq('job_type', 'visit');
+        visit_purpose,
+        visit_route,
+        notes,
+        created_at,
+        completed_at,
+        clients(id, name, email, phone),
+        profiles:cleaner_id(id, first_name, last_name),
+        client_locations(id, address, city)
+      `, { count: 'exact' })
+      .eq('company_id', companyId)
+      .eq('job_type', 'visit');
+
+    // Role-based filter
+    if (!isAdminOrManager) {
+      query = query.eq('cleaner_id', user?.id);
     }
-    
+
     // Period filter
     const today = new Date();
     if (periodFilter === 'today') {
       const todayStr = format(today, 'yyyy-MM-dd');
-      result = result.filter(v => v.date === todayStr);
+      query = query.eq('scheduled_date', todayStr);
     } else if (periodFilter === 'week') {
-      const weekStart = startOfWeek(today, { weekStartsOn: 1 });
-      const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
-      result = result.filter(v => {
-        const visitDate = parseISO(v.date);
-        return isWithinInterval(visitDate, { start: weekStart, end: weekEnd });
-      });
+      const weekStart = format(startOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      const weekEnd = format(endOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      query = query.gte('scheduled_date', weekStart).lte('scheduled_date', weekEnd);
     } else if (periodFilter === 'month') {
-      const monthStart = startOfMonth(today);
-      const monthEnd = endOfMonth(today);
-      result = result.filter(v => {
-        const visitDate = parseISO(v.date);
-        return isWithinInterval(visitDate, { start: monthStart, end: monthEnd });
-      });
-    } else if (periodFilter === 'custom' && customStartDate && customEndDate) {
-      result = result.filter(v => {
-        const visitDate = parseISO(v.date);
-        return isWithinInterval(visitDate, { 
-          start: parseISO(customStartDate), 
-          end: parseISO(customEndDate) 
-        });
-      });
+      const monthStart = format(startOfMonth(today), 'yyyy-MM-dd');
+      const monthEnd = format(endOfMonth(today), 'yyyy-MM-dd');
+      query = query.gte('scheduled_date', monthStart).lte('scheduled_date', monthEnd);
     }
-    
+
     // Client filter
     if (clientFilter !== 'all') {
-      result = result.filter(v => v.clientId === clientFilter);
+      query = query.eq('client_id', clientFilter);
     }
-    
+
     // Employee filter
     if (employeeFilter !== 'all') {
-      result = result.filter(v => v.employeeId === employeeFilter);
+      query = query.eq('cleaner_id', employeeFilter);
     }
-    
+
     // Status filter
     if (statusFilter !== 'all') {
-      result = result.filter(v => v.status === statusFilter);
+      query = query.eq('status', statusFilter);
     }
-    
-    // Purpose filter
-    if (purposeFilter !== 'all') {
-      result = result.filter(v => v.visitPurpose === purposeFilter);
-    }
-    
-    setFilteredVisits(result);
-    setCurrentPage(1);
-  }, [visits, searchQuery, periodFilter, customStartDate, customEndDate, clientFilter, employeeFilter, statusFilter, purposeFilter, originFilter]);
 
-  // Pagination
-  const totalPages = Math.ceil(filteredVisits.length / ITEMS_PER_PAGE);
-  const paginatedVisits = filteredVisits.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+    query = query
+      .order('scheduled_date', { ascending: false })
+      .range(from, to);
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      console.error('Error fetching visits:', error);
+      return { data: [], count: 0 };
+    }
+
+    let mappedVisits: Visit[] = (data || []).map((visit: any) => ({
+      id: visit.id,
+      clientId: visit.client_id,
+      clientName: visit.clients?.name || 'Unknown',
+      clientEmail: visit.clients?.email,
+      clientPhone: visit.clients?.phone,
+      address: visit.client_locations?.address || 'No address',
+      city: visit.client_locations?.city,
+      locationId: visit.location_id,
+      date: visit.scheduled_date,
+      time: visit.start_time?.slice(0, 5) || '09:00',
+      duration: visit.duration_minutes ? `${visit.duration_minutes / 60}h` : '1h',
+      employeeId: visit.cleaner_id || '',
+      employeeName: visit.profiles 
+        ? `${visit.profiles.first_name || ''} ${visit.profiles.last_name || ''}`.trim() || 'Unassigned'
+        : 'Unassigned',
+      status: visit.status as Visit['status'],
+      visitType: 'Business Visit',
+      visitPurpose: visit.visit_purpose,
+      visitRoute: visit.visit_route,
+      notes: visit.notes,
+      createdAt: visit.created_at,
+      completedAt: visit.completed_at,
+    }));
+
+    // Client-side search filter
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase();
+      mappedVisits = mappedVisits.filter(v => 
+        v.clientName.toLowerCase().includes(q) ||
+        v.employeeName.toLowerCase().includes(q) ||
+        v.address.toLowerCase().includes(q) ||
+        (v.visitPurpose && v.visitPurpose.toLowerCase().includes(q))
+      );
+    }
+
+    return { data: mappedVisits, count: count || 0 };
+  }, [companyId, user?.id, isAdminOrManager, periodFilter, clientFilter, employeeFilter, statusFilter, debouncedSearch]);
+
+  const {
+    data: visits,
+    isLoading,
+    pagination,
+    setPage,
+    setPageSize,
+  } = useServerPagination<Visit>(fetchVisits, { pageSize: 25 });
 
   const handleViewDetails = (visit: Visit) => {
     setSelectedVisit(visit);
     setShowDetailModal(true);
   };
 
-  // Visit History is READ-ONLY - no edit/cancel/convert functionality
-  // Visits can only be modified from the Schedule module
-
-  const refreshVisits = () => {
-    fetchVisits();
-  };
-
   const clearFilters = () => {
     setSearchQuery('');
     setPeriodFilter('all');
-    setCustomStartDate('');
-    setCustomEndDate('');
     setClientFilter('all');
     setEmployeeFilter('all');
     setStatusFilter('all');
-    setPurposeFilter('all');
-    setOriginFilter('all');
   };
 
   const formatTime = (time: string) => {
@@ -319,9 +259,99 @@ const VisitHistory = () => {
     return format(date, 'MMM dd, yyyy');
   };
 
+  const columns: Column<Visit>[] = [
+    {
+      key: 'date',
+      header: 'Date',
+      render: (visit) => (
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">{formatDate(visit.date)}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'time',
+      header: 'Time',
+      render: (visit) => (
+        <div className="flex items-center gap-2">
+          <Clock className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm">{formatTime(visit.time)}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'clientName',
+      header: 'Client',
+      render: (visit) => <span className="text-sm font-medium">{visit.clientName}</span>,
+    },
+    {
+      key: 'address',
+      header: 'Address',
+      render: (visit) => (
+        <div className="flex items-center gap-2 max-w-[200px]">
+          <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span className="text-sm truncate" title={visit.address}>
+            {visit.address}
+            {visit.city && `, ${visit.city}`}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'employeeName',
+      header: 'Employee',
+      render: (visit) => (
+        <div className="flex items-center gap-2">
+          <User className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm">{visit.employeeName}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'visitPurpose',
+      header: 'Purpose',
+      render: (visit) => (
+        <span className="text-sm text-muted-foreground truncate max-w-[150px] block" title={visit.visitPurpose}>
+          {visit.visitPurpose || '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (visit) => (
+        <Badge 
+          variant="outline"
+          className={cn(
+            "capitalize",
+            statusConfig[visit.status]?.bgColor,
+            statusConfig[visit.status]?.color
+          )}
+        >
+          {statusConfig[visit.status]?.label || visit.status}
+        </Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      render: (visit) => (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={(e) => { e.stopPropagation(); handleViewDetails(visit); }}
+          title="View Details"
+        >
+          <Eye className="h-4 w-4" />
+        </Button>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-2 p-2 lg:p-3">
-      {/* Header Section with more spacing */}
       <div className="pt-3">
         <PageHeader 
           title="Visit History"
@@ -329,7 +359,7 @@ const VisitHistory = () => {
         />
       </div>
 
-      {/* Search and Quick Filters */}
+      {/* Search and Filters */}
       <Card className="border-border/40 shadow-sm">
         <CardHeader className="pb-4">
           <CardTitle className="text-base font-medium flex items-center gap-2">
@@ -338,20 +368,17 @@ const VisitHistory = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
-          {/* Search Bar */}
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by client, employee, address, purpose or status..."
+              placeholder="Search by client, employee, address or purpose..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-11 h-11 text-sm"
             />
           </div>
 
-          {/* Filter Row */}
           <div className="flex flex-wrap items-center gap-3">
-            {/* Period Filter */}
             <Select value={periodFilter} onValueChange={(v) => setPeriodFilter(v as PeriodFilter)}>
               <SelectTrigger className="w-[150px] h-10">
                 <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -362,28 +389,9 @@ const VisitHistory = () => {
                 <SelectItem value="today">Today</SelectItem>
                 <SelectItem value="week">This Week</SelectItem>
                 <SelectItem value="month">This Month</SelectItem>
-                <SelectItem value="custom">Custom</SelectItem>
               </SelectContent>
             </Select>
 
-            {periodFilter === 'custom' && (
-              <>
-                <Input
-                  type="date"
-                  value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="w-[150px] h-10"
-                />
-                <Input
-                  type="date"
-                  value={customEndDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="w-[150px] h-10"
-                />
-              </>
-            )}
-
-            {/* Client Filter */}
             <Select value={clientFilter} onValueChange={setClientFilter}>
               <SelectTrigger className="w-[170px] h-10">
                 <Building2 className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -397,7 +405,6 @@ const VisitHistory = () => {
               </SelectContent>
             </Select>
 
-            {/* Employee Filter */}
             <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
               <SelectTrigger className="w-[170px] h-10">
                 <User className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -411,7 +418,6 @@ const VisitHistory = () => {
               </SelectContent>
             </Select>
 
-            {/* Status Filter */}
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[150px] h-10">
                 <SelectValue placeholder="Status" />
@@ -425,22 +431,6 @@ const VisitHistory = () => {
               </SelectContent>
             </Select>
 
-            {/* Purpose Filter */}
-            {purposes.length > 0 && (
-              <Select value={purposeFilter} onValueChange={setPurposeFilter}>
-                <SelectTrigger className="w-[170px] h-10">
-                  <SelectValue placeholder="Purpose" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Purposes</SelectItem>
-                  {purposes.map(purpose => (
-                    <SelectItem key={purpose} value={purpose}>{purpose}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-
-            {/* Clear Filters */}
             <Button 
               variant="outline" 
               size="sm" 
@@ -454,139 +444,18 @@ const VisitHistory = () => {
         </CardContent>
       </Card>
 
-      {/* Results Stats */}
-      <div className="flex items-center justify-between px-1">
-        <p className="text-sm text-muted-foreground">
-          Showing {paginatedVisits.length} of {filteredVisits.length} visits
-        </p>
-      </div>
-
       {/* Visits Table */}
-      <Card className="border-border/50">
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : filteredVisits.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-              <Calendar className="h-12 w-12 mb-4 opacity-50" />
-              <p className="text-lg font-medium">No visits found</p>
-              <p className="text-sm">Try adjusting your filters or search query</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-muted/30 border-b border-border/50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Date</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Time</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Client</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Address</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Employee</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Purpose</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/50">
-                  {paginatedVisits.map((visit) => (
-                    <tr key={visit.id} className="hover:bg-muted/20 transition-colors">
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm font-medium">{formatDate(visit.date)}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{formatTime(visit.time)}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <span className="text-sm font-medium">{visit.clientName}</span>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-2 max-w-[200px]">
-                          <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <span className="text-sm truncate" title={visit.address}>
-                            {visit.address}
-                            {visit.city && `, ${visit.city}`}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{visit.employeeName}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <span className="text-sm text-muted-foreground truncate max-w-[150px] block" title={visit.visitPurpose}>
-                          {visit.visitPurpose || '-'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <Badge 
-                          variant="outline"
-                          className={cn(
-                            "capitalize",
-                            statusConfig[visit.status]?.bgColor,
-                            statusConfig[visit.status]?.color
-                          )}
-                        >
-                          {statusConfig[visit.status]?.label || visit.status}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleViewDetails(visit)}
-                            title="View Details"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <PaginatedDataTable
+        columns={columns}
+        data={visits}
+        isLoading={isLoading}
+        pagination={pagination}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        emptyMessage="No visits found"
+      />
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            Page {currentPage} of {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
-
-      {/* View-Only Modal - Visit History is read-only */}
+      {/* View-Only Modal */}
       {selectedVisit && (
         <VisitDetailModal
           open={showDetailModal}
