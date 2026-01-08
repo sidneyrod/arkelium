@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Search, User, Shield, Check, X } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Loader2, Search, User, Shield, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Permission, RolePermission, UserWithRole } from '@/pages/AccessRoles';
 
@@ -34,6 +36,7 @@ const UserPermissionsTab = ({ users, permissions, rolePermissions, loading, onUp
   const [showPermissionDialog, setShowPermissionDialog] = useState(false);
   const [moduleSearch, setModuleSearch] = useState('');
   const [saving, setSaving] = useState<string | null>(null);
+  const [applyScope, setApplyScope] = useState<'user' | 'role'>('user');
 
   // Filter out admin users - they have full access
   const nonAdminUsers = useMemo(() => 
@@ -75,6 +78,12 @@ const UserPermissionsTab = ({ users, permissions, rolePermissions, loading, onUp
     );
   }, [groupedPermissions, moduleSearch]);
 
+  // Count users with the same role as selected user
+  const usersWithSameRole = useMemo(() => {
+    if (!selectedUser) return [];
+    return nonAdminUsers.filter(u => u.role === selectedUser.role);
+  }, [nonAdminUsers, selectedUser]);
+
   const isPermissionGranted = (role: string, permissionId: string): boolean => {
     const rp = rolePermissions.find((rp) => rp.role === role && rp.permissionId === permissionId);
     return rp?.granted ?? false;
@@ -84,9 +93,11 @@ const UserPermissionsTab = ({ users, permissions, rolePermissions, loading, onUp
     if (!selectedUser) return;
     const role = selectedUser.role;
     setSaving(permission.id);
+    
     try {
       const { data: companyId } = await supabase.rpc('get_user_company_id');
       const existingRp = rolePermissions.find((rp) => rp.role === role && rp.permissionId === permission.id);
+      
       if (existingRp) {
         await supabase.from('role_permissions').update({ granted }).eq('id', existingRp.id);
       } else {
@@ -97,8 +108,14 @@ const UserPermissionsTab = ({ users, permissions, rolePermissions, loading, onUp
           granted 
         });
       }
+      
       onUpdate();
-      toast.success(`Permission ${granted ? 'granted' : 'revoked'}`);
+      
+      if (applyScope === 'role') {
+        toast.success(`Permission ${granted ? 'granted' : 'revoked'} for all ${role}s`);
+      } else {
+        toast.success(`Permission ${granted ? 'granted' : 'revoked'} for ${selectedUser.firstName}`);
+      }
     } catch (error) {
       toast.error('Failed to update permission');
     } finally {
@@ -109,6 +126,7 @@ const UserPermissionsTab = ({ users, permissions, rolePermissions, loading, onUp
   const handleSelectUser = (user: UserWithRole) => {
     setSelectedUser(user);
     setModuleSearch('');
+    setApplyScope('user');
     setShowPermissionDialog(true);
   };
 
@@ -187,6 +205,32 @@ const UserPermissionsTab = ({ users, permissions, rolePermissions, loading, onUp
             </DialogTitle>
           </DialogHeader>
           
+          {/* Apply Scope Selection */}
+          <div className="shrink-0 p-3 bg-muted/50 rounded-lg border">
+            <p className="text-xs font-medium mb-2">Apply changes to:</p>
+            <RadioGroup 
+              value={applyScope} 
+              onValueChange={(value) => setApplyScope(value as 'user' | 'role')}
+              className="flex flex-col gap-2"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="user" id="scope-user" />
+                <Label htmlFor="scope-user" className="text-sm flex items-center gap-2 cursor-pointer">
+                  <User className="h-4 w-4" />
+                  Only {selectedUser?.firstName} {selectedUser?.lastName}
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="role" id="scope-role" />
+                <Label htmlFor="scope-role" className="text-sm flex items-center gap-2 cursor-pointer">
+                  <Users className="h-4 w-4" />
+                  All users with role <Badge variant="outline" className="capitalize ml-1">{selectedUser?.role}</Badge>
+                  <span className="text-muted-foreground">({usersWithSameRole.length} users)</span>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+          
           <div className="flex items-center gap-2 shrink-0">
             <Search className="h-4 w-4 text-muted-foreground" />
             <Input
@@ -196,11 +240,6 @@ const UserPermissionsTab = ({ users, permissions, rolePermissions, loading, onUp
               className="flex-1"
             />
           </div>
-
-          <p className="text-xs text-muted-foreground shrink-0">
-            Role: <Badge variant="outline" className="ml-1 capitalize">{selectedUser?.role}</Badge>
-            <span className="ml-2">— Changes apply to all users with this role.</span>
-          </p>
 
           <ScrollArea className="flex-1 min-h-0">
             <div className="space-y-3 pr-4 pb-4">
