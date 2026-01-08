@@ -137,7 +137,7 @@ const Sidebar = () => {
   }
   
   if (isCleaner) {
-    financialItems.push({ path: '/my-payroll', label: t.payroll.myPayroll, icon: Wallet });
+    financialItems.push({ path: '/my-payroll', label: t.payroll.myWorkSummary, icon: Wallet });
   }
 
   // ===========================

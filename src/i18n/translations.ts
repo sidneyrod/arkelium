@@ -10,7 +10,7 @@ export const translations = {
       contracts: 'Contracts',
       schedule: 'Schedule',
       calculator: 'Estimate',
-      payroll: 'Payroll',
+      payroll: 'Work & Earnings',
       settings: 'Settings',
       activityLog: 'Activity Log',
     },
@@ -360,9 +360,9 @@ export const translations = {
       viewPdf: 'View PDF',
       notesPlaceholder: 'Additional notes about the estimate...',
     },
-    // Payroll
+    // Work & Earnings / My Work Summary
     payroll: {
-      title: 'Payroll',
+      title: 'Work & Earnings Summary',
       period: 'Period',
       open: 'Open',
       processing: 'Processing',
@@ -404,9 +404,10 @@ export const translations = {
       overtimeMultiplier: 'Overtime Multiplier',
       holidayMultiplier: 'Holiday Multiplier',
       grossPay: 'Gross Pay',
-      // My Payroll (Cleaner view)
-      myPayroll: 'My Payroll',
-      myPayrollDescription: 'View your worked hours and earnings',
+      // My Work Summary (Cleaner view)
+      myWorkSummary: 'My Work Summary',
+      myWorkSummaryDescription: 'View your completed jobs and hours worked',
+      workSummaryDisclaimer: 'This view shows your completed work. Payroll is processed externally by your employer.',
       today: 'Today',
       thisWeek: 'This Week',
       biweekly: 'Bi-weekly',
@@ -669,7 +670,7 @@ export const translations = {
       contracts: 'Contrats',
       schedule: 'Agenda',
       calculator: 'Calculateur',
-      payroll: 'Paie',
+      payroll: 'Travail & Revenus',
       settings: 'Paramètres',
       activityLog: 'Journal d\'activité',
     },
@@ -1019,9 +1020,9 @@ export const translations = {
       viewPdf: 'Voir PDF',
       notesPlaceholder: 'Notes supplémentaires sur le devis...',
     },
-    // Payroll
+    // Work & Earnings / My Work Summary
     payroll: {
-      title: 'Paie',
+      title: 'Résumé Travail & Revenus',
       period: 'Période',
       open: 'Ouvert',
       processing: 'En traitement',
@@ -1063,9 +1064,10 @@ export const translations = {
       overtimeMultiplier: 'Multiplicateur heures sup.',
       holidayMultiplier: 'Multiplicateur jours fériés',
       grossPay: 'Salaire brut',
-      // My Payroll (Cleaner view)
-      myPayroll: 'Ma Paie',
-      myPayrollDescription: 'Consultez vos heures travaillées et vos revenus',
+      // My Work Summary (Cleaner view)
+      myWorkSummary: 'Mon Résumé de Travail',
+      myWorkSummaryDescription: 'Consultez vos services terminés et heures travaillées',
+      workSummaryDisclaimer: 'Cette vue affiche votre travail effectué. La paie est traitée en externe par votre employeur.',
       today: 'Aujourd\'hui',
       thisWeek: 'Cette Semaine',
       biweekly: 'Quinzaine',

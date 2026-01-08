@@ -33,8 +33,8 @@ const getPageLabel = (path: string, t: any): string => {
     '/cleaner-off-requests': t?.nav?.offRequests || 'Off Requests',
     '/availability': t?.nav?.availability || 'Availability',
     '/absences': t?.nav?.absences || 'Absences',
-    '/my-payroll': t?.nav?.myPayroll || 'My Payroll',
-    '/cleaner-payroll': t?.nav?.myPayroll || 'My Payroll',
+    '/my-payroll': t?.payroll?.myWorkSummary || 'My Work Summary',
+    '/cleaner-payroll': t?.payroll?.myWorkSummary || 'My Work Summary',
     '/payments': 'Payments & Collections',
   };
   return pathMap[path] || 'Page';
