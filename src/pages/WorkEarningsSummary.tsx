@@ -8,8 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
+import { DatePickerDialog } from '@/components/ui/date-picker-dialog';
+import { DateRange } from 'react-day-picker';
 import { 
   Briefcase, 
   Clock, 
@@ -17,14 +17,13 @@ import {
   Banknote,
   RefreshCw,
   ChevronRight,
-  Calendar as CalendarIcon,
   Info,
   AlertTriangle,
   CheckCircle,
   TrendingUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format, subDays } from 'date-fns';
+import { format } from 'date-fns';
 import { useWorkEarnings, CleanerWorkSummary } from '@/hooks/useWorkEarnings';
 import { CleanerDetailModal } from '@/components/work-earnings/CleanerDetailModal';
 import { ExportReportButton } from '@/components/work-earnings/ExportReportButton';
@@ -44,8 +43,7 @@ const WorkEarningsSummary = () => {
 
   const [selectedCleaner, setSelectedCleaner] = useState<CleanerWorkSummary | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
-  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
+  const [dateRange, setDateRange] = useState<DateRange>({
     from: new Date(period.startDate),
     to: new Date(period.endDate),
   });
@@ -55,23 +53,14 @@ const WorkEarningsSummary = () => {
     setDetailModalOpen(true);
   };
 
-  const handleDateRangeApply = () => {
-    setPeriod({
-      startDate: format(dateRange.from, 'yyyy-MM-dd'),
-      endDate: format(dateRange.to, 'yyyy-MM-dd'),
-    });
-    setDatePickerOpen(false);
-  };
-
-  const handlePresetPeriod = (days: number) => {
-    const end = new Date();
-    const start = subDays(end, days);
-    setDateRange({ from: start, to: end });
-    setPeriod({
-      startDate: format(start, 'yyyy-MM-dd'),
-      endDate: format(end, 'yyyy-MM-dd'),
-    });
-    setDatePickerOpen(false);
+  const handleDateRangeSelect = (range: Date | DateRange | undefined) => {
+    if (range && 'from' in range && range.from && range.to) {
+      setDateRange(range);
+      setPeriod({
+        startDate: format(range.from, 'yyyy-MM-dd'),
+        endDate: format(range.to, 'yyyy-MM-dd'),
+      });
+    }
   };
 
   if (isLoading) {
@@ -95,51 +84,13 @@ const WorkEarningsSummary = () => {
         description="Operational and financial summaries for accounting and payroll preparation"
       >
         <div className="flex gap-2">
-          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2 text-xs">
-                <CalendarIcon className="h-3.5 w-3.5" />
-                {format(new Date(period.startDate), 'MMM d')} - {format(new Date(period.endDate), 'MMM d, yyyy')}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <div className="p-3 border-b space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">Quick Select</p>
-                <div className="flex gap-1.5">
-                  <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => handlePresetPeriod(7)}>
-                    Last 7 days
-                  </Button>
-                  <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => handlePresetPeriod(14)}>
-                    Last 14 days
-                  </Button>
-                  <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => handlePresetPeriod(30)}>
-                    Last 30 days
-                  </Button>
-                </div>
-              </div>
-              <div className="flex">
-                <Calendar
-                  mode="range"
-                  selected={{ from: dateRange.from, to: dateRange.to }}
-                  onSelect={(range) => {
-                    if (range?.from && range?.to) {
-                      setDateRange({ from: range.from, to: range.to });
-                    }
-                  }}
-                  numberOfMonths={2}
-                  className="p-3"
-                />
-              </div>
-              <div className="p-3 border-t flex justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={() => setDatePickerOpen(false)}>
-                  Cancel
-                </Button>
-                <Button size="sm" onClick={handleDateRangeApply}>
-                  Apply
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <DatePickerDialog
+            mode="range"
+            selected={dateRange}
+            onSelect={handleDateRangeSelect}
+            dateFormat="MMM d, yyyy"
+            className="text-xs h-9"
+          />
 
           <Button variant="outline" size="sm" className="gap-2" onClick={fetchData}>
             <RefreshCw className="h-3.5 w-3.5" />
