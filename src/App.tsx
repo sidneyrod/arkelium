@@ -200,7 +200,7 @@ const AppRoutes = () => {
         <Route path="/invoices" element={<AdminManagerRoute><Invoices /></AdminManagerRoute>} />
         <Route path="/completed-services" element={<AdminManagerRoute><CompletedServices /></AdminManagerRoute>} />
         <Route path="/calculator" element={<AdminManagerRoute><Calculator /></AdminManagerRoute>} />
-        <Route path="/payroll" element={<AdminRoute><WorkEarningsSummary /></AdminRoute>} />
+        <Route path="/work-time-tracking" element={<AdminRoute><WorkEarningsSummary /></AdminRoute>} />
         <Route path="/payments" element={<AdminManagerRoute><PaymentsCollections /></AdminManagerRoute>} />
         <Route path="/financial" element={<AdminManagerRoute><Financial /></AdminManagerRoute>} />
         <Route path="/receipts" element={<AdminManagerRoute><Receipts /></AdminManagerRoute>} />

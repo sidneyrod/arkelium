@@ -51,24 +51,24 @@ interface SearchResult {
 
 // Navigation items for search
 const navigationItems = [
-  { id: 'home', title: 'Home', path: '/', keywords: ['home', 'dashboard', 'início', 'painel'] },
+  { id: 'home', title: 'Dashboard', path: '/', keywords: ['home', 'dashboard', 'início', 'painel'] },
   { id: 'schedule', title: 'Schedule', path: '/schedule', keywords: ['schedule', 'agenda', 'calendar', 'calendário', 'jobs', 'appointments'] },
   { id: 'completed-services', title: 'Completed Services', path: '/completed-services', keywords: ['completed', 'services', 'serviços', 'concluídos', 'finished'] },
   { id: 'visit-history', title: 'Visit History', path: '/visit-history', keywords: ['visit', 'history', 'histórico', 'visitas', 'visits', 'past'] },
   { id: 'off-requests', title: 'Off Requests', path: '/off-requests', keywords: ['off', 'requests', 'solicitações', 'time off', 'folga', 'vacation', 'férias'] },
-  { id: 'absences', title: 'Absences', path: '/absence-approval', keywords: ['absences', 'ausências', 'absence', 'vacation', 'férias', 'leave', 'approval'] },
-  { id: 'availability', title: 'Availability', path: '/availability', keywords: ['availability', 'disponibilidade', 'schedule', 'agenda', 'calendar'] },
   { id: 'activity-log', title: 'Activity Log', path: '/activity-log', keywords: ['activity', 'log', 'atividade', 'registro', 'history', 'histórico', 'audit'] },
   { id: 'notifications', title: 'Notifications', path: '/notifications', keywords: ['notifications', 'notificações', 'alerts', 'alertas', 'messages'] },
   { id: 'clients', title: 'Clients', path: '/clients', keywords: ['clients', 'clientes', 'customers'] },
   { id: 'contracts', title: 'Contracts', path: '/contracts', keywords: ['contracts', 'contratos', 'agreements'] },
   { id: 'calculator', title: 'Estimate', path: '/calculator', keywords: ['estimate', 'calculator', 'estimativa', 'calculadora', 'quote', 'orçamento'] },
+  { id: 'payments', title: 'Payments & Collections', path: '/payments', keywords: ['payments', 'collections', 'pagamentos', 'recebimentos', 'cash', 'dinheiro'] },
+  { id: 'financial', title: 'Ledger', path: '/financial', keywords: ['ledger', 'razão', 'financial', 'financeiro', 'accounting', 'contabilidade'] },
   { id: 'invoices', title: 'Invoices', path: '/invoices', keywords: ['invoices', 'faturas', 'billing', 'faturamento'] },
   { id: 'receipts', title: 'Receipts', path: '/receipts', keywords: ['receipts', 'recibos', 'payment receipts', 'comprovantes'] },
-  { id: 'ledger', title: 'Ledger', path: '/ledger', keywords: ['ledger', 'razão', 'financial', 'financeiro', 'accounting', 'contabilidade'] },
-  { id: 'payroll', title: 'Payroll', path: '/payroll', keywords: ['payroll', 'folha', 'pagamento', 'salário', 'salary', 'wages'] },
-  { id: 'company', title: 'Company', path: '/company', keywords: ['company', 'empresa', 'organization', 'settings'] },
+  { id: 'work-time-tracking', title: 'Work & Time Tracking', path: '/work-time-tracking', keywords: ['work', 'time', 'tracking', 'payroll', 'folha', 'horas', 'hours', 'trabalho'] },
+  { id: 'access-roles', title: 'Access & Roles', path: '/access-roles', keywords: ['access', 'roles', 'permissions', 'permissões', 'acesso', 'funções'] },
   { id: 'users', title: 'Users', path: '/users', keywords: ['users', 'usuários', 'employees', 'funcionários', 'team', 'equipe'] },
+  { id: 'company', title: 'Company', path: '/company', keywords: ['company', 'empresa', 'organization', 'settings'] },
   { id: 'settings', title: 'Settings', path: '/settings', keywords: ['settings', 'configurações', 'preferences', 'preferências'] },
 ];
 

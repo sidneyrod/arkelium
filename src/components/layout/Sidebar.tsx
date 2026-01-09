@@ -133,7 +133,7 @@ const Sidebar = () => {
   }
   
   if (isAdmin) {
-    financialItems.push({ path: '/payroll', label: 'Work & Time Tracking', icon: Wallet });
+    financialItems.push({ path: '/work-time-tracking', label: 'Work & Time Tracking', icon: Wallet });
   }
   
   if (isCleaner) {
