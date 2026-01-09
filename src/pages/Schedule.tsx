@@ -1467,84 +1467,94 @@ const Schedule = () => {
               <div className="p-4 border-b border-border/50">
                 <h3 className="text-base font-medium">{format(currentDate, 'EEEE, MMMM d, yyyy')}</h3>
               </div>
-              <CardContent>
-                <div className="space-y-2 relative">
+              <CardContent className="p-0">
+                <div className="relative">
+                  {/* Time slots grid as background */}
                   {TIME_SLOTS.map((slot, slotIndex) => {
-                    // Get jobs that START at this time slot
-                    const startingJobs = getJobsForDate(currentDate).filter(j => isJobStartingAt(j, slot.value));
-                    // Get jobs that SPAN this slot but started earlier  
+                    // Get jobs that SPAN this slot but started earlier
                     const spanningJobs = getJobsForTimeSlot(currentDate, slot.value).filter(j => !isJobStartingAt(j, slot.value));
                     const hasSpanningJob = spanningJobs.length > 0;
+                    const startingJobs = getJobsForDate(currentDate).filter(j => isJobStartingAt(j, slot.value));
+                    const isOccupied = hasSpanningJob || startingJobs.length > 0;
                     
                     return (
                       <div 
-                        key={slot.value} 
+                        key={slot.value}
                         className={cn(
-                          "flex gap-3 p-2 rounded-lg min-h-[48px] relative",
-                          isAdminOrManager && !hasSpanningJob && "hover:bg-muted/30 cursor-pointer",
-                          hasSpanningJob && "bg-muted/10"
+                          "flex gap-3 border-b border-border/20 last:border-b-0 h-12",
+                          isAdminOrManager && !isOccupied && "hover:bg-muted/30 cursor-pointer"
                         )}
-                        onClick={() => isAdminOrManager && !hasSpanningJob && handleTimeSlotClick(currentDate, slot.value)}
+                        onClick={() => isAdminOrManager && !isOccupied && handleTimeSlotClick(currentDate, slot.value)}
                       >
-                        <div className="w-20 text-sm text-muted-foreground shrink-0">{slot.label}</div>
-                        <div className="flex-1 space-y-1 relative">
-                          {startingJobs.map((job) => {
-                            const endTime = calculateEndTime(job.time, job.duration);
-                            
-                            return (
-                              <div 
-                                key={job.id}
-                                className={cn(
-                                  "p-2 rounded border cursor-pointer",
-                                  job.jobType === 'visit' 
-                                    ? "bg-purple-500/10 border-purple-500/30" 
-                                    : statusConfig[job.status].bgColor
-                                )}
-                                onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
-                              >
-                                <div className="flex items-center gap-2 mb-1">
-                                  {job.jobType === 'visit' ? (
-                                    <Eye className="h-4 w-4 text-purple-500" />
-                                  ) : (
-                                    <Sparkles className="h-4 w-4 text-primary" />
-                                  )}
-                                  <p className="font-medium text-sm">{job.clientName}</p>
-                                  <span className="text-xs font-medium text-primary">
-                                    {formatTimeDisplay(job.time)} - {formatTimeDisplay(endTime)}
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">({job.duration})</span>
-                                  <Badge 
-                                    variant="outline" 
-                                    className={cn(
-                                      "text-[10px] px-1 py-0",
-                                      job.jobType === 'visit' 
-                                        ? "border-purple-500/30 text-purple-600 dark:text-purple-400" 
-                                        : "border-primary/30 text-primary"
-                                    )}
-                                  >
-                                    {job.jobType === 'visit' ? 'Visit' : 'Service'}
-                                  </Badge>
-                                  <Badge 
-                                    variant="outline" 
-                                    className={cn(
-                                      "text-[10px] px-1 py-0 ml-auto",
-                                      statusConfig[job.status].bgColor,
-                                      statusConfig[job.status].color
-                                    )}
-                                  >
-                                    {statusConfig[job.status].label}
-                                  </Badge>
-                                </div>
-                                <p className="text-xs text-muted-foreground">{job.address}</p>
-                                <p className="text-xs text-muted-foreground">{job.employeeName}</p>
-                              </div>
-                            );
-                          })}
-                          {hasSpanningJob && startingJobs.length === 0 && (
-                            <div className="text-xs text-muted-foreground italic">
-                              (Occupied by ongoing service)
-                            </div>
+                        <div className="w-20 text-sm text-muted-foreground shrink-0 flex items-start justify-center pt-2 bg-muted/10 border-r border-border/30">
+                          {slot.label}
+                        </div>
+                        <div className="flex-1 relative" />
+                      </div>
+                    );
+                  })}
+                  
+                  {/* Overlay jobs with absolute positioning */}
+                  {getJobsForDate(currentDate).map((job) => {
+                    const startSlotIndex = TIME_SLOTS.findIndex(s => s.value === job.time);
+                    if (startSlotIndex === -1) return null;
+                    
+                    const rowSpan = getJobRowSpan(job);
+                    const slotHeight = 48; // h-12 = 48px
+                    const topPosition = startSlotIndex * slotHeight;
+                    const cardHeight = rowSpan * slotHeight;
+                    const endTime = calculateEndTime(job.time, job.duration);
+                    
+                    return (
+                      <div
+                        key={job.id}
+                        className="absolute left-20 right-0 px-2"
+                        style={{ top: topPosition + 4, height: cardHeight - 8 }}
+                      >
+                        <div 
+                          className={cn(
+                            "h-full p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md overflow-hidden",
+                            job.jobType === 'visit' 
+                              ? "bg-purple-500/10 border-purple-500/30" 
+                              : statusConfig[job.status].bgColor
                           )}
+                          onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            {job.jobType === 'visit' ? (
+                              <Eye className="h-4 w-4 text-purple-500 flex-shrink-0" />
+                            ) : (
+                              <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
+                            )}
+                            <p className="font-medium text-sm truncate">{job.clientName}</p>
+                            <span className="text-xs font-medium text-primary whitespace-nowrap">
+                              {formatTimeDisplay(job.time)} - {formatTimeDisplay(endTime)}
+                            </span>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">({job.duration})</span>
+                            <Badge 
+                              variant="outline" 
+                              className={cn(
+                                "text-[10px] px-1 py-0 flex-shrink-0",
+                                job.jobType === 'visit' 
+                                  ? "border-purple-500/30 text-purple-600 dark:text-purple-400" 
+                                  : "border-primary/30 text-primary"
+                              )}
+                            >
+                              {job.jobType === 'visit' ? 'Visit' : 'Service'}
+                            </Badge>
+                            <Badge 
+                              variant="outline" 
+                              className={cn(
+                                "text-[10px] px-1 py-0 ml-auto flex-shrink-0",
+                                statusConfig[job.status].bgColor,
+                                statusConfig[job.status].color
+                              )}
+                            >
+                              {statusConfig[job.status].label}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">{job.address}</p>
+                          <p className="text-xs text-muted-foreground truncate">{job.employeeName}</p>
                         </div>
                       </div>
                     );
