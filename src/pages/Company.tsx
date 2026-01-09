@@ -30,9 +30,11 @@ import {
   Globe,
   FileText,
   Zap,
-  Clock
+  Clock,
+  Sliders
 } from 'lucide-react';
 import { CANADIAN_TIMEZONES } from '@/hooks/useTimezone';
+import PreferencesTab from '@/components/company/PreferencesTab';
 
 const canadianProvinces = [
   'Alberta', 'British Columbia', 'Manitoba', 'New Brunswick', 
@@ -889,6 +891,10 @@ const Company = () => {
               <Calendar className="h-4 w-4" />
               <span className="hidden sm:inline">Schedule Config</span>
             </TabsTrigger>
+            <TabsTrigger value="preferences" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
+              <Sliders className="h-4 w-4" />
+              <span className="hidden sm:inline">Preferences</span>
+            </TabsTrigger>
           </TabsList>
           
           <div className="flex items-center gap-2">
@@ -1294,6 +1300,9 @@ const Company = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Preferences Tab */}
+        <PreferencesTab companyId={companyId} />
       </Tabs>
 
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCompanyPreferences } from '@/hooks/useCompanyPreferences';
 
 export interface WorkEarningsPeriod {
   startDate: string;
@@ -48,6 +49,8 @@ export interface GlobalSummary {
 
 export function useWorkEarnings() {
   const { user } = useAuth();
+  const { preferences, isLoading: prefsLoading } = useCompanyPreferences();
+  
   const [period, setPeriod] = useState<WorkEarningsPeriod>(() => {
     // Default to current biweekly period
     const today = new Date();
@@ -78,6 +81,11 @@ export function useWorkEarnings() {
   const [cleanerSummaries, setCleanerSummaries] = useState<CleanerWorkSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Whether to exclude visits from reports (based on company preferences)
+  const excludeVisits = !preferences.includeVisitsInReports;
+  // Whether cash kept by employee feature is enabled
+  const enableCashKept = preferences.enableCashKeptByEmployee;
+
   const getCompanyId = useCallback(async () => {
     const userId = user?.id ?? null;
     const profileCompanyId = user?.profile?.company_id ?? null;
@@ -100,7 +108,7 @@ export function useWorkEarnings() {
       }
 
       // Fetch completed jobs in period
-      const { data: jobs, error: jobsError } = await supabase
+      let jobsQuery = supabase
         .from('jobs')
         .select(`
           id,
@@ -113,12 +121,20 @@ export function useWorkEarnings() {
           payment_amount,
           payment_method,
           notes,
+          job_type,
           clients(id, name)
         `)
         .eq('company_id', companyId)
         .eq('status', 'completed')
         .gte('scheduled_date', period.startDate)
         .lte('scheduled_date', period.endDate);
+
+      // Apply visit filter based on company preferences
+      if (excludeVisits) {
+        jobsQuery = jobsQuery.neq('job_type', 'visit');
+      }
+
+      const { data: jobs, error: jobsError } = await jobsQuery;
 
       if (jobsError) {
         console.error('Error fetching jobs:', jobsError);
@@ -285,13 +301,13 @@ export function useWorkEarnings() {
     } finally {
       setIsLoading(false);
     }
-  }, [getCompanyId, period]);
+  }, [getCompanyId, period, excludeVisits]);
 
   const fetchCleanerDetails = useCallback(async (cleanerId: string): Promise<JobDetail[]> => {
     const companyId = await getCompanyId();
     if (!companyId) return [];
 
-    const { data: jobs, error } = await supabase
+    let jobsQuery = supabase
       .from('jobs')
       .select(`
         id,
@@ -303,6 +319,7 @@ export function useWorkEarnings() {
         payment_amount,
         payment_method,
         notes,
+        job_type,
         clients(id, name)
       `)
       .eq('company_id', companyId)
@@ -311,6 +328,13 @@ export function useWorkEarnings() {
       .gte('scheduled_date', period.startDate)
       .lte('scheduled_date', period.endDate)
       .order('scheduled_date', { ascending: false });
+
+    // Apply visit filter based on company preferences
+    if (excludeVisits) {
+      jobsQuery = jobsQuery.neq('job_type', 'visit');
+    }
+
+    const { data: jobs, error } = await jobsQuery;
 
     if (error) {
       console.error('Error fetching cleaner details:', error);
@@ -355,13 +379,13 @@ export function useWorkEarnings() {
         notes: job.notes,
       };
     });
-  }, [getCompanyId, period]);
+  }, [getCompanyId, period, excludeVisits]);
 
   const getExportData = useCallback(async () => {
     const companyId = await getCompanyId();
     if (!companyId) return [];
 
-    const { data: jobs } = await supabase
+    let jobsQuery = supabase
       .from('jobs')
       .select(`
         id,
@@ -372,6 +396,7 @@ export function useWorkEarnings() {
         payment_amount,
         payment_method,
         notes,
+        job_type,
         clients(name),
         cleaner:cleaner_id(first_name, last_name)
       `)
@@ -380,6 +405,13 @@ export function useWorkEarnings() {
       .gte('scheduled_date', period.startDate)
       .lte('scheduled_date', period.endDate)
       .order('scheduled_date', { ascending: false });
+
+    // Apply visit filter based on company preferences
+    if (excludeVisits) {
+      jobsQuery = jobsQuery.neq('job_type', 'visit');
+    }
+
+    const { data: jobs } = await jobsQuery;
 
     const { data: cashData } = await supabase
       .from('cash_collections')
@@ -408,6 +440,11 @@ export function useWorkEarnings() {
         : 'Unknown';
       const role = job.cleaner_id ? (roleMap[job.cleaner_id] || 'staff') : 'staff';
       
+      // If cash kept feature is disabled, don't show cash kept column
+      const cashKeptValue = enableCashKept && cashInfo?.cash_handling === 'kept_by_cleaner'
+        ? (cashInfo.amount || 0).toFixed(2)
+        : '-';
+      
       return {
         Date: job.scheduled_date,
         Employee: cleanerName,
@@ -417,9 +454,7 @@ export function useWorkEarnings() {
         'Hours Worked': ((job.duration_minutes || 0) / 60).toFixed(2),
         'Gross Service Amount': (job.payment_amount || 0).toFixed(2),
         'Payment Method': job.payment_method || '-',
-        'Cash Kept by Employee': cashInfo?.cash_handling === 'kept_by_cleaner' 
-          ? (cashInfo.amount || 0).toFixed(2) 
-          : '-',
+        'Cash Kept by Employee': cashKeptValue,
         'Cash Delivered to Office': cashInfo?.cash_handling === 'delivered_to_office' 
           ? (cashInfo.amount || 0).toFixed(2) 
           : '-',
@@ -427,22 +462,24 @@ export function useWorkEarnings() {
         Notes: job.notes || '',
       };
     });
-  }, [getCompanyId, period]);
+  }, [getCompanyId, period, excludeVisits, enableCashKept]);
 
   useEffect(() => {
-    if (user?.id) {
+    if (user?.id && !prefsLoading) {
       fetchData();
     }
-  }, [user?.id, user?.profile?.company_id, fetchData]);
+  }, [user?.id, user?.profile?.company_id, fetchData, prefsLoading]);
 
   return {
     period,
     setPeriod,
     globalSummary,
     cleanerSummaries,
-    isLoading,
+    isLoading: isLoading || prefsLoading,
     fetchData,
     fetchCleanerDetails,
     getExportData,
+    // Expose preferences for UI conditional rendering
+    enableCashKept,
   };
 }

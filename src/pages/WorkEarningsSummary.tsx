@@ -39,6 +39,7 @@ const WorkEarningsSummary = () => {
     fetchData,
     fetchCleanerDetails,
     getExportData,
+    enableCashKept,
   } = useWorkEarnings();
 
   const [selectedCleaner, setSelectedCleaner] = useState<CleanerWorkSummary | null>(null);
@@ -233,7 +234,7 @@ const WorkEarningsSummary = () => {
                   <TableHead className="text-right w-[80px]">Jobs</TableHead>
                   <TableHead className="text-right w-[100px]">Hours</TableHead>
                   <TableHead className="text-right w-[120px]">Service Value</TableHead>
-                  <TableHead className="text-right w-[120px]">Cash Kept (Approved)</TableHead>
+                  {enableCashKept && <TableHead className="text-right w-[120px]">Cash Kept (Approved)</TableHead>}
                   <TableHead className="text-right w-[120px]">Cash Delivered</TableHead>
                   <TableHead className="w-[80px]">Flags</TableHead>
                   <TableHead className="w-[40px]"></TableHead>
@@ -270,15 +271,17 @@ const WorkEarningsSummary = () => {
                     <TableCell className="text-right font-semibold">
                       ${cleaner.totalServiceValue.toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-right">
-                      {cleaner.cashKeptApproved > 0 ? (
-                        <span className="text-amber-600 font-medium">
-                          ${cleaner.cashKeptApproved.toLocaleString()}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
+                    {enableCashKept && (
+                      <TableCell className="text-right">
+                        {cleaner.cashKeptApproved > 0 ? (
+                          <span className="text-amber-600 font-medium">
+                            ${cleaner.cashKeptApproved.toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                    )}
                     <TableCell className="text-right">
                       {cleaner.cashDeliveredToOffice > 0 ? (
                         <span className="text-green-600 font-medium">

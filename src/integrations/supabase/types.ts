@@ -810,7 +810,9 @@ export type Database = {
           company_id: string
           created_at: string
           default_hourly_rate: number | null
+          enable_cash_kept_by_employee: boolean | null
           id: string
+          include_visits_in_reports: boolean | null
           invoice_generation_mode: string
           tax_rate: number | null
           updated_at: string
@@ -823,7 +825,9 @@ export type Database = {
           company_id: string
           created_at?: string
           default_hourly_rate?: number | null
+          enable_cash_kept_by_employee?: boolean | null
           id?: string
+          include_visits_in_reports?: boolean | null
           invoice_generation_mode?: string
           tax_rate?: number | null
           updated_at?: string
@@ -836,7 +840,9 @@ export type Database = {
           company_id?: string
           created_at?: string
           default_hourly_rate?: number | null
+          enable_cash_kept_by_employee?: boolean | null
           id?: string
+          include_visits_in_reports?: boolean | null
           invoice_generation_mode?: string
           tax_rate?: number | null
           updated_at?: string
