@@ -99,6 +99,7 @@ const WorkEarningsSummary = () => {
           period={period}
           globalSummary={globalSummary}
           getExportData={getExportData}
+          enableCashKept={enableCashKept}
         />
       </div>
 
@@ -170,33 +171,35 @@ const WorkEarningsSummary = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-border/50">
-          <CardContent className="pt-3 pb-3">
-            <div className="space-y-0.5">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cash Kept by Staff</p>
-              <div className="flex items-center gap-1.5">
-                {globalSummary.cashKeptPending > 0 && (
-                  <Badge variant="outline" className="text-[9px] bg-amber-50 text-amber-700 border-amber-200">
-                    ${globalSummary.cashKeptPending} pending
-                  </Badge>
-                )}
-                {globalSummary.cashKeptApproved > 0 && (
-                  <Badge variant="outline" className="text-[9px] bg-blue-50 text-blue-700 border-blue-200">
-                    ${globalSummary.cashKeptApproved} approved
-                  </Badge>
-                )}
-                {globalSummary.cashKeptSettled > 0 && (
-                  <Badge variant="outline" className="text-[9px] bg-green-50 text-green-700 border-green-200">
-                    ${globalSummary.cashKeptSettled} settled
-                  </Badge>
-                )}
-                {globalSummary.cashKeptPending === 0 && globalSummary.cashKeptApproved === 0 && globalSummary.cashKeptSettled === 0 && (
-                  <span className="text-sm text-muted-foreground">$0</span>
-                )}
+        {enableCashKept && (
+          <Card className="border-border/50">
+            <CardContent className="pt-3 pb-3">
+              <div className="space-y-0.5">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cash Kept by Staff</p>
+                <div className="flex items-center gap-1.5">
+                  {globalSummary.cashKeptPending > 0 && (
+                    <Badge variant="outline" className="text-[9px] bg-amber-50 text-amber-700 border-amber-200">
+                      ${globalSummary.cashKeptPending} pending
+                    </Badge>
+                  )}
+                  {globalSummary.cashKeptApproved > 0 && (
+                    <Badge variant="outline" className="text-[9px] bg-blue-50 text-blue-700 border-blue-200">
+                      ${globalSummary.cashKeptApproved} approved
+                    </Badge>
+                  )}
+                  {globalSummary.cashKeptSettled > 0 && (
+                    <Badge variant="outline" className="text-[9px] bg-green-50 text-green-700 border-green-200">
+                      ${globalSummary.cashKeptSettled} settled
+                    </Badge>
+                  )}
+                  {globalSummary.cashKeptPending === 0 && globalSummary.cashKeptApproved === 0 && globalSummary.cashKeptSettled === 0 && (
+                    <span className="text-sm text-muted-foreground">$0</span>
+                  )}
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="border-border/50">
           <CardContent className="pt-3 pb-3">
@@ -310,8 +313,8 @@ const WorkEarningsSummary = () => {
         </CardContent>
       </Card>
 
-      {/* Cash Reconciliation Note */}
-      {(globalSummary.cashKeptApproved > 0) && (
+      {/* Cash Reconciliation Note - Only show when cash kept is enabled */}
+      {enableCashKept && (globalSummary.cashKeptApproved > 0) && (
         <Alert className="border-amber-200 bg-amber-50/50">
           <Banknote className="h-4 w-4 text-amber-600" />
           <AlertTitle className="text-sm font-medium text-amber-800">Cash Pending External Compensation</AlertTitle>

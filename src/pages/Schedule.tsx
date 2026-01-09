@@ -37,6 +37,7 @@ import { logActivity } from '@/stores/activityStore';
 import { useInvoiceStore } from '@/stores/invoiceStore';
 import { useCompanyStore } from '@/stores/companyStore';
 import useRoleAccess from '@/hooks/useRoleAccess';
+import { useCompanyPreferences } from '@/hooks/useCompanyPreferences';
 import AddJobDrawer from '@/components/schedule/AddJobDrawer';
 import JobCompletionModal, { PaymentData } from '@/components/modals/JobCompletionModal';
 import StartServiceModal from '@/components/modals/StartServiceModal';
@@ -107,6 +108,7 @@ const Schedule = () => {
   const { addInvoice, getInvoiceByJobId } = useInvoiceStore();
   const { estimateConfig } = useCompanyStore();
   const { isCleaner, isAdminOrManager } = useRoleAccess();
+  const { preferences: companyPreferences } = useCompanyPreferences();
   
   // Read URL params for initial state
   const urlView = searchParams.get('view') as ViewType | null;
@@ -882,7 +884,8 @@ const Schedule = () => {
             }
             
             // Create cash collection record for tracking
-            const cashHandling = paymentData.cashHandlingChoice === 'keep_cash' 
+            // When cash kept is disabled, always force delivered_to_office
+            const cashHandling = companyPreferences.enableCashKeptByEmployee && paymentData.cashHandlingChoice === 'keep_cash' 
               ? 'kept_by_cleaner' 
               : 'delivered_to_office';
             
@@ -912,7 +915,8 @@ const Schedule = () => {
             );
             
             // Notify admin if cleaner is keeping cash (requires approval)
-            if (cashHandling === 'kept_by_cleaner' && insertedCashCollection?.id) {
+            // Only send notification when cash kept is enabled
+            if (companyPreferences.enableCashKeptByEmployee && cashHandling === 'kept_by_cleaner' && insertedCashCollection?.id) {
               const { notifyCashApprovalRequested } = await import('@/hooks/useNotifications');
               await notifyCashApprovalRequested(
                 job.employeeName,

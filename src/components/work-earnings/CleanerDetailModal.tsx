@@ -8,6 +8,7 @@ import { ExternalLink, Clock, DollarSign, Banknote, AlertTriangle } from 'lucide
 import { cn } from '@/lib/utils';
 import { JobDetail } from '@/hooks/useWorkEarnings';
 import { format } from 'date-fns';
+import { useCompanyPreferences } from '@/hooks/useCompanyPreferences';
 
 interface CleanerDetailModalProps {
   open: boolean;
@@ -26,6 +27,8 @@ export function CleanerDetailModal({
 }: CleanerDetailModalProps) {
   const [details, setDetails] = useState<JobDetail[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { preferences } = useCompanyPreferences();
+  const enableCashKept = preferences.enableCashKeptByEmployee;
 
   useEffect(() => {
     if (open && cleanerId) {
@@ -107,8 +110,8 @@ export function CleanerDetailModal({
                   <TableHead className="text-right w-[70px]">Hours</TableHead>
                   <TableHead className="text-right w-[90px]">Amount</TableHead>
                   <TableHead className="w-[80px]">Payment</TableHead>
-                  <TableHead className="w-[70px]">Cash</TableHead>
-                  <TableHead className="w-[80px]">Status</TableHead>
+                  {enableCashKept && <TableHead className="w-[70px]">Cash</TableHead>}
+                  {enableCashKept && <TableHead className="w-[80px]">Status</TableHead>}
                   <TableHead className="w-[40px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -141,19 +144,23 @@ export function CleanerDetailModal({
                         {job.paymentMethod || '-'}
                       </span>
                     </TableCell>
-                    <TableCell>
-                      {job.cashHandling ? (
-                        <span className={cn(
-                          'text-[10px] font-medium',
-                          job.cashHandling === 'kept_by_cleaner' ? 'text-amber-600' : 'text-green-600'
-                        )}>
-                          {getCashHandlingLabel(job.cashHandling)}
-                        </span>
-                      ) : '-'}
-                    </TableCell>
-                    <TableCell>
-                      {getStatusBadge(job.cashStatus)}
-                    </TableCell>
+                    {enableCashKept && (
+                      <TableCell>
+                        {job.cashHandling ? (
+                          <span className={cn(
+                            'text-[10px] font-medium',
+                            job.cashHandling === 'kept_by_cleaner' ? 'text-amber-600' : 'text-green-600'
+                          )}>
+                            {getCashHandlingLabel(job.cashHandling)}
+                          </span>
+                        ) : '-'}
+                      </TableCell>
+                    )}
+                    {enableCashKept && (
+                      <TableCell>
+                        {getStatusBadge(job.cashStatus)}
+                      </TableCell>
+                    )}
                     <TableCell>
                       <Button
                         variant="ghost"
@@ -177,7 +184,7 @@ export function CleanerDetailModal({
                   <TableCell className="text-right font-semibold">
                     ${totals.serviceAmount.toFixed(2)}
                   </TableCell>
-                  <TableCell colSpan={4}></TableCell>
+                  <TableCell colSpan={enableCashKept ? 4 : 2}></TableCell>
                 </TableRow>
               </TableBody>
             </Table>
