@@ -52,86 +52,86 @@ export function ExportReportButton({
 
   const handleDownloadPdf = async () => {
     setIsExporting(true);
+
+    let container: HTMLDivElement | null = null;
+
     try {
       const data = await getExportData();
-      
+
       if (data.length === 0) {
         toast.error('No data to export for the selected period');
         return;
       }
 
       const companyName = profile?.companyName || 'Company';
-      const safeCompanyName = companyName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
-      
+      const safeCompanyName = safeFilenamePart(companyName);
+      const filename = `${safeCompanyName}-work-time-tracking-${period.startDate}-to-${period.endDate}.pdf`;
+
       // Generate content HTML (without full document structure for html2pdf)
       const contentHtml = generatePdfContentHtml(data, period, globalSummary, companyName);
 
-      // Create container with content
-      const container = document.createElement('div');
-      container.innerHTML = contentHtml;
-      container.style.width = '297mm'; // A4 landscape width
-      container.style.padding = '15px';
-      container.style.fontFamily = 'Segoe UI, system-ui, sans-serif';
-      container.style.fontSize = '10px';
-      container.style.color = '#1a1a1a';
-      container.style.lineHeight = '1.4';
-      container.style.background = 'white';
+      // Create container with content (sized to fit within A4 landscape margins)
+      container = createWorkTimeTrackingPdfContainer(contentHtml);
       document.body.appendChild(container);
 
+      const windowWidth = container.scrollWidth;
+
       await html2pdf()
-        .set({
-          margin: [10, 10, 10, 10],
-          filename: `${safeCompanyName}-work-time-tracking-${period.startDate}-to-${period.endDate}.pdf`,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, logging: false },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
-        })
+        .set(getWorkTimeTrackingPdfOptions({ filename, windowWidth }))
         .from(container)
         .save();
-
-      // Cleanup
-      document.body.removeChild(container);
 
       toast.success('PDF downloaded successfully');
     } catch (error) {
       console.error('PDF download error:', error);
       toast.error('Failed to download PDF');
     } finally {
+      if (container?.parentNode) container.parentNode.removeChild(container);
       setIsExporting(false);
     }
   };
 
   const handlePrintPdf = async () => {
     setIsExporting(true);
+
+    let container: HTMLDivElement | null = null;
+
     try {
       const data = await getExportData();
-      
+
       if (data.length === 0) {
         toast.error('No data to export for the selected period');
         return;
       }
 
       const companyName = profile?.companyName || 'Company';
-      const html = generateWorkTimeTrackingReportHtml(
-        data,
-        period,
-        globalSummary,
-        companyName
-      );
+      const safeCompanyName = safeFilenamePart(companyName);
+      const filename = `${safeCompanyName}-work-time-tracking-${period.startDate}-to-${period.endDate}.pdf`;
 
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.write(html);
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => printWindow.print(), 500);
+      const contentHtml = generatePdfContentHtml(data, period, globalSummary, companyName);
+
+      container = createWorkTimeTrackingPdfContainer(contentHtml);
+      document.body.appendChild(container);
+
+      const windowWidth = container.scrollWidth;
+
+      const worker = html2pdf().set(getWorkTimeTrackingPdfOptions({ filename, windowWidth })).from(container);
+
+      const out = await worker.outputPdf('bloburl');
+      if (typeof out === 'string') {
+        window.open(out, '_blank', 'noopener,noreferrer');
+      } else if (out instanceof Blob) {
+        const url = URL.createObjectURL(out);
+        window.open(url, '_blank', 'noopener,noreferrer');
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
       }
 
-      toast.success('Report opened for printing');
+      toast.success('PDF opened in a new tab for printing');
     } catch (error) {
       console.error('Print error:', error);
       toast.error('Failed to generate print preview');
     } finally {
+      if (container?.parentNode) container.parentNode.removeChild(container);
       setIsExporting(false);
     }
   };
