@@ -10,7 +10,7 @@ export const translations = {
       contracts: 'Contracts',
       schedule: 'Schedule',
       calculator: 'Estimate',
-      payroll: 'Work & Earnings',
+      payroll: 'Work & Time Tracking',
       settings: 'Settings',
       activityLog: 'Activity Log',
     },
@@ -360,9 +360,9 @@ export const translations = {
       viewPdf: 'View PDF',
       notesPlaceholder: 'Additional notes about the estimate...',
     },
-    // Work & Earnings / My Work Summary
+    // Work & Time Tracking / My Work Summary
     payroll: {
-      title: 'Work & Earnings Summary',
+      title: 'Work & Time Tracking',
       period: 'Period',
       open: 'Open',
       processing: 'Processing',
@@ -1020,9 +1020,9 @@ export const translations = {
       viewPdf: 'Voir PDF',
       notesPlaceholder: 'Notes supplémentaires sur le devis...',
     },
-    // Work & Earnings / My Work Summary
+    // Work & Time Tracking / My Work Summary
     payroll: {
-      title: 'Résumé Travail & Revenus',
+      title: 'Suivi Travail & Temps',
       period: 'Période',
       open: 'Ouvert',
       processing: 'En traitement',
