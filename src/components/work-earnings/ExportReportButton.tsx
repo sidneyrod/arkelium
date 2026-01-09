@@ -18,12 +18,14 @@ interface ExportReportButtonProps {
   period: WorkEarningsPeriod;
   globalSummary: GlobalSummary;
   getExportData: () => Promise<any[]>;
+  enableCashKept?: boolean;
 }
 
 export function ExportReportButton({
   period,
   globalSummary,
   getExportData,
+  enableCashKept = true,
 }: ExportReportButtonProps) {
   const [isExporting, setIsExporting] = useState(false);
   const { profile } = useCompanyStore();
@@ -38,8 +40,14 @@ export function ExportReportButton({
         return;
       }
 
+      // Remove 'Cash Kept by Employee' column if feature is disabled
+      const filteredData = enableCashKept ? data : data.map(row => {
+        const { 'Cash Kept by Employee': _, ...rest } = row;
+        return rest;
+      });
+
       const filename = `work-time-tracking-report-${period.startDate}-to-${period.endDate}`;
-      exportToCsv(data, filename);
+      exportToCsv(filteredData, filename);
       
       toast.success('Report exported successfully');
     } catch (error) {
@@ -68,7 +76,7 @@ export function ExportReportButton({
       const filename = `${safeCompanyName}-work-time-tracking-${period.startDate}-to-${period.endDate}.pdf`;
 
       // Generate content HTML (without full document structure for html2pdf)
-      const contentHtml = generatePdfContentHtml(data, period, globalSummary, companyName);
+      const contentHtml = generatePdfContentHtml(data, period, globalSummary, companyName, enableCashKept);
 
       // Create container with content (sized to fit within A4 landscape margins)
       container = createWorkTimeTrackingPdfContainer(contentHtml);
@@ -108,7 +116,7 @@ export function ExportReportButton({
       const safeCompanyName = safeFilenamePart(companyName);
       const filename = `${safeCompanyName}-work-time-tracking-${period.startDate}-to-${period.endDate}.pdf`;
 
-      const contentHtml = generatePdfContentHtml(data, period, globalSummary, companyName);
+      const contentHtml = generatePdfContentHtml(data, period, globalSummary, companyName, enableCashKept);
 
       container = createWorkTimeTrackingPdfContainer(contentHtml);
       document.body.appendChild(container);
@@ -238,7 +246,8 @@ function generatePdfContentHtml(
   data: any[],
   period: WorkEarningsPeriod,
   summary: GlobalSummary,
-  companyName: string
+  companyName: string,
+  enableCashKept: boolean = true
 ): string {
   const rows = data.map(row => `
     <tr>
@@ -250,7 +259,7 @@ function generatePdfContentHtml(
       <td style="padding: 6px; border-bottom: 1px solid #e5e7eb; text-align: right;">${row['Hours Worked']}</td>
       <td style="padding: 6px; border-bottom: 1px solid #e5e7eb; text-align: right;">${row['Gross Service Amount']}</td>
       <td style="padding: 6px; border-bottom: 1px solid #e5e7eb;">${row['Payment Method']}</td>
-      <td style="padding: 6px; border-bottom: 1px solid #e5e7eb; text-align: right;">${row['Cash Kept by Employee']}</td>
+      ${enableCashKept ? `<td style="padding: 6px; border-bottom: 1px solid #e5e7eb; text-align: right;">${row['Cash Kept by Employee']}</td>` : ''}
       <td style="padding: 6px; border-bottom: 1px solid #e5e7eb; text-align: right;">${row['Cash Delivered to Office']}</td>
       <td style="padding: 6px; border-bottom: 1px solid #e5e7eb;">${row.Status}</td>
     </tr>
@@ -297,7 +306,7 @@ function generatePdfContentHtml(
           <th style="background: #f3f4f6; text-align: right; padding: 8px 6px; font-weight: 600; border-bottom: 1px solid #d1d5db; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px;">Hours</th>
           <th style="background: #f3f4f6; text-align: right; padding: 8px 6px; font-weight: 600; border-bottom: 1px solid #d1d5db; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px;">Amount</th>
           <th style="background: #f3f4f6; text-align: left; padding: 8px 6px; font-weight: 600; border-bottom: 1px solid #d1d5db; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px;">Payment</th>
-          <th style="background: #f3f4f6; text-align: right; padding: 8px 6px; font-weight: 600; border-bottom: 1px solid #d1d5db; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px;">Cash Kept</th>
+          ${enableCashKept ? `<th style="background: #f3f4f6; text-align: right; padding: 8px 6px; font-weight: 600; border-bottom: 1px solid #d1d5db; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px;">Cash Kept</th>` : ''}
           <th style="background: #f3f4f6; text-align: right; padding: 8px 6px; font-weight: 600; border-bottom: 1px solid #d1d5db; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px;">Cash Delivered</th>
           <th style="background: #f3f4f6; text-align: left; padding: 8px 6px; font-weight: 600; border-bottom: 1px solid #d1d5db; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px;">Status</th>
         </tr>
@@ -311,7 +320,7 @@ function generatePdfContentHtml(
       <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 4px; padding: 10px; font-size: 9px; color: #0c4a6e; margin-bottom: 12px;">
         <strong>Notes:</strong>
         <ul style="margin: 8px 0 0 16px; padding: 0;">
-          <li style="margin-bottom: 6px;"><strong>Cash Kept by Employee:</strong> When a service is paid in cash, the staff member may choose to retain the amount (to be deducted from their next payroll). This column only shows amounts that have been <u>explicitly approved by an Administrator</u>. Unapproved cash retentions are not included in this report.</li>
+          ${enableCashKept ? `<li style="margin-bottom: 6px;"><strong>Cash Kept by Employee:</strong> When a service is paid in cash, the staff member may choose to retain the amount (to be deducted from their next payroll). This column only shows amounts that have been <u>explicitly approved by an Administrator</u>. Unapproved cash retentions are not included in this report.</li>` : ''}
           <li style="margin-bottom: 6px;"><strong>Cash Delivered to Office:</strong> Cash payments collected by the employee and physically delivered to the company office, confirmed by admin.</li>
         </ul>
       </div>
