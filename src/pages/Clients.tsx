@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,31 +7,35 @@ import PageHeader from '@/components/ui/page-header';
 import SearchInput from '@/components/ui/search-input';
 import PaginatedDataTable, { Column } from '@/components/ui/paginated-data-table';
 import StatusBadge from '@/components/ui/status-badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
 import AddClientModal, { ClientFormData } from '@/components/modals/AddClientModal';
+import AddLocationModal, { LocationFormData } from '@/components/modals/AddLocationModal';
 import ConfirmDialog from '@/components/modals/ConfirmDialog';
 import { toast } from '@/hooks/use-toast';
-import { UserPlus, Building, Home, MapPin, Phone, MoreHorizontal, Pencil, Trash2, Plus, Loader2, AlertTriangle } from 'lucide-react';
+import { UserPlus, Building, Home, MapPin, Phone, MoreHorizontal, Pencil, Trash2, Plus, Loader2, AlertTriangle, Star } from 'lucide-react';
 import { useScheduleValidation } from '@/hooks/useScheduleValidation';
-import { useServerPagination, PaginationState } from '@/hooks/useServerPagination';
+import { useServerPagination } from '@/hooks/useServerPagination';
 
 interface Location {
   id: string;
   address: string;
   city?: string;
   province?: string;
-  postal_code?: string;
+  postalCode?: string;
   accessInstructions?: string;
   alarmCode?: string;
   hasPets?: boolean;
   petDetails?: string;
   parkingInfo?: string;
+  isPrimary?: boolean;
+  notes?: string;
 }
 
 interface Client {
@@ -69,6 +73,12 @@ const Clients = () => {
   const [deleteClient, setDeleteClient] = useState<Client | null>(null);
   const [deleteWarning, setDeleteWarning] = useState<string | null>(null);
   
+  // Location management state
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [editLocation, setEditLocation] = useState<LocationFormData | null>(null);
+  const [deleteLocation, setDeleteLocation] = useState<Location | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  
   const { validateClientDuplicate, canDeleteClient } = useScheduleValidation();
 
   // Debounce search for server-side filtering
@@ -101,11 +111,15 @@ const Clients = () => {
           id,
           address,
           city,
+          province,
+          postal_code,
           access_instructions,
           alarm_code,
           has_pets,
           pet_details,
-          parking_info
+          parking_info,
+          is_primary,
+          notes
         )
       `, { count: 'exact' })
       .eq('company_id', user.profile.company_id);
@@ -140,11 +154,15 @@ const Clients = () => {
         id: loc.id,
         address: loc.address,
         city: loc.city,
+        province: loc.province,
+        postalCode: loc.postal_code,
         accessInstructions: loc.access_instructions,
         alarmCode: loc.alarm_code,
         hasPets: loc.has_pets,
         petDetails: loc.pet_details,
         parkingInfo: loc.parking_info,
+        isPrimary: loc.is_primary,
+        notes: loc.notes,
       })),
       address: client.address || '',
       city: client.city || '',
@@ -299,6 +317,219 @@ const Clients = () => {
   const openEditModal = (client: Client) => {
     setEditClient(client);
     setIsAddModalOpen(true);
+  };
+
+  // Location CRUD handlers
+  const handleAddLocation = async (locationData: LocationFormData) => {
+    if (!selectedClient || !user?.profile?.company_id) return;
+    
+    setLocationLoading(true);
+    try {
+      if (locationData.isPrimary) {
+        // Reset other locations to non-primary
+        await supabase
+          .from('client_locations')
+          .update({ is_primary: false })
+          .eq('client_id', selectedClient.id)
+          .eq('company_id', user.profile.company_id);
+      }
+
+      if (editLocation?.id) {
+        // Update existing location
+        const { error } = await supabase
+          .from('client_locations')
+          .update({
+            address: locationData.address,
+            city: locationData.city,
+            province: locationData.province,
+            postal_code: locationData.postalCode,
+            access_instructions: locationData.accessInstructions,
+            alarm_code: locationData.alarmCode,
+            parking_info: locationData.parkingInfo,
+            has_pets: locationData.hasPets,
+            pet_details: locationData.petDetails,
+            is_primary: locationData.isPrimary,
+            notes: locationData.notes,
+          })
+          .eq('id', editLocation.id)
+          .eq('company_id', user.profile.company_id);
+
+        if (error) throw error;
+        toast({ title: t.common.success, description: t.clients.locationUpdated });
+      } else {
+        // Create new location
+        const { error } = await supabase
+          .from('client_locations')
+          .insert({
+            company_id: user.profile.company_id,
+            client_id: selectedClient.id,
+            address: locationData.address,
+            city: locationData.city,
+            province: locationData.province,
+            postal_code: locationData.postalCode,
+            access_instructions: locationData.accessInstructions,
+            alarm_code: locationData.alarmCode,
+            parking_info: locationData.parkingInfo,
+            has_pets: locationData.hasPets,
+            pet_details: locationData.petDetails,
+            is_primary: locationData.isPrimary,
+            notes: locationData.notes,
+          });
+
+        if (error) throw error;
+        toast({ title: t.common.success, description: t.clients.locationCreated });
+      }
+
+      // Refresh client data
+      await refreshSelectedClient();
+      setIsLocationModalOpen(false);
+      setEditLocation(null);
+    } catch (err) {
+      console.error('Error saving location:', err);
+      toast({ title: t.common.error, description: 'Failed to save location', variant: 'destructive' });
+    } finally {
+      setLocationLoading(false);
+    }
+  };
+
+  const handleDeleteLocation = async () => {
+    if (!deleteLocation || !user?.profile?.company_id) return;
+    
+    try {
+      const { error } = await supabase
+        .from('client_locations')
+        .delete()
+        .eq('id', deleteLocation.id)
+        .eq('company_id', user.profile.company_id);
+
+      if (error) throw error;
+
+      await refreshSelectedClient();
+      toast({ title: t.common.success, description: t.clients.locationDeleted });
+    } catch (err) {
+      console.error('Error deleting location:', err);
+      toast({ title: t.common.error, description: 'Failed to delete location', variant: 'destructive' });
+    } finally {
+      setDeleteLocation(null);
+    }
+  };
+
+  const handleSetPrimaryLocation = async (location: Location) => {
+    if (!selectedClient || !user?.profile?.company_id) return;
+    
+    try {
+      // Reset all locations to non-primary
+      await supabase
+        .from('client_locations')
+        .update({ is_primary: false })
+        .eq('client_id', selectedClient.id)
+        .eq('company_id', user.profile.company_id);
+
+      // Set the selected location as primary
+      const { error } = await supabase
+        .from('client_locations')
+        .update({ is_primary: true })
+        .eq('id', location.id)
+        .eq('company_id', user.profile.company_id);
+
+      if (error) throw error;
+
+      await refreshSelectedClient();
+      toast({ title: t.common.success, description: 'Primary location updated' });
+    } catch (err) {
+      console.error('Error setting primary location:', err);
+      toast({ title: t.common.error, description: 'Failed to update location', variant: 'destructive' });
+    }
+  };
+
+  const openEditLocationModal = (location: Location) => {
+    setEditLocation({
+      id: location.id,
+      address: location.address,
+      city: location.city || '',
+      province: location.province || 'Ontario',
+      postalCode: location.postalCode || '',
+      accessInstructions: location.accessInstructions || '',
+      alarmCode: location.alarmCode || '',
+      parkingInfo: location.parkingInfo || '',
+      hasPets: location.hasPets || false,
+      petDetails: location.petDetails || '',
+      isPrimary: location.isPrimary || false,
+      notes: location.notes || '',
+    });
+    setIsLocationModalOpen(true);
+  };
+
+  const refreshSelectedClient = async () => {
+    if (!selectedClient || !user?.profile?.company_id) return;
+
+    const { data, error } = await supabase
+      .from('clients')
+      .select(`
+        id,
+        name,
+        email,
+        phone,
+        client_type,
+        notes,
+        address,
+        city,
+        province,
+        postal_code,
+        country,
+        client_locations (
+          id,
+          address,
+          city,
+          province,
+          postal_code,
+          access_instructions,
+          alarm_code,
+          has_pets,
+          pet_details,
+          parking_info,
+          is_primary,
+          notes
+        )
+      `)
+      .eq('id', selectedClient.id)
+      .eq('company_id', user.profile.company_id)
+      .single();
+
+    if (error || !data) return;
+
+    const updatedClient: Client = {
+      id: data.id,
+      name: data.name,
+      type: (data.client_type as 'residential' | 'commercial') || 'residential',
+      phone: data.phone || '',
+      email: data.email || '',
+      notes: data.notes || '',
+      status: 'active',
+      locationsCount: data.client_locations?.length || 0,
+      locations: (data.client_locations || []).map((loc: any) => ({
+        id: loc.id,
+        address: loc.address,
+        city: loc.city,
+        province: loc.province,
+        postalCode: loc.postal_code,
+        accessInstructions: loc.access_instructions,
+        alarmCode: loc.alarm_code,
+        hasPets: loc.has_pets,
+        petDetails: loc.pet_details,
+        parkingInfo: loc.parking_info,
+        isPrimary: loc.is_primary,
+        notes: loc.notes,
+      })),
+      address: data.address || '',
+      city: data.city || '',
+      province: data.province || '',
+      postalCode: data.postal_code || '',
+      country: data.country || 'Canada',
+    };
+
+    setSelectedClient(updatedClient);
+    await refresh();
   };
 
   const columns: Column<Client>[] = [
@@ -470,6 +701,17 @@ const Clients = () => {
 
               <TabsContent value="locations" className="mt-4">
                 <div className="space-y-4">
+                  {/* Add Location Button */}
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      onClick={() => { setEditLocation(null); setIsLocationModalOpen(true); }}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      {t.clients.addLocation}
+                    </Button>
+                  </div>
+
                   {selectedClient.locations.length > 0 ? selectedClient.locations.map((location) => (
                     <Card key={location.id} className="border-border/50">
                       <CardHeader className="pb-3">
@@ -477,7 +719,40 @@ const Clients = () => {
                           <CardTitle className="text-sm font-medium flex items-center gap-2">
                             <MapPin className="h-4 w-4 text-primary" />
                             {location.address}{location.city ? `, ${location.city}` : ''}
+                            {location.isPrimary && (
+                              <Badge variant="secondary" className="ml-2 gap-1">
+                                <Star className="h-3 w-3" />
+                                Primary
+                              </Badge>
+                            )}
                           </CardTitle>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-popover">
+                              <DropdownMenuItem onClick={() => openEditLocationModal(location)}>
+                                <Pencil className="h-4 w-4 mr-2" />
+                                {t.common.edit}
+                              </DropdownMenuItem>
+                              {!location.isPrimary && (
+                                <DropdownMenuItem onClick={() => handleSetPrimaryLocation(location)}>
+                                  <Star className="h-4 w-4 mr-2" />
+                                  {t.clients.setAsPrimary}
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={() => setDeleteLocation(location)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                {t.common.delete}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </CardHeader>
                       <CardContent className="pt-0 space-y-2 text-sm">
@@ -490,10 +765,13 @@ const Clients = () => {
                         {location.hasPets && (
                           <p><span className="text-muted-foreground">Pets:</span> {location.petDetails || 'Yes'}</p>
                         )}
+                        {location.notes && (
+                          <p><span className="text-muted-foreground">Notes:</span> {location.notes}</p>
+                        )}
                       </CardContent>
                     </Card>
                   )) : (
-                    <p className="text-center text-muted-foreground py-8">No locations added yet</p>
+                    <p className="text-center text-muted-foreground py-8">{t.clients.noLocations}</p>
                   )}
                 </div>
               </TabsContent>
@@ -524,13 +802,31 @@ const Clients = () => {
         } : null}
       />
 
-      {/* Delete Confirmation Dialog */}
+      {/* Add/Edit Location Modal */}
+      <AddLocationModal
+        open={isLocationModalOpen}
+        onOpenChange={(open) => { setIsLocationModalOpen(open); if (!open) setEditLocation(null); }}
+        onSubmit={handleAddLocation}
+        editLocation={editLocation}
+        isLoading={locationLoading}
+      />
+
+      {/* Delete Client Confirmation Dialog */}
       <ConfirmDialog
         open={!!deleteClient}
         onOpenChange={() => setDeleteClient(null)}
         onConfirm={handleDeleteClient}
         title={t.common.confirmDelete}
         description={`Are you sure you want to delete "${deleteClient?.name}"? This action cannot be undone.`}
+      />
+
+      {/* Delete Location Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!deleteLocation}
+        onOpenChange={() => setDeleteLocation(null)}
+        onConfirm={handleDeleteLocation}
+        title={t.clients.deleteLocation}
+        description={t.clients.confirmDeleteLocation}
       />
     </div>
   );
