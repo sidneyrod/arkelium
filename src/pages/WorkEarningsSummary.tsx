@@ -79,31 +79,27 @@ const WorkEarningsSummary = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      <PageHeader 
-        title="Work & Time Tracking" 
-        description="Operational summaries for accounting and payroll preparation"
-      >
-        <div className="flex gap-2">
-          <DatePickerDialog
-            mode="range"
-            selected={dateRange}
-            onSelect={handleDateRangeSelect}
-            dateFormat="MMM d, yyyy"
-            className="text-xs h-9"
-          />
+      {/* Action bar – no title/subtitle */}
+      <div className="flex items-center justify-end gap-2">
+        <DatePickerDialog
+          mode="range"
+          selected={dateRange}
+          onSelect={handleDateRangeSelect}
+          dateFormat="MMM d, yyyy"
+          className="text-xs h-9"
+        />
 
-          <Button variant="outline" size="sm" className="gap-2" onClick={fetchData}>
-            <RefreshCw className="h-3.5 w-3.5" />
-            Refresh
-          </Button>
+        <Button variant="outline" size="sm" className="gap-2" onClick={fetchData}>
+          <RefreshCw className="h-3.5 w-3.5" />
+          Refresh
+        </Button>
 
-          <ExportReportButton
-            period={period}
-            globalSummary={globalSummary}
-            getExportData={getExportData}
-          />
-        </div>
-      </PageHeader>
+        <ExportReportButton
+          period={period}
+          globalSummary={globalSummary}
+          getExportData={getExportData}
+        />
+      </div>
 
       {/* Intent Notice */}
       <Alert className="border-info/30 bg-info/5">
@@ -176,7 +172,7 @@ const WorkEarningsSummary = () => {
         <Card className="border-border/50">
           <CardContent className="pt-3 pb-3">
             <div className="space-y-0.5">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cash Kept by Cleaners</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cash Kept by Staff</p>
               <div className="flex items-center gap-1.5">
                 {globalSummary.cashKeptPending > 0 && (
                   <Badge variant="outline" className="text-[9px] bg-amber-50 text-amber-700 border-amber-200">
@@ -216,10 +212,10 @@ const WorkEarningsSummary = () => {
         </Card>
       </div>
 
-      {/* Cleaner Work Summary Table */}
+      {/* Staff Work Summary Table */}
       <Card className="border-border/50">
         <CardHeader className="py-3 px-4 border-b">
-          <CardTitle className="text-sm font-medium">Cleaner Work Summary</CardTitle>
+          <CardTitle className="text-sm font-medium">Staff Work Summary</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {cleanerSummaries.length === 0 ? (
@@ -232,7 +228,8 @@ const WorkEarningsSummary = () => {
             <Table>
               <TableHeader>
                 <TableRow className="text-[11px] uppercase tracking-wide hover:bg-transparent">
-                  <TableHead className="w-[200px]">Cleaner</TableHead>
+                  <TableHead className="w-[200px]">Employee</TableHead>
+                  <TableHead className="w-[100px]">Role</TableHead>
                   <TableHead className="text-right w-[80px]">Jobs</TableHead>
                   <TableHead className="text-right w-[100px]">Hours</TableHead>
                   <TableHead className="text-right w-[120px]">Service Value</TableHead>
@@ -258,6 +255,11 @@ const WorkEarningsSummary = () => {
                         </Avatar>
                         <span className="font-medium">{cleaner.cleanerName}</span>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-[9px] capitalize">
+                        {cleaner.role || 'staff'}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-right font-medium">
                       {cleaner.jobsCompleted}
@@ -311,13 +313,13 @@ const WorkEarningsSummary = () => {
           <Banknote className="h-4 w-4 text-amber-600" />
           <AlertTitle className="text-sm font-medium text-amber-800">Cash Pending External Compensation</AlertTitle>
           <AlertDescription className="text-xs text-amber-700">
-            ${globalSummary.cashKeptApproved.toLocaleString()} in approved cash was kept by cleaners and should be 
+            ${globalSummary.cashKeptApproved.toLocaleString()} in approved cash was kept by staff and should be 
             accounted for in external payroll processing. This amount is ready for settlement.
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Cleaner Detail Modal */}
+      {/* Employee Detail Modal */}
       {selectedCleaner && (
         <CleanerDetailModal
           open={detailModalOpen}

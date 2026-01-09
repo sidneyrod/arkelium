@@ -243,13 +243,14 @@ function generatePdfContentHtml(
   const rows = data.map(row => `
     <tr>
       <td style="padding: 6px; border-bottom: 1px solid #e5e7eb;">${row.Date}</td>
-      <td style="padding: 6px; border-bottom: 1px solid #e5e7eb;">${row.Cleaner}</td>
+      <td style="padding: 6px; border-bottom: 1px solid #e5e7eb;">${row.Employee}</td>
+      <td style="padding: 6px; border-bottom: 1px solid #e5e7eb;">${row.Role}</td>
       <td style="padding: 6px; border-bottom: 1px solid #e5e7eb;">${row.Client}</td>
       <td style="padding: 6px; border-bottom: 1px solid #e5e7eb;">${row['Job ID']}</td>
       <td style="padding: 6px; border-bottom: 1px solid #e5e7eb; text-align: right;">${row['Hours Worked']}</td>
       <td style="padding: 6px; border-bottom: 1px solid #e5e7eb; text-align: right;">${row['Gross Service Amount']}</td>
       <td style="padding: 6px; border-bottom: 1px solid #e5e7eb;">${row['Payment Method']}</td>
-      <td style="padding: 6px; border-bottom: 1px solid #e5e7eb; text-align: right;">${row['Cash Kept by Cleaner']}</td>
+      <td style="padding: 6px; border-bottom: 1px solid #e5e7eb; text-align: right;">${row['Cash Kept by Employee']}</td>
       <td style="padding: 6px; border-bottom: 1px solid #e5e7eb; text-align: right;">${row['Cash Delivered to Office']}</td>
       <td style="padding: 6px; border-bottom: 1px solid #e5e7eb;">${row.Status}</td>
     </tr>
@@ -259,7 +260,7 @@ function generatePdfContentHtml(
     <div style="border-bottom: 2px solid #1a3d2e; padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: flex-start;">
       <div>
         <div style="font-size: 18px; font-weight: 600; color: #1a3d2e;">${companyName}</div>
-        <div style="font-size: 14px; font-weight: 500; margin-top: 4px;">Work & Time Tracking Report</div>
+        <div style="font-size: 14px; font-weight: 500; margin-top: 4px;">Staff Work & Time Report</div>
       </div>
       <div style="font-size: 11px; color: #666;">
         Period: ${period.startDate} to ${period.endDate}
@@ -289,7 +290,8 @@ function generatePdfContentHtml(
       <thead>
         <tr>
           <th style="background: #f3f4f6; text-align: left; padding: 8px 6px; font-weight: 600; border-bottom: 1px solid #d1d5db; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px;">Date</th>
-          <th style="background: #f3f4f6; text-align: left; padding: 8px 6px; font-weight: 600; border-bottom: 1px solid #d1d5db; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px;">Cleaner</th>
+          <th style="background: #f3f4f6; text-align: left; padding: 8px 6px; font-weight: 600; border-bottom: 1px solid #d1d5db; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px;">Employee</th>
+          <th style="background: #f3f4f6; text-align: left; padding: 8px 6px; font-weight: 600; border-bottom: 1px solid #d1d5db; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px;">Role</th>
           <th style="background: #f3f4f6; text-align: left; padding: 8px 6px; font-weight: 600; border-bottom: 1px solid #d1d5db; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px;">Client</th>
           <th style="background: #f3f4f6; text-align: left; padding: 8px 6px; font-weight: 600; border-bottom: 1px solid #d1d5db; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px;">Job ID</th>
           <th style="background: #f3f4f6; text-align: right; padding: 8px 6px; font-weight: 600; border-bottom: 1px solid #d1d5db; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px;">Hours</th>
@@ -309,8 +311,8 @@ function generatePdfContentHtml(
       <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 4px; padding: 10px; font-size: 9px; color: #0c4a6e; margin-bottom: 12px;">
         <strong>Notes:</strong>
         <ul style="margin: 8px 0 0 16px; padding: 0;">
-          <li style="margin-bottom: 6px;"><strong>Cash Kept by Cleaner:</strong> When a service is paid in cash, the cleaner may choose to retain the amount (to be deducted from their next payroll). This column only shows amounts that have been <u>explicitly approved by an Administrator</u>. Unapproved cash retentions are not included in this report.</li>
-          <li style="margin-bottom: 6px;"><strong>Cash Delivered to Office:</strong> Cash payments collected by the cleaner and physically delivered to the company office, confirmed by admin.</li>
+          <li style="margin-bottom: 6px;"><strong>Cash Kept by Employee:</strong> When a service is paid in cash, the staff member may choose to retain the amount (to be deducted from their next payroll). This column only shows amounts that have been <u>explicitly approved by an Administrator</u>. Unapproved cash retentions are not included in this report.</li>
+          <li style="margin-bottom: 6px;"><strong>Cash Delivered to Office:</strong> Cash payments collected by the employee and physically delivered to the company office, confirmed by admin.</li>
         </ul>
       </div>
       <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 4px; padding: 10px; font-size: 9px; color: #92400e;">

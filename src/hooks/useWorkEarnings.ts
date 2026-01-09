@@ -11,6 +11,7 @@ export interface CleanerWorkSummary {
   id: string;
   cleanerId: string;
   cleanerName: string;
+  role: string;
   jobsCompleted: number;
   totalHoursWorked: number;
   totalServiceValue: number;
@@ -144,7 +145,7 @@ export function useWorkEarnings() {
         console.error('Error fetching cash collections:', cashError);
       }
 
-      // Fetch cleaner profiles
+      // Fetch cleaner profiles with roles
       const { data: cleaners, error: cleanersError } = await supabase
         .from('profiles')
         .select('id, first_name, last_name')
@@ -154,10 +155,24 @@ export function useWorkEarnings() {
         console.error('Error fetching cleaners:', cleanersError);
       }
 
-      // Create cleaner map
-      const cleanerMap: Record<string, string> = {};
+      // Fetch user roles
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .eq('company_id', companyId);
+
+      if (rolesError) {
+        console.error('Error fetching user roles:', rolesError);
+      }
+
+      // Create cleaner map with name and role
+      const cleanerMap: Record<string, { name: string; role: string }> = {};
       for (const c of cleaners || []) {
-        cleanerMap[c.id] = `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unknown';
+        const userRole = userRoles?.find(r => r.user_id === c.id);
+        cleanerMap[c.id] = {
+          name: `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unknown',
+          role: userRole?.role || 'staff',
+        };
       }
 
       // Calculate global summary
@@ -245,17 +260,21 @@ export function useWorkEarnings() {
       }
 
       // Convert to array
-      const summaries: CleanerWorkSummary[] = Object.entries(cleanerData).map(([id, data]) => ({
-        id,
-        cleanerId: id,
-        cleanerName: cleanerMap[id] || 'Unknown',
-        jobsCompleted: data.jobsCompleted,
-        totalHoursWorked: Math.round(data.totalHours * 100) / 100,
-        totalServiceValue: Math.round(data.serviceValue * 100) / 100,
-        cashKeptApproved: Math.round(data.cashKeptApproved * 100) / 100,
-        cashDeliveredToOffice: Math.round(data.cashDelivered * 100) / 100,
-        hasDisputes: data.hasDisputes,
-      }));
+      const summaries: CleanerWorkSummary[] = Object.entries(cleanerData).map(([id, data]) => {
+        const info = cleanerMap[id] || { name: 'Unknown', role: 'staff' };
+        return {
+          id,
+          cleanerId: id,
+          cleanerName: info.name,
+          role: info.role,
+          jobsCompleted: data.jobsCompleted,
+          totalHoursWorked: Math.round(data.totalHours * 100) / 100,
+          totalServiceValue: Math.round(data.serviceValue * 100) / 100,
+          cashKeptApproved: Math.round(data.cashKeptApproved * 100) / 100,
+          cashDeliveredToOffice: Math.round(data.cashDelivered * 100) / 100,
+          hasDisputes: data.hasDisputes,
+        };
+      });
 
       // Sort by service value descending
       summaries.sort((a, b) => b.totalServiceValue - a.totalServiceValue);
@@ -367,6 +386,16 @@ export function useWorkEarnings() {
       .select('job_id, amount, cash_handling, compensation_status')
       .eq('company_id', companyId);
 
+    const { data: userRoles } = await supabase
+      .from('user_roles')
+      .select('user_id, role')
+      .eq('company_id', companyId);
+
+    const roleMap: Record<string, string> = {};
+    for (const r of userRoles || []) {
+      roleMap[r.user_id] = r.role;
+    }
+
     const cashMap: Record<string, any> = {};
     for (const c of cashData || []) {
       cashMap[c.job_id] = c;
@@ -377,16 +406,18 @@ export function useWorkEarnings() {
       const cleanerName = job.cleaner 
         ? `${job.cleaner.first_name || ''} ${job.cleaner.last_name || ''}`.trim() 
         : 'Unknown';
+      const role = job.cleaner_id ? (roleMap[job.cleaner_id] || 'staff') : 'staff';
       
       return {
         Date: job.scheduled_date,
-        Cleaner: cleanerName,
+        Employee: cleanerName,
+        Role: role.charAt(0).toUpperCase() + role.slice(1),
         Client: job.clients?.name || 'Unknown',
         'Job ID': job.id.substring(0, 8),
         'Hours Worked': ((job.duration_minutes || 0) / 60).toFixed(2),
         'Gross Service Amount': (job.payment_amount || 0).toFixed(2),
         'Payment Method': job.payment_method || '-',
-        'Cash Kept by Cleaner': cashInfo?.cash_handling === 'kept_by_cleaner' 
+        'Cash Kept by Employee': cashInfo?.cash_handling === 'kept_by_cleaner' 
           ? (cashInfo.amount || 0).toFixed(2) 
           : '-',
         'Cash Delivered to Office': cashInfo?.cash_handling === 'delivered_to_office' 
