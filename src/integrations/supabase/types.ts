@@ -1547,6 +1547,8 @@ export type Database = {
       }
       jobs: {
         Row: {
+          after_photos: Json | null
+          before_photos: Json | null
           checklist: Json | null
           cleaner_id: string | null
           client_id: string
@@ -1577,6 +1579,8 @@ export type Database = {
           visit_route: string | null
         }
         Insert: {
+          after_photos?: Json | null
+          before_photos?: Json | null
           checklist?: Json | null
           cleaner_id?: string | null
           client_id: string
@@ -1607,6 +1611,8 @@ export type Database = {
           visit_route?: string | null
         }
         Update: {
+          after_photos?: Json | null
+          before_photos?: Json | null
           checklist?: Json | null
           cleaner_id?: string | null
           client_id?: string

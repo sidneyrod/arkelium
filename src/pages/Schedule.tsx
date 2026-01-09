@@ -662,14 +662,19 @@ const Schedule = () => {
   };
 
   // Handle starting a job (mark as in-progress) - called from StartServiceModal
-  const handleStartJob = async (jobId: string, beforePhoto?: string) => {
+  const handleStartJob = async (jobId: string, beforePhotos?: string[]) => {
     try {
       const companyId = user?.profile?.company_id;
       const job = jobs.find(j => j.id === jobId);
       
+      const updateData: Record<string, any> = { status: 'in-progress' };
+      if (beforePhotos && beforePhotos.length > 0) {
+        updateData.before_photos = beforePhotos;
+      }
+      
       const { error } = await supabase
         .from('jobs')
-        .update({ status: 'in-progress' })
+        .update(updateData)
         .eq('id', jobId)
         .eq('company_id', companyId);
       
@@ -802,7 +807,7 @@ const Schedule = () => {
     }
   };
   
-  const handleCompleteJob = async (jobId: string, afterPhoto?: string, notes?: string, paymentData?: PaymentData) => {
+  const handleCompleteJob = async (jobId: string, afterPhotos?: string[], notes?: string, paymentData?: PaymentData) => {
     // Close modal first to prevent reopening
     setShowCompletion(false);
     setSelectedJob(null);
@@ -824,6 +829,11 @@ const Schedule = () => {
         status: 'completed',
         completed_at: new Date().toISOString(),
       };
+      
+      // Add after photos if provided
+      if (afterPhotos && afterPhotos.length > 0) {
+        updateData.after_photos = afterPhotos;
+      }
       
       // Add payment data if provided
       if (paymentData && paymentData.paymentMethod) {

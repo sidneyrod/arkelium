@@ -18,8 +18,12 @@ export interface ScheduledJob {
   services: string[];
   notes?: string;
   completedAt?: string;
+  // Legacy single photo support (deprecated)
   beforePhoto?: string;
   afterPhoto?: string;
+  // Multiple photos support
+  beforePhotos?: string[];
+  afterPhotos?: string[];
   checklist?: { item: string; completed: boolean }[];
   // Service type distinction
   jobType?: 'cleaning' | 'visit';
