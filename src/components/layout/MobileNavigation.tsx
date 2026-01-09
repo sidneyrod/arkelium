@@ -112,7 +112,7 @@ const MobileNavigation = () => {
     financialItems.push({ path: '/invoices', label: 'Invoices', icon: Receipt });
   }
   if (isAdmin) {
-    financialItems.push({ path: '/payroll', label: 'Work & Earnings', icon: Wallet });
+    financialItems.push({ path: '/payroll', label: 'Work & Time Tracking', icon: Wallet });
   }
   if (financialItems.length > 0) {
     modules.push({ title: 'Financial', icon: DollarSign, items: financialItems });

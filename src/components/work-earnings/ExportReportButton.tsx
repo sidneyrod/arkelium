@@ -37,7 +37,7 @@ export function ExportReportButton({
       }
 
       // Add header row with disclaimer
-      const filename = `work-earnings-report-${period.startDate}-to-${period.endDate}`;
+      const filename = `work-time-tracking-report-${period.startDate}-to-${period.endDate}`;
       exportToCsv(data, filename);
       
       toast.success('Report exported successfully');
@@ -61,7 +61,7 @@ export function ExportReportButton({
 
       // Generate PDF HTML
       const companyName = profile?.companyName || 'Company';
-      const html = generateWorkEarningsReportHtml(
+      const html = generateWorkTimeTrackingReportHtml(
         data,
         period,
         globalSummary,
@@ -112,7 +112,7 @@ export function ExportReportButton({
   );
 }
 
-function generateWorkEarningsReportHtml(
+function generateWorkTimeTrackingReportHtml(
   data: any[],
   period: WorkEarningsPeriod,
   summary: GlobalSummary,
@@ -137,7 +137,7 @@ function generateWorkEarningsReportHtml(
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Work & Earnings Report - ${period.startDate} to ${period.endDate}</title>
+      <title>Work & Time Tracking Report - ${period.startDate} to ${period.endDate}</title>
       <style>
         @page { size: A4 landscape; margin: 1.5cm; }
         body { 
@@ -212,7 +212,7 @@ function generateWorkEarningsReportHtml(
       <div class="header">
         <div>
           <div class="company-name">${companyName}</div>
-          <div class="report-title">Work & Earnings Report</div>
+          <div class="report-title">Work & Time Tracking Report</div>
         </div>
         <div class="period">
           Period: ${period.startDate} to ${period.endDate}

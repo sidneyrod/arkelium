@@ -80,8 +80,8 @@ const WorkEarningsSummary = () => {
   return (
     <div className="p-2 lg:p-3 space-y-2">
       <PageHeader 
-        title="Work & Earnings Summary" 
-        description="Operational and financial summaries for accounting and payroll preparation"
+        title="Work & Time Tracking" 
+        description="Operational summaries for accounting and payroll preparation"
       >
         <div className="flex gap-2">
           <DatePickerDialog
