@@ -33,6 +33,8 @@ export interface UserFormData {
   country: string;
   postalCode: string;
   role: 'admin' | 'manager' | 'cleaner';
+  roleId?: string; // custom_role ID
+  roleName?: string; // custom_role name for display
   isActive: boolean;
   // Payroll fields
   hourlyRate?: number;
@@ -40,6 +42,12 @@ export interface UserFormData {
   province?: CanadianProvince;
   employmentType?: EmploymentType;
   vacationPayPercent?: number;
+}
+
+interface CustomRole {
+  id: string;
+  name: string;
+  baseRole: 'admin' | 'manager' | 'cleaner';
 }
 
 const initialFormData: UserFormData = {
@@ -66,6 +74,36 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
+  const [availableRoles, setAvailableRoles] = useState<CustomRole[]>([]);
+  const [loadingRoles, setLoadingRoles] = useState(false);
+
+  // Fetch available roles from custom_roles table
+  useEffect(() => {
+    const fetchRoles = async () => {
+      if (!open) return;
+      setLoadingRoles(true);
+      try {
+        const { data, error } = await supabase
+          .from('custom_roles')
+          .select('id, name, base_role')
+          .eq('is_active', true)
+          .order('name');
+        
+        if (error) throw error;
+        
+        setAvailableRoles((data || []).map(r => ({
+          id: r.id,
+          name: r.name,
+          baseRole: r.base_role as 'admin' | 'manager' | 'cleaner'
+        })));
+      } catch (error) {
+        console.error('Error fetching roles:', error);
+      } finally {
+        setLoadingRoles(false);
+      }
+    };
+    fetchRoles();
+  }, [open]);
 
   // Reset form when modal opens/closes or editUser changes
   useEffect(() => {
@@ -127,11 +165,17 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
 
         if (profileError) throw profileError;
 
+        // Get the selected custom role to determine base role
+        const selectedRole = availableRoles.find(r => r.id === formData.roleId);
+        const baseRole = selectedRole?.baseRole || formData.role;
+
         // Update role - only if it's a valid app_role
-        const validRole = formData.role;
         const { error: roleError } = await supabase
           .from('user_roles')
-          .update({ role: validRole })
+          .update({ 
+            role: baseRole,
+            custom_role_id: formData.roleId || null
+          })
           .eq('user_id', editUser.id)
           .eq('company_id', companyId);
 
@@ -139,6 +183,10 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
 
         toast({ title: t.common.success, description: t.users.userUpdated });
       } else {
+        // Get the selected custom role
+        const selectedRole = availableRoles.find(r => r.id === formData.roleId);
+        const baseRole = selectedRole?.baseRole || formData.role;
+
         // Create new user via edge function
         const { data: session } = await supabase.auth.getSession();
         
@@ -157,7 +205,8 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
             province_address: formData.province_address,
             country: formData.country,
             postalCode: formData.postalCode,
-            role: formData.role,
+            role: baseRole,
+            roleId: formData.roleId, // Pass custom_role_id
             companyId,
             hourlyRate: formData.hourlyRate,
             salary: formData.salary,
@@ -196,7 +245,8 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
     }
   };
 
-  const showPayrollFields = formData.role === 'cleaner';
+  const selectedRole = availableRoles.find(r => r.id === formData.roleId);
+  const showPayrollFields = (selectedRole?.baseRole || formData.role) === 'cleaner';
   const isNewUser = !editUser?.id;
 
   return (
@@ -244,19 +294,51 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
                   <Shield className="h-3.5 w-3.5 text-muted-foreground" />
                   {t.users.role}
                 </Label>
-                <Select 
-                  value={formData.role} 
-                  onValueChange={(value: UserFormData['role']) => updateField('role', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t.users.selectRole} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">{t.users.admin}</SelectItem>
-                    <SelectItem value="manager">{t.users.manager}</SelectItem>
-                    <SelectItem value="cleaner">{t.users.cleaner}</SelectItem>
-                  </SelectContent>
-                </Select>
+                {loadingRoles ? (
+                  <div className="flex items-center gap-2 h-10 px-3 border rounded-md bg-muted/50">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm text-muted-foreground">Loading roles...</span>
+                  </div>
+                ) : availableRoles.length > 0 ? (
+                  <Select 
+                    value={formData.roleId || ''} 
+                    onValueChange={(value: string) => {
+                      const role = availableRoles.find(r => r.id === value);
+                      updateField('roleId', value);
+                      if (role) {
+                        setFormData(prev => ({ ...prev, role: role.baseRole, roleName: role.name, roleId: value }));
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t.users.selectRole} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableRoles.map((role) => (
+                        <SelectItem key={role.id} value={role.id}>
+                          <span className="flex items-center gap-2">
+                            {role.name}
+                            <span className="text-xs text-muted-foreground">({role.baseRole})</span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Select 
+                    value={formData.role} 
+                    onValueChange={(value: UserFormData['role']) => updateField('role', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t.users.selectRole} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">{t.users.admin}</SelectItem>
+                      <SelectItem value="manager">{t.users.manager}</SelectItem>
+                      <SelectItem value="cleaner">{t.users.cleaner}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">

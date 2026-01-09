@@ -32,6 +32,8 @@ interface User {
   country?: string;
   postalCode?: string;
   role: 'admin' | 'manager' | 'cleaner';
+  roleName?: string; // Custom role name
+  roleId?: string; // Custom role ID
   status: 'active' | 'inactive';
   avatar?: string;
   hourlyRate?: number;
@@ -65,7 +67,8 @@ const Users = () => {
   const [isCheckingJobs, setIsCheckingJobs] = useState(false);
   const [roleFilter, setRoleFilter] = useState<string>(urlRoles ? 'filtered' : 'all');
   const [statusFilterFromUrl] = useState<string>(urlFilter || 'all');
-  const [roles, setRoles] = useState<{user_id: string; role: string}[]>([]);
+  const [roles, setRoles] = useState<{user_id: string; role: string; custom_role_id?: string}[]>([]);
+  const [customRoles, setCustomRoles] = useState<{id: string; name: string; base_role: string}[]>([]);
 
   // Debounce search
   useEffect(() => {
@@ -77,11 +80,20 @@ const Users = () => {
   useEffect(() => {
     const fetchRoles = async () => {
       if (!user?.profile?.company_id) return;
-      const { data } = await supabase
+      
+      // Fetch user roles with custom_role_id
+      const { data: rolesData } = await supabase
         .from('user_roles')
-        .select('user_id, role')
+        .select('user_id, role, custom_role_id')
         .eq('company_id', user.profile.company_id);
-      setRoles(data || []);
+      setRoles(rolesData || []);
+      
+      // Fetch custom roles
+      const { data: customRolesData } = await supabase
+        .from('custom_roles')
+        .select('id, name, base_role')
+        .eq('is_active', true);
+      setCustomRoles(customRolesData || []);
     };
     fetchRoles();
   }, [user?.profile?.company_id]);
@@ -132,6 +144,10 @@ const Users = () => {
     // Map profiles with roles
     const mappedUsers: User[] = (profiles || []).map((profile: any) => {
       const userRole = roles.find(r => r.user_id === profile.id);
+      const customRole = userRole?.custom_role_id 
+        ? customRoles.find(cr => cr.id === userRole.custom_role_id)
+        : null;
+      
       return {
         id: profile.id,
         name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unnamed User',
@@ -143,6 +159,8 @@ const Users = () => {
         country: profile.country || 'Canada',
         postalCode: profile.postal_code || '',
         role: (userRole?.role as 'admin' | 'manager' | 'cleaner') || 'cleaner',
+        roleName: customRole?.name || undefined,
+        roleId: userRole?.custom_role_id || undefined,
         status: 'active' as const,
         avatar: profile.avatar_url || undefined,
         hourlyRate: profile.hourly_rate || undefined,
@@ -169,7 +187,7 @@ const Users = () => {
     }
 
     return { data: filteredUsers, count: count || 0 };
-  }, [user?.profile?.company_id, debouncedSearch, roles, urlRoles, roleFilter, statusFilterFromUrl]);
+  }, [user?.profile?.company_id, debouncedSearch, roles, customRoles, urlRoles, roleFilter, statusFilterFromUrl]);
 
   const {
     data: users,
@@ -183,7 +201,7 @@ const Users = () => {
   // Refresh when filters change
   useEffect(() => {
     refresh();
-  }, [debouncedSearch, roleFilter, roles]);
+  }, [debouncedSearch, roleFilter, roles, customRoles]);
 
   const handleAddUser = async (userData: UserFormData) => {
     // Refresh the list after modal handles creation/update
@@ -304,7 +322,7 @@ const Users = () => {
       header: t.users.role,
       render: (u) => (
         <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${roleColors[u.role] || roleColors.cleaner}`}>
-          {t.users[u.role] || u.role}
+          {u.roleName || t.users[u.role] || u.role}
         </span>
       ),
     },
@@ -489,6 +507,8 @@ const Users = () => {
           country: editUser.country || 'Canada',
           postalCode: editUser.postalCode || '',
           role: editUser.role,
+          roleId: editUser.roleId,
+          roleName: editUser.roleName,
           isActive: editUser.status === 'active',
           hourlyRate: editUser.hourlyRate,
           salary: editUser.salary,

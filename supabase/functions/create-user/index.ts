@@ -19,6 +19,7 @@ interface CreateUserRequest {
   country?: string;
   postalCode?: string;
   role: 'admin' | 'manager' | 'cleaner';
+  roleId?: string; // custom_role ID
   companyId: string;
   hourlyRate?: number;
   salary?: number;
@@ -103,6 +104,7 @@ Deno.serve(async (req) => {
       country,
       postalCode,
       role,
+      roleId,
       hourlyRate,
       salary,
       province,
@@ -165,15 +167,28 @@ Deno.serve(async (req) => {
       console.error('Error updating profile:', profileError);
     }
 
-    // Create user role
+    // Create user role with custom_role_id if provided
     const validRole = role === 'admin' || role === 'manager' || role === 'cleaner' ? role : 'cleaner';
+    
+    const userRoleData: {
+      user_id: string;
+      company_id: string;
+      role: string;
+      custom_role_id?: string;
+    } = {
+      user_id: newUser.user.id,
+      company_id: requestingProfile.company_id,
+      role: validRole,
+    };
+    
+    // Add custom_role_id if provided
+    if (roleId) {
+      userRoleData.custom_role_id = roleId;
+    }
+    
     const { error: roleError } = await supabaseAdmin
       .from('user_roles')
-      .insert({
-        user_id: newUser.user.id,
-        company_id: requestingProfile.company_id,
-        role: validRole,
-      });
+      .insert(userRoleData);
 
     if (roleError) {
       console.error('Error creating role:', roleError);

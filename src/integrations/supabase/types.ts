@@ -944,6 +944,7 @@ export type Database = {
       }
       custom_roles: {
         Row: {
+          base_role: Database["public"]["Enums"]["app_role"]
           company_id: string
           created_at: string
           created_by: string | null
@@ -955,6 +956,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          base_role?: Database["public"]["Enums"]["app_role"]
           company_id: string
           created_at?: string
           created_by?: string | null
@@ -966,6 +968,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          base_role?: Database["public"]["Enums"]["app_role"]
           company_id?: string
           created_at?: string
           created_by?: string | null
@@ -2335,6 +2338,7 @@ export type Database = {
         Row: {
           company_id: string
           created_at: string
+          custom_role_id: string | null
           id: string
           invited_at: string | null
           invited_by: string | null
@@ -2346,6 +2350,7 @@ export type Database = {
         Insert: {
           company_id: string
           created_at?: string
+          custom_role_id?: string | null
           id?: string
           invited_at?: string | null
           invited_by?: string | null
@@ -2357,6 +2362,7 @@ export type Database = {
         Update: {
           company_id?: string
           created_at?: string
+          custom_role_id?: string | null
           id?: string
           invited_at?: string | null
           invited_by?: string | null
@@ -2371,6 +2377,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_roles_custom_role_id_fkey"
+            columns: ["custom_role_id"]
+            isOneToOne: false
+            referencedRelation: "custom_roles"
             referencedColumns: ["id"]
           },
         ]
