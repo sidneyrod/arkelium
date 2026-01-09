@@ -20,7 +20,7 @@ export const userSchema = z.object({
     .max(255, { message: 'Address must be less than 255 characters' })
     .optional()
     .or(z.literal('')),
-  role: z.enum(['admin', 'manager', 'supervisor', 'cleaner']),
+  role: z.enum(['admin', 'manager', 'cleaner']),
   isActive: z.boolean(),
 });
 

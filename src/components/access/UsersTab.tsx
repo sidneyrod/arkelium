@@ -173,7 +173,7 @@ const UsersTab = ({ users, loading, onUpdate }: UsersTabProps) => {
           province_address: '',
           country: 'Canada',
           postalCode: '',
-          role: editUser.role as 'admin' | 'manager' | 'supervisor' | 'cleaner',
+          role: editUser.role as 'admin' | 'manager' | 'cleaner',
           isActive: editUser.status === 'active',
         } : undefined}
       />

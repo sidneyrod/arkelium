@@ -32,7 +32,7 @@ export interface UserFormData {
   province_address: string;
   country: string;
   postalCode: string;
-  role: 'admin' | 'manager' | 'supervisor' | 'cleaner';
+  role: 'admin' | 'manager' | 'cleaner';
   isActive: boolean;
   // Payroll fields
   hourlyRate?: number;
@@ -128,7 +128,7 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
         if (profileError) throw profileError;
 
         // Update role - only if it's a valid app_role
-        const validRole = formData.role === 'supervisor' ? 'cleaner' : formData.role;
+        const validRole = formData.role;
         const { error: roleError } = await supabase
           .from('user_roles')
           .update({ role: validRole })
@@ -157,7 +157,7 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
             province_address: formData.province_address,
             country: formData.country,
             postalCode: formData.postalCode,
-            role: formData.role === 'supervisor' ? 'cleaner' : formData.role,
+            role: formData.role,
             companyId,
             hourlyRate: formData.hourlyRate,
             salary: formData.salary,
@@ -196,7 +196,7 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
     }
   };
 
-  const showPayrollFields = formData.role === 'cleaner' || formData.role === 'supervisor';
+  const showPayrollFields = formData.role === 'cleaner';
   const isNewUser = !editUser?.id;
 
   return (
@@ -254,7 +254,6 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
                   <SelectContent>
                     <SelectItem value="admin">{t.users.admin}</SelectItem>
                     <SelectItem value="manager">{t.users.manager}</SelectItem>
-                    <SelectItem value="supervisor">{t.users.supervisor}</SelectItem>
                     <SelectItem value="cleaner">{t.users.cleaner}</SelectItem>
                   </SelectContent>
                 </Select>

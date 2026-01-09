@@ -20,7 +20,7 @@ export interface EmployeePayrollEntry {
   id: string;
   employeeId: string;
   employeeName: string;
-  role: 'cleaner' | 'supervisor' | 'manager';
+  role: 'cleaner' | 'manager';
   regularHours: number;
   overtimeHours: number;
   hourlyRate: number;
