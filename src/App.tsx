@@ -34,7 +34,14 @@ import Receipts from "./pages/Receipts";
 import PaymentsCollections from "./pages/PaymentsCollections";
 import AccessRoles from "./pages/AccessRoles";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
