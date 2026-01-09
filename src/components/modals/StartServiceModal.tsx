@@ -4,9 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Camera, Upload, Clock, MapPin, User, Loader2, X, Play, AlertTriangle } from 'lucide-react';
+import { Camera, Upload, Clock, MapPin, User, Loader2, X, Play, AlertTriangle, Plus } from 'lucide-react';
 import { ScheduledJob } from '@/stores/scheduleStore';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -15,42 +14,49 @@ interface StartServiceModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   job: ScheduledJob | null;
-  onStart: (jobId: string, beforePhoto?: string) => void;
+  onStart: (jobId: string, beforePhotos?: string[]) => void;
 }
+
+const MAX_PHOTOS = 10;
 
 const StartServiceModal = ({ open, onOpenChange, job, onStart }: StartServiceModalProps) => {
   const { t, language } = useLanguage();
   const { user } = useAuth();
   const isEnglish = language === 'en';
 
-  const beforePhotoRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [beforePhoto, setBeforePhoto] = useState<string | null>(null);
-  const [uploadingBefore, setUploadingBefore] = useState(false);
+  const [beforePhotos, setBeforePhotos] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [showConfirmNoPhoto, setShowConfirmNoPhoto] = useState(false);
 
   const handlePhotoUpload = async (file: File) => {
     if (!job || !user?.profile?.company_id) return;
 
-    setUploadingBefore(true);
+    if (beforePhotos.length >= MAX_PHOTOS) {
+      toast.error(isEnglish ? `Maximum ${MAX_PHOTOS} photos allowed` : `Máximo ${MAX_PHOTOS} fotos permitidas`);
+      return;
+    }
+
+    setUploading(true);
 
     try {
       // Validate file type
       if (!file.type.startsWith('image/')) {
-        toast.error('Please select an image file');
+        toast.error(isEnglish ? 'Please select an image file' : 'Por favor, selecione uma imagem');
         return;
       }
 
       // Validate file size (max 10MB)
       if (file.size > 10 * 1024 * 1024) {
-        toast.error('File size must be less than 10MB');
+        toast.error(isEnglish ? 'File size must be less than 10MB' : 'O arquivo deve ter menos de 10MB');
         return;
       }
 
       // Create unique file name
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.profile.company_id}/${job.id}/before-${Date.now()}.${fileExt}`;
+      const fileName = `${user.profile.company_id}/${job.id}/before-${Date.now()}-${beforePhotos.length}.${fileExt}`;
 
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
@@ -67,55 +73,60 @@ const StartServiceModal = ({ open, onOpenChange, job, onStart }: StartServiceMod
         .from('job-photos')
         .getPublicUrl(data.path);
 
-      setBeforePhoto(urlData.publicUrl);
-      toast.success(isEnglish ? 'Before photo uploaded' : 'Foto do antes enviada');
+      setBeforePhotos(prev => [...prev, urlData.publicUrl]);
+      toast.success(isEnglish ? 'Photo uploaded' : 'Foto enviada');
     } catch (err) {
       console.error('Error uploading photo:', err);
-      toast.error('Failed to upload photo');
+      toast.error(isEnglish ? 'Failed to upload photo' : 'Erro ao enviar foto');
     } finally {
-      setUploadingBefore(false);
+      setUploading(false);
     }
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      handlePhotoUpload(file);
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      // Upload files sequentially
+      Array.from(files).forEach((file) => {
+        handlePhotoUpload(file);
+      });
     }
     // Reset input so same file can be selected again
     event.target.value = '';
   };
 
-  const removePhoto = () => {
-    setBeforePhoto(null);
+  const removePhoto = (index: number) => {
+    setBeforePhotos(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleStart = () => {
     if (!job || isSubmitting) return;
 
-    // If no photo and not confirmed, ask for confirmation
-    if (!beforePhoto && !showConfirmNoPhoto) {
+    // If no photos and not confirmed, ask for confirmation
+    if (beforePhotos.length === 0 && !showConfirmNoPhoto) {
       setShowConfirmNoPhoto(true);
       return;
     }
 
     setIsSubmitting(true);
     onOpenChange(false);
-    onStart(job.id, beforePhoto || undefined);
+    onStart(job.id, beforePhotos.length > 0 ? beforePhotos : undefined);
     
     // Reset state
     setTimeout(() => {
       setIsSubmitting(false);
-      setBeforePhoto(null);
+      setBeforePhotos([]);
       setShowConfirmNoPhoto(false);
     }, 500);
   };
 
   const handleCancel = () => {
-    setBeforePhoto(null);
+    setBeforePhotos([]);
     setShowConfirmNoPhoto(false);
     onOpenChange(false);
   };
+
+  const canAddMore = beforePhotos.length < MAX_PHOTOS;
 
   if (!job) return null;
 
@@ -155,85 +166,101 @@ const StartServiceModal = ({ open, onOpenChange, job, onStart }: StartServiceMod
             </CardContent>
           </Card>
 
-          {/* Before Photo */}
+          {/* Before Photos */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-medium flex items-center gap-2">
                 <Camera className="h-4 w-4 text-primary" />
-                {isEnglish ? 'Before Photo' : 'Foto do Antes'}
+                {isEnglish ? 'Before Photos' : 'Fotos do Antes'}
               </h4>
               <span className="text-xs text-muted-foreground">
-                ({isEnglish ? 'Optional but recommended' : 'Opcional mas recomendado'})
+                ({beforePhotos.length}/{MAX_PHOTOS})
               </span>
             </div>
             
+            <p className="text-xs text-muted-foreground">
+              {isEnglish 
+                ? 'Document different rooms or areas. Take photos of any existing issues or damage.'
+                : 'Documente diferentes cômodos ou áreas. Tire fotos de quaisquer problemas ou danos existentes.'}
+            </p>
+
             <input
-              ref={beforePhotoRef}
+              ref={fileInputRef}
               type="file"
               accept="image/*"
+              multiple
               className="hidden"
               onChange={handleFileSelect}
             />
-            <div
-              className={cn(
-                "h-32 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-colors relative overflow-hidden",
-                beforePhoto ? "border-success bg-success/5" : "border-border hover:border-primary hover:bg-muted/50",
-                uploadingBefore && "pointer-events-none opacity-70"
-              )}
-              onClick={() => !uploadingBefore && !beforePhoto && beforePhotoRef.current?.click()}
-            >
-              {uploadingBefore ? (
-                <div className="text-center">
-                  <Loader2 className="h-6 w-6 mx-auto text-primary animate-spin" />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {isEnglish ? 'Uploading...' : 'Enviando...'}
-                  </p>
-                </div>
-              ) : beforePhoto ? (
-                <>
-                  <img src={beforePhoto} alt="Before" className="h-full w-full object-cover" />
+
+            {/* Photo Grid */}
+            <div className="grid grid-cols-4 gap-2">
+              {/* Existing Photos */}
+              {beforePhotos.map((photo, index) => (
+                <div
+                  key={`${photo}-${index}`}
+                  className="relative aspect-square rounded-lg overflow-hidden border border-border bg-muted group"
+                >
+                  <img
+                    src={photo}
+                    alt={`Before ${index + 1}`}
+                    className="h-full w-full object-cover"
+                  />
                   <Button
                     variant="destructive"
                     size="icon"
-                    className="absolute top-1 right-1 h-6 w-6"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removePhoto();
-                    }}
+                    className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => removePhoto(index)}
                   >
                     <X className="h-3 w-3" />
                   </Button>
-                </>
-              ) : (
-                <div className="text-center">
-                  <Upload className="h-6 w-6 mx-auto text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {isEnglish ? 'Upload before photo' : 'Enviar foto do antes'}
-                  </p>
+                </div>
+              ))}
+
+              {/* Add Photo Button */}
+              {canAddMore && (
+                <div
+                  className={cn(
+                    "aspect-square rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors",
+                    "border-border hover:border-primary hover:bg-muted/50",
+                    uploading && "pointer-events-none opacity-70"
+                  )}
+                  onClick={() => !uploading && fileInputRef.current?.click()}
+                >
+                  {uploading ? (
+                    <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                  ) : (
+                    <>
+                      <Plus className="h-5 w-5 text-muted-foreground" />
+                      <span className="text-[10px] text-muted-foreground mt-1">
+                        {isEnglish ? 'Add' : 'Adicionar'}
+                      </span>
+                    </>
+                  )}
                 </div>
               )}
             </div>
 
-            <p className="text-xs text-muted-foreground">
-              {isEnglish 
-                ? 'Taking a before photo helps document the initial state of the property.'
-                : 'Tirar uma foto do antes ajuda a documentar o estado inicial do imóvel.'}
-            </p>
+            {beforePhotos.length === 0 && (
+              <p className="text-xs text-muted-foreground italic">
+                {isEnglish ? 'Optional but recommended' : 'Opcional mas recomendado'}
+              </p>
+            )}
           </div>
 
-          {/* Warning if no photo */}
-          {showConfirmNoPhoto && !beforePhoto && (
+          {/* Warning if no photos */}
+          {showConfirmNoPhoto && beforePhotos.length === 0 && (
             <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                    {isEnglish ? 'No before photo' : 'Sem foto do antes'}
+                    {isEnglish ? 'No before photos' : 'Sem fotos do antes'}
                   </p>
                   <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
                     {isEnglish 
-                      ? 'Are you sure you want to start without a before photo?'
-                      : 'Tem certeza que deseja iniciar sem uma foto do antes?'}
+                      ? 'Are you sure you want to start without before photos?'
+                      : 'Tem certeza que deseja iniciar sem fotos do antes?'}
                   </p>
                 </div>
               </div>
@@ -247,7 +274,7 @@ const StartServiceModal = ({ open, onOpenChange, job, onStart }: StartServiceMod
           </Button>
           <Button 
             onClick={handleStart}
-            disabled={isSubmitting || uploadingBefore}
+            disabled={isSubmitting || uploading}
             className="gap-2"
           >
             {isSubmitting ? (
@@ -255,7 +282,7 @@ const StartServiceModal = ({ open, onOpenChange, job, onStart }: StartServiceMod
             ) : (
               <Play className="h-4 w-4" />
             )}
-            {showConfirmNoPhoto && !beforePhoto
+            {showConfirmNoPhoto && beforePhotos.length === 0
               ? (isEnglish ? 'Start Anyway' : 'Iniciar Mesmo Assim')
               : (isEnglish ? 'Start Service' : 'Iniciar Serviço')
             }

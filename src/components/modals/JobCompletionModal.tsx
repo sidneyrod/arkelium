@@ -12,12 +12,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Camera, Upload, CheckCircle, Clock, MapPin, User, DollarSign, CreditCard, Banknote, CalendarIcon, AlertTriangle, Loader2, X, Package } from 'lucide-react';
+import { Camera, Upload, CheckCircle, Clock, MapPin, User, DollarSign, CreditCard, Banknote, CalendarIcon, AlertTriangle, Loader2, X, Package, Plus, Image } from 'lucide-react';
 import { ScheduledJob } from '@/stores/scheduleStore';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
-// ✅ CORREÇÃO CRÍTICA 1: Importar helper de datas seguras
 import { formatSafeDate } from '@/lib/dates';
 
 interface CompanyChecklistItem {
@@ -32,7 +31,7 @@ interface JobCompletionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   job: ScheduledJob | null;
-  onComplete: (jobId: string, afterPhoto?: string, notes?: string, paymentData?: PaymentData) => void;
+  onComplete: (jobId: string, afterPhotos?: string[], notes?: string, paymentData?: PaymentData) => void;
 }
 
 export interface PaymentData {
@@ -50,11 +49,12 @@ interface ChecklistItemState {
   completed: boolean;
 }
 
+const MAX_PHOTOS = 10;
+
 const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompletionModalProps) => {
   const { t } = useLanguage();
   const { user } = useAuth();
 
-  const beforePhotoRef = useRef<HTMLInputElement>(null);
   const afterPhotoRef = useRef<HTMLInputElement>(null);
 
   // Prevent double submission
@@ -67,9 +67,10 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
   // Selected items (tools/supplies used by cleaner)
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
-  const [beforePhoto, setBeforePhoto] = useState<string | null>(null);
-  const [afterPhoto, setAfterPhoto] = useState<string | null>(null);
-  const [uploadingBefore, setUploadingBefore] = useState(false);
+  
+  // Multiple photos support
+  const [beforePhotos, setBeforePhotos] = useState<string[]>([]);
+  const [afterPhotos, setAfterPhotos] = useState<string[]>([]);
   const [uploadingAfter, setUploadingAfter] = useState(false);
 
   // Payment fields - REQUIRED for job completion
@@ -119,8 +120,12 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
       }
 
       setNotes('');
-      setBeforePhoto(job.beforePhoto || null);
-      setAfterPhoto(job.afterPhoto || null);
+      
+      // Load existing before photos from job (read-only display)
+      setBeforePhotos(job.beforePhotos || []);
+      // Load existing after photos or start fresh
+      setAfterPhotos(job.afterPhotos || []);
+      
       // Reset payment fields
       setPaymentMethod('');
       setPaymentAmount('');
@@ -142,15 +147,16 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
 
   const selectedCount = selectedItems.length;
   const totalItems = companyChecklistItems.length;
-  const progress = totalItems > 0 ? Math.round((selectedCount / totalItems) * 100) : 0;
 
-  const handlePhotoUpload = async (type: 'before' | 'after', file: File) => {
+  const handleAfterPhotoUpload = async (file: File) => {
     if (!job || !user?.profile?.company_id) return;
 
-    const setUploading = type === 'before' ? setUploadingBefore : setUploadingAfter;
-    const setPhoto = type === 'before' ? setBeforePhoto : setAfterPhoto;
+    if (afterPhotos.length >= MAX_PHOTOS) {
+      toast.error(`Maximum ${MAX_PHOTOS} photos allowed`);
+      return;
+    }
 
-    setUploading(true);
+    setUploadingAfter(true);
 
     try {
       // Validate file type
@@ -167,7 +173,7 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
 
       // Create unique file name
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.profile.company_id}/${job.id}/${type}-${Date.now()}.${fileExt}`;
+      const fileName = `${user.profile.company_id}/${job.id}/after-${Date.now()}-${afterPhotos.length}.${fileExt}`;
 
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
@@ -184,31 +190,29 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
         .from('job-photos')
         .getPublicUrl(data.path);
 
-      setPhoto(urlData.publicUrl);
-      toast.success(`${type === 'before' ? 'Before' : 'After'} photo uploaded`);
+      setAfterPhotos(prev => [...prev, urlData.publicUrl]);
+      toast.success('After photo uploaded');
     } catch (err) {
       console.error('Error uploading photo:', err);
       toast.error('Failed to upload photo');
     } finally {
-      setUploading(false);
+      setUploadingAfter(false);
     }
   };
 
-  const handleFileSelect = (type: 'before' | 'after', event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      handlePhotoUpload(type, file);
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      Array.from(files).forEach((file) => {
+        handleAfterPhotoUpload(file);
+      });
     }
     // Reset input so same file can be selected again
     event.target.value = '';
   };
 
-  const removePhoto = (type: 'before' | 'after') => {
-    if (type === 'before') {
-      setBeforePhoto(null);
-    } else {
-      setAfterPhoto(null);
-    }
+  const removeAfterPhoto = (index: number) => {
+    setAfterPhotos(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleComplete = async () => {
@@ -256,8 +260,8 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
         : undefined,
     };
 
-    // Call onComplete AFTER closing modal
-    onComplete(job.id, afterPhoto || undefined, notes, paymentData);
+    // Call onComplete with array of after photos
+    onComplete(job.id, afterPhotos.length > 0 ? afterPhotos : undefined, notes, paymentData);
 
     // Reset submitting state after a delay to ensure cleanup
     setTimeout(() => setIsSubmitting(false), 500);
@@ -272,6 +276,8 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
     if (paymentMethod === 'cash' && paymentReceivedBy === 'cleaner' && !cashHandlingChoice) return false;
     return true;
   };
+
+  const canAddMoreAfterPhotos = afterPhotos.length < MAX_PHOTOS;
 
   if (!job) return null;
 
@@ -311,55 +317,96 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
             </CardContent>
           </Card>
 
-          {/* After Photo Only - Before photos are captured when starting the service */}
+          {/* Before Photos (Read-only display) */}
+          {beforePhotos.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+                <Image className="h-4 w-4" />
+                {t.job.before || 'Before Photos'} ({beforePhotos.length})
+              </h4>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {beforePhotos.map((photo, index) => (
+                  <div
+                    key={`before-${index}`}
+                    className="shrink-0 h-16 w-16 rounded-lg overflow-hidden border border-border"
+                  >
+                    <img
+                      src={photo}
+                      alt={`Before ${index + 1}`}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* After Photos */}
           <div className="space-y-3">
-            <h4 className="text-sm font-medium flex items-center gap-2">
-              <Camera className="h-4 w-4 text-primary" />
-              {t.job.after || 'After Photo'}
-            </h4>
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-medium flex items-center gap-2">
+                <Camera className="h-4 w-4 text-primary" />
+                {t.job.after || 'After Photos'}
+              </h4>
+              <span className="text-xs text-muted-foreground">
+                ({afterPhotos.length}/{MAX_PHOTOS})
+              </span>
+            </div>
             <p className="text-xs text-muted-foreground">
-              Upload a photo showing the completed work.
+              Upload photos showing the completed work for each room or area.
             </p>
             
             <input
               ref={afterPhotoRef}
               type="file"
               accept="image/*"
+              multiple
               className="hidden"
-              onChange={(e) => handleFileSelect('after', e)}
+              onChange={handleFileSelect}
             />
-            <div
-              className={cn(
-                "h-32 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-colors relative overflow-hidden",
-                afterPhoto ? "border-success bg-success/5" : "border-border hover:border-primary hover:bg-muted/50",
-                uploadingAfter && "pointer-events-none opacity-70"
-              )}
-              onClick={() => !uploadingAfter && !afterPhoto && afterPhotoRef.current?.click()}
-            >
-              {uploadingAfter ? (
-                <div className="text-center">
-                  <Loader2 className="h-6 w-6 mx-auto text-primary animate-spin" />
-                  <p className="text-xs text-muted-foreground mt-1">Uploading...</p>
-                </div>
-              ) : afterPhoto ? (
-                <>
-                  <img src={afterPhoto} alt="After" className="h-full w-full object-cover" />
+
+            {/* Photo Grid */}
+            <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+              {/* Existing After Photos */}
+              {afterPhotos.map((photo, index) => (
+                <div
+                  key={`after-${index}`}
+                  className="relative aspect-square rounded-lg overflow-hidden border border-border bg-muted group"
+                >
+                  <img
+                    src={photo}
+                    alt={`After ${index + 1}`}
+                    className="h-full w-full object-cover"
+                  />
                   <Button
                     variant="destructive"
                     size="icon"
-                    className="absolute top-1 right-1 h-6 w-6"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removePhoto('after');
-                    }}
+                    className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => removeAfterPhoto(index)}
                   >
                     <X className="h-3 w-3" />
                   </Button>
-                </>
-              ) : (
-                <div className="text-center">
-                  <Upload className="h-6 w-6 mx-auto text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground mt-1">{t.job.uploadAfterPhoto}</p>
+                </div>
+              ))}
+
+              {/* Add Photo Button */}
+              {canAddMoreAfterPhotos && (
+                <div
+                  className={cn(
+                    "aspect-square rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors",
+                    "border-border hover:border-primary hover:bg-muted/50",
+                    uploadingAfter && "pointer-events-none opacity-70"
+                  )}
+                  onClick={() => !uploadingAfter && afterPhotoRef.current?.click()}
+                >
+                  {uploadingAfter ? (
+                    <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                  ) : (
+                    <>
+                      <Plus className="h-5 w-5 text-muted-foreground" />
+                      <span className="text-[10px] text-muted-foreground mt-1">Add</span>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -503,7 +550,6 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {/* ✅ CORREÇÃO: Usar formatSafeDate */}
                           {paymentDate ? formatSafeDate(paymentDate, "PPP") : "Select date"}
                         </Button>
                       </PopoverTrigger>
