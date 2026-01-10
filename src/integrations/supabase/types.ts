@@ -703,6 +703,8 @@ export type Database = {
       companies: {
         Row: {
           address: string | null
+          archived_at: string | null
+          archived_by: string | null
           business_number: string | null
           city: string | null
           created_at: string
@@ -722,6 +724,8 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           business_number?: string | null
           city?: string | null
           created_at?: string
@@ -741,6 +745,8 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           business_number?: string | null
           city?: string | null
           created_at?: string
@@ -758,7 +764,15 @@ export type Database = {
           updated_at?: string
           website?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "companies_archived_by_fkey"
+            columns: ["archived_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       company_branding: {
         Row: {
