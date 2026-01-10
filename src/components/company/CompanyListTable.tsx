@@ -61,11 +61,12 @@ export default function CompanyListTable({
     })
     .sort((a, b) => a.company_code - b.company_code); // Always sort by company_code ascending
 
-  // Sort: active first, then by trade_name
+  // Sort: non-archived first, then by company_code ascending
   const sortedCompanies = [...filteredCompanies].sort((a, b) => {
-    if (a.status === 'archived' && b.status !== 'archived') return 1;
-    if (a.status !== 'archived' && b.status === 'archived') return -1;
-    return a.trade_name.localeCompare(b.trade_name);
+    const aArchived = a.status === 'archived';
+    const bArchived = b.status === 'archived';
+    if (aArchived !== bArchived) return aArchived ? 1 : -1;
+    return a.company_code - b.company_code;
   });
 
   if (isLoading) {
