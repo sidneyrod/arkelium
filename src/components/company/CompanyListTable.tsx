@@ -46,18 +46,20 @@ export default function CompanyListTable({
 }: CompanyListTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredCompanies = companies.filter(company => {
-    // Filter by search query - includes company_code
-    const codeStr = String(company.company_code).padStart(3, '0');
-    const matchesSearch = 
-      codeStr.includes(searchQuery) ||
-      company.trade_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      company.legal_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (company.email?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
-      (company.city?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
+  const filteredCompanies = companies
+    .filter(company => {
+      // Filter by search query - includes company_code
+      const codeStr = String(company.company_code).padStart(3, '0');
+      const matchesSearch = 
+        codeStr.includes(searchQuery) ||
+        company.trade_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        company.legal_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (company.email?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
+        (company.city?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
 
-    return matchesSearch;
-  });
+      return matchesSearch;
+    })
+    .sort((a, b) => a.company_code - b.company_code); // Always sort by company_code ascending
 
   // Sort: active first, then by trade_name
   const sortedCompanies = [...filteredCompanies].sort((a, b) => {
