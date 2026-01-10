@@ -76,27 +76,29 @@ const Users = () => {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Fetch roles once
-  useEffect(() => {
-    const fetchRoles = async () => {
-      if (!user?.profile?.company_id) return;
-      
-      // Fetch user roles with custom_role_id
-      const { data: rolesData } = await supabase
-        .from('user_roles')
-        .select('user_id, role, custom_role_id')
-        .eq('company_id', user.profile.company_id);
-      setRoles(rolesData || []);
-      
-      // Fetch custom roles
-      const { data: customRolesData } = await supabase
-        .from('custom_roles')
-        .select('id, name, base_role')
-        .eq('is_active', true);
-      setCustomRoles(customRolesData || []);
-    };
-    fetchRoles();
+  // Fetch roles function - extracted to allow refetching after updates
+  const fetchRolesData = useCallback(async () => {
+    if (!user?.profile?.company_id) return;
+    
+    // Fetch user roles with custom_role_id
+    const { data: rolesData } = await supabase
+      .from('user_roles')
+      .select('user_id, role, custom_role_id')
+      .eq('company_id', user.profile.company_id);
+    setRoles(rolesData || []);
+    
+    // Fetch custom roles
+    const { data: customRolesData } = await supabase
+      .from('custom_roles')
+      .select('id, name, base_role')
+      .eq('is_active', true);
+    setCustomRoles(customRolesData || []);
   }, [user?.profile?.company_id]);
+
+  // Fetch roles on mount and when company changes
+  useEffect(() => {
+    fetchRolesData();
+  }, [fetchRolesData]);
 
   // Server-side paginated fetch
   const fetchUsers = useCallback(async (from: number, to: number) => {
@@ -204,7 +206,9 @@ const Users = () => {
   }, [debouncedSearch, roleFilter, roles, customRoles]);
 
   const handleAddUser = async (userData: UserFormData) => {
-    // Refresh the list after modal handles creation/update
+    // Refresh roles data first to get updated role assignments
+    await fetchRolesData();
+    // Then refresh the user list
     await refresh();
     setEditUser(null);
     setIsAddModalOpen(false);

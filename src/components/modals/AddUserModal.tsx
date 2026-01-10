@@ -108,11 +108,31 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
   // Reset form when modal opens/closes or editUser changes
   useEffect(() => {
     if (open) {
-      setFormData(editUser || initialFormData);
+      if (editUser) {
+        // When editing, set form data from editUser
+        setFormData(editUser);
+      } else {
+        setFormData(initialFormData);
+      }
       setErrors({});
       setActiveTab('general');
     }
   }, [open, editUser]);
+
+  // Sync roleId when availableRoles loads (fixes race condition)
+  useEffect(() => {
+    if (open && editUser?.roleId && availableRoles.length > 0 && !loadingRoles) {
+      const matchingRole = availableRoles.find(r => r.id === editUser.roleId);
+      if (matchingRole) {
+        setFormData(prev => ({
+          ...prev,
+          roleId: editUser.roleId,
+          role: matchingRole.baseRole,
+          roleName: matchingRole.name
+        }));
+      }
+    }
+  }, [open, editUser?.roleId, availableRoles, loadingRoles]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
