@@ -1,13 +1,11 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import PageHeader from '@/components/ui/page-header';
 import SearchInput from '@/components/ui/search-input';
 import PaginatedDataTable, { Column } from '@/components/ui/paginated-data-table';
 import { useServerPagination } from '@/hooks/useServerPagination';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { toast } from '@/hooks/use-toast';
@@ -15,11 +13,7 @@ import GenerateReportModal from '@/components/financial/GenerateReportModal';
 import { PeriodSelector, DateRange as PeriodDateRange } from '@/components/ui/period-selector';
 import {
   BookOpen,
-  TrendingUp,
   DollarSign,
-  Clock,
-  Wallet,
-  PieChart,
   Download,
   FileSpreadsheet,
   FileText,
@@ -30,9 +24,8 @@ import {
   FileBarChart,
   Eye,
   Banknote,
-  CheckCircle2
+  Wallet
 } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -58,14 +51,6 @@ interface LedgerEntry {
   notes: string | null;
 }
 
-interface FinancialSummary {
-  grossRevenue: number;
-  amountReceived: number;
-  outstandingBalance: number;
-  payrollCost: number;
-  netMargin: number;
-}
-
 // Status configuration
 const statusConfig: Record<string, { color: string; bgColor: string; label: string }> = {
   paid: { color: 'text-success', bgColor: 'bg-success/10', label: 'Paid' },
@@ -77,17 +62,18 @@ const statusConfig: Record<string, { color: string; bgColor: string; label: stri
   scheduled: { color: 'text-info', bgColor: 'bg-info/10', label: 'Scheduled' },
   draft: { color: 'text-muted-foreground', bgColor: 'bg-muted', label: 'Draft' },
   sent: { color: 'text-info', bgColor: 'bg-info/10', label: 'Sent' },
+  settled: { color: 'text-success', bgColor: 'bg-success/10', label: 'Settled' },
 };
 
 // Event type configuration
-const eventTypeConfig: Record<string, { color: string; bgColor: string; label: string; icon: typeof TrendingUp }> = {
+const eventTypeConfig: Record<string, { color: string; bgColor: string; label: string; icon: typeof DollarSign }> = {
   invoice: { color: 'text-primary', bgColor: 'bg-primary/10', label: 'Invoice', icon: FileText },
   payment: { color: 'text-success', bgColor: 'bg-success/10', label: 'Payment', icon: DollarSign },
-  cash_collection: { color: 'text-amber-600', bgColor: 'bg-amber-100', label: 'Cash Collection', icon: Banknote },
+  cash_collection: { color: 'text-amber-600', bgColor: 'bg-amber-100', label: 'Cash', icon: Banknote },
   visit: { color: 'text-info', bgColor: 'bg-info/10', label: 'Visit', icon: Eye },
   payroll: { color: 'text-warning', bgColor: 'bg-warning/10', label: 'Payroll', icon: Wallet },
   refund: { color: 'text-destructive', bgColor: 'bg-destructive/10', label: 'Refund', icon: ArrowDownRight },
-  adjustment: { color: 'text-muted-foreground', bgColor: 'bg-muted', label: 'Adjustment', icon: Minus },
+  adjustment: { color: 'text-muted-foreground', bgColor: 'bg-muted', label: 'Adj.', icon: Minus },
 };
 
 // Payment method labels
@@ -251,23 +237,6 @@ const Financial = () => {
     refresh();
   }, [globalPeriod, eventTypeFilter, statusFilter, paymentMethodFilter, clientFilter, cleanerFilter, debouncedSearch]);
 
-  // Calculate summary from current page data (for display purposes)
-  // Note: For accurate totals, we'd need a server-side RPC
-  const summary = useMemo((): FinancialSummary => {
-    const invoices = entries.filter(e => e.eventType === 'invoice');
-    const payments = entries.filter(e => e.eventType === 'payment' || (e.eventType === 'invoice' && e.status === 'paid'));
-    const payroll = entries.filter(e => e.eventType === 'payroll');
-    const pending = invoices.filter(e => e.status !== 'paid' && e.status !== 'cancelled');
-    
-    const grossRevenue = invoices.reduce((sum, e) => sum + e.grossAmount, 0);
-    const amountReceived = payments.reduce((sum, e) => sum + e.netAmount, 0);
-    const outstandingBalance = pending.reduce((sum, e) => sum + e.netAmount, 0);
-    const payrollCost = payroll.reduce((sum, e) => sum + e.netAmount, 0);
-    const netMargin = amountReceived - payrollCost;
-    
-    return { grossRevenue, amountReceived, outstandingBalance, payrollCost, netMargin };
-  }, [entries]);
-
   // Export functions
   const exportToCSV = () => {
     const headers = ['Date', 'Type', 'Client', 'Employee', 'Reference', 'Payment Method', 'Gross (CAD)', 'Deductions (CAD)', 'Net (CAD)', 'Status'];
@@ -295,14 +264,14 @@ const Financial = () => {
     toast({ title: 'Success', description: 'CSV exported successfully' });
   };
 
-  // Table columns
+  // Table columns - Dense, accountant-friendly formatting
   const columns: Column<LedgerEntry>[] = [
     {
       key: 'transactionDate',
       header: 'Date',
       render: (entry) => (
-        <span className="font-mono text-sm">
-          {entry.transactionDate ? format(parseISO(entry.transactionDate), 'MMM d, yyyy') : 'N/A'}
+        <span className="font-mono text-xs">
+          {entry.transactionDate ? format(parseISO(entry.transactionDate), 'MMM d, yyyy') : '—'}
         </span>
       ),
     },
@@ -311,14 +280,14 @@ const Financial = () => {
       header: 'Type',
       render: (entry) => {
         const config = eventTypeConfig[entry.eventType];
-        if (!config) return entry.eventType;
+        if (!config) return <span className="text-xs">{entry.eventType}</span>;
         const Icon = config.icon;
         return (
-          <div className="flex items-center gap-2">
-            <div className={cn('p-1.5 rounded-md', config.bgColor)}>
-              <Icon className={cn('h-3.5 w-3.5', config.color)} />
+          <div className="flex items-center gap-1.5">
+            <div className={cn('p-1 rounded', config.bgColor)}>
+              <Icon className={cn('h-3 w-3', config.color)} />
             </div>
-            <span className="text-sm font-medium">{config.label}</span>
+            <span className="text-xs font-medium">{config.label}</span>
           </div>
         );
       },
@@ -327,21 +296,21 @@ const Financial = () => {
       key: 'clientName',
       header: 'Client',
       render: (entry) => (
-        <span className="text-sm">{entry.clientName || '—'}</span>
+        <span className="text-xs truncate max-w-[120px] block">{entry.clientName || '—'}</span>
       ),
     },
     {
       key: 'cleanerName',
       header: 'Employee',
       render: (entry) => (
-        <span className="text-sm">{entry.cleanerName || '—'}</span>
+        <span className="text-xs truncate max-w-[100px] block">{entry.cleanerName || '—'}</span>
       ),
     },
     {
       key: 'referenceNumber',
       header: 'Reference',
       render: (entry) => (
-        <span className="font-mono text-xs text-muted-foreground">
+        <span className="font-mono text-[11px] text-muted-foreground">
           {entry.referenceNumber || entry.serviceReference?.substring(0, 8) || '—'}
         </span>
       ),
@@ -350,17 +319,17 @@ const Financial = () => {
       key: 'paymentMethod',
       header: 'Payment',
       render: (entry) => (
-        <span className="text-sm">
+        <span className="text-xs">
           {paymentMethodLabels[entry.paymentMethod || ''] || entry.paymentMethod || '—'}
         </span>
       ),
     },
     {
       key: 'grossAmount',
-      header: 'Gross (CAD)',
+      header: 'Gross',
       render: (entry) => (
         <span className={cn(
-          'font-mono text-sm font-medium tabular-nums',
+          'font-mono text-xs tabular-nums',
           entry.eventType === 'payroll' || entry.eventType === 'refund' ? 'text-destructive' : 'text-foreground'
         )}>
           {entry.eventType === 'payroll' || entry.eventType === 'refund' ? '-' : ''}
@@ -370,19 +339,19 @@ const Financial = () => {
     },
     {
       key: 'deductions',
-      header: 'Deductions',
+      header: 'Deduct.',
       render: (entry) => (
-        <span className="font-mono text-sm text-muted-foreground tabular-nums">
+        <span className="font-mono text-xs text-muted-foreground tabular-nums">
           ${entry.deductions.toFixed(2)}
         </span>
       ),
     },
     {
       key: 'netAmount',
-      header: 'Net (CAD)',
+      header: 'Net',
       render: (entry) => (
         <span className={cn(
-          'font-mono text-sm font-semibold tabular-nums',
+          'font-mono text-xs font-semibold tabular-nums',
           entry.eventType === 'payroll' || entry.eventType === 'refund' ? 'text-destructive' : 'text-success'
         )}>
           {entry.eventType === 'payroll' || entry.eventType === 'refund' ? '-' : '+'}
@@ -396,7 +365,7 @@ const Financial = () => {
       render: (entry) => {
         const config = statusConfig[entry.status] || statusConfig.pending;
         return (
-          <span className={cn('px-2.5 py-1 rounded-full text-xs font-medium', config.bgColor, config.color)}>
+          <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-medium', config.bgColor, config.color)}>
             {config.label}
           </span>
         );
@@ -414,206 +383,126 @@ const Financial = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      <div className="flex items-center justify-end gap-3">
-        <PeriodSelector value={globalPeriod} onChange={setGlobalPeriod} />
+      {/* Compact Top Bar: Period + Entry Count + Actions */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-3">
+          <PeriodSelector value={globalPeriod} onChange={setGlobalPeriod} />
+          <div className="flex items-center text-xs text-muted-foreground">
+            <BookOpen className="h-3.5 w-3.5 mr-1" />
+            {pagination.totalCount} {pagination.totalCount === 1 ? 'entry' : 'entries'}
+          </div>
+        </div>
+        
         {isAdminOrManager && (
-          <>
-            <Button onClick={() => setShowReportModal(true)} className="gap-2">
-              <FileBarChart className="h-4 w-4" />
-              Generate Financial Report
+          <div className="flex items-center gap-2">
+            <Button size="sm" onClick={() => setShowReportModal(true)} className="gap-1.5 h-8 text-xs">
+              <FileBarChart className="h-3.5 w-3.5" />
+              Generate Report
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                  <Download className="h-4 w-4" />
+                <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs">
+                  <Download className="h-3.5 w-3.5" />
                   Export
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-popover">
-                <DropdownMenuItem onClick={exportToCSV}>
-                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                <DropdownMenuItem onClick={exportToCSV} className="text-xs">
+                  <FileSpreadsheet className="h-3.5 w-3.5 mr-2" />
                   Export CSV
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => window.print()}>
-                  <Printer className="h-4 w-4 mr-2" />
+                <DropdownMenuItem onClick={() => window.print()} className="text-xs">
+                  <Printer className="h-3.5 w-3.5 mr-2" />
                   Print Report
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </>
+          </div>
         )}
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-2.5 md:grid-cols-5">
-        <Card className="border-border/50 bg-gradient-to-br from-emerald-500/5 to-emerald-500/10">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Gross Revenue</p>
-                <p className="text-xl font-bold tabular-nums">${summary.grossRevenue.toFixed(2)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50 bg-gradient-to-br from-green-500/5 to-green-500/10">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-green-500/20 flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Received</p>
-                <p className="text-xl font-bold tabular-nums">${summary.amountReceived.toFixed(2)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50 bg-gradient-to-br from-amber-500/5 to-amber-500/10">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Outstanding</p>
-                <p className="text-xl font-bold tabular-nums">${summary.outstandingBalance.toFixed(2)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50 bg-gradient-to-br from-red-500/5 to-red-500/10">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-red-500/20 flex items-center justify-center">
-                <Wallet className="h-5 w-5 text-red-600 dark:text-red-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Payroll Cost</p>
-                <p className="text-xl font-bold tabular-nums">${summary.payrollCost.toFixed(2)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50 bg-gradient-to-br from-purple-500/5 to-purple-500/10">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                <PieChart className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Net Margin</p>
-                <p className={cn('text-xl font-bold tabular-nums', summary.netMargin >= 0 ? 'text-success' : 'text-destructive')}>
-                  ${summary.netMargin.toFixed(2)}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap gap-3">
-          <SearchInput 
-            placeholder="Search by client, employee, reference..."
-            value={search}
-            onChange={setSearch}
-            className="w-full sm:max-w-xs"
-          />
-          
-          <Select value={eventTypeFilter} onValueChange={setEventTypeFilter}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Event Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="invoice">Invoice</SelectItem>
-              <SelectItem value="payment">Payment</SelectItem>
-              <SelectItem value="cash_collection">Cash Collection</SelectItem>
-              <SelectItem value="payroll">Payroll</SelectItem>
-              <SelectItem value="refund">Refund</SelectItem>
-              <SelectItem value="adjustment">Adjustment</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[130px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="paid">Paid</SelectItem>
-              <SelectItem value="confirmed">Confirmed</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="settled">Settled</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Payment Method" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Methods</SelectItem>
-              <SelectItem value="cash">Cash</SelectItem>
-              <SelectItem value="e_transfer">E-Transfer</SelectItem>
-              <SelectItem value="cheque">Cheque</SelectItem>
-              <SelectItem value="credit_card">Credit Card</SelectItem>
-              <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-              <SelectItem value="no_charge">No Charge</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Filters Row - Compact inline */}
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchInput 
+          placeholder="Search client, employee, ref..."
+          value={search}
+          onChange={setSearch}
+          className="w-48 h-8 text-xs"
+        />
         
-        {/* Secondary filters */}
-        <div className="flex flex-wrap gap-3">
-          {clients.length > 0 && (
-            <Select value={clientFilter} onValueChange={setClientFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by Client" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Clients</SelectItem>
-                {clients.map(client => (
-                  <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          
-          {cleaners.length > 0 && (
-            <Select value={cleanerFilter} onValueChange={setCleanerFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by Employee" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Employees</SelectItem>
-                {cleaners.map(cleaner => (
-                  <SelectItem key={cleaner.id} value={cleaner.id}>{cleaner.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          
-          {/* Results count */}
-          <div className="flex items-center text-sm text-muted-foreground ml-auto">
-            <BookOpen className="h-4 w-4 mr-2" />
-            {pagination.totalCount} {pagination.totalCount === 1 ? 'entry' : 'entries'}
-          </div>
-        </div>
+        <Select value={eventTypeFilter} onValueChange={setEventTypeFilter}>
+          <SelectTrigger className="w-[110px] h-8 text-xs">
+            <SelectValue placeholder="Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all" className="text-xs">All Types</SelectItem>
+            <SelectItem value="invoice" className="text-xs">Invoice</SelectItem>
+            <SelectItem value="payment" className="text-xs">Payment</SelectItem>
+            <SelectItem value="cash_collection" className="text-xs">Cash</SelectItem>
+            <SelectItem value="payroll" className="text-xs">Payroll</SelectItem>
+            <SelectItem value="refund" className="text-xs">Refund</SelectItem>
+            <SelectItem value="adjustment" className="text-xs">Adjustment</SelectItem>
+          </SelectContent>
+        </Select>
+        
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[100px] h-8 text-xs">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all" className="text-xs">All Status</SelectItem>
+            <SelectItem value="paid" className="text-xs">Paid</SelectItem>
+            <SelectItem value="approved" className="text-xs">Approved</SelectItem>
+            <SelectItem value="settled" className="text-xs">Settled</SelectItem>
+            <SelectItem value="completed" className="text-xs">Completed</SelectItem>
+          </SelectContent>
+        </Select>
+        
+        <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
+          <SelectTrigger className="w-[120px] h-8 text-xs">
+            <SelectValue placeholder="Payment" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all" className="text-xs">All Methods</SelectItem>
+            <SelectItem value="cash" className="text-xs">Cash</SelectItem>
+            <SelectItem value="e_transfer" className="text-xs">E-Transfer</SelectItem>
+            <SelectItem value="cheque" className="text-xs">Cheque</SelectItem>
+            <SelectItem value="credit_card" className="text-xs">Credit Card</SelectItem>
+            <SelectItem value="bank_transfer" className="text-xs">Bank Transfer</SelectItem>
+          </SelectContent>
+        </Select>
+        
+        {clients.length > 0 && (
+          <Select value={clientFilter} onValueChange={setClientFilter}>
+            <SelectTrigger className="w-[130px] h-8 text-xs">
+              <SelectValue placeholder="Client" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className="text-xs">All Clients</SelectItem>
+              {clients.map(client => (
+                <SelectItem key={client.id} value={client.id} className="text-xs">{client.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        
+        {cleaners.length > 0 && (
+          <Select value={cleanerFilter} onValueChange={setCleanerFilter}>
+            <SelectTrigger className="w-[130px] h-8 text-xs">
+              <SelectValue placeholder="Employee" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className="text-xs">All Employees</SelectItem>
+              {cleaners.map(cleaner => (
+                <SelectItem key={cleaner.id} value={cleaner.id} className="text-xs">{cleaner.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
-      {/* Data Table with Pagination */}
+      {/* Full-Width Ledger Table - Dense styling */}
       <PaginatedDataTable
         columns={columns}
         data={entries}
@@ -621,20 +510,19 @@ const Financial = () => {
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
         isLoading={isLoading}
-        emptyMessage="No financial entries found for the selected filters."
-        className="[&_th]:bg-muted/50 [&_th]:font-semibold"
+        emptyMessage="No finalized transactions found for the selected period."
+        className="[&_th]:bg-muted/30 [&_th]:text-xs [&_th]:font-medium [&_th]:py-2 [&_td]:py-1.5"
       />
       
-      {/* Footer with period info */}
-      <div className="flex justify-between items-center text-sm text-muted-foreground">
-        <span>
-          Currency: CAD (Canadian Dollar)
-        </span>
-        {globalPeriod.startDate && globalPeriod.endDate && (
-          <span>
-            Period: {format(globalPeriod.startDate, 'MMM d, yyyy')} — {format(globalPeriod.endDate, 'MMM d, yyyy')}
-          </span>
-        )}
+      {/* Footer - Currency and period info */}
+      <div className="flex justify-between items-center text-xs text-muted-foreground border-t border-border/50 pt-2">
+        <span>Currency: CAD (Canadian Dollar)</span>
+        <div className="flex items-center gap-4">
+          <span>Showing {entries.length} of {pagination.totalCount}</span>
+          {globalPeriod.startDate && globalPeriod.endDate && (
+            <span>Period: {format(globalPeriod.startDate, 'MMM d')} — {format(globalPeriod.endDate, 'MMM d, yyyy')}</span>
+          )}
+        </div>
       </div>
 
       {/* Generate Financial Report Modal */}
