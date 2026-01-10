@@ -158,10 +158,10 @@ export default function CompanyListTable({
                       onClick={() => onSelectCompany(company.id)}
                     >
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
-                            #{String(company.company_code).padStart(3, '0')}
-                          </span>
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-semibold text-foreground shrink-0">
+                            {company.company_code}
+                          </div>
                           <span className="text-sm font-medium">{company.trade_name}</span>
                         </div>
                       </td>
