@@ -414,42 +414,35 @@ const Financial = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <PageHeader 
-          title="Accounting Ledger"
-          description="Official accounting output — finalized transactions only"
-        />
-        
-        <div className="flex items-center gap-3">
-          <PeriodSelector value={globalPeriod} onChange={setGlobalPeriod} />
-          {isAdminOrManager && (
-            <>
-              <Button onClick={() => setShowReportModal(true)} className="gap-2">
-                <FileBarChart className="h-4 w-4" />
-                Generate Financial Report
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-2">
-                    <Download className="h-4 w-4" />
-                    Export
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-popover">
-                  <DropdownMenuItem onClick={exportToCSV}>
-                    <FileSpreadsheet className="h-4 w-4 mr-2" />
-                    Export CSV
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => window.print()}>
-                    <Printer className="h-4 w-4 mr-2" />
-                    Print Report
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          )}
-        </div>
+      <div className="flex items-center justify-end gap-3">
+        <PeriodSelector value={globalPeriod} onChange={setGlobalPeriod} />
+        {isAdminOrManager && (
+          <>
+            <Button onClick={() => setShowReportModal(true)} className="gap-2">
+              <FileBarChart className="h-4 w-4" />
+              Generate Financial Report
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <Download className="h-4 w-4" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-popover">
+                <DropdownMenuItem onClick={exportToCSV}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Export CSV
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => window.print()}>
+                  <Printer className="h-4 w-4 mr-2" />
+                  Print Report
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        )}
       </div>
 
       {/* Summary Cards */}
