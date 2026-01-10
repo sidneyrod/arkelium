@@ -6,12 +6,14 @@ export interface CompanyPreferences {
   includeVisitsInReports: boolean;
   enableCashKeptByEmployee: boolean;
   autoSendCashReceipt: boolean;
+  autoGenerateCashReceipt: boolean;
 }
 
 const defaultPreferences: CompanyPreferences = {
   includeVisitsInReports: false,
   enableCashKeptByEmployee: true,
   autoSendCashReceipt: false,
+  autoGenerateCashReceipt: true,
 };
 
 export function useCompanyPreferences() {
@@ -31,7 +33,7 @@ export function useCompanyPreferences() {
     try {
       const { data, error } = await supabase
         .from('company_estimate_config')
-        .select('include_visits_in_reports, enable_cash_kept_by_employee, auto_send_cash_receipt')
+        .select('include_visits_in_reports, enable_cash_kept_by_employee, auto_send_cash_receipt, auto_generate_cash_receipt')
         .eq('company_id', companyId)
         .maybeSingle();
 
@@ -46,6 +48,7 @@ export function useCompanyPreferences() {
           includeVisitsInReports: data.include_visits_in_reports ?? false,
           enableCashKeptByEmployee: data.enable_cash_kept_by_employee ?? true,
           autoSendCashReceipt: data.auto_send_cash_receipt ?? false,
+          autoGenerateCashReceipt: data.auto_generate_cash_receipt ?? true,
         });
       }
     } catch (err) {
@@ -70,6 +73,9 @@ export function useCompanyPreferences() {
       }
       if (newPreferences.autoSendCashReceipt !== undefined) {
         updateData.auto_send_cash_receipt = newPreferences.autoSendCashReceipt;
+      }
+      if (newPreferences.autoGenerateCashReceipt !== undefined) {
+        updateData.auto_generate_cash_receipt = newPreferences.autoGenerateCashReceipt;
       }
 
       // Try to update existing record
