@@ -86,7 +86,7 @@ export type Database = {
           action: string
           after_data: Json | null
           before_data: Json | null
-          company_id: string
+          company_id: string | null
           created_at: string
           details: Json | null
           entity_id: string | null
@@ -102,7 +102,7 @@ export type Database = {
           action: string
           after_data?: Json | null
           before_data?: Json | null
-          company_id: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
@@ -118,7 +118,7 @@ export type Database = {
           action?: string
           after_data?: Json | null
           before_data?: Json | null
-          company_id?: string
+          company_id?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
