@@ -543,16 +543,6 @@ const PaymentsCollections = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      {/* Governance Banner */}
-      <Alert className="border-warning/30 bg-warning/5">
-        <ShieldCheck className="h-4 w-4 text-warning" />
-        <AlertTitle className="text-sm font-semibold">Financial Operations Hub</AlertTitle>
-        <AlertDescription className="text-xs text-muted-foreground">
-          This screen manages the approval workflow for all financial events.{' '}
-          <strong className="text-foreground">Only approved items appear in the Accounting Ledger.</strong>
-        </AlertDescription>
-      </Alert>
-
       {/* Period Selector + Actions */}
       <div className="flex items-center justify-between gap-2">
         <PeriodSelector
