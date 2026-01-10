@@ -103,16 +103,6 @@ const WorkEarningsSummary = () => {
         />
       </div>
 
-      {/* Intent Notice */}
-      <Alert className="border-info/30 bg-info/5">
-        <Info className="h-4 w-4 text-info" />
-        <AlertTitle className="text-sm font-medium">Operational Intelligence Only</AlertTitle>
-        <AlertDescription className="text-xs text-muted-foreground">
-          This module provides operational and financial summaries to support accounting and payroll preparation. 
-          <strong className="text-foreground"> No salaries, taxes, or deductions are calculated by the system.</strong>
-        </AlertDescription>
-      </Alert>
-
       {/* Global Summary Cards */}
       <div className="grid gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
         <Card className="border-border/50">

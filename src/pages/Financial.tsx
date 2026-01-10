@@ -414,16 +414,6 @@ const Financial = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      {/* Accounting Source of Truth Banner */}
-      <Alert className="border-success/30 bg-success/5">
-        <CheckCircle2 className="h-4 w-4 text-success" />
-        <AlertTitle className="text-sm font-semibold">Accounting Ledger — Source of Truth</AlertTitle>
-        <AlertDescription className="text-xs text-muted-foreground">
-          This ledger contains <strong className="text-foreground">ONLY finalized, approved transactions</strong>.{' '}
-          All data here is considered <strong className="text-foreground">FINAL</strong> for accounting purposes.
-        </AlertDescription>
-      </Alert>
-
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <PageHeader 
           title="Accounting Ledger"
