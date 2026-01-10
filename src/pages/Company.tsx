@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
+import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -71,6 +72,13 @@ const Company = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
   
+  // Active company store (global state)
+  const { 
+    activeCompanyId, 
+    setActiveCompany, 
+    setCompanies: setGlobalCompanies 
+  } = useActiveCompanyStore();
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
@@ -79,9 +87,6 @@ const Company = () => {
   
   // Companies list (full data for table)
   const [companies, setCompanies] = useState<CompanyListItem[]>([]);
-  
-  // Active company ID (the one being viewed/edited in tabs)
-  const [activeCompanyId, setActiveCompanyId] = useState<string | null>(null);
   
   // Active company profile data (for tabs)
   const [profile, setProfile] = useState<CompanyFormData>({
@@ -188,12 +193,20 @@ const Company = () => {
       if (data) {
         setCompanies(data as CompanyListItem[]);
         
+        // Sync to global store (for TopBar)
+        const activeCompanies = data.filter(c => c.status !== 'archived');
+        setGlobalCompanies(activeCompanies.map(c => ({ 
+          id: c.id, 
+          company_code: c.company_code, 
+          trade_name: c.trade_name 
+        })));
+        
         // Set initial active company if not set
         if (!activeCompanyId && data.length > 0) {
           // Prefer user's profile company, or first company
           const userCompany = data.find(c => c.id === user?.profile?.company_id);
           const targetCompany = userCompany || data[0];
-          setActiveCompanyId(targetCompany.id);
+          setActiveCompany(targetCompany.id, targetCompany.company_code, targetCompany.trade_name);
         }
       }
     } catch (error) {
@@ -206,7 +219,7 @@ const Company = () => {
     } finally {
       setIsLoadingCompanies(false);
     }
-  }, [user?.profile?.company_id, activeCompanyId]);
+  }, [user?.profile?.company_id, activeCompanyId, setActiveCompany, setGlobalCompanies]);
 
   useEffect(() => {
     fetchCompanies();
@@ -235,7 +248,7 @@ const Company = () => {
         // Try to select another company
         const otherCompany = companies.find(c => c.id !== companyId && c.status !== 'archived');
         if (otherCompany) {
-          setActiveCompanyId(otherCompany.id);
+          setActiveCompany(otherCompany.id, otherCompany.company_code, otherCompany.trade_name);
         }
         return;
       }
@@ -350,7 +363,10 @@ const Company = () => {
 
   // Handle selecting a company from the list
   const handleSelectCompany = (companyId: string) => {
-    setActiveCompanyId(companyId);
+    const company = companies.find(c => c.id === companyId);
+    if (company) {
+      setActiveCompany(company.id, company.company_code, company.trade_name);
+    }
   };
 
   // Open modal to register new company
@@ -422,7 +438,8 @@ const Company = () => {
         
         // Select the new company
         if (result?.company?.id) {
-          setActiveCompanyId(result.company.id);
+          const newCompany = result.company;
+          setActiveCompany(newCompany.id, newCompany.company_code, newCompany.trade_name);
         }
 
         toast({
@@ -558,7 +575,9 @@ const Company = () => {
       // If deleted company was active, switch to another
       if (activeCompanyId === companyToDelete.id) {
         const otherCompany = companies.find(c => c.id !== companyToDelete.id);
-        setActiveCompanyId(otherCompany?.id || null);
+        if (otherCompany) {
+          setActiveCompany(otherCompany.id, otherCompany.company_code, otherCompany.trade_name);
+        }
       }
 
       toast({

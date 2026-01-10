@@ -12,8 +12,10 @@ import {
   Loader2,
   Key,
   User,
-  Building2
+  ChevronDown,
+  Check
 } from 'lucide-react';
+import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
 
 import ChangePasswordModal from '@/components/modals/ChangePasswordModal';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
@@ -24,6 +26,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -35,11 +38,6 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { supabase } from '@/lib/supabase';
 
-interface CompanyInfo {
-  name: string;
-  email: string | null;
-  phone: string | null;
-}
 
 interface SearchResult {
   id: string;
@@ -78,7 +76,16 @@ const TopBar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   
-  const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({ name: 'Loading...', email: null, phone: null });
+  // Active company store
+  const { 
+    activeCompanyId, 
+    activeCompanyCode, 
+    activeCompanyName, 
+    companies, 
+    setActiveCompany, 
+    setCompanies 
+  } = useActiveCompanyStore();
+  
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -108,64 +115,51 @@ const TopBar = () => {
 
   const displayName = getUserDisplayName();
   
-  // Dynamic company info from database
+  // Fetch companies list and set initial active company
   useEffect(() => {
-    if (!user?.profile?.company_id) {
-      setCompanyInfo({ name: 'No Company', email: null, phone: null });
-      return;
-    }
-
-    const fetchCompanyInfo = async () => {
+    const fetchCompanies = async () => {
       try {
         const { data, error } = await supabase
           .from('companies')
-          .select('trade_name, legal_name, email, phone')
-          .eq('id', user.profile.company_id)
-          .maybeSingle();
+          .select('id, company_code, trade_name')
+          .neq('status', 'archived')
+          .order('company_code', { ascending: true });
         
         if (error) {
-          if (error.code !== 'PGRST116') {
-            console.error('Error fetching company:', error);
-          }
-          setCompanyInfo({ name: 'Unknown', email: null, phone: null });
+          console.error('Error fetching companies:', error);
           return;
         }
         
-        if (data) {
-          setCompanyInfo({
-            name: data.trade_name || data.legal_name || 'Unknown',
-            email: data.email || null,
-            phone: data.phone || null
-          });
-        } else {
-          setCompanyInfo({ name: 'Unknown', email: null, phone: null });
+        if (data && data.length > 0) {
+          setCompanies(data);
+          
+          // Set initial active company if not already set
+          if (!activeCompanyId) {
+            // Prefer user's profile company, or first company
+            const userCompany = data.find(c => c.id === user?.profile?.company_id);
+            const targetCompany = userCompany || data[0];
+            setActiveCompany(targetCompany.id, targetCompany.company_code, targetCompany.trade_name);
+          }
         }
       } catch (err) {
-        setCompanyInfo({ name: 'Unknown', email: null, phone: null });
+        console.error('Error fetching companies:', err);
       }
     };
     
-    fetchCompanyInfo();
+    fetchCompanies();
     
-    if (!user?.profile?.company_id) return;
-
+    // Subscribe to company changes
     const channel = supabase
-      .channel(`company-info-${user.profile.company_id}`)
+      .channel('companies-list-changes')
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
-          table: 'companies',
-          filter: `id=eq.${user.profile.company_id}`
+          table: 'companies'
         },
-        (payload) => {
-          const newData = payload.new as { trade_name?: string; legal_name?: string; email?: string; phone?: string };
-          setCompanyInfo({
-            name: newData.trade_name || newData.legal_name || 'Unknown',
-            email: newData.email || null,
-            phone: newData.phone || null
-          });
+        () => {
+          fetchCompanies();
         }
       )
       .subscribe();
@@ -173,7 +167,11 @@ const TopBar = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.profile?.company_id]);
+  }, [user?.profile?.company_id, activeCompanyId, setActiveCompany, setCompanies]);
+
+  const handleSwitchCompany = (company: { id: string; company_code: number; trade_name: string }) => {
+    setActiveCompany(company.id, company.company_code, company.trade_name);
+  };
 
   // Global search function
   const performSearch = useCallback(async (query: string) => {
@@ -408,11 +406,49 @@ const TopBar = () => {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2 shrink-0">
-          {/* Active Company Indicator */}
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-md border border-border">
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-foreground max-w-32 truncate">{companyInfo.name}</span>
-          </div>
+          {/* Active Company Selector */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="hidden md:flex items-center gap-2 px-3 h-9 border-border bg-background hover:bg-muted"
+              >
+                <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary shrink-0">
+                  {activeCompanyCode || '?'}
+                </div>
+                <span className="text-sm font-medium max-w-32 truncate">{activeCompanyName || 'Select Company'}</span>
+                <ChevronDown className="h-3 w-3 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64 bg-popover">
+              <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Switch Company</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {companies.map((company) => (
+                <DropdownMenuItem 
+                  key={company.id}
+                  onClick={() => handleSwitchCompany(company)}
+                  className={cn(
+                    "flex items-center gap-2 cursor-pointer",
+                    activeCompanyId === company.id && "bg-accent"
+                  )}
+                >
+                  <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-xs font-semibold shrink-0">
+                    {company.company_code}
+                  </div>
+                  <span className="flex-1 truncate">{company.trade_name}</span>
+                  {activeCompanyId === company.id && (
+                    <Check className="h-4 w-4 text-primary shrink-0" />
+                  )}
+                </DropdownMenuItem>
+              ))}
+              {companies.length === 0 && (
+                <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                  No companies available
+                </div>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Notifications */}
           <NotificationBell />
