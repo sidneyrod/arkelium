@@ -806,6 +806,7 @@ export type Database = {
           accounting_date_field: string
           accounting_method: string
           admin_is_cleaner: boolean | null
+          auto_generate_cash_receipt: boolean | null
           auto_send_cash_receipt: boolean | null
           company_id: string
           created_at: string
@@ -821,6 +822,7 @@ export type Database = {
           accounting_date_field?: string
           accounting_method?: string
           admin_is_cleaner?: boolean | null
+          auto_generate_cash_receipt?: boolean | null
           auto_send_cash_receipt?: boolean | null
           company_id: string
           created_at?: string
@@ -836,6 +838,7 @@ export type Database = {
           accounting_date_field?: string
           accounting_method?: string
           admin_is_cleaner?: boolean | null
+          auto_generate_cash_receipt?: boolean | null
           auto_send_cash_receipt?: boolean | null
           company_id?: string
           created_at?: string

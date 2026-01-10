@@ -28,13 +28,15 @@ import {
   MoreHorizontal,
   Mail,
   DollarSign,
-  FileText
+  FileText,
+  Plus
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { toast } from 'sonner';
 import { openPdfPreview } from '@/utils/pdfGenerator';
 import ViewReceiptModal from '@/components/receipts/ViewReceiptModal';
+import GenerateReceiptModal from '@/components/receipts/GenerateReceiptModal';
 
 interface PaymentReceipt {
   id: string;
@@ -69,6 +71,7 @@ const Receipts = () => {
   });
   const [selectedReceipt, setSelectedReceipt] = useState<PaymentReceipt | null>(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [generateModalOpen, setGenerateModalOpen] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
 
   const fetchReceipts = async () => {
@@ -218,10 +221,16 @@ const Receipts = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      <PageHeader 
-        title="Payment Receipts"
-        description="Manage cash payment receipts for completed services"
-      />
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <PageHeader 
+          title="Payment Receipts"
+          description="Manage cash payment receipts for completed services"
+        />
+        <Button onClick={() => setGenerateModalOpen(true)} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Generate Receipt
+        </Button>
+      </div>
 
       {/* Stats Cards */}
       <div className="grid gap-2.5 md:grid-cols-3">
@@ -382,6 +391,13 @@ const Receipts = () => {
         onSendEmail={handleSendEmail}
         onDownload={handleDownloadReceipt}
         sendingEmail={sendingEmail}
+      />
+
+      {/* Generate Receipt Modal */}
+      <GenerateReceiptModal
+        open={generateModalOpen}
+        onClose={() => setGenerateModalOpen(false)}
+        onReceiptGenerated={fetchReceipts}
       />
     </div>
   );

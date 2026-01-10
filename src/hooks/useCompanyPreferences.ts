@@ -33,7 +33,7 @@ export function useCompanyPreferences() {
     try {
       const { data, error } = await supabase
         .from('company_estimate_config')
-        .select('include_visits_in_reports, enable_cash_kept_by_employee, auto_send_cash_receipt, auto_generate_cash_receipt')
+        .select('*')
         .eq('company_id', companyId)
         .maybeSingle();
 
@@ -45,10 +45,10 @@ export function useCompanyPreferences() {
 
       if (data) {
         setPreferences({
-          includeVisitsInReports: data.include_visits_in_reports ?? false,
-          enableCashKeptByEmployee: data.enable_cash_kept_by_employee ?? true,
-          autoSendCashReceipt: data.auto_send_cash_receipt ?? false,
-          autoGenerateCashReceipt: data.auto_generate_cash_receipt ?? true,
+          includeVisitsInReports: (data as any).include_visits_in_reports ?? false,
+          enableCashKeptByEmployee: (data as any).enable_cash_kept_by_employee ?? true,
+          autoSendCashReceipt: (data as any).auto_send_cash_receipt ?? false,
+          autoGenerateCashReceipt: (data as any).auto_generate_cash_receipt ?? true,
         });
       }
     } catch (err) {

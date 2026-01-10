@@ -23,6 +23,7 @@ interface PreferencesTabProps {
 interface Preferences {
   includeVisitsInReports: boolean;
   enableCashKeptByEmployee: boolean;
+  autoGenerateCashReceipt: boolean;
   autoSendCashReceipt: boolean;
 }
 
@@ -30,6 +31,7 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
   const [preferences, setPreferences] = useState<Preferences>({
     includeVisitsInReports: false,
     enableCashKeptByEmployee: true,
+    autoGenerateCashReceipt: true,
     autoSendCashReceipt: false,
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -46,7 +48,7 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
     try {
       const { data, error } = await supabase
         .from('company_estimate_config')
-        .select('include_visits_in_reports, enable_cash_kept_by_employee, auto_send_cash_receipt')
+        .select('*')
         .eq('company_id', companyId)
         .maybeSingle();
 
@@ -57,9 +59,10 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
       }
 
       const prefs: Preferences = {
-        includeVisitsInReports: data?.include_visits_in_reports ?? false,
-        enableCashKeptByEmployee: data?.enable_cash_kept_by_employee ?? true,
-        autoSendCashReceipt: data?.auto_send_cash_receipt ?? false,
+        includeVisitsInReports: (data as any)?.include_visits_in_reports ?? false,
+        enableCashKeptByEmployee: (data as any)?.enable_cash_kept_by_employee ?? true,
+        autoGenerateCashReceipt: (data as any)?.auto_generate_cash_receipt ?? true,
+        autoSendCashReceipt: (data as any)?.auto_send_cash_receipt ?? false,
       };
       
       setPreferences(prefs);
@@ -80,6 +83,7 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
       const changed = 
         preferences.includeVisitsInReports !== initialPreferences.includeVisitsInReports ||
         preferences.enableCashKeptByEmployee !== initialPreferences.enableCashKeptByEmployee ||
+        preferences.autoGenerateCashReceipt !== initialPreferences.autoGenerateCashReceipt ||
         preferences.autoSendCashReceipt !== initialPreferences.autoSendCashReceipt;
       setHasChanges(changed);
     }
@@ -96,6 +100,7 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
         .update({
           include_visits_in_reports: preferences.includeVisitsInReports,
           enable_cash_kept_by_employee: preferences.enableCashKeptByEmployee,
+          auto_generate_cash_receipt: preferences.autoGenerateCashReceipt,
           auto_send_cash_receipt: preferences.autoSendCashReceipt,
         })
         .eq('company_id', companyId);
@@ -108,6 +113,7 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
             company_id: companyId,
             include_visits_in_reports: preferences.includeVisitsInReports,
             enable_cash_kept_by_employee: preferences.enableCashKeptByEmployee,
+            auto_generate_cash_receipt: preferences.autoGenerateCashReceipt,
             auto_send_cash_receipt: preferences.autoSendCashReceipt,
           });
 
@@ -238,13 +244,38 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
         <CardContent className="space-y-4">
           <div className="flex items-start justify-between p-4 rounded-lg border border-border/50 bg-muted/30">
             <div className="flex-1 pr-4">
+              <Label htmlFor="auto-generate-receipt" className="text-sm font-medium cursor-pointer">
+                Auto-generate cash receipts on job completion
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                When enabled, payment receipts will be automatically generated when a cash payment is recorded. 
+                When disabled, receipts can be generated manually from the Receipts page.
+              </p>
+            </div>
+            <Switch
+              id="auto-generate-receipt"
+              checked={preferences.autoGenerateCashReceipt}
+              onCheckedChange={(checked) => 
+                setPreferences(prev => ({ ...prev, autoGenerateCashReceipt: checked }))
+              }
+            />
+          </div>
+          <div className="flex items-start justify-between p-4 rounded-lg border border-border/50 bg-muted/30">
+            <div className="flex-1 pr-4">
               <Label htmlFor="auto-send-receipt" className="text-sm font-medium cursor-pointer">
                 Auto-send cash receipts to clients
               </Label>
               <p className="text-xs text-muted-foreground mt-1">
-                When enabled, payment receipts will be automatically emailed to clients after a cash payment is recorded. 
+                When enabled, payment receipts will be automatically emailed to clients after being generated. 
                 When disabled, receipts can still be sent manually from the Receipts page.
               </p>
+              {!preferences.autoGenerateCashReceipt && (
+                <div className="mt-2 p-2 bg-muted/50 rounded border border-border/30">
+                  <p className="text-[10px] text-muted-foreground">
+                    <strong>Note:</strong> Auto-send only works when auto-generate is enabled.
+                  </p>
+                </div>
+              )}
             </div>
             <Switch
               id="auto-send-receipt"
@@ -252,6 +283,7 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
               onCheckedChange={(checked) => 
                 setPreferences(prev => ({ ...prev, autoSendCashReceipt: checked }))
               }
+              disabled={!preferences.autoGenerateCashReceipt}
             />
           </div>
         </CardContent>

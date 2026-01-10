@@ -142,29 +142,55 @@ const GenerateReceiptModal = ({ open, onClose, onReceiptGenerated }: GenerateRec
         .eq('id', companyId)
         .single();
 
+      // Fetch company branding
+      const { data: branding } = await supabase
+        .from('company_branding')
+        .select('logo_url, primary_color')
+        .eq('company_id', companyId)
+        .maybeSingle();
+
       // Generate receipt number
       const timestamp = Date.now();
       const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
       const receiptNumber = `RCP-${timestamp}-${randomPart}`;
 
+      // Prepare company profile for PDF (matching CompanyProfile interface)
+      const companyProfile = {
+        companyName: company?.trade_name || 'Company',
+        legalName: company?.legal_name || '',
+        address: company?.address || '',
+        city: company?.city || '',
+        province: company?.province || '',
+        postalCode: company?.postal_code || '',
+        phone: company?.phone || '',
+        email: company?.email || '',
+        website: '',
+        businessNumber: '',
+        gstHstNumber: '',
+      };
+
+      // Prepare branding data (matching CompanyBranding interface)
+      const brandingData = {
+        logoUrl: branding?.logo_url || null,
+        primaryColor: branding?.primary_color || '#3b82f6',
+      };
+
       // Generate receipt HTML
-      const receiptHtml = generatePaymentReceiptPdf({
-        receiptNumber,
-        date: new Date().toISOString(),
-        companyName: company?.trade_name || company?.legal_name || 'Company',
-        companyAddress: [company?.address, company?.city, company?.province, company?.postal_code]
-          .filter(Boolean).join(', ') || '',
-        companyPhone: company?.phone || '',
-        companyEmail: company?.email || '',
-        clientName: job.client_name,
-        serviceDate: job.scheduled_date,
-        serviceDescription: job.job_type === 'visit' ? 'Site Visit' : 'Cleaning Service',
-        amount: job.payment_amount,
-        taxAmount: 0,
-        total: job.payment_amount,
-        paymentMethod: 'cash',
-        cleanerName: job.cleaner_name,
-      });
+      const receiptHtml = generatePaymentReceiptPdf(
+        {
+          receiptNumber,
+          clientName: job.client_name,
+          serviceDate: job.scheduled_date,
+          serviceDescription: job.job_type === 'visit' ? 'Site Visit' : 'Cleaning Service',
+          amount: job.payment_amount,
+          taxAmount: 0,
+          total: job.payment_amount,
+          paymentMethod: 'cash',
+          cleanerName: job.cleaner_name,
+        },
+        companyProfile,
+        brandingData
+      );
 
       // Insert receipt
       const { error } = await supabase

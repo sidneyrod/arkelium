@@ -873,9 +873,13 @@ const Schedule = () => {
         
         // Handle cash payments - create receipt and cash collection record
         if (paymentData?.paymentMethod === 'cash') {
-          const receipt = await createCashReceipt(job, paymentData, companyId);
-          if (receipt) {
-            toast.success(`Receipt ${receipt.receiptNumber} generated successfully`);
+          // Only auto-generate receipt if preference is enabled
+          let receipt: { receiptNumber: string; receiptHtml: string } | null = null;
+          
+          if (companyPreferences.autoGenerateCashReceipt) {
+            receipt = await createCashReceipt(job, paymentData, companyId);
+            if (receipt) {
+              toast.success(`Receipt ${receipt.receiptNumber} generated successfully`);
             
             // Auto-send receipt if preference is enabled
             if (companyPreferences.autoSendCashReceipt) {
@@ -912,6 +916,10 @@ const Schedule = () => {
                 // Don't show error toast - receipt was still generated
               }
             }
+          } else {
+            // Notify that receipt can be generated manually
+            toast.info('Cash payment recorded. Generate receipt manually from Receipts page.');
+          }
             
             // Create cleaner payment entry for cash
             if (job.employeeId) {
