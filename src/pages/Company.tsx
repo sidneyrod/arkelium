@@ -403,9 +403,15 @@ const Company = () => {
           .from('companies')
           .select('*')
           .eq('id', companyId)
-          .single();
+          .maybeSingle();
 
         if (companyError) throw companyError;
+        
+        if (!companyData) {
+          console.warn('Company not found or not accessible:', companyId);
+          setIsFetching(false);
+          return;
+        }
 
         if (companyData) {
           const profileData: CompanyProfile = {
