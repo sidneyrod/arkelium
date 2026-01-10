@@ -382,7 +382,7 @@ const Financial = () => {
   }
 
   return (
-    <div className="p-2 lg:p-3 space-y-2">
+    <div className="p-2 lg:p-3 space-y-3">
       {/* Compact Top Bar: Period + Entry Count + Actions */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-3">
@@ -423,7 +423,7 @@ const Financial = () => {
       </div>
 
       {/* Filters Row - Compact inline */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 pb-3 border-b border-border/30">
         <SearchInput 
           placeholder="Search client, employee, ref..."
           value={search}
