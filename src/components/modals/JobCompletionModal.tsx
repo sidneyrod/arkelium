@@ -18,7 +18,7 @@ import { ScheduledJob } from '@/stores/scheduleStore';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
-import { formatSafeDate } from '@/lib/dates';
+import { formatSafeDate, toSafeLocalDate } from '@/lib/dates';
 
 interface CompanyChecklistItem {
   id: string;
@@ -129,16 +129,23 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
       // Load existing after photos or start fresh
       setAfterPhotos(job.afterPhotos || []);
       
-      // Reset payment fields
+      // Reset payment fields - default to service date
       setPaymentMethod('');
       setPaymentAmount('');
-      setPaymentDate(new Date());
+      setPaymentDate(toSafeLocalDate(job.date));
       setPaymentReference('');
       setCashHandlingChoice('');
       setPaymentReceivedBy('');
       setPaymentNotes('');
     }
   }, [open, job, user?.profile?.company_id]);
+
+  // Force payment date to service date when Cash is selected
+  useEffect(() => {
+    if (paymentMethod === 'cash' && job?.date) {
+      setPaymentDate(toSafeLocalDate(job.date));
+    }
+  }, [paymentMethod, job?.date]);
 
   const toggleChecklistItem = (itemName: string) => {
     setSelectedItems(prev =>
@@ -254,7 +261,8 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
     const paymentData: PaymentData = {
       paymentMethod: paymentMethod as 'e-transfer' | 'cash',
       paymentAmount: parseFloat(paymentAmount) || 0,
-      paymentDate,
+      // Force service date for cash payments (backend validation)
+      paymentDate: paymentMethod === 'cash' ? toSafeLocalDate(job.date) : paymentDate,
       paymentReference: paymentMethod === 'e-transfer' ? paymentReference : undefined,
       // When cash kept is disabled, always set to 'company'
       paymentReceivedBy: paymentMethod === 'cash' 
@@ -551,29 +559,45 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
 
                   <div className="space-y-2">
                     <Label>Payment Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !paymentDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {paymentDate ? formatSafeDate(paymentDate, "PPP") : "Select date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={paymentDate}
-                          onSelect={(date) => date && setPaymentDate(date)}
-                          initialFocus
-                          className="p-3 pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    {paymentMethod === 'cash' ? (
+                      // Cash: Show readonly date with explanation
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 px-3 py-2 border rounded-md bg-muted/50 h-10">
+                          <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">
+                            {formatSafeDate(paymentDate, "PPP")}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Cash payments must be recorded on the service date
+                        </p>
+                      </div>
+                    ) : (
+                      // E-Transfer: Allow date selection
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !paymentDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {paymentDate ? formatSafeDate(paymentDate, "PPP") : "Select date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={paymentDate}
+                            onSelect={(date) => date && setPaymentDate(date)}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    )}
                   </div>
                 </div>
 
