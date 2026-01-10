@@ -14,6 +14,13 @@ interface SetupCompanyRequest {
   phone?: string;
   province?: string;
   businessNumber?: string;
+  address?: string;
+  city?: string;
+  postalCode?: string;
+  website?: string;
+  timezone?: string;
+  // If true, skip the check for existing company (for admin registering additional companies)
+  skipCompanyCheck?: boolean;
 }
 
 serve(async (req) => {
@@ -69,7 +76,10 @@ serve(async (req) => {
 
     // Parse request body
     const body: SetupCompanyRequest = await req.json();
-    const { companyName, legalName, email, phone, province, businessNumber } = body;
+    const { 
+      companyName, legalName, email, phone, province, businessNumber,
+      address, city, postalCode, website, timezone, skipCompanyCheck 
+    } = body;
 
     if (!companyName || !legalName) {
       return new Response(
@@ -78,20 +88,29 @@ serve(async (req) => {
       );
     }
 
-    // Check if user already belongs to a company
+    // Check if user already belongs to a company (skip for admin registering additional companies)
+    if (!skipCompanyCheck) {
+      const { data: existingProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+
+      // Only block if user has no company yet AND we're not in skip mode
+      // This allows the first company setup while letting admins register additional companies
+      if (existingProfile?.company_id) {
+        console.log('User already has a company, creating additional company without changing user profile');
+      }
+    }
+
+    // Check if user already has a company
     const { data: existingProfile } = await supabaseAdmin
       .from('profiles')
       .select('company_id')
       .eq('id', user.id)
       .single();
 
-    if (existingProfile?.company_id) {
-      console.log('User already has a company:', existingProfile.company_id);
-      return new Response(
-        JSON.stringify({ error: 'User already belongs to a company', companyId: existingProfile.company_id }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const userAlreadyHasCompany = !!existingProfile?.company_id;
 
     // Create the company
     const { data: company, error: companyError } = await supabaseAdmin
@@ -103,6 +122,11 @@ serve(async (req) => {
         phone: phone || null,
         province: province || 'Ontario',
         business_number: businessNumber || null,
+        address: address || null,
+        city: city || null,
+        postal_code: postalCode || null,
+        website: website || null,
+        timezone: timezone || 'America/Toronto',
         status: 'active',
         tenant_mode: 'shared',
       })
@@ -119,23 +143,25 @@ serve(async (req) => {
 
     console.log('Company created:', company.id);
 
-    // Update user profile with company_id
-    const { error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .update({ company_id: company.id })
-      .eq('id', user.id);
+    // Only update user profile if user doesn't already have a company
+    if (!userAlreadyHasCompany) {
+      const { error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .update({ company_id: company.id })
+        .eq('id', user.id);
 
-    if (profileError) {
-      console.error('Failed to update profile:', profileError);
-      // Rollback: delete the company
-      await supabaseAdmin.from('companies').delete().eq('id', company.id);
-      return new Response(
-        JSON.stringify({ error: 'Failed to update profile', details: profileError.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      if (profileError) {
+        console.error('Failed to update profile:', profileError);
+        // Rollback: delete the company
+        await supabaseAdmin.from('companies').delete().eq('id', company.id);
+        return new Response(
+          JSON.stringify({ error: 'Failed to update profile', details: profileError.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
-    // Create user_role as admin
+    // Create user_role as admin for this company
     const { error: roleError } = await supabaseAdmin
       .from('user_roles')
       .insert({

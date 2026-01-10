@@ -249,29 +249,32 @@ const Company = () => {
 
     setIsRegistering(true);
     try {
-      const { data, error } = await supabase
-        .from('companies')
-        .insert({
-          trade_name: newCompanyForm.trade_name,
-          legal_name: newCompanyForm.legal_name,
-          address: newCompanyForm.address,
-          city: newCompanyForm.city,
+      // Use edge function with SERVICE_ROLE_KEY to bypass RLS
+      const { data, error } = await supabase.functions.invoke('setup-company', {
+        body: {
+          companyName: newCompanyForm.trade_name,
+          legalName: newCompanyForm.legal_name,
+          email: newCompanyForm.email || undefined,
+          phone: newCompanyForm.phone || undefined,
           province: newCompanyForm.province,
-          postal_code: newCompanyForm.postal_code,
-          email: newCompanyForm.email,
-          phone: newCompanyForm.phone,
-          website: newCompanyForm.website,
-          timezone: newCompanyForm.timezone
-        })
-        .select()
-        .single();
+          address: newCompanyForm.address || undefined,
+          city: newCompanyForm.city || undefined,
+          postalCode: newCompanyForm.postal_code || undefined,
+          website: newCompanyForm.website || undefined,
+          timezone: newCompanyForm.timezone,
+        }
+      });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       // Add to list and select it
-      if (data) {
-        setCompaniesList(prev => [...prev, { id: data.id, trade_name: data.trade_name }]);
-        setSelectedCompanyId(data.id);
+      if (data?.company) {
+        setCompaniesList(prev => [...prev, { 
+          id: data.company.id, 
+          trade_name: data.company.tradeName 
+        }]);
+        setSelectedCompanyId(data.company.id);
       }
 
       setRegisterModalOpen(false);
@@ -296,7 +299,7 @@ const Company = () => {
       console.error('Error registering company:', error);
       toast({
         title: 'Error',
-        description: 'Failed to register company',
+        description: error instanceof Error ? error.message : 'Failed to register company',
         variant: 'destructive'
       });
     } finally {
