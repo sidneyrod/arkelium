@@ -28,8 +28,11 @@ import {
   ArrowDownRight,
   Minus,
   FileBarChart,
-  Eye
+  Eye,
+  Banknote,
+  CheckCircle2
 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -80,6 +83,7 @@ const statusConfig: Record<string, { color: string; bgColor: string; label: stri
 const eventTypeConfig: Record<string, { color: string; bgColor: string; label: string; icon: typeof TrendingUp }> = {
   invoice: { color: 'text-primary', bgColor: 'bg-primary/10', label: 'Invoice', icon: FileText },
   payment: { color: 'text-success', bgColor: 'bg-success/10', label: 'Payment', icon: DollarSign },
+  cash_collection: { color: 'text-amber-600', bgColor: 'bg-amber-100', label: 'Cash Collection', icon: Banknote },
   visit: { color: 'text-info', bgColor: 'bg-info/10', label: 'Visit', icon: Eye },
   payroll: { color: 'text-warning', bgColor: 'bg-warning/10', label: 'Payroll', icon: Wallet },
   refund: { color: 'text-destructive', bgColor: 'bg-destructive/10', label: 'Refund', icon: ArrowDownRight },
@@ -410,10 +414,20 @@ const Financial = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
+      {/* Accounting Source of Truth Banner */}
+      <Alert className="border-success/30 bg-success/5">
+        <CheckCircle2 className="h-4 w-4 text-success" />
+        <AlertTitle className="text-sm font-semibold">Accounting Ledger — Source of Truth</AlertTitle>
+        <AlertDescription className="text-xs text-muted-foreground">
+          This ledger contains <strong className="text-foreground">ONLY finalized, approved transactions</strong>.{' '}
+          All data here is considered <strong className="text-foreground">FINAL</strong> for accounting purposes.
+        </AlertDescription>
+      </Alert>
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <PageHeader 
-          title="Financial Ledger"
-          description="Comprehensive view of all financial transactions and events"
+          title="Accounting Ledger"
+          description="Official accounting output — finalized transactions only"
         />
         
         <div className="flex items-center gap-3">
@@ -541,7 +555,7 @@ const Financial = () => {
               <SelectItem value="all">All Types</SelectItem>
               <SelectItem value="invoice">Invoice</SelectItem>
               <SelectItem value="payment">Payment</SelectItem>
-              <SelectItem value="visit">Visit</SelectItem>
+              <SelectItem value="cash_collection">Cash Collection</SelectItem>
               <SelectItem value="payroll">Payroll</SelectItem>
               <SelectItem value="refund">Refund</SelectItem>
               <SelectItem value="adjustment">Adjustment</SelectItem>
@@ -555,11 +569,10 @@ const Financial = () => {
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="paid">Paid</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="overdue">Overdue</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="confirmed">Confirmed</SelectItem>
               <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
+              <SelectItem value="settled">Settled</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
             </SelectContent>
           </Select>
           

@@ -24,8 +24,11 @@ import {
   FileText,
   Eye,
   Check,
-  X
+  X,
+  ShieldCheck,
+  Info
 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
@@ -100,7 +103,7 @@ const PaymentsCollections = () => {
   const [activeTab, setActiveTab] = useState('cash');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<string>('pending'); // Default to pending for governance focus
   const [dateRange, setDateRange] = useState({
     startDate: startOfMonth(subMonths(new Date(), 1)),
     endDate: endOfMonth(new Date()),
@@ -540,6 +543,16 @@ const PaymentsCollections = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
+      {/* Governance Banner */}
+      <Alert className="border-warning/30 bg-warning/5">
+        <ShieldCheck className="h-4 w-4 text-warning" />
+        <AlertTitle className="text-sm font-semibold">Financial Operations Hub</AlertTitle>
+        <AlertDescription className="text-xs text-muted-foreground">
+          This screen manages the approval workflow for all financial events.{' '}
+          <strong className="text-foreground">Only approved items appear in the Accounting Ledger.</strong>
+        </AlertDescription>
+      </Alert>
+
       {/* Period Selector + Actions */}
       <div className="flex items-center justify-between gap-2">
         <PeriodSelector
@@ -627,16 +640,18 @@ const PaymentsCollections = () => {
         />
         
         <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="disputed">Disputed</SelectItem>
-            <SelectItem value="paid">Paid</SelectItem>
-            <SelectItem value="sent">Sent</SelectItem>
+            <SelectItem value="pending">⏳ Pending</SelectItem>
+            <SelectItem value="disputed">⚠️ Disputed</SelectItem>
+            <SelectItem value="approved">✓ Approved</SelectItem>
+            <SelectItem value="settled">✓ Settled</SelectItem>
+            <SelectItem value="paid">✓ Paid</SelectItem>
+            <SelectItem value="sent">✓ Sent</SelectItem>
+            <SelectItem value="draft">Draft</SelectItem>
           </SelectContent>
         </Select>
       </div>
