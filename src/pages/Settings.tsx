@@ -1,84 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
 import PageHeader from '@/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { NotificationSettings } from '@/components/settings/NotificationSettings';
-import { toast } from 'sonner';
 import { 
   Palette, 
   Globe, 
   Link2, 
-  Bell, 
-  Building2,
   Moon,
   Sun,
-  Check,
-  Receipt,
-  Loader2
+  Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Settings = () => {
   const { t, language, setLanguage } = useLanguage();
   const { theme, setTheme } = useTheme();
-  const { user, hasRole } = useAuth();
-  const isAdmin = hasRole(['admin']);
-  
-  const [autoSendCashReceipt, setAutoSendCashReceipt] = useState(false);
-  const [isLoadingConfig, setIsLoadingConfig] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  
-  const fetchConfig = useCallback(async () => {
-    if (!user?.profile?.company_id) return;
-    
-    try {
-      const { data } = await supabase
-        .from('company_estimate_config')
-        .select('auto_send_cash_receipt')
-        .eq('company_id', user.profile.company_id)
-        .maybeSingle();
-      
-      if (data) {
-        setAutoSendCashReceipt(data.auto_send_cash_receipt || false);
-      }
-    } catch (error) {
-      console.error('Error fetching config:', error);
-    } finally {
-      setIsLoadingConfig(false);
-    }
-  }, [user?.profile?.company_id]);
-  
-  useEffect(() => {
-    fetchConfig();
-  }, [fetchConfig]);
-  
-  const handleSaveReceiptSettings = async () => {
-    if (!user?.profile?.company_id) return;
-    
-    setIsSaving(true);
-    try {
-      const { error } = await supabase
-        .from('company_estimate_config')
-        .update({ auto_send_cash_receipt: autoSendCashReceipt })
-        .eq('company_id', user.profile.company_id);
-      
-      if (error) throw error;
-      
-      toast.success('Receipt settings saved');
-    } catch (error) {
-      console.error('Error saving config:', error);
-      toast.error('Failed to save settings');
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
@@ -98,7 +36,7 @@ const Settings = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-3">
-              <Label>{t.settings.theme}</Label>
+              <p className="text-sm font-medium">{t.settings.theme}</p>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => setTheme('light')}
@@ -250,82 +188,6 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        {/* Payment Receipts - Only for Admin */}
-        {isAdmin && (
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle className="text-base font-medium flex items-center gap-2">
-                <Receipt className="h-4 w-4 text-primary" />
-                Payment Receipts
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
-                <div className="space-y-0.5">
-                  <Label>Auto-send cash receipts</Label>
-                  <p className="text-xs text-muted-foreground">Automatically email receipt to client after cash payment</p>
-                </div>
-                <Switch 
-                  checked={autoSendCashReceipt}
-                  onCheckedChange={setAutoSendCashReceipt}
-                  disabled={isLoadingConfig}
-                />
-              </div>
-              <div className="flex justify-end">
-                <Button 
-                  size="sm" 
-                  onClick={handleSaveReceiptSettings}
-                  disabled={isSaving || isLoadingConfig}
-                >
-                  {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  Save Receipt Settings
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-        
-        {/* Company Preferences */}
-        <Card className="border-border/50 lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base font-medium flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-primary" />
-              {t.settings.companyPreferences}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
-                <div className="space-y-0.5">
-                  <Label>Auto-generate invoices</Label>
-                  <p className="text-xs text-muted-foreground">After job completion</p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
-                <div className="space-y-0.5">
-                  <Label>Client photo requests</Label>
-                  <p className="text-xs text-muted-foreground">Before/after photos</p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
-                <div className="space-y-0.5">
-                  <Label>GPS tracking</Label>
-                  <p className="text-xs text-muted-foreground">Employee location</p>
-                </div>
-                <Switch />
-              </div>
-              <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
-                <div className="space-y-0.5">
-                  <Label>Auto-assign jobs</Label>
-                  <p className="text-xs text-muted-foreground">Based on availability</p>
-                </div>
-                <Switch />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Save Button */}

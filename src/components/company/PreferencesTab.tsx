@@ -10,7 +10,8 @@ import {
   Banknote, 
   Info,
   Loader2,
-  Save
+  Save,
+  Receipt
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
@@ -22,12 +23,14 @@ interface PreferencesTabProps {
 interface Preferences {
   includeVisitsInReports: boolean;
   enableCashKeptByEmployee: boolean;
+  autoSendCashReceipt: boolean;
 }
 
 const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
   const [preferences, setPreferences] = useState<Preferences>({
     includeVisitsInReports: false,
     enableCashKeptByEmployee: true,
+    autoSendCashReceipt: false,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -43,7 +46,7 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
     try {
       const { data, error } = await supabase
         .from('company_estimate_config')
-        .select('include_visits_in_reports, enable_cash_kept_by_employee')
+        .select('include_visits_in_reports, enable_cash_kept_by_employee, auto_send_cash_receipt')
         .eq('company_id', companyId)
         .maybeSingle();
 
@@ -56,6 +59,7 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
       const prefs: Preferences = {
         includeVisitsInReports: data?.include_visits_in_reports ?? false,
         enableCashKeptByEmployee: data?.enable_cash_kept_by_employee ?? true,
+        autoSendCashReceipt: data?.auto_send_cash_receipt ?? false,
       };
       
       setPreferences(prefs);
@@ -75,7 +79,8 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
     if (initialPreferences) {
       const changed = 
         preferences.includeVisitsInReports !== initialPreferences.includeVisitsInReports ||
-        preferences.enableCashKeptByEmployee !== initialPreferences.enableCashKeptByEmployee;
+        preferences.enableCashKeptByEmployee !== initialPreferences.enableCashKeptByEmployee ||
+        preferences.autoSendCashReceipt !== initialPreferences.autoSendCashReceipt;
       setHasChanges(changed);
     }
   }, [preferences, initialPreferences]);
@@ -91,6 +96,7 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
         .update({
           include_visits_in_reports: preferences.includeVisitsInReports,
           enable_cash_kept_by_employee: preferences.enableCashKeptByEmployee,
+          auto_send_cash_receipt: preferences.autoSendCashReceipt,
         })
         .eq('company_id', companyId);
 
@@ -102,6 +108,7 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
             company_id: companyId,
             include_visits_in_reports: preferences.includeVisitsInReports,
             enable_cash_kept_by_employee: preferences.enableCashKeptByEmployee,
+            auto_send_cash_receipt: preferences.autoSendCashReceipt,
           });
 
         if (insertError) throw insertError;
@@ -211,6 +218,39 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
               checked={preferences.enableCashKeptByEmployee}
               onCheckedChange={(checked) => 
                 setPreferences(prev => ({ ...prev, enableCashKeptByEmployee: checked }))
+              }
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Receipt Settings */}
+      <Card className="border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Receipt className="h-4 w-4 text-primary" />
+            Receipt Settings
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Configure how payment receipts are generated and sent
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-start justify-between p-4 rounded-lg border border-border/50 bg-muted/30">
+            <div className="flex-1 pr-4">
+              <Label htmlFor="auto-send-receipt" className="text-sm font-medium cursor-pointer">
+                Auto-send cash receipts to clients
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                When enabled, payment receipts will be automatically emailed to clients after a cash payment is recorded. 
+                When disabled, receipts can still be sent manually from the Receipts page.
+              </p>
+            </div>
+            <Switch
+              id="auto-send-receipt"
+              checked={preferences.autoSendCashReceipt}
+              onCheckedChange={(checked) => 
+                setPreferences(prev => ({ ...prev, autoSendCashReceipt: checked }))
               }
             />
           </div>

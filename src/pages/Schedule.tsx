@@ -877,6 +877,42 @@ const Schedule = () => {
           if (receipt) {
             toast.success(`Receipt ${receipt.receiptNumber} generated successfully`);
             
+            // Auto-send receipt if preference is enabled
+            if (companyPreferences.autoSendCashReceipt) {
+              try {
+                // Fetch receipt ID and client email
+                const { data: receiptData } = await supabase
+                  .from('payment_receipts')
+                  .select('id')
+                  .eq('receipt_number', receipt.receiptNumber)
+                  .eq('company_id', companyId)
+                  .single();
+                
+                if (receiptData) {
+                  // Fetch client email
+                  const { data: clientData } = await supabase
+                    .from('clients')
+                    .select('email, name')
+                    .eq('id', job.clientId)
+                    .single();
+                  
+                  if (clientData?.email) {
+                    await supabase.functions.invoke('send-receipt-email', {
+                      body: { 
+                        receiptId: receiptData.id,
+                        recipientEmail: clientData.email,
+                        recipientName: clientData.name
+                      }
+                    });
+                    toast.success('Receipt sent to client');
+                  }
+                }
+              } catch (sendError) {
+                console.error('Error auto-sending receipt:', sendError);
+                // Don't show error toast - receipt was still generated
+              }
+            }
+            
             // Create cleaner payment entry for cash
             if (job.employeeId) {
               const durationHours = parseFloat(job.duration.replace(/[^0-9.]/g, '')) || 2;
