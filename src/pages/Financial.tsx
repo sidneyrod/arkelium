@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
 import SearchInput from '@/components/ui/search-input';
 import PaginatedDataTable, { Column } from '@/components/ui/paginated-data-table';
 import { useServerPagination } from '@/hooks/useServerPagination';
@@ -95,6 +96,7 @@ const paymentMethodLabels: Record<string, string> = {
 const Financial = () => {
   const { t } = useLanguage();
   const { user, hasRole } = useAuth();
+  const { activeCompanyId, activeCompanyName } = useActiveCompanyStore();
   const isAdmin = hasRole(['admin']);
   const isAdminOrManager = hasRole(['admin', 'manager']);
   
@@ -131,18 +133,18 @@ const Financial = () => {
   // Fetch filter options
   useEffect(() => {
     const fetchFilterOptions = async () => {
-      if (!user?.profile?.company_id) return;
+      if (!activeCompanyId) return;
       
       const [clientsRes, cleanersRes] = await Promise.all([
         supabase
           .from('clients')
           .select('id, name')
-          .eq('company_id', user.profile.company_id)
+          .eq('company_id', activeCompanyId)
           .order('name'),
         supabase
           .from('profiles')
           .select('id, first_name, last_name')
-          .eq('company_id', user.profile.company_id)
+          .eq('company_id', activeCompanyId)
           .order('first_name')
       ]);
       
@@ -158,11 +160,11 @@ const Financial = () => {
     };
     
     fetchFilterOptions();
-  }, [user?.profile?.company_id]);
+  }, [activeCompanyId]);
 
   // Server-side pagination fetch function
   const fetchLedgerEntries = useCallback(async (from: number, to: number) => {
-    if (!user?.profile?.company_id) {
+    if (!activeCompanyId) {
       return { data: [], count: 0 };
     }
 
@@ -172,7 +174,7 @@ const Financial = () => {
     let query = supabase
       .from('financial_ledger')
       .select('*', { count: 'exact' })
-      .eq('company_id', user.profile.company_id)
+      .eq('company_id', activeCompanyId)
       .gte('transaction_date', startDate)
       .lte('transaction_date', endDate);
 
@@ -295,7 +297,7 @@ const Financial = () => {
     }));
 
     return { data: mappedEntries, count: count || 0 };
-  }, [user?.profile?.company_id, globalPeriod, eventTypeFilter, statusFilter, paymentMethodFilter, clientFilter, cleanerFilter, debouncedSearch, referenceFilter, grossFilter, deductFilter, netFilter]);
+  }, [activeCompanyId, globalPeriod, eventTypeFilter, statusFilter, paymentMethodFilter, clientFilter, cleanerFilter, debouncedSearch, referenceFilter, grossFilter, deductFilter, netFilter]);
 
   const {
     data: entries,
@@ -306,13 +308,25 @@ const Financial = () => {
     refresh,
   } = useServerPagination<LedgerEntry>(fetchLedgerEntries, { pageSize: 25 });
 
-  // Refresh when filters change
+  // Refresh when filters or company change
   useEffect(() => {
     refresh();
-  }, [globalPeriod, eventTypeFilter, statusFilter, paymentMethodFilter, clientFilter, cleanerFilter, debouncedSearch, referenceFilter, grossFilter, deductFilter, netFilter]);
+  }, [activeCompanyId, globalPeriod, eventTypeFilter, statusFilter, paymentMethodFilter, clientFilter, cleanerFilter, debouncedSearch, referenceFilter, grossFilter, deductFilter, netFilter]);
 
   // Export functions
   const exportToCSV = () => {
+    const periodFrom = globalPeriod.from ? format(globalPeriod.from, 'MMM d, yyyy') : 'N/A';
+    const periodTo = globalPeriod.to ? format(globalPeriod.to, 'MMM d, yyyy') : 'N/A';
+    
+    // Company info header for accountant
+    const companyInfo = [
+      ['Company:', activeCompanyName || 'N/A'],
+      ['Period:', `${periodFrom} - ${periodTo}`],
+      ['Generated:', format(new Date(), 'MMMM d, yyyy HH:mm')],
+      ['Records:', entries.length.toString()],
+      [], // Empty row
+    ];
+    
     const headers = ['Date', 'Type', 'Client', 'Employee', 'Reference', 'Payment Method', 'Gross (CAD)', 'Deductions (CAD)', 'Net (CAD)', 'Status'];
     const rows = entries.map(e => [
       e.transactionDate,
@@ -338,12 +352,18 @@ const Financial = () => {
     rows.push(['', '', '', '', '', '', '', '', '', '']);
     rows.push(['', '', '', '', 'TOTALS:', '', totals.gross.toFixed(2), totals.deductions.toFixed(2), totals.net.toFixed(2), '']);
     
-    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const csvContent = [
+      ...companyInfo.map(row => row.join(',')),
+      headers.map(h => `"${h}"`).join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `financial-ledger-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    const companySlug = activeCompanyName?.replace(/\s+/g, '-') || 'report';
+    a.download = `ledger-${companySlug}-${format(new Date(), 'yyyy-MM-dd')}.csv`;
     a.click();
     URL.revokeObjectURL(url);
     toast({ title: 'Success', description: 'CSV exported successfully' });
@@ -364,17 +384,19 @@ const Financial = () => {
 
     const periodFrom = globalPeriod.from ? format(globalPeriod.from, 'MMMM d, yyyy') : 'N/A';
     const periodTo = globalPeriod.to ? format(globalPeriod.to, 'MMMM d, yyyy') : 'N/A';
+    const companySlug = activeCompanyName?.replace(/\s+/g, '-') || 'report';
 
     const html = `
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Financial Ledger Report</title>
+        <title>Ledger - ${activeCompanyName || 'Company'}</title>
         <style>
           @page { size: A4 landscape; margin: 1.5cm; }
           * { box-sizing: border-box; }
           body { font-family: Arial, sans-serif; font-size: 9px; color: #333; margin: 0; padding: 20px; }
-          h1 { color: #0A6C53; font-size: 18px; margin: 0 0 5px 0; }
+          .company-name { color: #0A6C53; font-size: 20px; margin: 0 0 2px 0; font-weight: bold; }
+          .report-title { color: #666; font-size: 14px; margin: 0 0 15px 0; }
           .meta { color: #666; margin-bottom: 15px; font-size: 10px; }
           .meta p { margin: 2px 0; }
           table { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -393,7 +415,8 @@ const Financial = () => {
         </style>
       </head>
       <body>
-        <h1>Financial Ledger Report</h1>
+        <h1 class="company-name">${activeCompanyName || 'Company'}</h1>
+        <h2 class="report-title">Financial Ledger Report</h2>
         <div class="meta">
           <p><strong>Period:</strong> ${periodFrom} — ${periodTo}</p>
           <p><strong>Generated:</strong> ${format(new Date(), 'MMMM d, yyyy HH:mm')} | <strong>Records:</strong> ${entries.length}</p>
