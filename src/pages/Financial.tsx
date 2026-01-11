@@ -91,6 +91,7 @@ const paymentMethodLabels: Record<string, string> = {
   bank_transfer: 'Bank Transfer',
   no_charge: 'No Charge',
   pending: 'Pending',
+  kept_by_cleaner: 'Kept by Cleaner',
 };
 
 const Financial = () => {
@@ -123,6 +124,11 @@ const Financial = () => {
   // Unique values for filters
   const [clients, setClients] = useState<{id: string; name: string}[]>([]);
   const [cleaners, setCleaners] = useState<{id: string; name: string}[]>([]);
+  
+  // Dynamic filter options based on actual data
+  const [eventTypes, setEventTypes] = useState<string[]>([]);
+  const [statusTypes, setStatusTypes] = useState<string[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<string[]>([]);
 
   // Debounce search
   useEffect(() => {
@@ -130,12 +136,12 @@ const Financial = () => {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Fetch filter options
+  // Fetch filter options (clients, cleaners, and dynamic filter values)
   useEffect(() => {
     const fetchFilterOptions = async () => {
       if (!activeCompanyId) return;
       
-      const [clientsRes, cleanersRes] = await Promise.all([
+      const [clientsRes, cleanersRes, eventTypesRes, statusRes, paymentMethodsRes] = await Promise.all([
         supabase
           .from('clients')
           .select('id, name')
@@ -145,7 +151,25 @@ const Financial = () => {
           .from('profiles')
           .select('id, first_name, last_name')
           .eq('company_id', activeCompanyId)
-          .order('first_name')
+          .order('first_name'),
+        // Fetch unique event types from ledger
+        supabase
+          .from('financial_ledger')
+          .select('event_type')
+          .eq('company_id', activeCompanyId)
+          .not('event_type', 'is', null),
+        // Fetch unique statuses from ledger
+        supabase
+          .from('financial_ledger')
+          .select('status')
+          .eq('company_id', activeCompanyId)
+          .not('status', 'is', null),
+        // Fetch unique payment methods from ledger
+        supabase
+          .from('financial_ledger')
+          .select('payment_method')
+          .eq('company_id', activeCompanyId)
+          .not('payment_method', 'is', null)
       ]);
       
       if (clientsRes.data) {
@@ -156,6 +180,20 @@ const Financial = () => {
           id: c.id, 
           name: `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unknown'
         })));
+      }
+      
+      // Process dynamic filter options
+      if (eventTypesRes.data) {
+        const unique = [...new Set(eventTypesRes.data.map(r => r.event_type).filter(Boolean))];
+        setEventTypes(unique.sort());
+      }
+      if (statusRes.data) {
+        const unique = [...new Set(statusRes.data.map(r => r.status).filter(Boolean))];
+        setStatusTypes(unique.sort());
+      }
+      if (paymentMethodsRes.data) {
+        const unique = [...new Set(paymentMethodsRes.data.map(r => r.payment_method).filter(Boolean))];
+        setPaymentMethods(unique.sort());
       }
     };
     
@@ -479,32 +517,30 @@ const Financial = () => {
 
   // Filter options for column headers
 
+  // Dynamic filter options based on actual data in the ledger
   const eventTypeOptions: FilterOption[] = useMemo(() => [
     { value: 'all', label: 'All Types' },
-    { value: 'invoice', label: 'Invoice' },
-    { value: 'payment', label: 'Payment' },
-    { value: 'cash_collection', label: 'Cash' },
-    { value: 'payroll', label: 'Payroll' },
-    { value: 'refund', label: 'Refund' },
-    { value: 'adjustment', label: 'Adjustment' },
-  ], []);
+    ...eventTypes.map(type => ({
+      value: type,
+      label: eventTypeConfig[type]?.label || type
+    }))
+  ], [eventTypes]);
 
   const statusOptions: FilterOption[] = useMemo(() => [
     { value: 'all', label: 'All Status' },
-    { value: 'paid', label: 'Paid' },
-    { value: 'approved', label: 'Approved' },
-    { value: 'settled', label: 'Settled' },
-    { value: 'completed', label: 'Completed' },
-  ], []);
+    ...statusTypes.map(status => ({
+      value: status,
+      label: statusConfig[status]?.label || status
+    }))
+  ], [statusTypes]);
 
   const paymentMethodOptions: FilterOption[] = useMemo(() => [
     { value: 'all', label: 'All Methods' },
-    { value: 'cash', label: 'Cash' },
-    { value: 'e_transfer', label: 'E-Transfer' },
-    { value: 'cheque', label: 'Cheque' },
-    { value: 'credit_card', label: 'Credit Card' },
-    { value: 'bank_transfer', label: 'Bank Transfer' },
-  ], []);
+    ...paymentMethods.map(method => ({
+      value: method,
+      label: paymentMethodLabels[method] || method
+    }))
+  ], [paymentMethods]);
 
   const clientOptions: FilterOption[] = useMemo(() => [
     { value: 'all', label: 'All Clients' },
