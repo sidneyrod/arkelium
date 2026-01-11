@@ -195,6 +195,71 @@ const Financial = () => {
       query = query.or(`client_name.ilike.%${debouncedSearch}%,cleaner_name.ilike.%${debouncedSearch}%,reference_number.ilike.%${debouncedSearch}%`);
     }
 
+    // Reference filter (by prefix)
+    if (referenceFilter !== 'all') {
+      query = query.ilike('reference_number', `${referenceFilter}%`);
+    }
+
+    // Gross amount filter (ranges)
+    if (grossFilter !== 'all') {
+      switch (grossFilter) {
+        case '0-50':
+          query = query.gte('gross_amount', 0).lte('gross_amount', 50);
+          break;
+        case '50-100':
+          query = query.gt('gross_amount', 50).lte('gross_amount', 100);
+          break;
+        case '100-250':
+          query = query.gt('gross_amount', 100).lte('gross_amount', 250);
+          break;
+        case '250-500':
+          query = query.gt('gross_amount', 250).lte('gross_amount', 500);
+          break;
+        case '500+':
+          query = query.gt('gross_amount', 500);
+          break;
+      }
+    }
+
+    // Deductions filter (ranges)
+    if (deductFilter !== 'all') {
+      switch (deductFilter) {
+        case '0':
+          query = query.eq('deductions', 0);
+          break;
+        case '0-25':
+          query = query.gt('deductions', 0).lte('deductions', 25);
+          break;
+        case '25-50':
+          query = query.gt('deductions', 25).lte('deductions', 50);
+          break;
+        case '50+':
+          query = query.gt('deductions', 50);
+          break;
+      }
+    }
+
+    // Net amount filter (ranges)
+    if (netFilter !== 'all') {
+      switch (netFilter) {
+        case '0-50':
+          query = query.gte('net_amount', 0).lte('net_amount', 50);
+          break;
+        case '50-100':
+          query = query.gt('net_amount', 50).lte('net_amount', 100);
+          break;
+        case '100-250':
+          query = query.gt('net_amount', 100).lte('net_amount', 250);
+          break;
+        case '250-500':
+          query = query.gt('net_amount', 250).lte('net_amount', 500);
+          break;
+        case '500+':
+          query = query.gt('net_amount', 500);
+          break;
+      }
+    }
+
     query = query
       .order('transaction_date', { ascending: false })
       .range(from, to);
@@ -229,7 +294,7 @@ const Financial = () => {
     }));
 
     return { data: mappedEntries, count: count || 0 };
-  }, [user?.profile?.company_id, globalPeriod, eventTypeFilter, statusFilter, paymentMethodFilter, clientFilter, cleanerFilter, debouncedSearch]);
+  }, [user?.profile?.company_id, globalPeriod, eventTypeFilter, statusFilter, paymentMethodFilter, clientFilter, cleanerFilter, debouncedSearch, referenceFilter, grossFilter, deductFilter, netFilter]);
 
   const {
     data: entries,
@@ -243,7 +308,7 @@ const Financial = () => {
   // Refresh when filters change
   useEffect(() => {
     refresh();
-  }, [globalPeriod, eventTypeFilter, statusFilter, paymentMethodFilter, clientFilter, cleanerFilter, debouncedSearch]);
+  }, [globalPeriod, eventTypeFilter, statusFilter, paymentMethodFilter, clientFilter, cleanerFilter, debouncedSearch, referenceFilter, grossFilter, deductFilter, netFilter]);
 
   // Export functions
   const exportToCSV = () => {
