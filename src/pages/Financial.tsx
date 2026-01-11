@@ -28,6 +28,7 @@ import {
   Banknote,
   Wallet
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { cn } from '@/lib/utils';
@@ -467,11 +468,21 @@ const Financial = () => {
           allLabel="All Refs"
         />
       ),
-      render: (entry) => (
-        <span className="font-mono text-[11px] text-muted-foreground">
-          {entry.referenceNumber || entry.serviceReference?.substring(0, 8) || '—'}
-        </span>
-      ),
+      render: (entry) => {
+        const refValue = entry.serviceReference || entry.referenceNumber || '—';
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="font-mono text-[11px] text-muted-foreground truncate max-w-[100px] block cursor-default">
+                {refValue}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p className="font-mono text-xs">{refValue}</p>
+            </TooltipContent>
+          </Tooltip>
+        );
+      },
     },
     clientName: {
       key: 'clientName',
