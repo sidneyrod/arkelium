@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -6,11 +6,11 @@ import SearchInput from '@/components/ui/search-input';
 import PaginatedDataTable, { Column } from '@/components/ui/paginated-data-table';
 import { useServerPagination } from '@/hooks/useServerPagination';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { toast } from '@/hooks/use-toast';
 import GenerateReportModal from '@/components/financial/GenerateReportModal';
 import { PeriodSelector, DateRange as PeriodDateRange } from '@/components/ui/period-selector';
+import { FilterableColumnHeader, FilterOption } from '@/components/ui/filterable-column-header';
 import {
   BookOpen,
   DollarSign,
@@ -264,8 +264,46 @@ const Financial = () => {
     toast({ title: 'Success', description: 'CSV exported successfully' });
   };
 
-  // Table columns - Dense, accountant-friendly formatting
-  const columns: Column<LedgerEntry>[] = [
+  // Filter options for column headers
+  const eventTypeOptions: FilterOption[] = useMemo(() => [
+    { value: 'all', label: 'All Types' },
+    { value: 'invoice', label: 'Invoice' },
+    { value: 'payment', label: 'Payment' },
+    { value: 'cash_collection', label: 'Cash' },
+    { value: 'payroll', label: 'Payroll' },
+    { value: 'refund', label: 'Refund' },
+    { value: 'adjustment', label: 'Adjustment' },
+  ], []);
+
+  const statusOptions: FilterOption[] = useMemo(() => [
+    { value: 'all', label: 'All Status' },
+    { value: 'paid', label: 'Paid' },
+    { value: 'approved', label: 'Approved' },
+    { value: 'settled', label: 'Settled' },
+    { value: 'completed', label: 'Completed' },
+  ], []);
+
+  const paymentMethodOptions: FilterOption[] = useMemo(() => [
+    { value: 'all', label: 'All Methods' },
+    { value: 'cash', label: 'Cash' },
+    { value: 'e_transfer', label: 'E-Transfer' },
+    { value: 'cheque', label: 'Cheque' },
+    { value: 'credit_card', label: 'Credit Card' },
+    { value: 'bank_transfer', label: 'Bank Transfer' },
+  ], []);
+
+  const clientOptions: FilterOption[] = useMemo(() => [
+    { value: 'all', label: 'All Clients' },
+    ...clients.map(c => ({ value: c.id, label: c.name }))
+  ], [clients]);
+
+  const cleanerOptions: FilterOption[] = useMemo(() => [
+    { value: 'all', label: 'All Employees' },
+    ...cleaners.map(c => ({ value: c.id, label: c.name }))
+  ], [cleaners]);
+
+  // Table columns - Dense, accountant-friendly formatting with inline filters
+  const columns: Column<LedgerEntry>[] = useMemo(() => [
     {
       key: 'transactionDate',
       header: 'Date',
@@ -277,7 +315,15 @@ const Financial = () => {
     },
     {
       key: 'eventType',
-      header: 'Type',
+      header: (
+        <FilterableColumnHeader
+          title="Type"
+          value={eventTypeFilter}
+          onChange={setEventTypeFilter}
+          options={eventTypeOptions}
+          allLabel="All Types"
+        />
+      ),
       render: (entry) => {
         const config = eventTypeConfig[entry.eventType];
         if (!config) return <span className="text-xs">{entry.eventType}</span>;
@@ -294,14 +340,30 @@ const Financial = () => {
     },
     {
       key: 'clientName',
-      header: 'Client',
+      header: (
+        <FilterableColumnHeader
+          title="Client"
+          value={clientFilter}
+          onChange={setClientFilter}
+          options={clientOptions}
+          allLabel="All Clients"
+        />
+      ),
       render: (entry) => (
         <span className="text-xs truncate max-w-[120px] block">{entry.clientName || '—'}</span>
       ),
     },
     {
       key: 'cleanerName',
-      header: 'Employee',
+      header: (
+        <FilterableColumnHeader
+          title="Employee"
+          value={cleanerFilter}
+          onChange={setCleanerFilter}
+          options={cleanerOptions}
+          allLabel="All Employees"
+        />
+      ),
       render: (entry) => (
         <span className="text-xs truncate max-w-[100px] block">{entry.cleanerName || '—'}</span>
       ),
@@ -317,7 +379,15 @@ const Financial = () => {
     },
     {
       key: 'paymentMethod',
-      header: 'Payment',
+      header: (
+        <FilterableColumnHeader
+          title="Payment"
+          value={paymentMethodFilter}
+          onChange={setPaymentMethodFilter}
+          options={paymentMethodOptions}
+          allLabel="All Methods"
+        />
+      ),
       render: (entry) => (
         <span className="text-xs">
           {paymentMethodLabels[entry.paymentMethod || ''] || entry.paymentMethod || '—'}
@@ -361,7 +431,15 @@ const Financial = () => {
     },
     {
       key: 'status',
-      header: 'Status',
+      header: (
+        <FilterableColumnHeader
+          title="Status"
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={statusOptions}
+          allLabel="All Status"
+        />
+      ),
       render: (entry) => {
         const config = statusConfig[entry.status] || statusConfig.pending;
         return (
@@ -371,7 +449,7 @@ const Financial = () => {
         );
       },
     },
-  ];
+  ], [eventTypeFilter, statusFilter, paymentMethodFilter, clientFilter, cleanerFilter, eventTypeOptions, statusOptions, paymentMethodOptions, clientOptions, cleanerOptions]);
 
   if (isLoading && entries.length === 0) {
     return (
@@ -422,84 +500,14 @@ const Financial = () => {
         )}
       </div>
 
-      {/* Filters Row - Compact inline */}
-      <div className="flex flex-wrap items-center gap-2 pb-3 border-b border-border/30">
+      {/* Search Bar - Compact inline */}
+      <div className="flex items-center gap-2">
         <SearchInput 
           placeholder="Search client, employee, ref..."
           value={search}
           onChange={setSearch}
-          className="w-48 h-8 text-xs"
+          className="w-56 h-8 text-xs"
         />
-        
-        <Select value={eventTypeFilter} onValueChange={setEventTypeFilter}>
-          <SelectTrigger className="w-[110px] h-8 text-xs">
-            <SelectValue placeholder="Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all" className="text-xs">All Types</SelectItem>
-            <SelectItem value="invoice" className="text-xs">Invoice</SelectItem>
-            <SelectItem value="payment" className="text-xs">Payment</SelectItem>
-            <SelectItem value="cash_collection" className="text-xs">Cash</SelectItem>
-            <SelectItem value="payroll" className="text-xs">Payroll</SelectItem>
-            <SelectItem value="refund" className="text-xs">Refund</SelectItem>
-            <SelectItem value="adjustment" className="text-xs">Adjustment</SelectItem>
-          </SelectContent>
-        </Select>
-        
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[100px] h-8 text-xs">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all" className="text-xs">All Status</SelectItem>
-            <SelectItem value="paid" className="text-xs">Paid</SelectItem>
-            <SelectItem value="approved" className="text-xs">Approved</SelectItem>
-            <SelectItem value="settled" className="text-xs">Settled</SelectItem>
-            <SelectItem value="completed" className="text-xs">Completed</SelectItem>
-          </SelectContent>
-        </Select>
-        
-        <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
-          <SelectTrigger className="w-[120px] h-8 text-xs">
-            <SelectValue placeholder="Payment" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all" className="text-xs">All Methods</SelectItem>
-            <SelectItem value="cash" className="text-xs">Cash</SelectItem>
-            <SelectItem value="e_transfer" className="text-xs">E-Transfer</SelectItem>
-            <SelectItem value="cheque" className="text-xs">Cheque</SelectItem>
-            <SelectItem value="credit_card" className="text-xs">Credit Card</SelectItem>
-            <SelectItem value="bank_transfer" className="text-xs">Bank Transfer</SelectItem>
-          </SelectContent>
-        </Select>
-        
-        {clients.length > 0 && (
-          <Select value={clientFilter} onValueChange={setClientFilter}>
-            <SelectTrigger className="w-[130px] h-8 text-xs">
-              <SelectValue placeholder="Client" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all" className="text-xs">All Clients</SelectItem>
-              {clients.map(client => (
-                <SelectItem key={client.id} value={client.id} className="text-xs">{client.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-        
-        {cleaners.length > 0 && (
-          <Select value={cleanerFilter} onValueChange={setCleanerFilter}>
-            <SelectTrigger className="w-[130px] h-8 text-xs">
-              <SelectValue placeholder="Employee" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all" className="text-xs">All Employees</SelectItem>
-              {cleaners.map(cleaner => (
-                <SelectItem key={cleaner.id} value={cleaner.id} className="text-xs">{cleaner.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
       </div>
 
       {/* Full-Width Ledger Table - Dense styling */}
