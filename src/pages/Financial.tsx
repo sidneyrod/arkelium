@@ -9,8 +9,10 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { toast } from '@/hooks/use-toast';
 import GenerateReportModal from '@/components/financial/GenerateReportModal';
+import { LedgerColumnSettings } from '@/components/financial/LedgerColumnSettings';
 import { DatePickerDialog } from '@/components/ui/date-picker-dialog';
 import { FilterableColumnHeader, FilterOption } from '@/components/ui/filterable-column-header';
+import { useLedgerColumnOrder } from '@/hooks/useLedgerColumnOrder';
 import {
   BookOpen,
   DollarSign,
@@ -359,9 +361,12 @@ const Financial = () => {
     { value: '500+', label: '$500+' },
   ], []);
 
-  // Table columns - Dense, accountant-friendly formatting with inline filters
-  const columns: Column<LedgerEntry>[] = useMemo(() => [
-    {
+  // Column reordering hook
+  const { columnConfig, visibleColumns, setNewOrder, resetToDefaults } = useLedgerColumnOrder();
+
+  // All possible column definitions mapped by key
+  const allColumnDefinitions: Record<string, Column<LedgerEntry>> = useMemo(() => ({
+    transactionDate: {
       key: 'transactionDate',
       header: (
         <FilterableColumnHeader
@@ -378,7 +383,7 @@ const Financial = () => {
         </span>
       ),
     },
-    {
+    eventType: {
       key: 'eventType',
       header: (
         <FilterableColumnHeader
@@ -403,37 +408,7 @@ const Financial = () => {
         );
       },
     },
-    {
-      key: 'clientName',
-      header: (
-        <FilterableColumnHeader
-          title="Client"
-          value={clientFilter}
-          onChange={setClientFilter}
-          options={clientOptions}
-          allLabel="All Clients"
-        />
-      ),
-      render: (entry) => (
-        <span className="text-xs truncate max-w-[120px] block">{entry.clientName || '—'}</span>
-      ),
-    },
-    {
-      key: 'cleanerName',
-      header: (
-        <FilterableColumnHeader
-          title="Employee"
-          value={cleanerFilter}
-          onChange={setCleanerFilter}
-          options={cleanerOptions}
-          allLabel="All Employees"
-        />
-      ),
-      render: (entry) => (
-        <span className="text-xs truncate max-w-[100px] block">{entry.cleanerName || '—'}</span>
-      ),
-    },
-    {
+    referenceNumber: {
       key: 'referenceNumber',
       header: (
         <FilterableColumnHeader
@@ -450,7 +425,37 @@ const Financial = () => {
         </span>
       ),
     },
-    {
+    clientName: {
+      key: 'clientName',
+      header: (
+        <FilterableColumnHeader
+          title="Client"
+          value={clientFilter}
+          onChange={setClientFilter}
+          options={clientOptions}
+          allLabel="All Clients"
+        />
+      ),
+      render: (entry) => (
+        <span className="text-xs truncate max-w-[120px] block">{entry.clientName || '—'}</span>
+      ),
+    },
+    cleanerName: {
+      key: 'cleanerName',
+      header: (
+        <FilterableColumnHeader
+          title="Employee"
+          value={cleanerFilter}
+          onChange={setCleanerFilter}
+          options={cleanerOptions}
+          allLabel="All Employees"
+        />
+      ),
+      render: (entry) => (
+        <span className="text-xs truncate max-w-[100px] block">{entry.cleanerName || '—'}</span>
+      ),
+    },
+    paymentMethod: {
       key: 'paymentMethod',
       header: (
         <FilterableColumnHeader
@@ -467,7 +472,7 @@ const Financial = () => {
         </span>
       ),
     },
-    {
+    grossAmount: {
       key: 'grossAmount',
       header: (
         <FilterableColumnHeader
@@ -488,7 +493,7 @@ const Financial = () => {
         </span>
       ),
     },
-    {
+    deductions: {
       key: 'deductions',
       header: (
         <FilterableColumnHeader
@@ -505,7 +510,7 @@ const Financial = () => {
         </span>
       ),
     },
-    {
+    netAmount: {
       key: 'netAmount',
       header: (
         <FilterableColumnHeader
@@ -526,7 +531,7 @@ const Financial = () => {
         </span>
       ),
     },
-    {
+    status: {
       key: 'status',
       header: (
         <FilterableColumnHeader
@@ -546,7 +551,14 @@ const Financial = () => {
         );
       },
     },
-  ], [eventTypeFilter, statusFilter, paymentMethodFilter, clientFilter, cleanerFilter, dateFilter, referenceFilter, grossFilter, deductFilter, netFilter, eventTypeOptions, statusOptions, paymentMethodOptions, clientOptions, cleanerOptions, dateOptions, referenceOptions, grossOptions, deductOptions, netOptions]);
+  }), [eventTypeFilter, statusFilter, paymentMethodFilter, clientFilter, cleanerFilter, dateFilter, referenceFilter, grossFilter, deductFilter, netFilter, eventTypeOptions, statusOptions, paymentMethodOptions, clientOptions, cleanerOptions, dateOptions, referenceOptions, grossOptions, deductOptions, netOptions]);
+
+  // Build columns array based on user's configured order and visibility
+  const columns: Column<LedgerEntry>[] = useMemo(() => {
+    return visibleColumns
+      .map(col => allColumnDefinitions[col.key])
+      .filter(Boolean);
+  }, [visibleColumns, allColumnDefinitions]);
 
   if (isLoading && entries.length === 0) {
     return (
@@ -557,9 +569,9 @@ const Financial = () => {
   }
 
   return (
-    <div className="p-2 lg:p-3 space-y-2">
+    <div className="p-2 lg:p-3 space-y-3">
       {/* Single Compact Top Bar: Search + Date Picker + Actions */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div className="flex items-center justify-between gap-3 flex-wrap pb-1">
         <div className="flex items-center gap-3">
           <SearchInput 
             placeholder="Search client, employee, ref..."
@@ -582,6 +594,11 @@ const Financial = () => {
         
         {isAdminOrManager && (
           <div className="flex items-center gap-2">
+            <LedgerColumnSettings
+              columnConfig={columnConfig}
+              onSave={setNewOrder}
+              onReset={resetToDefaults}
+            />
             <Button size="sm" onClick={() => setShowReportModal(true)} className="gap-1.5 h-8 text-xs">
               <FileBarChart className="h-3.5 w-3.5" />
               Generate Report
