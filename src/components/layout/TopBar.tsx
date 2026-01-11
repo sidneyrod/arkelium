@@ -200,13 +200,13 @@ const TopBar = () => {
       }
     }
 
-    // Search database
-    if (user?.profile?.company_id) {
+    // Search database - use activeCompanyId for global company filter
+    if (activeCompanyId) {
       try {
         const { data: clients } = await supabase
           .from('clients')
           .select('id, name, email')
-          .eq('company_id', user.profile.company_id)
+          .eq('company_id', activeCompanyId)
           .or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
           .limit(5);
 
@@ -224,7 +224,7 @@ const TopBar = () => {
         const { data: contracts } = await supabase
           .from('contracts')
           .select('id, contract_number, clients(name)')
-          .eq('company_id', user.profile.company_id)
+          .eq('company_id', activeCompanyId)
           .or(`contract_number.ilike.%${searchTerm}%`)
           .limit(5);
 
@@ -242,7 +242,7 @@ const TopBar = () => {
         const { data: invoices } = await supabase
           .from('invoices')
           .select('id, invoice_number, clients(name)')
-          .eq('company_id', user.profile.company_id)
+          .eq('company_id', activeCompanyId)
           .or(`invoice_number.ilike.%${searchTerm}%`)
           .limit(5);
 
@@ -263,7 +263,7 @@ const TopBar = () => {
 
     setSearchResults(results);
     setIsSearching(false);
-  }, [user?.profile?.company_id]);
+  }, [activeCompanyId]);
 
   // Debounced search
   useEffect(() => {

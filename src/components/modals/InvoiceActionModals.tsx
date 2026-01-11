@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { toast } from '@/hooks/use-toast';
 import { AlertTriangle, XCircle, Trash2, RefreshCw, Loader2 } from 'lucide-react';
@@ -29,12 +30,13 @@ interface CancelInvoiceModalProps {
 
 export const CancelInvoiceModal = ({ open, onOpenChange, invoice, onSuccess }: CancelInvoiceModalProps) => {
   const { user } = useAuth();
+  const { activeCompanyId } = useActiveCompanyStore();
   const { logAction } = useAuditLog();
   const [isLoading, setIsLoading] = useState(false);
   const [reason, setReason] = useState('');
 
   const handleCancel = async () => {
-    if (!invoice || !user?.profile?.company_id) return;
+    if (!invoice || !activeCompanyId) return;
 
     setIsLoading(true);
     try {
@@ -44,7 +46,7 @@ export const CancelInvoiceModal = ({ open, onOpenChange, invoice, onSuccess }: C
           status: 'cancelled',
         })
         .eq('id', invoice.id)
-        .eq('company_id', user.profile.company_id);
+        .eq('company_id', activeCompanyId);
 
       if (error) throw error;
 
@@ -129,12 +131,13 @@ interface DeleteInvoiceModalProps {
 
 export const DeleteInvoiceModal = ({ open, onOpenChange, invoice, onSuccess }: DeleteInvoiceModalProps) => {
   const { user } = useAuth();
+  const { activeCompanyId } = useActiveCompanyStore();
   const { logAction } = useAuditLog();
   const [isLoading, setIsLoading] = useState(false);
   const [confirmText, setConfirmText] = useState('');
 
   const handleDelete = async () => {
-    if (!invoice || !user?.profile?.company_id || confirmText !== 'DELETE') return;
+    if (!invoice || !activeCompanyId || confirmText !== 'DELETE') return;
 
     setIsLoading(true);
     try {
@@ -149,7 +152,7 @@ export const DeleteInvoiceModal = ({ open, onOpenChange, invoice, onSuccess }: D
         .from('invoices')
         .delete()
         .eq('id', invoice.id)
-        .eq('company_id', user.profile.company_id);
+        .eq('company_id', activeCompanyId);
 
       if (error) throw error;
 
@@ -246,11 +249,12 @@ interface RegenerateInvoiceModalProps {
 
 export const RegenerateInvoiceModal = ({ open, onOpenChange, invoice, onSuccess }: RegenerateInvoiceModalProps) => {
   const { user } = useAuth();
+  const { activeCompanyId } = useActiveCompanyStore();
   const { logAction } = useAuditLog();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleRegenerate = async () => {
-    if (!invoice || !user?.profile?.company_id) return;
+    if (!invoice || !activeCompanyId) return;
 
     // Check if the invoice has a linked job
     if (!invoice.jobId) {
@@ -265,7 +269,7 @@ export const RegenerateInvoiceModal = ({ open, onOpenChange, invoice, onSuccess 
         .from('invoices')
         .update({ status: 'cancelled' })
         .eq('id', invoice.id)
-        .eq('company_id', user.profile.company_id);
+        .eq('company_id', activeCompanyId);
 
       if (cancelError) throw cancelError;
 
@@ -274,7 +278,7 @@ export const RegenerateInvoiceModal = ({ open, onOpenChange, invoice, onSuccess 
         .from('invoices')
         .select('id, status')
         .eq('job_id', invoice.jobId)
-        .eq('company_id', user.profile.company_id)
+        .eq('company_id', activeCompanyId)
         .not('status', 'eq', 'cancelled');
 
       if (checkError) throw checkError;
@@ -314,7 +318,7 @@ export const RegenerateInvoiceModal = ({ open, onOpenChange, invoice, onSuccess 
       const { error: insertError } = await supabase
         .from('invoices')
         .insert({
-          company_id: user.profile.company_id,
+          company_id: activeCompanyId,
           invoice_number: newInvoiceNumber,
           client_id: jobData.client_id,
           cleaner_id: jobData.cleaner_id,

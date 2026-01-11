@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyStore } from '@/stores/companyStore';
+import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
 import { supabase } from '@/lib/supabase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ interface AddEstimateModalProps {
 const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateModalProps) => {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const { activeCompanyId } = useActiveCompanyStore();
   const { estimateConfig } = useCompanyStore();
   const isEditing = !!estimate;
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -79,14 +81,14 @@ const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateM
 
   // Fetch clients from Supabase
   const fetchClients = useCallback(async () => {
-    if (!user?.profile?.company_id) return;
+    if (!activeCompanyId) return;
     
     setIsLoadingClients(true);
     try {
       const { data, error } = await supabase
         .from('clients')
         .select('id, name, email, phone')
-        .eq('company_id', user.profile.company_id)
+        .eq('company_id', activeCompanyId)
         .order('name');
       
       if (error) throw error;
@@ -96,7 +98,7 @@ const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateM
     } finally {
       setIsLoadingClients(false);
     }
-  }, [user?.profile?.company_id]);
+  }, [activeCompanyId]);
 
   // Load clients when modal opens
   useEffect(() => {

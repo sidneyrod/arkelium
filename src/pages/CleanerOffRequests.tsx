@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
 import { supabase } from '@/lib/supabase';
 import { notifyOffRequestCreated } from '@/hooks/useNotifications';
 import PageHeader from '@/components/ui/page-header';
@@ -98,6 +99,7 @@ const requestTypeConfig = {
 const CleanerOffRequests = () => {
   const { language } = useLanguage();
   const { user } = useAuth();
+  const { activeCompanyId } = useActiveCompanyStore();
   const isEnglish = language === 'en';
   
   const [requests, setRequests] = useState<MyOffRequest[]>([]);
@@ -105,25 +107,15 @@ const CleanerOffRequests = () => {
   const [showModal, setShowModal] = useState(false);
 
   const fetchMyRequests = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id || !activeCompanyId) return;
     
     try {
-      let companyId = user?.profile?.company_id;
-      if (!companyId) {
-        const { data: companyIdData } = await supabase.rpc('get_user_company_id');
-        companyId = companyIdData;
-      }
-      
-      if (!companyId) {
-        setIsLoading(false);
-        return;
-      }
       
       // Only fetch requests for the current user (cleaner)
       const { data, error } = await supabase
         .from('absence_requests')
         .select('id, start_date, end_date, reason, request_type, status, created_at, approved_at')
-        .eq('company_id', companyId)
+        .eq('company_id', activeCompanyId)
         .eq('cleaner_id', user.id)
         .order('created_at', { ascending: false });
       
@@ -150,7 +142,7 @@ const CleanerOffRequests = () => {
       console.error('Error in fetchMyRequests:', error);
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user?.id, activeCompanyId]);
 
   useEffect(() => {
     fetchMyRequests();
@@ -162,7 +154,7 @@ const CleanerOffRequests = () => {
     reason: string;
     requestType: string;
   }) => {
-    if (!user?.id || !user?.profile?.company_id) {
+    if (!user?.id || !activeCompanyId) {
       toast.error('User not authenticated');
       return;
     }
@@ -172,7 +164,7 @@ const CleanerOffRequests = () => {
         .from('absence_requests')
         .insert({
           cleaner_id: user.id,
-          company_id: user.profile.company_id,
+          company_id: activeCompanyId,
           start_date: request.startDate,
           end_date: request.endDate,
           reason: request.reason,
@@ -198,7 +190,7 @@ const CleanerOffRequests = () => {
         request.startDate,
         request.endDate,
         data.id,
-        user.profile.company_id
+        activeCompanyId
       );
       
       toast.success(isEnglish 

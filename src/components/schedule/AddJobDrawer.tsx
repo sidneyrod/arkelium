@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
 import { supabase } from '@/lib/supabase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -72,6 +73,7 @@ const TIME_SLOTS = generateTimeSlots();
 const AddJobDrawer = ({ open, onOpenChange, onSave, job, preselectedDate, preselectedTime }: AddJobDrawerProps) => {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const { activeCompanyId } = useActiveCompanyStore();
   const isEditing = !!job;
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -112,25 +114,14 @@ const AddJobDrawer = ({ open, onOpenChange, onSave, job, preselectedDate, presel
   // Fetch clients and employees
   useEffect(() => {
     const fetchData = async () => {
-      if (!open) return;
+      if (!open || !activeCompanyId) return;
       setIsLoading(true);
       
       try {
-        let companyId = user?.profile?.company_id;
-        if (!companyId) {
-          const { data: companyIdData } = await supabase.rpc('get_user_company_id');
-          companyId = companyIdData;
-        }
-        
-        if (!companyId) {
-          setIsLoading(false);
-          return;
-        }
-        
         const [clientsRes, employeesRes, locationsRes] = await Promise.all([
-          supabase.from('clients').select('id, name, email, phone').eq('company_id', companyId),
-          supabase.from('profiles').select('id, first_name, last_name').eq('company_id', companyId),
-          supabase.from('client_locations').select('id, client_id, address, city').eq('company_id', companyId),
+          supabase.from('clients').select('id, name, email, phone').eq('company_id', activeCompanyId),
+          supabase.from('profiles').select('id, first_name, last_name').eq('company_id', activeCompanyId),
+          supabase.from('client_locations').select('id, client_id, address, city').eq('company_id', activeCompanyId),
         ]);
         
         if (clientsRes.data) setClients(clientsRes.data);
@@ -144,7 +135,7 @@ const AddJobDrawer = ({ open, onOpenChange, onSave, job, preselectedDate, presel
     };
     
     fetchData();
-  }, [open, user]);
+  }, [open, activeCompanyId]);
 
   // Update date and time when preselected values change
   useEffect(() => {
@@ -249,22 +240,22 @@ const AddJobDrawer = ({ open, onOpenChange, onSave, job, preselectedDate, presel
   // Check cleaner availability
   useEffect(() => {
     const checkAvailability = async () => {
-      if (!formData.date || !formData.time || !user?.profile?.company_id) return;
+      if (!formData.date || !formData.time || !activeCompanyId) return;
       
       const year = formData.date.getFullYear();
       const month = String(formData.date.getMonth() + 1).padStart(2, '0');
       const day = String(formData.date.getDate()).padStart(2, '0');
       const dateString = `${year}-${month}-${day}`;
       
-      const unavailable = await getAvailableCleaners(dateString, formData.time, formData.duration, user.profile.company_id, job?.id);
+      const unavailable = await getAvailableCleaners(dateString, formData.time, formData.duration, activeCompanyId, job?.id);
       setUnavailableCleaners(unavailable);
       
-      const blocked = await getBlockedCleanersForDate(dateString, user.profile.company_id);
+      const blocked = await getBlockedCleanersForDate(dateString, activeCompanyId);
       setBlockedCleaners(blocked);
     };
     
     checkAvailability();
-  }, [formData.date, formData.time, formData.duration, user?.profile?.company_id, job?.id, getAvailableCleaners, getBlockedCleanersForDate]);
+  }, [formData.date, formData.time, formData.duration, activeCompanyId, job?.id, getAvailableCleaners, getBlockedCleanersForDate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -290,10 +281,10 @@ const AddJobDrawer = ({ open, onOpenChange, onSave, job, preselectedDate, presel
       return;
     }
 
-    if (user?.profile?.company_id) {
+    if (activeCompanyId) {
       setIsValidating(true);
       
-      const blockCheck = await validateJobCreation(formData.employeeId, dateString, user.profile.company_id);
+      const blockCheck = await validateJobCreation(formData.employeeId, dateString, activeCompanyId);
       if (!blockCheck.canCreate) {
         setIsValidating(false);
         toast.error(blockCheck.message || 'Employee unavailable on this date.');
@@ -302,7 +293,7 @@ const AddJobDrawer = ({ open, onOpenChange, onSave, job, preselectedDate, presel
       
       // Only check contract for cleaning jobs
       if (formData.serviceType === 'cleaning') {
-        const contractCheck = await canScheduleForClient(formData.clientId, user.profile.company_id);
+        const contractCheck = await canScheduleForClient(formData.clientId, activeCompanyId);
         if (!contractCheck.isValid) {
           setIsValidating(false);
           toast.error(contractCheck.message);
@@ -312,7 +303,7 @@ const AddJobDrawer = ({ open, onOpenChange, onSave, job, preselectedDate, presel
       
       const conflictCheck = await validateSchedule(
         { clientId: formData.clientId, employeeId: formData.employeeId, date: dateString, time: formData.time, duration: formData.duration, jobId: job?.id },
-        user.profile.company_id
+        activeCompanyId
       );
       setIsValidating(false);
       

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
 import { supabase } from '@/lib/supabase';
 import { useCompanyPreferences } from '@/hooks/useCompanyPreferences';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -55,6 +56,7 @@ const MAX_PHOTOS = 10;
 const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompletionModalProps) => {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const { activeCompanyId } = useActiveCompanyStore();
   const { preferences } = useCompanyPreferences();
   const enableCashKept = preferences.enableCashKeptByEmployee;
 
@@ -87,14 +89,14 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
 
   // Fetch checklist items from company settings
   const fetchChecklistItems = async () => {
-    if (!user?.profile?.company_id) return;
+    if (!activeCompanyId) return;
 
     setLoadingChecklistItems(true);
     try {
       const { data, error } = await supabase
         .from('checklist_items')
         .select('id, name, description, is_active, display_order')
-        .eq('company_id', user.profile.company_id)
+        .eq('company_id', activeCompanyId)
         .eq('is_active', true)
         .order('display_order', { ascending: true });
 
@@ -138,7 +140,7 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
       setPaymentReceivedBy('');
       setPaymentNotes('');
     }
-  }, [open, job, user?.profile?.company_id]);
+  }, [open, job, activeCompanyId]);
 
   // Force payment date to service date when Cash is selected
   useEffect(() => {
@@ -159,7 +161,7 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
   const totalItems = companyChecklistItems.length;
 
   const handleAfterPhotoUpload = async (file: File) => {
-    if (!job || !user?.profile?.company_id) return;
+    if (!job || !activeCompanyId) return;
 
     if (afterPhotos.length >= MAX_PHOTOS) {
       toast.error(`Maximum ${MAX_PHOTOS} photos allowed`);
@@ -183,7 +185,7 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
 
       // Create unique file name
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.profile.company_id}/${job.id}/after-${Date.now()}-${afterPhotos.length}.${fileExt}`;
+      const fileName = `${activeCompanyId}/${job.id}/after-${Date.now()}-${afterPhotos.length}.${fileExt}`;
 
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
@@ -246,13 +248,13 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
     }));
 
     // Update job with checklist in database
-    if (user?.profile?.company_id) {
+    if (activeCompanyId) {
       try {
         await supabase
           .from('jobs')
           .update({ checklist: checklistToSave })
           .eq('id', job.id)
-          .eq('company_id', user.profile.company_id);
+          .eq('company_id', activeCompanyId);
       } catch (err) {
         console.error('Error saving checklist:', err);
       }
