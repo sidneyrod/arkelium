@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { toast } from '@/hooks/use-toast';
 import GenerateReportModal from '@/components/financial/GenerateReportModal';
-import { PeriodSelector, DateRange as PeriodDateRange } from '@/components/ui/period-selector';
+import { DatePickerDialog } from '@/components/ui/date-picker-dialog';
 import { FilterableColumnHeader, FilterOption } from '@/components/ui/filterable-column-header';
 import {
   BookOpen,
@@ -27,6 +27,7 @@ import {
   Wallet
 } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
+import { DateRange } from 'react-day-picker';
 import { cn } from '@/lib/utils';
 
 // Types
@@ -109,9 +110,9 @@ const Financial = () => {
   const [grossFilter, setGrossFilter] = useState<string>('all');
   const [deductFilter, setDeductFilter] = useState<string>('all');
   const [netFilter, setNetFilter] = useState<string>('all');
-  const [globalPeriod, setGlobalPeriod] = useState<PeriodDateRange>({
-    startDate: startOfMonth(new Date()),
-    endDate: endOfMonth(new Date()),
+  const [globalPeriod, setGlobalPeriod] = useState<DateRange>({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date()),
   });
   
   // Unique values for filters
@@ -162,8 +163,8 @@ const Financial = () => {
       return { data: [], count: 0 };
     }
 
-    const startDate = format(globalPeriod.startDate, 'yyyy-MM-dd');
-    const endDate = format(globalPeriod.endDate, 'yyyy-MM-dd');
+    const startDate = globalPeriod.from ? format(globalPeriod.from, 'yyyy-MM-dd') : format(startOfMonth(new Date()), 'yyyy-MM-dd');
+    const endDate = globalPeriod.to ? format(globalPeriod.to, 'yyyy-MM-dd') : format(endOfMonth(new Date()), 'yyyy-MM-dd');
 
     let query = supabase
       .from('financial_ledger')
@@ -556,11 +557,23 @@ const Financial = () => {
   }
 
   return (
-    <div className="p-2 lg:p-3 space-y-3">
-      {/* Compact Top Bar: Period + Entry Count + Actions */}
-      <div className="flex items-center justify-between gap-2 flex-wrap">
+    <div className="p-2 lg:p-3 space-y-2">
+      {/* Single Compact Top Bar: Search + Date Picker + Actions */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
-          <PeriodSelector value={globalPeriod} onChange={setGlobalPeriod} />
+          <SearchInput 
+            placeholder="Search client, employee, ref..."
+            value={search}
+            onChange={setSearch}
+            className="w-64 h-8 text-xs"
+          />
+          <DatePickerDialog
+            mode="range"
+            selected={globalPeriod}
+            onSelect={(value) => value && setGlobalPeriod(value as DateRange)}
+            className="h-8 text-xs w-auto"
+            dateFormat="MMM d, yyyy"
+          />
           <div className="flex items-center text-xs text-muted-foreground">
             <BookOpen className="h-3.5 w-3.5 mr-1" />
             {pagination.totalCount} {pagination.totalCount === 1 ? 'entry' : 'entries'}
@@ -596,16 +609,6 @@ const Financial = () => {
         )}
       </div>
 
-      {/* Search Bar - Compact inline */}
-      <div className="flex items-center gap-2">
-        <SearchInput 
-          placeholder="Search client, employee, ref..."
-          value={search}
-          onChange={setSearch}
-          className="w-56 h-8 text-xs"
-        />
-      </div>
-
       {/* Full-Width Ledger Table - Dense styling */}
       <PaginatedDataTable
         columns={columns}
@@ -623,8 +626,8 @@ const Financial = () => {
         <span>Currency: CAD (Canadian Dollar)</span>
         <div className="flex items-center gap-4">
           <span>Showing {entries.length} of {pagination.totalCount}</span>
-          {globalPeriod.startDate && globalPeriod.endDate && (
-            <span>Period: {format(globalPeriod.startDate, 'MMM d')} — {format(globalPeriod.endDate, 'MMM d, yyyy')}</span>
+          {globalPeriod.from && globalPeriod.to && (
+            <span>Period: {format(globalPeriod.from, 'MMM d')} — {format(globalPeriod.to, 'MMM d, yyyy')}</span>
           )}
         </div>
       </div>
