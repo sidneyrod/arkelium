@@ -104,6 +104,11 @@ const Financial = () => {
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('all');
   const [clientFilter, setClientFilter] = useState<string>('all');
   const [cleanerFilter, setCleanerFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<string>('all');
+  const [referenceFilter, setReferenceFilter] = useState<string>('all');
+  const [grossFilter, setGrossFilter] = useState<string>('all');
+  const [deductFilter, setDeductFilter] = useState<string>('all');
+  const [netFilter, setNetFilter] = useState<string>('all');
   const [globalPeriod, setGlobalPeriod] = useState<PeriodDateRange>({
     startDate: startOfMonth(new Date()),
     endDate: endOfMonth(new Date()),
@@ -265,6 +270,18 @@ const Financial = () => {
   };
 
   // Filter options for column headers
+  const dateOptions: FilterOption[] = useMemo(() => {
+    const uniqueDates = [...new Set(entries.map(e => {
+      if (!e.transactionDate) return null;
+      return format(parseISO(e.transactionDate), 'yyyy-MM');
+    }).filter(Boolean))].sort().reverse();
+    
+    return [
+      { value: 'all', label: 'All Dates' },
+      ...uniqueDates.map(d => ({ value: d as string, label: format(parseISO(`${d}-01`), 'MMM yyyy') }))
+    ];
+  }, [entries]);
+
   const eventTypeOptions: FilterOption[] = useMemo(() => [
     { value: 'all', label: 'All Types' },
     { value: 'invoice', label: 'Invoice' },
@@ -302,11 +319,58 @@ const Financial = () => {
     ...cleaners.map(c => ({ value: c.id, label: c.name }))
   ], [cleaners]);
 
+  const referenceOptions: FilterOption[] = useMemo(() => {
+    const prefixes = [...new Set(entries.map(e => {
+      const ref = e.referenceNumber || e.serviceReference || '';
+      const match = ref.match(/^([A-Z]+)/);
+      return match ? match[1] : null;
+    }).filter(Boolean))].sort();
+    
+    return [
+      { value: 'all', label: 'All Refs' },
+      ...prefixes.map(p => ({ value: p as string, label: p as string }))
+    ];
+  }, [entries]);
+
+  const grossOptions: FilterOption[] = useMemo(() => [
+    { value: 'all', label: 'All Amounts' },
+    { value: '0-50', label: '$0 - $50' },
+    { value: '50-100', label: '$50 - $100' },
+    { value: '100-250', label: '$100 - $250' },
+    { value: '250-500', label: '$250 - $500' },
+    { value: '500+', label: '$500+' },
+  ], []);
+
+  const deductOptions: FilterOption[] = useMemo(() => [
+    { value: 'all', label: 'All' },
+    { value: '0', label: '$0 (None)' },
+    { value: '0-25', label: '$0.01 - $25' },
+    { value: '25-50', label: '$25 - $50' },
+    { value: '50+', label: '$50+' },
+  ], []);
+
+  const netOptions: FilterOption[] = useMemo(() => [
+    { value: 'all', label: 'All Amounts' },
+    { value: '0-50', label: '$0 - $50' },
+    { value: '50-100', label: '$50 - $100' },
+    { value: '100-250', label: '$100 - $250' },
+    { value: '250-500', label: '$250 - $500' },
+    { value: '500+', label: '$500+' },
+  ], []);
+
   // Table columns - Dense, accountant-friendly formatting with inline filters
   const columns: Column<LedgerEntry>[] = useMemo(() => [
     {
       key: 'transactionDate',
-      header: 'Date',
+      header: (
+        <FilterableColumnHeader
+          title="Date"
+          value={dateFilter}
+          onChange={setDateFilter}
+          options={dateOptions}
+          allLabel="All Dates"
+        />
+      ),
       render: (entry) => (
         <span className="font-mono text-xs">
           {entry.transactionDate ? format(parseISO(entry.transactionDate), 'MMM d, yyyy') : '—'}
@@ -370,7 +434,15 @@ const Financial = () => {
     },
     {
       key: 'referenceNumber',
-      header: 'Reference',
+      header: (
+        <FilterableColumnHeader
+          title="Reference"
+          value={referenceFilter}
+          onChange={setReferenceFilter}
+          options={referenceOptions}
+          allLabel="All Refs"
+        />
+      ),
       render: (entry) => (
         <span className="font-mono text-[11px] text-muted-foreground">
           {entry.referenceNumber || entry.serviceReference?.substring(0, 8) || '—'}
@@ -396,7 +468,15 @@ const Financial = () => {
     },
     {
       key: 'grossAmount',
-      header: 'Gross',
+      header: (
+        <FilterableColumnHeader
+          title="Gross"
+          value={grossFilter}
+          onChange={setGrossFilter}
+          options={grossOptions}
+          allLabel="All Amounts"
+        />
+      ),
       render: (entry) => (
         <span className={cn(
           'font-mono text-xs tabular-nums',
@@ -409,7 +489,15 @@ const Financial = () => {
     },
     {
       key: 'deductions',
-      header: 'Deduct.',
+      header: (
+        <FilterableColumnHeader
+          title="Deduct."
+          value={deductFilter}
+          onChange={setDeductFilter}
+          options={deductOptions}
+          allLabel="All"
+        />
+      ),
       render: (entry) => (
         <span className="font-mono text-xs text-muted-foreground tabular-nums">
           ${entry.deductions.toFixed(2)}
@@ -418,7 +506,15 @@ const Financial = () => {
     },
     {
       key: 'netAmount',
-      header: 'Net',
+      header: (
+        <FilterableColumnHeader
+          title="Net"
+          value={netFilter}
+          onChange={setNetFilter}
+          options={netOptions}
+          allLabel="All Amounts"
+        />
+      ),
       render: (entry) => (
         <span className={cn(
           'font-mono text-xs font-semibold tabular-nums',
@@ -449,7 +545,7 @@ const Financial = () => {
         );
       },
     },
-  ], [eventTypeFilter, statusFilter, paymentMethodFilter, clientFilter, cleanerFilter, eventTypeOptions, statusOptions, paymentMethodOptions, clientOptions, cleanerOptions]);
+  ], [eventTypeFilter, statusFilter, paymentMethodFilter, clientFilter, cleanerFilter, dateFilter, referenceFilter, grossFilter, deductFilter, netFilter, eventTypeOptions, statusOptions, paymentMethodOptions, clientOptions, cleanerOptions, dateOptions, referenceOptions, grossOptions, deductOptions, netOptions]);
 
   if (isLoading && entries.length === 0) {
     return (
