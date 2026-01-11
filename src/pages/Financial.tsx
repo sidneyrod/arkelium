@@ -107,7 +107,7 @@ const Financial = () => {
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('all');
   const [clientFilter, setClientFilter] = useState<string>('all');
   const [cleanerFilter, setCleanerFilter] = useState<string>('all');
-  const [dateFilter, setDateFilter] = useState<string>('all');
+  
   const [referenceFilter, setReferenceFilter] = useState<string>('all');
   const [grossFilter, setGrossFilter] = useState<string>('all');
   const [deductFilter, setDeductFilter] = useState<string>('all');
@@ -338,17 +338,6 @@ const Financial = () => {
   };
 
   // Filter options for column headers
-  const dateOptions: FilterOption[] = useMemo(() => {
-    const uniqueDates = [...new Set(entries.map(e => {
-      if (!e.transactionDate) return null;
-      return format(parseISO(e.transactionDate), 'yyyy-MM');
-    }).filter(Boolean))].sort().reverse();
-    
-    return [
-      { value: 'all', label: 'All Dates' },
-      ...uniqueDates.map(d => ({ value: d as string, label: format(parseISO(`${d}-01`), 'MMM yyyy') }))
-    ];
-  }, [entries]);
 
   const eventTypeOptions: FilterOption[] = useMemo(() => [
     { value: 'all', label: 'All Types' },
@@ -434,13 +423,7 @@ const Financial = () => {
     transactionDate: {
       key: 'transactionDate',
       header: (
-        <FilterableColumnHeader
-          title="Date"
-          value={dateFilter}
-          onChange={setDateFilter}
-          options={dateOptions}
-          allLabel="All Dates"
-        />
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date</span>
       ),
       render: (entry) => (
         <span className="font-mono text-xs">
@@ -616,7 +599,7 @@ const Financial = () => {
         );
       },
     },
-  }), [eventTypeFilter, statusFilter, paymentMethodFilter, clientFilter, cleanerFilter, dateFilter, referenceFilter, grossFilter, deductFilter, netFilter, eventTypeOptions, statusOptions, paymentMethodOptions, clientOptions, cleanerOptions, dateOptions, referenceOptions, grossOptions, deductOptions, netOptions]);
+  }), [eventTypeFilter, statusFilter, paymentMethodFilter, clientFilter, cleanerFilter, referenceFilter, grossFilter, deductFilter, netFilter, eventTypeOptions, statusOptions, paymentMethodOptions, clientOptions, cleanerOptions, referenceOptions, grossOptions, deductOptions, netOptions]);
 
   // Build columns array based on user's configured order and visibility
   const columns: Column<LedgerEntry>[] = useMemo(() => {
