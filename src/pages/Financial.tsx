@@ -319,7 +319,7 @@ const Financial = () => {
       eventTypeConfig[e.eventType]?.label || e.eventType,
       e.clientName || '',
       e.cleanerName || '',
-      e.referenceNumber || '',
+      e.serviceReference || '',
       paymentMethodLabels[e.paymentMethod || ''] || e.paymentMethod || '',
       e.grossAmount.toFixed(2),
       e.deductions.toFixed(2),
@@ -327,7 +327,18 @@ const Financial = () => {
       statusConfig[e.status]?.label || e.status,
     ]);
     
-    const csv = [headers, ...rows].map(row => row.map(cell => `\"${cell}\"`).join(',')).join('\n');
+    // Calculate totals for accountant
+    const totals = entries.reduce((acc, e) => ({
+      gross: acc.gross + e.grossAmount,
+      deductions: acc.deductions + e.deductions,
+      net: acc.net + e.netAmount,
+    }), { gross: 0, deductions: 0, net: 0 });
+    
+    // Add empty row and totals row
+    rows.push(['', '', '', '', '', '', '', '', '', '']);
+    rows.push(['', '', '', '', 'TOTALS:', '', totals.gross.toFixed(2), totals.deductions.toFixed(2), totals.net.toFixed(2), '']);
+    
+    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -336,6 +347,111 @@ const Financial = () => {
     a.click();
     URL.revokeObjectURL(url);
     toast({ title: 'Success', description: 'CSV exported successfully' });
+  };
+
+  const exportToPDF = () => {
+    const totals = entries.reduce((acc, e) => ({
+      gross: acc.gross + e.grossAmount,
+      deductions: acc.deductions + e.deductions,
+      net: acc.net + e.netAmount,
+    }), { gross: 0, deductions: 0, net: 0 });
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast({ title: 'Error', description: 'Please allow popups to export PDF', variant: 'destructive' });
+      return;
+    }
+
+    const periodFrom = globalPeriod.from ? format(globalPeriod.from, 'MMMM d, yyyy') : 'N/A';
+    const periodTo = globalPeriod.to ? format(globalPeriod.to, 'MMMM d, yyyy') : 'N/A';
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Financial Ledger Report</title>
+        <style>
+          @page { size: A4 landscape; margin: 1.5cm; }
+          * { box-sizing: border-box; }
+          body { font-family: Arial, sans-serif; font-size: 9px; color: #333; margin: 0; padding: 20px; }
+          h1 { color: #0A6C53; font-size: 18px; margin: 0 0 5px 0; }
+          .meta { color: #666; margin-bottom: 15px; font-size: 10px; }
+          .meta p { margin: 2px 0; }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+          th { background: #f4f4f4; padding: 8px 6px; text-align: left; border-bottom: 2px solid #ddd; font-size: 9px; font-weight: 600; }
+          td { padding: 6px; border-bottom: 1px solid #eee; font-size: 9px; }
+          tr:nth-child(even) { background: #fafafa; }
+          .amount { text-align: right; font-family: 'Courier New', monospace; }
+          .ref { font-family: 'Courier New', monospace; font-size: 8px; }
+          .total-row { font-weight: bold; background: #f0f9f6 !important; border-top: 2px solid #0A6C53; }
+          .total-row td { padding: 10px 6px; font-size: 10px; }
+          .footer { margin-top: 20px; padding: 10px; background: #f9f9f9; border-radius: 4px; font-size: 9px; }
+          .footer strong { color: #0A6C53; }
+          @media print {
+            body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Financial Ledger Report</h1>
+        <div class="meta">
+          <p><strong>Period:</strong> ${periodFrom} — ${periodTo}</p>
+          <p><strong>Generated:</strong> ${format(new Date(), 'MMMM d, yyyy HH:mm')} | <strong>Records:</strong> ${entries.length}</p>
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Client</th>
+              <th>Employee</th>
+              <th>Reference</th>
+              <th>Payment</th>
+              <th class="amount">Gross (CAD)</th>
+              <th class="amount">Deductions</th>
+              <th class="amount">Net (CAD)</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${entries.map(e => `
+              <tr>
+                <td>${e.transactionDate}</td>
+                <td>${eventTypeConfig[e.eventType]?.label || e.eventType}</td>
+                <td>${e.clientName || '—'}</td>
+                <td>${e.cleanerName || '—'}</td>
+                <td class="ref">${e.serviceReference || '—'}</td>
+                <td>${paymentMethodLabels[e.paymentMethod || ''] || e.paymentMethod || '—'}</td>
+                <td class="amount">$${e.grossAmount.toFixed(2)}</td>
+                <td class="amount">$${e.deductions.toFixed(2)}</td>
+                <td class="amount">$${e.netAmount.toFixed(2)}</td>
+                <td>${statusConfig[e.status]?.label || e.status}</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td colspan="6"><strong>TOTALS</strong></td>
+              <td class="amount">$${totals.gross.toFixed(2)}</td>
+              <td class="amount">$${totals.deductions.toFixed(2)}</td>
+              <td class="amount">$${totals.net.toFixed(2)}</td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <div class="footer">
+          <strong>Summary:</strong> Total Net Revenue: <strong>$${totals.net.toFixed(2)} CAD</strong> | 
+          Currency: Canadian Dollar (CAD)
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.print();
+    };
   };
 
   // Filter options for column headers
@@ -675,9 +791,9 @@ const Financial = () => {
                   Export CSV
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => window.print()} className="text-xs">
+                <DropdownMenuItem onClick={exportToPDF} className="text-xs">
                   <Printer className="h-3.5 w-3.5 mr-2" />
-                  Print Report
+                  Export PDF
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
