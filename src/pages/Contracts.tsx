@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
 import PageHeader from '@/components/ui/page-header';
 import SearchInput from '@/components/ui/search-input';
 import { PaginatedDataTable, Column } from '@/components/ui/paginated-data-table';
@@ -94,6 +95,7 @@ const statusColors: Record<string, string> = {
 const Contracts = () => {
   const { t, language } = useLanguage();
   const { user } = useAuth();
+  const { activeCompanyId } = useActiveCompanyStore();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [clients, setClients] = useState<Client[]>([]);
@@ -106,7 +108,7 @@ const Contracts = () => {
   const [isSendingEmail, setIsSendingEmail] = useState<string | null>(null);
   const [isSendingSms, setIsSendingSms] = useState<string | null>(null);
 
-  const companyId = user?.profile?.company_id;
+  const companyId = activeCompanyId;
 
   // Debounce search
   useEffect(() => {

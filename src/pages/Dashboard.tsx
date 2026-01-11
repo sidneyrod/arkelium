@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
 import StatCard from '@/components/ui/stat-card';
 import AlertCard from '@/components/ui/alert-card';
 import useRoleAccess from '@/hooks/useRoleAccess';
@@ -72,6 +73,7 @@ const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { isCleaner, isAdminOrManager } = useRoleAccess();
+  const { activeCompanyId } = useActiveCompanyStore();
   
   const [period, setPeriod] = useState<DateRange>({
     startDate: startOfMonth(new Date()),
@@ -122,9 +124,9 @@ const Dashboard = () => {
     : firstName || lastName || 'User';
 
   const fetchDashboardData = useCallback(async () => {
-    if (!user?.profile?.company_id) return;
+    if (!activeCompanyId) return;
 
-    const companyId = user.profile.company_id;
+    const companyId = activeCompanyId;
     const today = format(new Date(), 'yyyy-MM-dd');
     const weekStart = format(startOfWeek(new Date()), 'yyyy-MM-dd');
     const weekEnd = format(endOfWeek(new Date()), 'yyyy-MM-dd');
@@ -309,7 +311,7 @@ const Dashboard = () => {
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
     }
-  }, [user?.profile?.company_id, user?.id, isCleaner, period]);
+  }, [activeCompanyId, user?.id, isCleaner, period]);
 
   useEffect(() => {
     fetchDashboardData();

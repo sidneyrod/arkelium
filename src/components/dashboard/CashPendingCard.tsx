@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
+import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,7 @@ const CashPendingCard = () => {
   const { user } = useAuth();
   const { language } = useLanguage();
   const navigate = useNavigate();
+  const { activeCompanyId } = useActiveCompanyStore();
   const [pendingCash, setPendingCash] = useState<CashCollection[]>([]);
   const [totalPending, setTotalPending] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -59,7 +61,7 @@ const CashPendingCard = () => {
 
   useEffect(() => {
     const fetchPendingCash = async () => {
-      if (!user?.profile?.company_id) return;
+      if (!activeCompanyId) return;
 
       try {
         const { data, error } = await supabase
@@ -75,7 +77,7 @@ const CashPendingCard = () => {
             cleaner:cleaner_id (first_name, last_name),
             client:client_id (name)
           `)
-          .eq('company_id', user.profile.company_id)
+          .eq('company_id', activeCompanyId)
           .eq('compensation_status', 'pending')
           .eq('cash_handling', 'kept_by_cleaner')
           .order('handled_at', { ascending: false })
@@ -100,7 +102,7 @@ const CashPendingCard = () => {
     };
 
     fetchPendingCash();
-  }, [user?.profile?.company_id]);
+  }, [activeCompanyId]);
 
   if (isLoading) {
     return (

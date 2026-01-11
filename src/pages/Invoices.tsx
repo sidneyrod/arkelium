@@ -3,6 +3,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
 import { notifyInvoicePaid } from '@/hooks/useNotifications';
 import PageHeader from '@/components/ui/page-header';
 import SearchInput from '@/components/ui/search-input';
@@ -73,6 +74,7 @@ const statusConfig: Record<InvoiceStatus, { color: string; bgColor: string; labe
 const Invoices = () => {
   const { t } = useLanguage();
   const { user, hasRole } = useAuth();
+  const { activeCompanyId } = useActiveCompanyStore();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   
@@ -132,12 +134,12 @@ const Invoices = () => {
   // Fetch company profile
   useEffect(() => {
     const fetchCompanyProfile = async () => {
-      if (!user?.profile?.company_id) return;
+      if (!activeCompanyId) return;
 
       const { data } = await supabase
         .from('companies')
         .select('*')
-        .eq('id', user.profile.company_id)
+        .eq('id', activeCompanyId)
         .maybeSingle();
 
       if (data) {
@@ -154,11 +156,11 @@ const Invoices = () => {
     };
 
     fetchCompanyProfile();
-  }, [user?.profile?.company_id]);
+  }, [activeCompanyId]);
 
   // Server-side pagination fetch function
   const fetchInvoices = useCallback(async (from: number, to: number) => {
-    if (!user?.profile?.company_id) {
+    if (!activeCompanyId) {
       return { data: [], count: 0 };
     }
 
@@ -205,7 +207,7 @@ const Invoices = () => {
           total
         )
       `, { count: 'exact' })
-      .eq('company_id', user.profile.company_id)
+      .eq('company_id', activeCompanyId)
       .gte('service_date', startDate)
       .lte('service_date', endDate);
 
@@ -271,7 +273,7 @@ const Invoices = () => {
     });
 
     return { data: mappedInvoices, count: count || 0 };
-  }, [user?.profile?.company_id, dateRange, statusFilter, debouncedSearch]);
+  }, [activeCompanyId, dateRange, statusFilter, debouncedSearch]);
 
   const {
     data: invoices,

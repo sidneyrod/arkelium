@@ -3,6 +3,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -109,6 +110,7 @@ const Schedule = () => {
   const { estimateConfig } = useCompanyStore();
   const { isCleaner, isAdminOrManager } = useRoleAccess();
   const { preferences: companyPreferences } = useCompanyPreferences();
+  const { activeCompanyId } = useActiveCompanyStore();
   
   // Read URL params for initial state
   const urlView = searchParams.get('view') as ViewType | null;
@@ -161,7 +163,10 @@ const Schedule = () => {
   // Fetch jobs from Supabase
   const fetchJobs = useCallback(async () => {
     try {
-      let companyId = user?.profile?.company_id;
+      let companyId = activeCompanyId;
+      if (!companyId) {
+        companyId = user?.profile?.company_id || null;
+      }
       if (!companyId) {
         const { data: companyIdData } = await supabase.rpc('get_user_company_id');
         companyId = companyIdData;
@@ -238,14 +243,17 @@ const Schedule = () => {
       console.error('Error in fetchJobs:', error);
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, activeCompanyId]);
 
   const [autoSendCashReceipt, setAutoSendCashReceipt] = useState(false);
   
   // Fetch invoice generation mode setting
   const fetchInvoiceSettings = useCallback(async () => {
     try {
-      let companyId = user?.profile?.company_id;
+      let companyId = activeCompanyId;
+      if (!companyId) {
+        companyId = user?.profile?.company_id || null;
+      }
       if (!companyId) {
         const { data: companyIdData } = await supabase.rpc('get_user_company_id');
         companyId = companyIdData;
@@ -268,7 +276,7 @@ const Schedule = () => {
     } catch (error) {
       console.error('Error fetching invoice settings:', error);
     }
-  }, [user]);
+  }, [user, activeCompanyId]);
 
   useEffect(() => {
     if (user) {
