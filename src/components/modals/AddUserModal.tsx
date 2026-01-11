@@ -189,15 +189,18 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
         const selectedRole = availableRoles.find(r => r.id === formData.roleId);
         const baseRole = selectedRole?.baseRole || formData.role;
 
-        // Update role - only if it's a valid app_role
+        // Upsert role - creates if doesn't exist, updates if exists
         const { error: roleError } = await supabase
           .from('user_roles')
-          .update({ 
+          .upsert({ 
+            user_id: editUser.id,
+            company_id: companyId,
             role: baseRole,
-            custom_role_id: formData.roleId || null
-          })
-          .eq('user_id', editUser.id)
-          .eq('company_id', companyId);
+            custom_role_id: formData.roleId || null,
+            status: 'active'
+          }, { 
+            onConflict: 'user_id,company_id' 
+          });
 
         if (roleError) throw roleError;
 
