@@ -82,19 +82,19 @@ export function LedgerColumnSettings({
           <span className="sr-only">Column Settings</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md flex flex-col overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Settings2 className="h-5 w-5" />
             Customize Columns
           </DialogTitle>
         </DialogHeader>
 
-        <div className="text-xs text-muted-foreground mb-3">
+        <div className="text-xs text-muted-foreground shrink-0">
           Drag to reorder • Toggle visibility • {visibleCount} of {localConfig.length} visible
         </div>
 
-        <div className="space-y-1 max-h-[400px] overflow-y-auto">
+        <div className="space-y-1 flex-1 overflow-y-auto min-h-0 pr-1">
           {localConfig.map((col, index) => (
             <div
               key={col.key}
