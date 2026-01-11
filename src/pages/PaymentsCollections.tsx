@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
 import PageHeader from '@/components/ui/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -98,6 +99,7 @@ const statusConfig: Record<string, { label: string; variant: 'active' | 'pending
 
 const PaymentsCollections = () => {
   const { user } = useAuth();
+  const { activeCompanyId } = useActiveCompanyStore();
   
   // State
   const [activeTab, setActiveTab] = useState('cash');
@@ -129,8 +131,8 @@ const PaymentsCollections = () => {
 
   // Fetch KPIs separately
   const fetchKpis = useCallback(async () => {
-    const { data: companyId } = await supabase.rpc('get_user_company_id');
-    if (!companyId) return;
+    if (!activeCompanyId) return;
+    const companyId = activeCompanyId;
 
     const startDate = format(dateRange.startDate, 'yyyy-MM-dd');
     const endDate = format(dateRange.endDate, 'yyyy-MM-dd');
@@ -161,7 +163,7 @@ const PaymentsCollections = () => {
     const cashDisputed = cashData.filter(c => c.compensation_status === 'disputed').reduce((sum, c) => sum + c.amount, 0);
 
     setKpis({ totalReceived, cashPending, cashApproved, cashDisputed });
-  }, [dateRange]);
+  }, [activeCompanyId, dateRange]);
 
   useEffect(() => {
     fetchKpis();
@@ -169,8 +171,8 @@ const PaymentsCollections = () => {
 
   // Cash collections fetch function
   const fetchCashCollections = useCallback(async (from: number, to: number) => {
-    const { data: companyId } = await supabase.rpc('get_user_company_id');
-    if (!companyId) return { data: [], count: 0 };
+    if (!activeCompanyId) return { data: [], count: 0 };
+    const companyId = activeCompanyId;
 
     const startDate = format(dateRange.startDate, 'yyyy-MM-dd');
     const endDate = format(dateRange.endDate, 'yyyy-MM-dd');
@@ -208,12 +210,12 @@ const PaymentsCollections = () => {
     }));
 
     return { data: mapped, count: count || 0 };
-  }, [dateRange, selectedStatus, debouncedSearch]);
+  }, [activeCompanyId, dateRange, selectedStatus, debouncedSearch]);
 
   // Receipts fetch function
   const fetchReceipts = useCallback(async (from: number, to: number) => {
-    const { data: companyId } = await supabase.rpc('get_user_company_id');
-    if (!companyId) return { data: [], count: 0 };
+    if (!activeCompanyId) return { data: [], count: 0 };
+    const companyId = activeCompanyId;
 
     const startDate = format(dateRange.startDate, 'yyyy-MM-dd');
     const endDate = format(dateRange.endDate, 'yyyy-MM-dd');
@@ -248,12 +250,12 @@ const PaymentsCollections = () => {
     }));
 
     return { data: mapped, count: count || 0 };
-  }, [dateRange, debouncedSearch]);
+  }, [activeCompanyId, dateRange, debouncedSearch]);
 
   // Invoices fetch function
   const fetchInvoices = useCallback(async (from: number, to: number) => {
-    const { data: companyId } = await supabase.rpc('get_user_company_id');
-    if (!companyId) return { data: [], count: 0 };
+    if (!activeCompanyId) return { data: [], count: 0 };
+    const companyId = activeCompanyId;
 
     const startDate = format(dateRange.startDate, 'yyyy-MM-dd');
     const endDate = format(dateRange.endDate, 'yyyy-MM-dd');
@@ -291,7 +293,7 @@ const PaymentsCollections = () => {
     }));
 
     return { data: mapped, count: count || 0 };
-  }, [dateRange, selectedStatus, debouncedSearch]);
+  }, [activeCompanyId, dateRange, selectedStatus, debouncedSearch]);
 
   // Pagination hooks
   const cashPagination = useServerPagination<CashCollection>(fetchCashCollections, { pageSize: 25 });
@@ -304,7 +306,7 @@ const PaymentsCollections = () => {
     receiptsPagination.refresh();
     invoicesPagination.refresh();
     fetchKpis();
-  }, [dateRange, selectedStatus, debouncedSearch]);
+  }, [activeCompanyId, dateRange, selectedStatus, debouncedSearch]);
 
   // Handle approval/dispute
   const handleApproveCash = async (collectionId: string) => {

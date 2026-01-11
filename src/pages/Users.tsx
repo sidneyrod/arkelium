@@ -3,6 +3,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
 import PageHeader from '@/components/ui/page-header';
 import SearchInput from '@/components/ui/search-input';
 import PaginatedDataTable, { Column } from '@/components/ui/paginated-data-table';
@@ -52,6 +53,7 @@ const Users = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
+  const { activeCompanyId } = useActiveCompanyStore();
   
   // Read URL params for filters
   const urlFilter = searchParams.get('filter');
@@ -78,13 +80,13 @@ const Users = () => {
 
   // Fetch roles function - extracted to allow refetching after updates
   const fetchRolesData = useCallback(async () => {
-    if (!user?.profile?.company_id) return;
+    if (!activeCompanyId) return;
     
     // Fetch user roles with custom_role_id
     const { data: rolesData } = await supabase
       .from('user_roles')
       .select('user_id, role, custom_role_id')
-      .eq('company_id', user.profile.company_id);
+      .eq('company_id', activeCompanyId);
     setRoles(rolesData || []);
     
     // Fetch custom roles
@@ -93,7 +95,7 @@ const Users = () => {
       .select('id, name, base_role')
       .eq('is_active', true);
     setCustomRoles(customRolesData || []);
-  }, [user?.profile?.company_id]);
+  }, [activeCompanyId]);
 
   // Fetch roles on mount and when company changes
   useEffect(() => {
@@ -102,7 +104,7 @@ const Users = () => {
 
   // Server-side paginated fetch
   const fetchUsers = useCallback(async (from: number, to: number) => {
-    if (!user?.profile?.company_id) {
+    if (!activeCompanyId) {
       return { data: [], count: 0 };
     }
 
@@ -125,7 +127,7 @@ const Users = () => {
         primary_province,
         employment_type
       `, { count: 'exact' })
-      .eq('company_id', user.profile.company_id);
+      .eq('company_id', activeCompanyId);
 
     // Server-side search
     if (debouncedSearch) {
@@ -189,7 +191,7 @@ const Users = () => {
     }
 
     return { data: filteredUsers, count: count || 0 };
-  }, [user?.profile?.company_id, debouncedSearch, roles, customRoles, urlRoles, roleFilter, statusFilterFromUrl]);
+  }, [activeCompanyId, debouncedSearch, roles, customRoles, urlRoles, roleFilter, statusFilterFromUrl]);
 
   const {
     data: users,
@@ -220,7 +222,7 @@ const Users = () => {
       .from('jobs')
       .select('*', { count: 'exact', head: true })
       .eq('cleaner_id', userId)
-      .eq('company_id', user?.profile?.company_id);
+      .eq('company_id', activeCompanyId);
     
     if (error) {
       console.error('Error checking jobs:', error);
@@ -247,7 +249,7 @@ const Users = () => {
           .from('jobs')
           .delete()
           .eq('cleaner_id', deleteUser.id)
-          .eq('company_id', user?.profile?.company_id);
+          .eq('company_id', activeCompanyId);
         
         if (jobsError) {
           console.error('Error deleting jobs:', jobsError);
@@ -261,7 +263,7 @@ const Users = () => {
         .from('user_roles')
         .delete()
         .eq('user_id', deleteUser.id)
-        .eq('company_id', user?.profile?.company_id);
+        .eq('company_id', activeCompanyId);
 
       if (roleError) {
         console.error('Error deleting role:', roleError);
@@ -274,7 +276,7 @@ const Users = () => {
         .from('profiles')
         .delete()
         .eq('id', deleteUser.id)
-        .eq('company_id', user?.profile?.company_id);
+        .eq('company_id', activeCompanyId);
 
       if (profileError) {
         console.error('Error deleting profile:', profileError);

@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
 import PageHeader from '@/components/ui/page-header';
 import SearchInput from '@/components/ui/search-input';
 import PaginatedDataTable, { Column } from '@/components/ui/paginated-data-table';
@@ -60,6 +61,7 @@ const Clients = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
+  const { activeCompanyId } = useActiveCompanyStore();
   
   // Read URL params for filters
   const urlStatus = searchParams.get('status');
@@ -89,7 +91,7 @@ const Clients = () => {
 
   // Server-side paginated fetch
   const fetchClients = useCallback(async (from: number, to: number) => {
-    if (!user?.profile?.company_id) {
+    if (!activeCompanyId) {
       return { data: [], count: 0 };
     }
 
@@ -122,7 +124,7 @@ const Clients = () => {
           notes
         )
       `, { count: 'exact' })
-      .eq('company_id', user.profile.company_id);
+      .eq('company_id', activeCompanyId);
 
     // Server-side search
     if (debouncedSearch) {
@@ -172,7 +174,7 @@ const Clients = () => {
     }));
 
     return { data: mappedClients, count: count || 0 };
-  }, [user?.profile?.company_id, debouncedSearch]);
+  }, [activeCompanyId, debouncedSearch]);
 
   const {
     data: clients,
@@ -189,7 +191,7 @@ const Clients = () => {
   }, [debouncedSearch]);
 
   const handleAddClient = async (clientData: ClientFormData) => {
-    if (!user?.profile?.company_id) return;
+    if (!activeCompanyId) return;
 
     try {
       // Validate for duplicates
@@ -199,7 +201,7 @@ const Clients = () => {
           name: clientData.name,
           phone: clientData.phone,
         },
-        user.profile.company_id,
+        activeCompanyId,
         editClient?.id
       );
       
@@ -225,7 +227,7 @@ const Clients = () => {
             country: clientData.country,
           })
           .eq('id', editClient.id)
-          .eq('company_id', user.profile.company_id);
+          .eq('company_id', activeCompanyId);
 
         if (error) throw error;
         
@@ -235,7 +237,7 @@ const Clients = () => {
         const { error } = await supabase
           .from('clients')
           .insert({
-            company_id: user.profile.company_id,
+            company_id: activeCompanyId,
             name: clientData.name,
             email: clientData.email,
             phone: clientData.phone,
@@ -262,10 +264,10 @@ const Clients = () => {
   };
 
   const handleDeleteClick = async (client: Client) => {
-    if (!user?.profile?.company_id) return;
+    if (!activeCompanyId) return;
     
     // Check if client can be deleted
-    const deleteCheck = await canDeleteClient(client.id, user.profile.company_id);
+    const deleteCheck = await canDeleteClient(client.id, activeCompanyId);
     
     if (!deleteCheck.isValid) {
       setDeleteWarning(deleteCheck.message || null);
@@ -296,7 +298,7 @@ const Clients = () => {
         .from('clients')
         .delete()
         .eq('id', deleteClient.id)
-        .eq('company_id', user?.profile?.company_id);
+        .eq('company_id', activeCompanyId);
 
       if (error) throw error;
 
@@ -321,7 +323,7 @@ const Clients = () => {
 
   // Location CRUD handlers
   const handleAddLocation = async (locationData: LocationFormData) => {
-    if (!selectedClient || !user?.profile?.company_id) return;
+    if (!selectedClient || !activeCompanyId) return;
     
     setLocationLoading(true);
     try {
@@ -331,7 +333,7 @@ const Clients = () => {
           .from('client_locations')
           .update({ is_primary: false })
           .eq('client_id', selectedClient.id)
-          .eq('company_id', user.profile.company_id);
+          .eq('company_id', activeCompanyId);
       }
 
       if (editLocation?.id) {
@@ -352,7 +354,7 @@ const Clients = () => {
             notes: locationData.notes,
           })
           .eq('id', editLocation.id)
-          .eq('company_id', user.profile.company_id);
+          .eq('company_id', activeCompanyId);
 
         if (error) throw error;
         toast({ title: t.common.success, description: t.clients.locationUpdated });
@@ -361,7 +363,7 @@ const Clients = () => {
         const { error } = await supabase
           .from('client_locations')
           .insert({
-            company_id: user.profile.company_id,
+            company_id: activeCompanyId,
             client_id: selectedClient.id,
             address: locationData.address,
             city: locationData.city,
@@ -393,14 +395,14 @@ const Clients = () => {
   };
 
   const handleDeleteLocation = async () => {
-    if (!deleteLocation || !user?.profile?.company_id) return;
+    if (!deleteLocation || !activeCompanyId) return;
     
     try {
       const { error } = await supabase
         .from('client_locations')
         .delete()
         .eq('id', deleteLocation.id)
-        .eq('company_id', user.profile.company_id);
+        .eq('company_id', activeCompanyId);
 
       if (error) throw error;
 
@@ -415,7 +417,7 @@ const Clients = () => {
   };
 
   const handleSetPrimaryLocation = async (location: Location) => {
-    if (!selectedClient || !user?.profile?.company_id) return;
+    if (!selectedClient || !activeCompanyId) return;
     
     try {
       // Reset all locations to non-primary
@@ -423,14 +425,14 @@ const Clients = () => {
         .from('client_locations')
         .update({ is_primary: false })
         .eq('client_id', selectedClient.id)
-        .eq('company_id', user.profile.company_id);
+        .eq('company_id', activeCompanyId);
 
       // Set the selected location as primary
       const { error } = await supabase
         .from('client_locations')
         .update({ is_primary: true })
         .eq('id', location.id)
-        .eq('company_id', user.profile.company_id);
+        .eq('company_id', activeCompanyId);
 
       if (error) throw error;
 
@@ -461,7 +463,7 @@ const Clients = () => {
   };
 
   const refreshSelectedClient = async () => {
-    if (!selectedClient || !user?.profile?.company_id) return;
+    if (!selectedClient || !activeCompanyId) return;
 
     const { data, error } = await supabase
       .from('clients')
@@ -493,7 +495,7 @@ const Clients = () => {
         )
       `)
       .eq('id', selectedClient.id)
-      .eq('company_id', user.profile.company_id)
+      .eq('company_id', activeCompanyId)
       .single();
 
     if (error || !data) return;
