@@ -192,7 +192,7 @@ const GenerateReceiptModal = ({ open, onClose, onReceiptGenerated }: GenerateRec
         brandingData
       );
 
-      // Insert receipt
+      // Insert receipt - cash receipts are confirmed immediately upon generation
       const { error } = await supabase
         .from('payment_receipts')
         .insert({
@@ -209,6 +209,7 @@ const GenerateReceiptModal = ({ open, onClose, onReceiptGenerated }: GenerateRec
           service_description: job.job_type === 'visit' ? 'Site Visit' : 'Cleaning Service',
           receipt_html: receiptHtml,
           created_by: user.id,
+          sent_at: new Date().toISOString(), // Cash receipts are confirmed immediately
         });
 
       if (error) throw error;

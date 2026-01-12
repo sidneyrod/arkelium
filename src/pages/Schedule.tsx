@@ -784,7 +784,7 @@ const Schedule = () => {
       
       const receiptHtml = generatePaymentReceiptPdf(receiptData, company, branding);
       
-      // Insert payment receipt
+      // Insert payment receipt - cash receipts are confirmed immediately
       const { error: receiptError } = await supabase
         .from('payment_receipts')
         .insert({
@@ -802,6 +802,7 @@ const Schedule = () => {
           receipt_html: receiptHtml,
           created_by: user?.id || null,
           notes: paymentData.paymentNotes || null,
+          sent_at: new Date().toISOString(), // Cash receipts are confirmed immediately upon generation
         });
       
       if (receiptError) {
