@@ -51,11 +51,15 @@ interface CashCollection {
   disputed_by: string | null;
   disputed_at: string | null;
   dispute_reason: string | null;
+  settled_by: string | null;
+  settled_at: string | null;
   payroll_period_id: string | null;
+  payment_receipt_id: string | null;
   notes: string | null;
   created_at: string;
   client_name?: string;
   cleaner_name?: string;
+  receipt_number?: string;
 }
 
 interface PaymentReceipt {
@@ -182,7 +186,8 @@ const PaymentsCollections = () => {
       .select(`
         *,
         client:client_id(name),
-        cleaner:cleaner_id(first_name, last_name)
+        cleaner:cleaner_id(first_name, last_name),
+        receipt:payment_receipt_id(receipt_number)
       `, { count: 'exact' })
       .eq('company_id', companyId)
       .gte('service_date', startDate)
@@ -207,6 +212,7 @@ const PaymentsCollections = () => {
       ...c,
       client_name: c.client?.name || 'Unknown',
       cleaner_name: c.cleaner ? `${c.cleaner.first_name || ''} ${c.cleaner.last_name || ''}`.trim() : 'Unknown',
+      receipt_number: c.receipt?.receipt_number || null,
     }));
 
     return { data: mapped, count: count || 0 };
@@ -385,6 +391,33 @@ const PaymentsCollections = () => {
     }
   };
 
+  // Handle marking cash collection as settled (after external payroll compensation)
+  const handleMarkSettled = async (collectionId: string) => {
+    try {
+      const collection = cashPagination.data.find(c => c.id === collectionId);
+      
+      const { error } = await supabase
+        .from('cash_collections')
+        .update({
+          compensation_status: 'settled',
+          settled_by: user?.id,
+          settled_at: new Date().toISOString(),
+        })
+        .eq('id', collectionId);
+
+      if (error) throw error;
+
+      logActivity('cash_settled', 'Cash collection marked as settled (compensated via external payroll)', collectionId);
+      toast.success('Cash collection marked as settled');
+      
+      cashPagination.refresh();
+      fetchKpis();
+    } catch (error) {
+      console.error('Error settling cash collection:', error);
+      toast.error('Failed to mark as settled');
+    }
+  };
+
   // Cash columns
   const cashColumns: Column<CashCollection>[] = [
     {
@@ -412,6 +445,15 @@ const PaymentsCollections = () => {
       ),
     },
     {
+      key: 'receipt_number',
+      header: 'Receipt #',
+      render: (row) => row.receipt_number ? (
+        <span className="text-xs font-mono text-primary">{row.receipt_number}</span>
+      ) : (
+        <span className="text-xs text-muted-foreground">—</span>
+      ),
+    },
+    {
       key: 'compensation_status',
       header: 'Status',
       render: (row) => {
@@ -426,15 +468,20 @@ const PaymentsCollections = () => {
         <div className="flex gap-1">
           {row.compensation_status === 'pending' && (
             <>
-              <Button size="sm" variant="ghost" onClick={() => handleApproveCash(row.id)} className="h-7 text-success">
+              <Button size="sm" variant="ghost" onClick={() => handleApproveCash(row.id)} className="h-7 text-success" title="Approve">
                 <Check className="h-4 w-4" />
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => { setSelectedCashCollection(row); setShowApprovalModal(true); }} className="h-7 text-destructive">
+              <Button size="sm" variant="ghost" onClick={() => { setSelectedCashCollection(row); setShowApprovalModal(true); }} className="h-7 text-destructive" title="Dispute">
                 <X className="h-4 w-4" />
               </Button>
             </>
           )}
-          <Button size="sm" variant="ghost" className="h-7">
+          {row.compensation_status === 'approved' && (
+            <Button size="sm" variant="ghost" onClick={() => handleMarkSettled(row.id)} className="h-7 text-primary" title="Mark Settled">
+              <ShieldCheck className="h-4 w-4" />
+            </Button>
+          )}
+          <Button size="sm" variant="ghost" className="h-7" title="View Details">
             <Eye className="h-4 w-4" />
           </Button>
         </div>
