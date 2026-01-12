@@ -12,12 +12,19 @@ import {
   Save,
   Receipt,
   Search,
-  X
+  X,
+  FileText,
+  Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 
 const settingsConfig = [
+  {
+    id: 'invoice-settings',
+    title: 'Invoice Settings',
+    keywords: ['invoice', 'generate', 'automatic', 'manual', 'job', 'completion', 'billing', 'fatura'],
+  },
   {
     id: 'report-settings',
     title: 'Report Settings',
@@ -39,6 +46,7 @@ interface PreferencesTabProps {
 }
 
 interface Preferences {
+  invoiceGenerationMode: 'automatic' | 'manual';
   includeVisitsInReports: boolean;
   enableCashKeptByEmployee: boolean;
   autoGenerateCashReceipt: boolean;
@@ -47,6 +55,7 @@ interface Preferences {
 
 const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
   const [preferences, setPreferences] = useState<Preferences>({
+    invoiceGenerationMode: 'manual',
     includeVisitsInReports: false,
     enableCashKeptByEmployee: true,
     autoGenerateCashReceipt: true,
@@ -88,6 +97,7 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
       }
 
       const prefs: Preferences = {
+        invoiceGenerationMode: (data as any)?.invoice_generation_mode ?? 'manual',
         includeVisitsInReports: (data as any)?.include_visits_in_reports ?? false,
         enableCashKeptByEmployee: (data as any)?.enable_cash_kept_by_employee ?? true,
         autoGenerateCashReceipt: (data as any)?.auto_generate_cash_receipt ?? true,
@@ -110,6 +120,7 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
   useEffect(() => {
     if (initialPreferences) {
       const changed = 
+        preferences.invoiceGenerationMode !== initialPreferences.invoiceGenerationMode ||
         preferences.includeVisitsInReports !== initialPreferences.includeVisitsInReports ||
         preferences.enableCashKeptByEmployee !== initialPreferences.enableCashKeptByEmployee ||
         preferences.autoGenerateCashReceipt !== initialPreferences.autoGenerateCashReceipt ||
@@ -127,6 +138,7 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
       const { error: updateError, count } = await supabase
         .from('company_estimate_config')
         .update({
+          invoice_generation_mode: preferences.invoiceGenerationMode,
           include_visits_in_reports: preferences.includeVisitsInReports,
           enable_cash_kept_by_employee: preferences.enableCashKeptByEmployee,
           auto_generate_cash_receipt: preferences.autoGenerateCashReceipt,
@@ -140,6 +152,7 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
           .from('company_estimate_config')
           .insert({
             company_id: companyId,
+            invoice_generation_mode: preferences.invoiceGenerationMode,
             include_visits_in_reports: preferences.includeVisitsInReports,
             enable_cash_kept_by_employee: preferences.enableCashKeptByEmployee,
             auto_generate_cash_receipt: preferences.autoGenerateCashReceipt,
@@ -203,6 +216,76 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
         <div className="text-center py-8 text-muted-foreground">
           <p className="text-sm">No settings found matching "{searchTerm}"</p>
         </div>
+      )}
+
+      {/* Invoice Settings */}
+      {filteredSections.some(s => s.id === 'invoice-settings') && (
+        <Card className="border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary" />
+              Invoice Generation
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Choose how invoices are generated when jobs are completed
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div 
+                className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                  preferences.invoiceGenerationMode === 'automatic' 
+                    ? 'border-primary bg-primary/5' 
+                    : 'border-border/50 hover:border-muted-foreground/50'
+                }`}
+                onClick={() => setPreferences(prev => ({ ...prev, invoiceGenerationMode: 'automatic' }))}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <div className={`p-2 rounded-lg ${
+                    preferences.invoiceGenerationMode === 'automatic' 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-muted'
+                  }`}>
+                    <Zap className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium">Automatic</h4>
+                    <p className="text-xs text-muted-foreground">Generate on job completion</p>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Invoice is automatically created when a job is marked as completed.
+                </p>
+              </div>
+              
+              <div 
+                className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                  preferences.invoiceGenerationMode === 'manual' 
+                    ? 'border-primary bg-primary/5' 
+                    : 'border-border/50 hover:border-muted-foreground/50'
+                }`}
+                onClick={() => setPreferences(prev => ({ ...prev, invoiceGenerationMode: 'manual' }))}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <div className={`p-2 rounded-lg ${
+                    preferences.invoiceGenerationMode === 'manual' 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-muted'
+                  }`}>
+                    <FileText className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium">Manual</h4>
+                    <p className="text-xs text-muted-foreground">Review before generating</p>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Completed jobs appear in "Completed Services" for admin review.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Report Settings */}
