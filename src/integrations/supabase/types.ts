@@ -162,6 +162,8 @@ export type Database = {
           payment_receipt_id: string | null
           payroll_period_id: string | null
           service_date: string
+          settled_at: string | null
+          settled_by: string | null
           updated_at: string
         }
         Insert: {
@@ -185,6 +187,8 @@ export type Database = {
           payment_receipt_id?: string | null
           payroll_period_id?: string | null
           service_date: string
+          settled_at?: string | null
+          settled_by?: string | null
           updated_at?: string
         }
         Update: {
@@ -208,6 +212,8 @@ export type Database = {
           payment_receipt_id?: string | null
           payroll_period_id?: string | null
           service_date?: string
+          settled_at?: string | null
+          settled_by?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -272,6 +278,13 @@ export type Database = {
             columns: ["payroll_period_id"]
             isOneToOne: false
             referencedRelation: "payroll_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_collections_settled_by_fkey"
+            columns: ["settled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

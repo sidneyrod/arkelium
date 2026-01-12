@@ -36,8 +36,11 @@ interface JobCompletionModalProps {
   onComplete: (jobId: string, afterPhotos?: string[], notes?: string, paymentData?: PaymentData) => void;
 }
 
+// Standardized payment methods matching DB enum
+export type PaymentMethodType = 'cash' | 'e_transfer' | 'cheque' | 'credit_card' | 'bank_transfer';
+
 export interface PaymentData {
-  paymentMethod: 'e-transfer' | 'cash' | null;
+  paymentMethod: PaymentMethodType | null;
   paymentAmount: number;
   paymentDate: Date;
   paymentReference?: string;
@@ -45,6 +48,15 @@ export interface PaymentData {
   paymentNotes?: string;
   cashHandlingChoice?: 'keep_cash' | 'hand_to_admin';
 }
+
+// Payment method configuration for UI
+const PAYMENT_METHODS: { value: PaymentMethodType; label: string; icon: 'cash' | 'card' | 'bank' }[] = [
+  { value: 'cash', label: 'Cash', icon: 'cash' },
+  { value: 'e_transfer', label: 'E-Transfer', icon: 'card' },
+  { value: 'cheque', label: 'Cheque', icon: 'bank' },
+  { value: 'credit_card', label: 'Credit Card', icon: 'card' },
+  { value: 'bank_transfer', label: 'Bank Transfer', icon: 'bank' },
+];
 
 interface ChecklistItemState {
   item: string;
@@ -79,7 +91,7 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
   const [uploadingAfter, setUploadingAfter] = useState(false);
 
   // Payment fields - REQUIRED for job completion
-  const [paymentMethod, setPaymentMethod] = useState<'e-transfer' | 'cash' | ''>('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType | ''>('');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [paymentReference, setPaymentReference] = useState('');
@@ -261,11 +273,11 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
     }
 
     const paymentData: PaymentData = {
-      paymentMethod: paymentMethod as 'e-transfer' | 'cash',
+      paymentMethod: paymentMethod as PaymentMethodType,
       paymentAmount: parseFloat(paymentAmount) || 0,
       // Force service date for cash payments (backend validation)
       paymentDate: paymentMethod === 'cash' ? toSafeLocalDate(job.date) : paymentDate,
-      paymentReference: paymentMethod === 'e-transfer' ? paymentReference : undefined,
+      paymentReference: paymentMethod !== 'cash' ? paymentReference : undefined,
       // When cash kept is disabled, always set to 'company'
       paymentReceivedBy: paymentMethod === 'cash' 
         ? (enableCashKept ? paymentReceivedBy as 'cleaner' | 'company' : 'company')
@@ -504,34 +516,27 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
 
             <Card className="border-primary/30 bg-primary/5">
               <CardContent className="pt-4 space-y-4">
-                {/* Payment Method */}
+                {/* Payment Method - 5 standardized options */}
                 <div className="space-y-2">
                   <Label>Payment Method *</Label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button
-                      type="button"
-                      variant={paymentMethod === 'e-transfer' ? 'default' : 'outline'}
-                      className={cn(
-                        "h-12 justify-start gap-3",
-                        paymentMethod === 'e-transfer' && "ring-2 ring-primary"
-                      )}
-                      onClick={() => setPaymentMethod('e-transfer')}
-                    >
-                      <CreditCard className="h-5 w-5" />
-                      E-Transfer
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={paymentMethod === 'cash' ? 'default' : 'outline'}
-                      className={cn(
-                        "h-12 justify-start gap-3",
-                        paymentMethod === 'cash' && "ring-2 ring-primary"
-                      )}
-                      onClick={() => setPaymentMethod('cash')}
-                    >
-                      <Banknote className="h-5 w-5" />
-                      Cash
-                    </Button>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {PAYMENT_METHODS.map((method) => (
+                      <Button
+                        key={method.value}
+                        type="button"
+                        variant={paymentMethod === method.value ? 'default' : 'outline'}
+                        className={cn(
+                          "h-10 justify-start gap-2 text-sm",
+                          paymentMethod === method.value && "ring-2 ring-primary"
+                        )}
+                        onClick={() => setPaymentMethod(method.value)}
+                      >
+                        {method.icon === 'cash' && <Banknote className="h-4 w-4" />}
+                        {method.icon === 'card' && <CreditCard className="h-4 w-4" />}
+                        {method.icon === 'bank' && <CreditCard className="h-4 w-4" />}
+                        {method.label}
+                      </Button>
+                    ))}
                   </div>
                   {!paymentMethod && (
                     <p className="text-xs text-destructive">Please select a payment method</p>
@@ -603,14 +608,14 @@ const JobCompletionModal = ({ open, onOpenChange, job, onComplete }: JobCompleti
                   </div>
                 </div>
 
-                {/* E-Transfer Reference */}
-                {paymentMethod === 'e-transfer' && (
+                {/* Transaction Reference - Show for non-cash payments */}
+                {paymentMethod && paymentMethod !== 'cash' && (
                   <div className="space-y-2">
                     <Label>Transaction Reference / ID</Label>
                     <Input
                       value={paymentReference}
                       onChange={(e) => setPaymentReference(e.target.value)}
-                      placeholder="Enter e-transfer reference number"
+                      placeholder="Enter transaction reference number"
                     />
                   </div>
                 )}
