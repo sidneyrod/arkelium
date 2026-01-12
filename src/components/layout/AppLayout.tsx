@@ -51,28 +51,33 @@ const AppLayout = () => {
   // Get current user's tabs
   const tabs = currentUserId && userTabs[currentUserId] ? userTabs[currentUserId] : [];
 
-  // Set current user in workspace store when user changes
+  // Set current user and restore session
   useEffect(() => {
     if (user?.id) {
       setCurrentUser(user.id);
+      
+      // Restore session AFTER setCurrentUser has been called
+      if (!hasRestoredSession.current) {
+        hasRestoredSession.current = true;
+        
+        // Use requestAnimationFrame to ensure state has been updated
+        requestAnimationFrame(() => {
+          const currentState = useWorkspaceStore.getState();
+          const userTabsNow = currentState.userTabs[user.id] || [];
+          const activeTabNow = currentState.activeTabId;
+          
+          const tabToRestore = userTabsNow.find(tab => tab.id === activeTabNow);
+          
+          if (tabToRestore && tabToRestore.path !== location.pathname) {
+            navigate(tabToRestore.path, { replace: true });
+          }
+        });
+      }
     } else {
       setCurrentUser(null);
+      hasRestoredSession.current = false; // Reset to allow new restoration on next login
     }
-  }, [user?.id, setCurrentUser]);
-
-  // On mount, restore the active tab's route if needed
-  useEffect(() => {
-    if (hasRestoredSession.current) return;
-    hasRestoredSession.current = true;
-    
-    // Find the active tab
-    const activeTab = tabs.find(tab => tab.id === activeTabId);
-    
-    // If we have an active tab and it's not the current location, navigate to it
-    if (activeTab && activeTab.path !== location.pathname) {
-      navigate(activeTab.path, { replace: true });
-    }
-  }, []);
+  }, [user?.id, setCurrentUser, navigate, location.pathname]);
 
   // Auto-open tab when navigating directly to a URL
   useEffect(() => {
