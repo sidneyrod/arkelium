@@ -1,21 +1,39 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
 import { 
   BarChart3, 
   Banknote, 
-  Info,
   Loader2,
   Save,
-  Receipt
+  Receipt,
+  Search,
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 
+const settingsConfig = [
+  {
+    id: 'report-settings',
+    title: 'Report Settings',
+    keywords: ['report', 'reports', 'prospecting', 'visits', 'revenue', 'accounting', 'work', 'time', 'tracking', 'data'],
+  },
+  {
+    id: 'cash-handling',
+    title: 'Cash Handling',
+    keywords: ['cash', 'payment', 'payroll', 'employee', 'keep', 'approval', 'deducted', 'office', 'money'],
+  },
+  {
+    id: 'receipt-settings',
+    title: 'Receipt Settings',
+    keywords: ['receipt', 'auto', 'generate', 'send', 'email', 'client', 'payment', 'automatic'],
+  },
+];
 interface PreferencesTabProps {
   companyId: string | null | undefined;
 }
@@ -38,6 +56,17 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [initialPreferences, setInitialPreferences] = useState<Preferences | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredSections = useMemo(() => {
+    if (!searchTerm.trim()) return settingsConfig;
+    
+    const term = searchTerm.toLowerCase();
+    return settingsConfig.filter(section => 
+      section.keywords.some(keyword => keyword.includes(term)) ||
+      section.title.toLowerCase().includes(term)
+    );
+  }, [searchTerm]);
 
   const fetchPreferences = useCallback(async () => {
     if (!companyId) {
@@ -150,144 +179,169 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
 
   return (
     <TabsContent value="preferences" className="space-y-4 mt-4">
-      <Alert className="border-info/30 bg-info/5">
-        <Info className="h-4 w-4 text-info" />
-        <AlertDescription className="text-xs">
-          Configure operational preferences for this company. These settings affect how reports are generated and which features are available to employees.
-        </AlertDescription>
-      </Alert>
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search settings..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-9 h-9"
+        />
+        {searchTerm && (
+          <button 
+            onClick={() => setSearchTerm('')} 
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-muted"
+          >
+            <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+          </button>
+        )}
+      </div>
+
+      {/* No Results Message */}
+      {filteredSections.length === 0 && (
+        <div className="text-center py-8 text-muted-foreground">
+          <p className="text-sm">No settings found matching "{searchTerm}"</p>
+        </div>
+      )}
 
       {/* Report Settings */}
-      <Card className="border-border/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-primary" />
-            Report Settings
-          </CardTitle>
-          <CardDescription className="text-xs">
-            Control what data is included in operational reports
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-start justify-between p-4 rounded-lg border border-border/50 bg-muted/30">
-            <div className="flex-1 pr-4">
-              <Label htmlFor="include-visits" className="text-sm font-medium cursor-pointer">
-                Include prospecting visits in reports
-              </Label>
-              <p className="text-xs text-muted-foreground mt-1">
-                When enabled, prospecting visits (with $0 revenue) will appear in Work & Time Tracking reports. 
-                Disable this to show only jobs with actual revenue, which is more useful for accounting purposes.
-              </p>
+      {filteredSections.some(s => s.id === 'report-settings') && (
+        <Card className="border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-primary" />
+              Report Settings
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Control what data is included in operational reports
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start justify-between p-4 rounded-lg border border-border/50 bg-muted/30">
+              <div className="flex-1 pr-4">
+                <Label htmlFor="include-visits" className="text-sm font-medium cursor-pointer">
+                  Include prospecting visits in reports
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  When enabled, prospecting visits (with $0 revenue) will appear in Work & Time Tracking reports. 
+                  Disable this to show only jobs with actual revenue, which is more useful for accounting purposes.
+                </p>
+              </div>
+              <Switch
+                id="include-visits"
+                checked={preferences.includeVisitsInReports}
+                onCheckedChange={(checked) => 
+                  setPreferences(prev => ({ ...prev, includeVisitsInReports: checked }))
+                }
+              />
             </div>
-            <Switch
-              id="include-visits"
-              checked={preferences.includeVisitsInReports}
-              onCheckedChange={(checked) => 
-                setPreferences(prev => ({ ...prev, includeVisitsInReports: checked }))
-              }
-            />
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Cash Handling Settings */}
-      <Card className="border-border/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Banknote className="h-4 w-4 text-primary" />
-            Cash Handling
-          </CardTitle>
-          <CardDescription className="text-xs">
-            Configure how cash payments are handled by employees
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-start justify-between p-4 rounded-lg border border-border/50 bg-muted/30">
-            <div className="flex-1 pr-4">
-              <Label htmlFor="cash-kept" className="text-sm font-medium cursor-pointer">
-                Allow employees to keep cash from services
-              </Label>
-              <p className="text-xs text-muted-foreground mt-1">
-                When enabled, staff can choose to keep cash payments (deducted from their next payroll). 
-                This enables the full cash approval workflow with admin review. When disabled, all cash must be delivered to the office.
-              </p>
-              {preferences.enableCashKeptByEmployee && (
-                <div className="mt-2 p-2 bg-warning/10 rounded border border-warning/20">
-                  <p className="text-[10px] text-warning">
-                    <strong>Note:</strong> Cash kept by employees requires explicit admin approval before being deducted from payroll.
-                  </p>
-                </div>
-              )}
+      {filteredSections.some(s => s.id === 'cash-handling') && (
+        <Card className="border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Banknote className="h-4 w-4 text-primary" />
+              Cash Handling
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Configure how cash payments are handled by employees
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start justify-between p-4 rounded-lg border border-border/50 bg-muted/30">
+              <div className="flex-1 pr-4">
+                <Label htmlFor="cash-kept" className="text-sm font-medium cursor-pointer">
+                  Allow employees to keep cash from services
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  When enabled, staff can choose to keep cash payments (deducted from their next payroll). 
+                  This enables the full cash approval workflow with admin review. When disabled, all cash must be delivered to the office.
+                </p>
+                {preferences.enableCashKeptByEmployee && (
+                  <div className="mt-2 p-2 bg-warning/10 rounded border border-warning/20">
+                    <p className="text-[10px] text-warning">
+                      <strong>Note:</strong> Cash kept by employees requires explicit admin approval before being deducted from payroll.
+                    </p>
+                  </div>
+                )}
+              </div>
+              <Switch
+                id="cash-kept"
+                checked={preferences.enableCashKeptByEmployee}
+                onCheckedChange={(checked) => 
+                  setPreferences(prev => ({ ...prev, enableCashKeptByEmployee: checked }))
+                }
+              />
             </div>
-            <Switch
-              id="cash-kept"
-              checked={preferences.enableCashKeptByEmployee}
-              onCheckedChange={(checked) => 
-                setPreferences(prev => ({ ...prev, enableCashKeptByEmployee: checked }))
-              }
-            />
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Receipt Settings */}
-      <Card className="border-border/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Receipt className="h-4 w-4 text-primary" />
-            Receipt Settings
-          </CardTitle>
-          <CardDescription className="text-xs">
-            Configure how payment receipts are generated and sent
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-start justify-between p-4 rounded-lg border border-border/50 bg-muted/30">
-            <div className="flex-1 pr-4">
-              <Label htmlFor="auto-generate-receipt" className="text-sm font-medium cursor-pointer">
-                Auto-generate cash receipts on job completion
-              </Label>
-              <p className="text-xs text-muted-foreground mt-1">
-                When enabled, payment receipts will be automatically generated when a cash payment is recorded. 
-                When disabled, receipts can be generated manually from the Receipts page.
-              </p>
+      {filteredSections.some(s => s.id === 'receipt-settings') && (
+        <Card className="border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Receipt className="h-4 w-4 text-primary" />
+              Receipt Settings
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Configure how payment receipts are generated and sent
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start justify-between p-4 rounded-lg border border-border/50 bg-muted/30">
+              <div className="flex-1 pr-4">
+                <Label htmlFor="auto-generate-receipt" className="text-sm font-medium cursor-pointer">
+                  Auto-generate cash receipts on job completion
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  When enabled, payment receipts will be automatically generated when a cash payment is recorded. 
+                  When disabled, receipts can be generated manually from the Receipts page.
+                </p>
+              </div>
+              <Switch
+                id="auto-generate-receipt"
+                checked={preferences.autoGenerateCashReceipt}
+                onCheckedChange={(checked) => 
+                  setPreferences(prev => ({ ...prev, autoGenerateCashReceipt: checked }))
+                }
+              />
             </div>
-            <Switch
-              id="auto-generate-receipt"
-              checked={preferences.autoGenerateCashReceipt}
-              onCheckedChange={(checked) => 
-                setPreferences(prev => ({ ...prev, autoGenerateCashReceipt: checked }))
-              }
-            />
-          </div>
-          <div className="flex items-start justify-between p-4 rounded-lg border border-border/50 bg-muted/30">
-            <div className="flex-1 pr-4">
-              <Label htmlFor="auto-send-receipt" className="text-sm font-medium cursor-pointer">
-                Auto-send cash receipts to clients
-              </Label>
-              <p className="text-xs text-muted-foreground mt-1">
-                When enabled, payment receipts will be automatically emailed to clients after being generated. 
-                When disabled, receipts can still be sent manually from the Receipts page.
-              </p>
-              {!preferences.autoGenerateCashReceipt && (
-                <div className="mt-2 p-2 bg-muted/50 rounded border border-border/30">
-                  <p className="text-[10px] text-muted-foreground">
-                    <strong>Note:</strong> Auto-send only works when auto-generate is enabled.
-                  </p>
-                </div>
-              )}
+            <div className="flex items-start justify-between p-4 rounded-lg border border-border/50 bg-muted/30">
+              <div className="flex-1 pr-4">
+                <Label htmlFor="auto-send-receipt" className="text-sm font-medium cursor-pointer">
+                  Auto-send cash receipts to clients
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  When enabled, payment receipts will be automatically emailed to clients after being generated. 
+                  When disabled, receipts can still be sent manually from the Receipts page.
+                </p>
+                {!preferences.autoGenerateCashReceipt && (
+                  <div className="mt-2 p-2 bg-muted/50 rounded border border-border/30">
+                    <p className="text-[10px] text-muted-foreground">
+                      <strong>Note:</strong> Auto-send only works when auto-generate is enabled.
+                    </p>
+                  </div>
+                )}
+              </div>
+              <Switch
+                id="auto-send-receipt"
+                checked={preferences.autoSendCashReceipt}
+                onCheckedChange={(checked) => 
+                  setPreferences(prev => ({ ...prev, autoSendCashReceipt: checked }))
+                }
+                disabled={!preferences.autoGenerateCashReceipt}
+              />
             </div>
-            <Switch
-              id="auto-send-receipt"
-              checked={preferences.autoSendCashReceipt}
-              onCheckedChange={(checked) => 
-                setPreferences(prev => ({ ...prev, autoSendCashReceipt: checked }))
-              }
-              disabled={!preferences.autoGenerateCashReceipt}
-            />
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Save Button */}
       <div className="flex justify-end">
