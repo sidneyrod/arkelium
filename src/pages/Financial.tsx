@@ -70,12 +70,10 @@ const statusConfig: Record<string, { color: string; bgColor: string; label: stri
   settled: { color: 'text-success', bgColor: 'bg-success/10', label: 'Settled' },
 };
 
-// Event type configuration
+// Event type configuration (cash_collection removed - revenue captured via payment_receipts)
 const eventTypeConfig: Record<string, { color: string; bgColor: string; label: string; icon: typeof DollarSign }> = {
   invoice: { color: 'text-primary', bgColor: 'bg-primary/10', label: 'Invoice', icon: FileText },
-  payment: { color: 'text-success', bgColor: 'bg-success/10', label: 'Payment', icon: DollarSign },
-  cash_collection: { color: 'text-amber-600', bgColor: 'bg-amber-100', label: 'Cash', icon: Banknote },
-  visit: { color: 'text-info', bgColor: 'bg-info/10', label: 'Visit', icon: Eye },
+  payment: { color: 'text-success', bgColor: 'bg-success/10', label: 'Receipt', icon: DollarSign },
   payroll: { color: 'text-warning', bgColor: 'bg-warning/10', label: 'Payroll', icon: Wallet },
   refund: { color: 'text-destructive', bgColor: 'bg-destructive/10', label: 'Refund', icon: ArrowDownRight },
   adjustment: { color: 'text-muted-foreground', bgColor: 'bg-muted', label: 'Adj.', icon: Minus },
