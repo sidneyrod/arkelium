@@ -47,6 +47,7 @@ const AppLayout = () => {
   const { user } = useAuth();
   const { openTab, activeTabId, setCurrentUser, currentUserId, userTabs } = useWorkspaceStore();
   const hasRestoredSession = useRef(false);
+  const isSessionReady = useRef(false);
 
   // Get current user's tabs
   const tabs = currentUserId && userTabs[currentUserId] ? userTabs[currentUserId] : [];
@@ -71,16 +72,26 @@ const AppLayout = () => {
           if (tabToRestore && tabToRestore.path !== location.pathname) {
             navigate(tabToRestore.path, { replace: true });
           }
+          
+          // Mark session as ready after restoration
+          isSessionReady.current = true;
         });
+      } else {
+        // Already restored, mark as ready immediately
+        isSessionReady.current = true;
       }
     } else {
       setCurrentUser(null);
-      hasRestoredSession.current = false; // Reset to allow new restoration on next login
+      hasRestoredSession.current = false;
+      isSessionReady.current = false;
     }
   }, [user?.id, setCurrentUser, navigate, location.pathname]);
 
   // Auto-open tab when navigating directly to a URL
   useEffect(() => {
+    // Don't sync tabs until session is ready
+    if (!isSessionReady.current) return;
+    
     const currentPath = location.pathname;
     const fullPath = location.pathname + location.search;
 
