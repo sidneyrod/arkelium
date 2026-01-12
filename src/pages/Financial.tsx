@@ -642,7 +642,7 @@ const Financial = () => {
         />
       ),
       render: (entry) => {
-        const refValue = entry.serviceReference || entry.referenceNumber || '—';
+        const refValue = entry.referenceNumber || entry.serviceReference || '—';
         return (
           <Tooltip>
             <TooltipTrigger asChild>
