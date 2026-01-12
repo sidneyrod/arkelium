@@ -7,6 +7,7 @@ export type AuditAction =
   | 'contract_created' | 'contract_updated' | 'contract_deleted'
   | 'job_created' | 'job_updated' | 'job_completed' | 'job_cancelled'
   | 'invoice_created' | 'invoice_sent' | 'invoice_paid' | 'invoice_cancelled' | 'invoice_updated'
+  | 'receipt_generated' | 'receipt_sent' | 'receipt_resent'
   | 'payment_registered' | 'payment_confirmed' | 'payment_rejected'
   | 'payroll_created' | 'payroll_approved' | 'payroll_paid' | 'payroll_reprocessed'
   | 'payroll_period_created' | 'payroll_period_updated'

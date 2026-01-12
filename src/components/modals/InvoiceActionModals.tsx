@@ -4,12 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { toast } from '@/hooks/use-toast';
-import { AlertTriangle, XCircle, Trash2, RefreshCw, Loader2 } from 'lucide-react';
+import { AlertTriangle, XCircle, Trash2, RefreshCw, Loader2, CheckCircle, DollarSign } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface InvoiceData {
   id: string;
@@ -397,6 +399,250 @@ export const RegenerateInvoiceModal = ({ open, onOpenChange, invoice, onSuccess 
           <Button onClick={handleRegenerate} disabled={isLoading}>
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
             Regenerate Invoice
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Mark as Paid Modal - auto-generates Receipt when Invoice is paid
+interface MarkAsPaidModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  invoice: InvoiceData | null;
+  onSuccess: () => void;
+}
+
+type PaymentMethodType = 'cash' | 'e_transfer' | 'cheque' | 'credit_card' | 'bank_transfer';
+
+const PAYMENT_METHODS: { value: PaymentMethodType; label: string }[] = [
+  { value: 'e_transfer', label: 'E-Transfer' },
+  { value: 'cheque', label: 'Cheque' },
+  { value: 'credit_card', label: 'Credit Card' },
+  { value: 'bank_transfer', label: 'Bank Transfer' },
+  { value: 'cash', label: 'Cash' },
+];
+
+export const MarkAsPaidModal = ({ open, onOpenChange, invoice, onSuccess }: MarkAsPaidModalProps) => {
+  const { user } = useAuth();
+  const { activeCompanyId } = useActiveCompanyStore();
+  const { logAction } = useAuditLog();
+  const [isLoading, setIsLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('e_transfer');
+  const [paymentReference, setPaymentReference] = useState('');
+  const [paymentNotes, setPaymentNotes] = useState('');
+
+  const handleMarkAsPaid = async () => {
+    if (!invoice || !activeCompanyId || !user) return;
+
+    setIsLoading(true);
+    try {
+      const now = new Date().toISOString();
+      const paymentDate = format(new Date(), 'yyyy-MM-dd');
+
+      // 1. Update invoice to paid status
+      const { error: invoiceError } = await supabase
+        .from('invoices')
+        .update({
+          status: 'paid',
+          paid_at: now,
+          payment_date: paymentDate,
+          payment_method: paymentMethod,
+          payment_reference: paymentReference || null,
+          payment_notes: paymentNotes || null,
+          payment_amount: invoice.total,
+          payment_received_by: user.id,
+        })
+        .eq('id', invoice.id)
+        .eq('company_id', activeCompanyId);
+
+      if (invoiceError) throw invoiceError;
+
+      // 2. Check if a receipt already exists for this job
+      let receiptExists = false;
+      if (invoice.jobId) {
+        const { data: existingReceipt } = await supabase
+          .from('payment_receipts')
+          .select('id')
+          .eq('job_id', invoice.jobId)
+          .eq('company_id', activeCompanyId)
+          .maybeSingle();
+
+        receiptExists = !!existingReceipt;
+      }
+
+      // 3. If no receipt exists, generate one
+      if (!receiptExists && invoice.jobId) {
+        // Get job details
+        const { data: jobData, error: jobError } = await supabase
+          .from('jobs')
+          .select(`
+            *,
+            clients (id, name, email),
+            client_locations:location_id (address, city)
+          `)
+          .eq('id', invoice.jobId)
+          .single();
+
+        if (jobError) {
+          console.error('Error fetching job for receipt:', jobError);
+        } else if (jobData) {
+          // Generate receipt number
+          const timestamp = Date.now().toString(36).toUpperCase();
+          const receiptNumber = `RCPT-${timestamp}`;
+
+          // Get company tax config
+          const { data: configData } = await supabase
+            .from('company_estimate_config')
+            .select('tax_rate')
+            .eq('company_id', activeCompanyId)
+            .maybeSingle();
+
+          const taxRate = configData?.tax_rate ?? 13;
+          const subtotal = invoice.total / (1 + taxRate / 100);
+          const taxAmount = invoice.total - subtotal;
+
+          // Create receipt
+          const { error: receiptError } = await supabase
+            .from('payment_receipts')
+            .insert({
+              company_id: activeCompanyId,
+              receipt_number: receiptNumber,
+              job_id: invoice.jobId,
+              client_id: jobData.client_id,
+              cleaner_id: jobData.cleaner_id,
+              service_date: jobData.scheduled_date,
+              amount: subtotal,
+              tax_amount: taxAmount,
+              total: invoice.total,
+              payment_method: paymentMethod,
+              notes: paymentNotes || null,
+              created_by: user.id,
+              sent_at: now, // Mark as sent immediately to appear in Ledger
+            });
+
+          if (receiptError) {
+            console.error('Error creating receipt:', receiptError);
+            // Continue anyway - invoice is already marked as paid
+          } else {
+            // Log receipt creation
+            await logAction({
+              action: 'receipt_generated',
+              entityType: 'payment_receipt',
+              details: {
+                receiptNumber,
+                invoiceNumber: invoice.invoiceNumber,
+                amount: invoice.total,
+                paymentMethod,
+                description: `Receipt ${receiptNumber} auto-generated from paid invoice ${invoice.invoiceNumber}`,
+              },
+            });
+          }
+        }
+      }
+
+      // 4. Log invoice payment
+      await logAction({
+        action: 'invoice_paid',
+        entityType: 'invoice',
+        entityId: invoice.id,
+        details: {
+          invoiceNumber: invoice.invoiceNumber,
+          clientName: invoice.clientName,
+          total: invoice.total,
+          paymentMethod,
+          paymentReference: paymentReference || null,
+          description: `Invoice ${invoice.invoiceNumber} marked as paid`,
+        },
+      });
+
+      toast({ 
+        title: 'Success', 
+        description: `Invoice ${invoice.invoiceNumber} marked as paid${!receiptExists && invoice.jobId ? ' and receipt generated' : ''}` 
+      });
+      onSuccess();
+      onOpenChange(false);
+      
+      // Reset form
+      setPaymentMethod('e_transfer');
+      setPaymentReference('');
+      setPaymentNotes('');
+    } catch (err) {
+      console.error('Error marking invoice as paid:', err);
+      toast({ title: 'Error', description: 'Failed to mark invoice as paid', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-success">
+            <CheckCircle className="h-5 w-5" />
+            Mark Invoice as Paid
+          </DialogTitle>
+          <DialogDescription>
+            Record payment received for this invoice. A receipt will be automatically generated.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <div className="bg-success/10 border border-success/20 rounded-lg p-4">
+            <p className="text-sm font-medium">Invoice: {invoice?.invoiceNumber}</p>
+            <p className="text-sm text-muted-foreground">Client: {invoice?.clientName}</p>
+            <p className="text-sm font-medium text-success">Amount: ${invoice?.total.toFixed(2)}</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="paymentMethod">Payment Method</Label>
+            <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethodType)}>
+              <SelectTrigger id="paymentMethod">
+                <SelectValue placeholder="Select payment method" />
+              </SelectTrigger>
+              <SelectContent>
+                {PAYMENT_METHODS.map((method) => (
+                  <SelectItem key={method.value} value={method.value}>
+                    {method.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {paymentMethod !== 'cash' && (
+            <div className="space-y-2">
+              <Label htmlFor="paymentReference">Reference / Transaction ID (optional)</Label>
+              <Input
+                id="paymentReference"
+                placeholder="e.g., E-Transfer confirmation number"
+                value={paymentReference}
+                onChange={(e) => setPaymentReference(e.target.value)}
+              />
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="paymentNotes">Notes (optional)</Label>
+            <Textarea
+              id="paymentNotes"
+              placeholder="Additional payment notes..."
+              value={paymentNotes}
+              onChange={(e) => setPaymentNotes(e.target.value)}
+              rows={2}
+            />
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+            Cancel
+          </Button>
+          <Button onClick={handleMarkAsPaid} disabled={isLoading} className="bg-success hover:bg-success/90">
+            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
+            Confirm Payment
           </Button>
         </DialogFooter>
       </DialogContent>
