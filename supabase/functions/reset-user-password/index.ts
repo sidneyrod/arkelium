@@ -5,9 +5,34 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Generate a strong random password
+function generateStrongPassword(): string {
+  const length = 16;
+  const uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lowercase = 'abcdefghjkmnpqrstuvwxyz';
+  const numbers = '23456789';
+  const symbols = '!@#$%&*?';
+  const allChars = uppercase + lowercase + numbers + symbols;
+  
+  let password = '';
+  // Ensure at least one of each type
+  password += uppercase[Math.floor(Math.random() * uppercase.length)];
+  password += lowercase[Math.floor(Math.random() * lowercase.length)];
+  password += numbers[Math.floor(Math.random() * numbers.length)];
+  password += symbols[Math.floor(Math.random() * symbols.length)];
+  
+  // Fill the rest randomly
+  for (let i = password.length; i < length; i++) {
+    password += allChars[Math.floor(Math.random() * allChars.length)];
+  }
+  
+  // Shuffle the password
+  return password.split('').sort(() => Math.random() - 0.5).join('');
+}
+
 interface ResetPasswordRequest {
   userId: string;
-  newPassword: string;
+  newPassword?: string; // Optional - if not provided, generate a strong password
 }
 
 Deno.serve(async (req) => {
@@ -76,17 +101,20 @@ Deno.serve(async (req) => {
     }
 
     const body: ResetPasswordRequest = await req.json();
-    const { userId, newPassword } = body;
+    const { userId, newPassword: providedPassword } = body;
 
     // Validate required fields
-    if (!userId || !newPassword) {
+    if (!userId) {
       return new Response(
-        JSON.stringify({ error: 'User ID and new password are required' }),
+        JSON.stringify({ error: 'User ID is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (newPassword.length < 6) {
+    // Use provided password or generate a strong one
+    const passwordToSet = providedPassword || generateStrongPassword();
+
+    if (providedPassword && providedPassword.length < 6) {
       return new Response(
         JSON.stringify({ error: 'Password must be at least 6 characters' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -112,11 +140,23 @@ Deno.serve(async (req) => {
     // Update user password
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
       userId,
-      { password: newPassword }
+      { password: passwordToSet }
     );
 
     if (updateError) {
       console.error('Error resetting password:', updateError);
+      
+      // Handle weak password error specifically
+      if (updateError.code === 'weak_password' || updateError.message?.includes('weak')) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Password rejected for security reasons. Please use a stronger password.',
+            code: 'weak_password'
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ error: updateError.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -125,8 +165,14 @@ Deno.serve(async (req) => {
 
     console.log('Password reset successful for user:', userId);
 
+    // Return the generated password if we generated one
+    const responseData: { success: boolean; tempPassword?: string } = { success: true };
+    if (!providedPassword) {
+      responseData.tempPassword = passwordToSet;
+    }
+
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify(responseData),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
