@@ -258,7 +258,7 @@ const Users = () => {
   };
 
   const handleDeleteUser = async () => {
-    if (!deleteUser) return;
+    if (!deleteUser || !activeCompanyId) return;
     
     try {
       // If user has jobs, delete them first
@@ -276,29 +276,29 @@ const Users = () => {
         }
       }
 
-      // Delete user role (company_id required by RLS)
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', deleteUser.id)
-        .eq('company_id', activeCompanyId);
+      // Call the delete-user edge function to delete from auth.users
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { userId: deleteUser.id, companyId: activeCompanyId }
+      });
 
-      if (roleError) {
-        console.error('Error deleting role:', roleError);
-        toast({ title: 'Error', description: 'Failed to delete user role', variant: 'destructive' });
+      if (error) {
+        console.error('Error deleting user:', error);
+        toast({ 
+          title: 'Error', 
+          description: error.message || 'Failed to delete user', 
+          variant: 'destructive' 
+        });
         return;
       }
 
-      // Delete from profiles table (company_id required by RLS)
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', deleteUser.id)
-        .eq('company_id', activeCompanyId);
-
-      if (profileError) {
-        console.error('Error deleting profile:', profileError);
-        toast({ title: 'Error', description: 'Failed to delete user profile', variant: 'destructive' });
+      // Check for error in response body
+      if (data?.error) {
+        console.error('Delete user error:', data.error);
+        toast({ 
+          title: 'Error', 
+          description: data.error, 
+          variant: 'destructive' 
+        });
         return;
       }
 
