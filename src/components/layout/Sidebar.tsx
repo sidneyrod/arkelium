@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { 
   Home, 
@@ -37,6 +38,7 @@ import SidebarMenuGroup, { MenuItem } from './SidebarMenuGroup';
 const Sidebar = () => {
   const { t } = useLanguage();
   const { hasRole } = useAuth();
+  const { canView, loading: permissionsLoading } = usePermissions();
   const { openTab } = useWorkspaceStore();
   const location = useLocation();
   const navigate = useNavigate();
@@ -64,7 +66,6 @@ const Sidebar = () => {
 
   // Role checks
   const isAdmin = hasRole(['admin']);
-  const isAdminOrManager = hasRole(['admin', 'manager']);
   const isCleaner = hasRole(['cleaner']);
 
   const isActive = (path: string) => {
@@ -83,34 +84,48 @@ const Sidebar = () => {
   // =====================
   const operationsItems: MenuItem[] = [];
   
-  operationsItems.push({ path: '/schedule', label: t.nav.schedule, icon: Calendar });
+  // Schedule - check permission or show for cleaner
+  if (canView('schedule') || isCleaner) {
+    operationsItems.push({ path: '/schedule', label: t.nav.schedule, icon: Calendar });
+  }
   
-  if (isAdminOrManager) {
+  // Completed Services - permission-based
+  if (canView('completed_services')) {
     operationsItems.push({ path: '/completed-services', label: 'Completed Services', icon: CheckCircle });
   }
   
+  // Visit History - all authenticated users can view (RLS filters)
   operationsItems.push({ path: '/visit-history', label: 'Visit History', icon: MapPin });
   
-  if (isAdminOrManager) {
+  // Off Requests - admin/manager see full list, cleaner sees their own
+  if (canView('off_requests') && !isCleaner) {
     operationsItems.push({ path: '/off-requests', label: 'Off Requests', icon: CalendarOff });
   } else if (isCleaner) {
     operationsItems.push({ path: '/my-off-requests', label: 'Off Requests', icon: CalendarOff });
   }
   
-  if (isAdminOrManager) {
+  // Activity Log - permission-based (admin-only by default)
+  if (canView('activity_log')) {
     operationsItems.push({ path: '/activity-log', label: t.nav.activityLog, icon: ClipboardList });
   }
   
-  operationsItems.push({ path: '/notifications', label: 'Notifications', icon: Bell });
+  // Notifications - permission-based or cleaner
+  if (canView('notifications') || isCleaner) {
+    operationsItems.push({ path: '/notifications', label: 'Notifications', icon: Bell });
+  }
 
   // =============================
   // MODULE 2: CLIENTS & CONTRACTS
   // =============================
   const clientsItems: MenuItem[] = [];
   
-  if (isAdminOrManager) {
+  if (canView('clients')) {
     clientsItems.push({ path: '/clients', label: t.nav.clients, icon: UserCircle });
+  }
+  if (canView('contracts')) {
     clientsItems.push({ path: '/contracts', label: t.nav.contracts, icon: FileText });
+  }
+  if (canView('estimates')) {
     clientsItems.push({ path: '/calculator', label: 'Estimate', icon: FileSpreadsheet });
   }
 
@@ -119,23 +134,28 @@ const Sidebar = () => {
   // =====================
   const financialItems: MenuItem[] = [];
   
-  if (isAdminOrManager) {
+  if (canView('payments_collections')) {
     financialItems.push({ path: '/payments', label: 'Payments & Collections', icon: CreditCard });
   }
   
-  if (isAdminOrManager) {
+  if (canView('ledger')) {
     financialItems.push({ path: '/financial', label: 'Ledger', icon: BookOpen });
   }
   
-  if (isAdminOrManager) {
+  if (canView('invoices')) {
     financialItems.push({ path: '/invoices', label: 'Invoices', icon: Receipt });
+  }
+  
+  if (canView('receipts')) {
     financialItems.push({ path: '/receipts', label: 'Receipts', icon: Receipt });
   }
   
-  if (isAdmin) {
+  // Work & Time Tracking - admin only (payroll module)
+  if (isAdmin && canView('payroll')) {
     financialItems.push({ path: '/work-time-tracking', label: 'Work & Time Tracking', icon: Wallet });
   }
   
+  // Cleaner's own payroll view
   if (isCleaner) {
     financialItems.push({ path: '/my-payroll', label: t.payroll.myWorkSummary, icon: Wallet });
   }
@@ -145,6 +165,7 @@ const Sidebar = () => {
   // ===========================
   const companyItems: MenuItem[] = [];
   
+  // These remain admin-only (not permission-configurable)
   if (isAdmin) {
     companyItems.push({ path: '/access-roles', label: 'Access & Roles', icon: Shield });
     companyItems.push({ path: '/users', label: t.nav.users, icon: Users });

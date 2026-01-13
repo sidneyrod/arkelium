@@ -33,6 +33,7 @@ import Financial from "./pages/Financial";
 import Receipts from "./pages/Receipts";
 import PaymentsCollections from "./pages/PaymentsCollections";
 import AccessRoles from "./pages/AccessRoles";
+import PermissionRoute from "./components/auth/PermissionRoute";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -174,39 +175,32 @@ const AppRoutes = () => {
         {/* Schedule - accessible to all (cleaners see only their jobs via RLS) */}
         <Route path="/schedule" element={<Schedule />} />
         
-        {/* Admin-only routes */}
+        {/* Admin-only routes (not permission-configurable) */}
         <Route path="/access-roles" element={<AdminRoute><AccessRoles /></AdminRoute>} />
         <Route path="/company" element={<AdminRoute><Company /></AdminRoute>} />
         <Route path="/users" element={<AdminRoute><Users /></AdminRoute>} />
         <Route path="/settings" element={<AdminRoute><Settings /></AdminRoute>} />
-        <Route path="/activity-log" element={<AdminManagerRoute><ActivityLog /></AdminManagerRoute>} />
         
-        {/* Off Requests - Admin/Manager view */}
-        <Route path="/off-requests" element={<AdminManagerRoute><OffRequests /></AdminManagerRoute>} />
+        {/* Permission-based routes */}
+        <Route path="/activity-log" element={<PermissionRoute module="activity_log"><ActivityLog /></PermissionRoute>} />
+        <Route path="/off-requests" element={<PermissionRoute module="off_requests"><OffRequests /></PermissionRoute>} />
+        <Route path="/clients" element={<PermissionRoute module="clients"><Clients /></PermissionRoute>} />
+        <Route path="/contracts" element={<PermissionRoute module="contracts"><Contracts /></PermissionRoute>} />
+        <Route path="/invoices" element={<PermissionRoute module="invoices"><Invoices /></PermissionRoute>} />
+        <Route path="/completed-services" element={<PermissionRoute module="completed_services"><CompletedServices /></PermissionRoute>} />
+        <Route path="/calculator" element={<PermissionRoute module="estimates"><Calculator /></PermissionRoute>} />
+        <Route path="/work-time-tracking" element={<PermissionRoute module="payroll"><WorkEarningsSummary /></PermissionRoute>} />
+        <Route path="/payments" element={<PermissionRoute module="payments_collections"><PaymentsCollections /></PermissionRoute>} />
+        <Route path="/financial" element={<PermissionRoute module="ledger"><Financial /></PermissionRoute>} />
+        <Route path="/receipts" element={<PermissionRoute module="receipts"><Receipts /></PermissionRoute>} />
+        <Route path="/notifications" element={<PermissionRoute module="notifications"><Notifications /></PermissionRoute>} />
         
-        {/* My Off Requests - Cleaner view */}
+        {/* Cleaner-specific routes */}
         <Route path="/my-off-requests" element={<CleanerRoute><CleanerOffRequests /></CleanerRoute>} />
-        
-        {/* My Payroll - Cleaner view */}
         <Route path="/my-payroll" element={<CleanerRoute><CleanerPayroll /></CleanerRoute>} />
         
         {/* Visit History - all users (RLS filters by role) */}
         <Route path="/visit-history" element={<ProtectedRoute><VisitHistory /></ProtectedRoute>} />
-        
-        
-        {/* Admin/Manager routes */}
-        <Route path="/clients" element={<AdminManagerRoute><Clients /></AdminManagerRoute>} />
-        <Route path="/contracts" element={<AdminManagerRoute><Contracts /></AdminManagerRoute>} />
-        <Route path="/invoices" element={<AdminManagerRoute><Invoices /></AdminManagerRoute>} />
-        <Route path="/completed-services" element={<AdminManagerRoute><CompletedServices /></AdminManagerRoute>} />
-        <Route path="/calculator" element={<AdminManagerRoute><Calculator /></AdminManagerRoute>} />
-        <Route path="/work-time-tracking" element={<AdminRoute><WorkEarningsSummary /></AdminRoute>} />
-        <Route path="/payments" element={<AdminManagerRoute><PaymentsCollections /></AdminManagerRoute>} />
-        <Route path="/financial" element={<AdminManagerRoute><Financial /></AdminManagerRoute>} />
-        <Route path="/receipts" element={<AdminManagerRoute><Receipts /></AdminManagerRoute>} />
-        
-        {/* Notifications - accessible to all authenticated users */}
-        <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
       </Route>
       
       <Route path="*" element={<NotFound />} />
