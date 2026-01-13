@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -138,12 +138,15 @@ Deno.serve(async (req) => {
 
     console.log('Creating user:', email, 'for company:', companyId);
 
-    // Create user in auth with default password
-    // Include company_id in metadata so the handle_new_user trigger can insert it into profiles
+    const validRole = role === 'admin' || role === 'manager' || role === 'cleaner' ? role : 'cleaner';
+    let userId: string;
+    let wasReused = false;
+
+    // Try to create user in auth with default password
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password: DEFAULT_PASSWORD,
-      email_confirm: true, // Auto-confirm email
+      email_confirm: true,
       user_metadata: {
         first_name: firstName,
         last_name: lastName,
@@ -152,37 +155,112 @@ Deno.serve(async (req) => {
     });
 
     if (createError) {
-      console.error('Error creating user:', createError);
+      console.log('Create user error:', createError.code, createError.message);
       
-      // Handle specific error: email already exists
+      // Handle email_exists - try to reprovision the user
       if (createError.code === 'email_exists') {
+        console.log('Email exists, attempting to find and reprovision user...');
+        
+        // Find the existing user by email using listUsers
+        const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+          page: 1,
+          perPage: 1000,
+        });
+
+        if (listError) {
+          console.error('Error listing users:', listError);
+          return new Response(
+            JSON.stringify({ error: 'Erro ao buscar usuário existente.', code: 'list_users_error' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Find user by email (case-insensitive)
+        const existingUser = listData.users.find(
+          u => u.email?.toLowerCase() === email.toLowerCase()
+        );
+
+        if (!existingUser) {
+          console.error('Email exists but user not found in list');
+          return new Response(
+            JSON.stringify({ 
+              error: 'Este e-mail já está cadastrado no sistema mas não foi possível recuperar o usuário.', 
+              code: 'email_exists_not_found' 
+            }),
+            { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log('Found existing user:', existingUser.id);
+
+        // Check if user already has an active role in this company
+        const { data: existingRole, error: existingRoleError } = await supabaseAdmin
+          .from('user_roles')
+          .select('id, status')
+          .eq('user_id', existingUser.id)
+          .eq('company_id', companyId)
+          .maybeSingle();
+
+        if (existingRoleError) {
+          console.error('Error checking existing role:', existingRoleError);
+        }
+
+        if (existingRole && existingRole.status === 'active') {
+          console.log('User already has active role in this company');
+          return new Response(
+            JSON.stringify({ 
+              error: 'Este usuário já está cadastrado e ativo nesta empresa.', 
+              code: 'already_in_company' 
+            }),
+            { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // User exists but doesn't have active role in this company - reprovision
+        console.log('Reprovisioning user for company:', companyId);
+        userId = existingUser.id;
+        wasReused = true;
+
+        // Reset the user's password and update metadata
+        const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+          password: DEFAULT_PASSWORD,
+          email_confirm: true,
+          user_metadata: {
+            first_name: firstName,
+            last_name: lastName,
+            company_id: companyId,
+          },
+        });
+
+        if (updateError) {
+          console.error('Error updating existing user:', updateError);
+          return new Response(
+            JSON.stringify({ error: 'Erro ao atualizar usuário existente.', code: 'update_error' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log('User password and metadata updated');
+      } else {
+        // Handle other auth errors
         return new Response(
           JSON.stringify({ 
-            error: 'Este e-mail já está cadastrado no sistema.', 
-            code: 'email_exists' 
+            error: createError.message, 
+            code: createError.code || 'auth_error' 
           }),
-          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: createError.status || 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-
-      // Handle other auth errors
-      return new Response(
-        JSON.stringify({ 
-          error: createError.message, 
-          code: createError.code || 'auth_error' 
-        }),
-        { status: createError.status || 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    } else {
+      userId = newUser.user.id;
+      console.log('New user created in auth:', userId);
     }
 
-    console.log('User created in auth:', newUser.user.id);
-
-    // Update profile with company_id and other details, set must_change_password flag
-    // Using upsert to ensure profile is created/updated correctly
+    // Upsert profile with company_id and other details
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .upsert({
-        id: newUser.user.id,
+        id: userId,
         company_id: companyId,
         email: email,
         first_name: firstName,
@@ -197,15 +275,17 @@ Deno.serve(async (req) => {
         salary: salary || null,
         primary_province: province || 'ON',
         employment_type: employmentType || 'full-time',
-        must_change_password: true, // Force password change on first login
+        must_change_password: true,
       }, {
         onConflict: 'id'
       });
 
     if (profileError) {
       console.error('Error upserting profile:', profileError);
-      // Rollback: delete the auth user we just created
-      await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
+      // Only rollback if we created a new user (not reused)
+      if (!wasReused) {
+        await supabaseAdmin.auth.admin.deleteUser(userId);
+      }
       return new Response(
         JSON.stringify({ 
           error: 'Falha ao criar perfil do usuário. Tente novamente.', 
@@ -215,10 +295,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create user role with custom_role_id if provided
-    // Using upsert to ensure role is created/updated correctly
-    const validRole = role === 'admin' || role === 'manager' || role === 'cleaner' ? role : 'cleaner';
-    
+    // Upsert user role
     const userRoleData: {
       user_id: string;
       company_id: string;
@@ -226,7 +303,7 @@ Deno.serve(async (req) => {
       custom_role_id?: string | null;
       status: string;
     } = {
-      user_id: newUser.user.id,
+      user_id: userId,
       company_id: companyId,
       role: validRole,
       custom_role_id: roleId || null,
@@ -241,9 +318,11 @@ Deno.serve(async (req) => {
 
     if (insertRoleError) {
       console.error('Error upserting role:', insertRoleError);
-      // Rollback: delete the auth user and profile we just created
-      await supabaseAdmin.from('profiles').delete().eq('id', newUser.user.id);
-      await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
+      // Rollback if we created a new user
+      if (!wasReused) {
+        await supabaseAdmin.from('profiles').delete().eq('id', userId);
+        await supabaseAdmin.auth.admin.deleteUser(userId);
+      }
       return new Response(
         JSON.stringify({ 
           error: 'Falha ao atribuir cargo ao usuário. Tente novamente.', 
@@ -253,15 +332,20 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('User setup complete:', newUser.user.id, 'with role:', validRole, 'in company:', companyId);
+    const action = wasReused ? 'reprovisioned' : 'created';
+    console.log(`User ${action} successfully:`, userId, 'with role:', validRole, 'in company:', companyId);
 
     return new Response(
       JSON.stringify({ 
-        success: true, 
+        success: true,
+        reused: wasReused,
         user: {
-          id: newUser.user.id,
-          email: newUser.user.email,
-        }
+          id: userId,
+          email: email,
+        },
+        message: wasReused 
+          ? 'Usuário existente foi reativado com sucesso.' 
+          : 'Usuário criado com sucesso.'
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
