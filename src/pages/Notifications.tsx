@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Bell, Check, CheckCheck, Filter, Search, ExternalLink, AlertTriangle, Info, AlertCircle, Send, Users } from 'lucide-react';
+import { Bell, Check, CheckCheck, Filter, Search, ExternalLink, AlertTriangle, Info, AlertCircle, Send, Users, User } from 'lucide-react';
 import PageHeader from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useNotifications, Notification, NotificationType, NotificationSeverity, notifyBroadcast } from '@/hooks/useNotifications';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useNotifications, Notification, NotificationType, NotificationSeverity, notifyBroadcast, createNotification } from '@/hooks/useNotifications';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { format, formatDistanceToNow, subDays, subMonths } from 'date-fns';
@@ -89,6 +90,8 @@ export default function Notifications() {
   const [sendingBroadcast, setSendingBroadcast] = useState(false);
   const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
   const [userFilter, setUserFilter] = useState<string>('all');
+  const [sendMode, setSendMode] = useState<'broadcast' | 'individual'>('broadcast');
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
 
   useEffect(() => {
     if (isAdminOrManager) {
@@ -154,32 +157,51 @@ export default function Notifications() {
     }
   };
 
-  const handleSendBroadcast = async () => {
+  const handleSendNotification = async () => {
     if (!broadcastTitle.trim() || !broadcastMessage.trim()) {
       toast.error(t.notifications?.fillAllFields || 'Please fill in all fields');
       return;
     }
 
+    if (sendMode === 'individual' && !selectedUserId) {
+      toast.error(t.notifications?.selectUser || 'Please select a user');
+      return;
+    }
+
     setSendingBroadcast(true);
     try {
-      const success = await notifyBroadcast(
-        broadcastTitle,
-        broadcastMessage,
-        broadcastTarget === 'all' ? undefined : broadcastTarget
-      );
+      let success = false;
+
+      if (sendMode === 'individual') {
+        success = await createNotification({
+          recipient_user_id: selectedUserId,
+          title: broadcastTitle,
+          message: broadcastMessage,
+          type: 'system',
+          severity: 'info'
+        });
+      } else {
+        success = await notifyBroadcast(
+          broadcastTitle,
+          broadcastMessage,
+          broadcastTarget === 'all' ? undefined : broadcastTarget
+        );
+      }
 
       if (success) {
-        toast.success(t.notifications?.broadcastSent || 'Broadcast notification sent');
+        toast.success(t.notifications?.notificationSent || 'Notification sent');
         setShowBroadcastModal(false);
         setBroadcastTitle('');
         setBroadcastMessage('');
         setBroadcastTarget('all');
+        setSendMode('broadcast');
+        setSelectedUserId('');
         refetch();
       } else {
         throw new Error('Failed to send');
       }
     } catch (error) {
-      toast.error(t.notifications?.broadcastError || 'Failed to send broadcast');
+      toast.error(t.notifications?.broadcastError || 'Failed to send notification');
     } finally {
       setSendingBroadcast(false);
     }
@@ -200,7 +222,7 @@ export default function Notifications() {
         {isAdminOrManager && (
           <Button onClick={() => setShowBroadcastModal(true)}>
             <Send className="h-4 w-4 mr-2" />
-            {t.notifications?.sendBroadcast || 'Send Broadcast'}
+            {t.notifications?.sendNotification || 'Send Notification'}
           </Button>
         )}
       </PageHeader>
@@ -400,26 +422,69 @@ export default function Notifications() {
         </CardContent>
       </Card>
 
-      {/* Broadcast Modal */}
+      {/* Send Notification Modal */}
       <Dialog open={showBroadcastModal} onOpenChange={setShowBroadcastModal}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>{t.notifications?.sendBroadcast || 'Send Broadcast Notification'}</DialogTitle>
+            <DialogTitle>{t.notifications?.sendNotification || 'Send Notification'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>{t.notifications?.target || 'Target Audience'}</Label>
-              <Select value={broadcastTarget} onValueChange={(v) => setBroadcastTarget(v as any)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t.notifications?.allUsers || 'All Users'}</SelectItem>
-                  <SelectItem value="cleaner">{t.notifications?.allCleaners || 'All Cleaners'}</SelectItem>
-                  <SelectItem value="manager">{t.notifications?.allManagers || 'All Managers'}</SelectItem>
-                </SelectContent>
-              </Select>
+            {/* Send Mode Toggle */}
+            <div className="space-y-3">
+              <Label>{t.notifications?.sendTo || 'Send To'}</Label>
+              <RadioGroup
+                value={sendMode}
+                onValueChange={(v) => setSendMode(v as 'broadcast' | 'individual')}
+                className="flex gap-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="broadcast" id="broadcast" />
+                  <Label htmlFor="broadcast" className="flex items-center gap-2 cursor-pointer font-normal">
+                    <Users className="h-4 w-4" />
+                    {t.notifications?.groupBroadcast || 'Group (Broadcast)'}
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="individual" id="individual" />
+                  <Label htmlFor="individual" className="flex items-center gap-2 cursor-pointer font-normal">
+                    <User className="h-4 w-4" />
+                    {t.notifications?.individual || 'Individual'}
+                  </Label>
+                </div>
+              </RadioGroup>
             </div>
+
+            {/* Conditional Target Selection */}
+            {sendMode === 'broadcast' ? (
+              <div className="space-y-2">
+                <Label>{t.notifications?.target || 'Target Audience'}</Label>
+                <Select value={broadcastTarget} onValueChange={(v) => setBroadcastTarget(v as any)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t.notifications?.allUsers || 'All Users'}</SelectItem>
+                    <SelectItem value="cleaner">{t.notifications?.allCleaners || 'All Cleaners'}</SelectItem>
+                    <SelectItem value="manager">{t.notifications?.allManagers || 'All Managers'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>{t.notifications?.selectUser || 'Select User'}</Label>
+                <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t.notifications?.selectUserPlaceholder || 'Choose a user...'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map(user => (
+                      <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label>{t.notifications?.notificationTitle || 'Title'}</Label>
               <Input
@@ -442,7 +507,7 @@ export default function Notifications() {
             <Button variant="outline" onClick={() => setShowBroadcastModal(false)}>
               {t.common?.cancel || 'Cancel'}
             </Button>
-            <Button onClick={handleSendBroadcast} disabled={sendingBroadcast}>
+            <Button onClick={handleSendNotification} disabled={sendingBroadcast}>
               {sendingBroadcast ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
               ) : (
