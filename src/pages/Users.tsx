@@ -18,7 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import AddUserModal, { UserFormData } from '@/components/modals/AddUserModal';
 import ConfirmDialog from '@/components/modals/ConfirmDialog';
 import { toast } from '@/hooks/use-toast';
-import { UserPlus, Briefcase, Clock, Star, Phone, Mail, MoreHorizontal, Pencil, Trash2, Loader2, Filter } from 'lucide-react';
+import { UserPlus, Briefcase, Clock, Star, Phone, Mail, MoreHorizontal, Pencil, Trash2, Loader2, Filter, KeyRound } from 'lucide-react';
+import PasswordDisplayDialog from '@/components/modals/PasswordDisplayDialog';
 import { provinceNames } from '@/stores/payrollStore';
 import { useServerPagination, PaginationState } from '@/hooks/useServerPagination';
 
@@ -71,6 +72,8 @@ const Users = () => {
   const [statusFilterFromUrl] = useState<string>(urlFilter || 'all');
   const [roles, setRoles] = useState<{user_id: string; role: string; custom_role_id?: string}[]>([]);
   const [customRoles, setCustomRoles] = useState<{id: string; name: string; base_role: string}[]>([]);
+  const [passwordDialog, setPasswordDialog] = useState<{ open: boolean; password: string; userName: string }>({ open: false, password: '', userName: '' });
+  const [isResettingPassword, setIsResettingPassword] = useState<string | null>(null);
 
   // Debounce search
   useEffect(() => {
@@ -322,6 +325,67 @@ const Users = () => {
     setIsAddModalOpen(true);
   };
 
+  const handleResetPassword = async (userToReset: User) => {
+    if (!activeCompanyId) return;
+    
+    setIsResettingPassword(userToReset.id);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('reset-user-password', {
+        body: { userId: userToReset.id }
+      });
+
+      if (error) {
+        // Try to parse error response
+        let errorMessage = 'Erro ao resetar senha';
+        try {
+          const errorData = await error.context?.json?.();
+          errorMessage = errorData?.error || error.message || errorMessage;
+        } catch {
+          errorMessage = error.message || errorMessage;
+        }
+        
+        toast({
+          title: 'Erro',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (data?.error) {
+        toast({
+          title: 'Erro',
+          description: data.error,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (data?.tempPassword) {
+        setPasswordDialog({
+          open: true,
+          password: data.tempPassword,
+          userName: userToReset.name,
+        });
+      } else {
+        toast({
+          title: 'Sucesso',
+          description: 'Senha resetada com sucesso.',
+        });
+      }
+    } catch (err) {
+      console.error('Reset password error:', err);
+      toast({
+        title: 'Erro',
+        description: 'Erro inesperado ao resetar senha.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsResettingPassword(null);
+    }
+  };
+
   const columns: Column<User>[] = [
     {
       key: 'name',
@@ -375,6 +439,13 @@ const Users = () => {
             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditModal(u); }}>
               <Pencil className="h-4 w-4 mr-2" />
               {t.common.edit}
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={(e) => { e.stopPropagation(); handleResetPassword(u); }}
+              disabled={isResettingPassword === u.id}
+            >
+              <KeyRound className="h-4 w-4 mr-2" />
+              {isResettingPassword === u.id ? 'Resetando...' : 'Resetar Senha'}
             </DropdownMenuItem>
             <DropdownMenuItem 
               onClick={(e) => { e.stopPropagation(); initiateDeleteUser(u); }}
@@ -552,6 +623,14 @@ const Users = () => {
             ? `"${deleteUser?.name}" has ${userJobsCount} scheduled job(s). Deleting this user will also remove all their scheduled jobs. Are you sure you want to proceed?`
             : `Are you sure you want to delete "${deleteUser?.name}"? This action cannot be undone.`
         }
+      />
+
+      {/* Password Display Dialog */}
+      <PasswordDisplayDialog
+        open={passwordDialog.open}
+        onOpenChange={(open) => setPasswordDialog(prev => ({ ...prev, open }))}
+        password={passwordDialog.password}
+        userName={passwordDialog.userName}
       />
     </div>
   );
