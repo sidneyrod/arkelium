@@ -20,7 +20,7 @@ interface CreateUserRequest {
   postalCode?: string;
   role: 'admin' | 'manager' | 'cleaner';
   roleId?: string; // custom_role ID
-  companyId: string;
+  companyId: string; // Target company - REQUIRED
   hourlyRate?: number;
   salary?: number;
   province?: string;
@@ -45,11 +45,11 @@ Deno.serve(async (req) => {
       },
     });
 
-    // Verify the requesting user is authenticated and is admin
+    // Verify the requesting user is authenticated
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
+        JSON.stringify({ error: 'Missing authorization header', code: 'missing_auth' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -59,39 +59,8 @@ Deno.serve(async (req) => {
     
     if (authError || !requestingUser) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Unauthorized', code: 'unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Get requesting user's company_id first
-    const { data: requestingProfile, error: profileFetchError } = await supabaseAdmin
-      .from('profiles')
-      .select('company_id')
-      .eq('id', requestingUser.id)
-      .single();
-
-    if (profileFetchError || !requestingProfile?.company_id) {
-      console.error('Error fetching profile or no company:', profileFetchError);
-      return new Response(
-        JSON.stringify({ error: 'Admin has no company' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Check if requesting user is admin IN THEIR COMPANY
-    const { data: requestingUserRole, error: roleError } = await supabaseAdmin
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', requestingUser.id)
-      .eq('company_id', requestingProfile.company_id)
-      .single();
-
-    if (roleError || requestingUserRole?.role !== 'admin') {
-      console.error('User is not admin or role error:', roleError);
-      return new Response(
-        JSON.stringify({ error: 'Only admins can create users' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -108,6 +77,7 @@ Deno.serve(async (req) => {
       postalCode,
       role,
       roleId,
+      companyId,
       hourlyRate,
       salary,
       province,
@@ -117,12 +87,56 @@ Deno.serve(async (req) => {
     // Validate required fields
     if (!email || !firstName) {
       return new Response(
-        JSON.stringify({ error: 'Email and first name are required' }),
+        JSON.stringify({ error: 'Email and first name are required', code: 'missing_fields' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Creating user:', email, 'for company:', requestingProfile.company_id);
+    // Validate companyId is provided
+    if (!companyId) {
+      return new Response(
+        JSON.stringify({ error: 'Company ID is required', code: 'missing_company' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if requesting user is admin IN THE TARGET COMPANY
+    const { data: requestingUserRole, error: roleError } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', requestingUser.id)
+      .eq('company_id', companyId)
+      .eq('status', 'active')
+      .single();
+
+    if (roleError || requestingUserRole?.role !== 'admin') {
+      console.error('User is not admin in target company or role error:', roleError);
+      return new Response(
+        JSON.stringify({ error: 'Only admins can create users in this company', code: 'not_admin' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate custom_role_id if provided
+    if (roleId) {
+      const { data: customRole, error: customRoleError } = await supabaseAdmin
+        .from('custom_roles')
+        .select('id, is_active')
+        .eq('id', roleId)
+        .eq('company_id', companyId)
+        .eq('is_active', true)
+        .single();
+
+      if (customRoleError || !customRole) {
+        console.error('Invalid custom role for company:', customRoleError);
+        return new Response(
+          JSON.stringify({ error: 'Cargo personalizado inválido para esta empresa.', code: 'invalid_role' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    console.log('Creating user:', email, 'for company:', companyId);
 
     // Create user in auth with default password
     // Include company_id in metadata so the handle_new_user trigger can insert it into profiles
@@ -133,25 +147,44 @@ Deno.serve(async (req) => {
       user_metadata: {
         first_name: firstName,
         last_name: lastName,
-        company_id: requestingProfile.company_id,
+        company_id: companyId,
       },
     });
 
     if (createError) {
       console.error('Error creating user:', createError);
+      
+      // Handle specific error: email already exists
+      if (createError.code === 'email_exists') {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Este e-mail já está cadastrado no sistema.', 
+            code: 'email_exists' 
+          }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Handle other auth errors
       return new Response(
-        JSON.stringify({ error: createError.message }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          error: createError.message, 
+          code: createError.code || 'auth_error' 
+        }),
+        { status: createError.status || 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     console.log('User created in auth:', newUser.user.id);
 
     // Update profile with company_id and other details, set must_change_password flag
+    // Using upsert to ensure profile is created/updated correctly
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
-      .update({
-        company_id: requestingProfile.company_id,
+      .upsert({
+        id: newUser.user.id,
+        company_id: companyId,
+        email: email,
         first_name: firstName,
         last_name: lastName,
         phone: phone || null,
@@ -165,41 +198,62 @@ Deno.serve(async (req) => {
         primary_province: province || 'ON',
         employment_type: employmentType || 'full-time',
         must_change_password: true, // Force password change on first login
-      })
-      .eq('id', newUser.user.id);
+      }, {
+        onConflict: 'id'
+      });
 
     if (profileError) {
-      console.error('Error updating profile:', profileError);
+      console.error('Error upserting profile:', profileError);
+      // Rollback: delete the auth user we just created
+      await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Falha ao criar perfil do usuário. Tente novamente.', 
+          code: 'profile_error' 
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Create user role with custom_role_id if provided
+    // Using upsert to ensure role is created/updated correctly
     const validRole = role === 'admin' || role === 'manager' || role === 'cleaner' ? role : 'cleaner';
     
     const userRoleData: {
       user_id: string;
       company_id: string;
       role: string;
-      custom_role_id?: string;
+      custom_role_id?: string | null;
+      status: string;
     } = {
       user_id: newUser.user.id,
-      company_id: requestingProfile.company_id,
+      company_id: companyId,
       role: validRole,
+      custom_role_id: roleId || null,
+      status: 'active',
     };
-    
-    // Add custom_role_id if provided
-    if (roleId) {
-      userRoleData.custom_role_id = roleId;
-    }
     
     const { error: insertRoleError } = await supabaseAdmin
       .from('user_roles')
-      .insert(userRoleData);
+      .upsert(userRoleData, {
+        onConflict: 'user_id,company_id'
+      });
 
     if (insertRoleError) {
-      console.error('Error creating role:', insertRoleError);
+      console.error('Error upserting role:', insertRoleError);
+      // Rollback: delete the auth user and profile we just created
+      await supabaseAdmin.from('profiles').delete().eq('id', newUser.user.id);
+      await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Falha ao atribuir cargo ao usuário. Tente novamente.', 
+          code: 'role_error' 
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    console.log('User setup complete:', newUser.user.id);
+    console.log('User setup complete:', newUser.user.id, 'with role:', validRole, 'in company:', companyId);
 
     return new Response(
       JSON.stringify({ 
@@ -214,7 +268,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Unexpected error:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: 'Internal server error', code: 'internal_error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

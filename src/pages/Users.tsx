@@ -117,6 +117,7 @@ const Users = () => {
       supabase
         .from('custom_roles')
         .select('id, name, base_role')
+        .eq('company_id', activeCompanyId)
         .eq('is_active', true)
     ]);
 
