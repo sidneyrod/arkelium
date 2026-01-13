@@ -2576,6 +2576,10 @@ export type Database = {
         Args: { p_notification_id: string }
         Returns: boolean
       }
+      user_has_access_to_company: {
+        Args: { p_company_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       account_type: "asset" | "liability" | "equity" | "revenue" | "expense"
