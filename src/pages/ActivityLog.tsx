@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { supabase } from '@/lib/supabase';
 import PageHeader from '@/components/ui/page-header';
 import { PaginatedDataTable, Column } from '@/components/ui/paginated-data-table';
@@ -105,7 +106,8 @@ const activityIcons: Record<string, { icon: typeof Activity; color: string }> = 
 
 const ActivityLog = () => {
   const { t } = useLanguage();
-  const { hasRole, user } = useAuth();
+  const { user } = useAuth();
+  const { canView, loading: permLoading } = usePermissions();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -213,7 +215,17 @@ const ActivityLog = () => {
     return Object.keys(activityIcons).sort();
   }, []);
 
-  if (!hasRole(['admin'])) {
+  // Show loading while permissions are being fetched
+  if (permLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  // Check permission using dynamic system
+  if (!canView('activity_log')) {
     return (
       <div className="p-2 lg:p-3">
         <Card className="border-destructive/50 bg-destructive/5">
