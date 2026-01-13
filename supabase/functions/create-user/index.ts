@@ -125,6 +125,7 @@ Deno.serve(async (req) => {
     console.log('Creating user:', email, 'for company:', requestingProfile.company_id);
 
     // Create user in auth with default password
+    // Include company_id in metadata so the handle_new_user trigger can insert it into profiles
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password: DEFAULT_PASSWORD,
@@ -132,6 +133,7 @@ Deno.serve(async (req) => {
       user_metadata: {
         first_name: firstName,
         last_name: lastName,
+        company_id: requestingProfile.company_id,
       },
     });
 
