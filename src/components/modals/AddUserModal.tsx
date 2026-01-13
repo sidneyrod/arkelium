@@ -282,7 +282,11 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
           return;
         }
 
-        toast({ title: t.common.success, description: 'Usuário criado com sucesso' });
+        // Show appropriate success message
+        const successMessage = response.data?.reused 
+          ? 'Usuário existente foi reativado com sucesso.' 
+          : 'Usuário criado com sucesso.';
+        toast({ title: t.common.success, description: successMessage });
       }
 
       onSubmit(formData);
