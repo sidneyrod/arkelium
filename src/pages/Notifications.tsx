@@ -91,10 +91,10 @@ export default function Notifications() {
   const [userFilter, setUserFilter] = useState<string>('all');
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdminOrManager) {
       fetchUsers();
     }
-  }, [isAdmin]);
+  }, [isAdminOrManager]);
 
   const fetchUsers = async () => {
     try {
@@ -197,7 +197,7 @@ export default function Notifications() {
             {t.notifications?.markAllRead || 'Mark all read'}
           </Button>
         )}
-        {isAdmin && (
+        {isAdminOrManager && (
           <Button onClick={() => setShowBroadcastModal(true)}>
             <Send className="h-4 w-4 mr-2" />
             {t.notifications?.sendBroadcast || 'Send Broadcast'}
