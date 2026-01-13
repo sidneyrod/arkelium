@@ -5,8 +5,35 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Default password for new users - they must change on first login
-const DEFAULT_PASSWORD = 'Admin123!';
+// Generate a strong random password that won't be flagged as "pwned"
+function generateStrongPassword(): string {
+  const uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lowercase = 'abcdefghjkmnpqrstuvwxyz';
+  const numbers = '23456789';
+  const symbols = '!@#$%&*?';
+  
+  // Build password with guaranteed character types
+  let password = '';
+  password += uppercase[Math.floor(Math.random() * uppercase.length)];
+  password += uppercase[Math.floor(Math.random() * uppercase.length)];
+  password += lowercase[Math.floor(Math.random() * lowercase.length)];
+  password += lowercase[Math.floor(Math.random() * lowercase.length)];
+  password += lowercase[Math.floor(Math.random() * lowercase.length)];
+  password += lowercase[Math.floor(Math.random() * lowercase.length)];
+  password += numbers[Math.floor(Math.random() * numbers.length)];
+  password += numbers[Math.floor(Math.random() * numbers.length)];
+  password += symbols[Math.floor(Math.random() * symbols.length)];
+  password += symbols[Math.floor(Math.random() * symbols.length)];
+  
+  // Add more random characters
+  const allChars = uppercase + lowercase + numbers + symbols;
+  for (let i = 0; i < 6; i++) {
+    password += allChars[Math.floor(Math.random() * allChars.length)];
+  }
+  
+  // Shuffle the password
+  return password.split('').sort(() => Math.random() - 0.5).join('');
+}
 
 interface CreateUserRequest {
   email: string;
@@ -141,11 +168,15 @@ Deno.serve(async (req) => {
     const validRole = role === 'admin' || role === 'manager' || role === 'cleaner' ? role : 'cleaner';
     let userId: string;
     let wasReused = false;
+    
+    // Generate a strong random password for this user
+    const tempPassword = generateStrongPassword();
+    console.log('Generated strong temporary password for user');
 
-    // Try to create user in auth with default password
+    // Try to create user in auth with generated password
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
-      password: DEFAULT_PASSWORD,
+      password: tempPassword,
       email_confirm: true,
       user_metadata: {
         first_name: firstName,
@@ -156,6 +187,19 @@ Deno.serve(async (req) => {
 
     if (createError) {
       console.log('Create user error:', createError.code, createError.message);
+      
+      // Handle weak_password error
+      if (createError.code === 'weak_password' || (createError as any).name === 'AuthWeakPasswordError') {
+        console.error('Password rejected as weak:', (createError as any).reasons);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Senha temporária foi rejeitada. Por favor, tente novamente.', 
+            code: 'weak_password',
+            reasons: (createError as any).reasons || []
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       
       // Handle email_exists - try to reprovision the user
       if (createError.code === 'email_exists') {
@@ -223,7 +267,7 @@ Deno.serve(async (req) => {
 
         // Reset the user's password and update metadata
         const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-          password: DEFAULT_PASSWORD,
+          password: tempPassword,
           email_confirm: true,
           user_metadata: {
             first_name: firstName,
@@ -234,6 +278,19 @@ Deno.serve(async (req) => {
 
         if (updateError) {
           console.error('Error updating existing user:', updateError);
+          
+          // Handle weak_password during update
+          if (updateError.code === 'weak_password' || (updateError as any).name === 'AuthWeakPasswordError') {
+            return new Response(
+              JSON.stringify({ 
+                error: 'Senha temporária foi rejeitada. Por favor, tente novamente.', 
+                code: 'weak_password',
+                reasons: (updateError as any).reasons || []
+              }),
+              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+          
           return new Response(
             JSON.stringify({ error: 'Erro ao atualizar usuário existente.', code: 'update_error' }),
             { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -248,7 +305,7 @@ Deno.serve(async (req) => {
             error: createError.message, 
             code: createError.code || 'auth_error' 
           }),
-          { status: createError.status || 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: (createError as any).status || 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
     } else {
@@ -339,6 +396,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ 
         success: true,
         reused: wasReused,
+        tempPassword: tempPassword, // Return password so admin can share with user
         user: {
           id: userId,
           email: email,
