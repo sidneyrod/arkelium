@@ -32,6 +32,7 @@ function generateStrongPassword(): string {
 
 interface ResetPasswordRequest {
   userId: string;
+  companyId?: string; // Company context for multi-tenant admin validation
   newPassword?: string; // Optional - if not provided, generate a strong password
 }
 
@@ -53,9 +54,10 @@ Deno.serve(async (req) => {
       },
     });
 
-    // Verify the requesting user is authenticated and is admin
+    // Verify the requesting user is authenticated
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('Missing authorization header');
       return new Response(
         JSON.stringify({ error: 'Missing authorization header' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -66,48 +68,106 @@ Deno.serve(async (req) => {
     const { data: { user: requestingUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
     
     if (authError || !requestingUser) {
+      console.error('Auth error:', authError);
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Check if requesting user is admin
-    const { data: requestingUserRole } = await supabaseAdmin
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', requestingUser.id)
-      .single();
-
-    if (requestingUserRole?.role !== 'admin') {
-      return new Response(
-        JSON.stringify({ error: 'Only admins can reset passwords' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Get requesting user's company_id
-    const { data: requestingProfile } = await supabaseAdmin
-      .from('profiles')
-      .select('company_id')
-      .eq('id', requestingUser.id)
-      .single();
-
-    if (!requestingProfile?.company_id) {
-      return new Response(
-        JSON.stringify({ error: 'Admin has no company' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    console.log('Requesting user ID:', requestingUser.id);
 
     const body: ResetPasswordRequest = await req.json();
-    const { userId, newPassword: providedPassword } = body;
+    const { userId, companyId, newPassword: providedPassword } = body;
+
+    console.log('Request body - userId:', userId, 'companyId:', companyId);
 
     // Validate required fields
     if (!userId) {
       return new Response(
         JSON.stringify({ error: 'User ID is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Determine effective company ID
+    let effectiveCompanyId = companyId;
+    
+    if (!effectiveCompanyId) {
+      // Fallback: get from requesting user's profile
+      const { data: requestingProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('company_id')
+        .eq('id', requestingUser.id)
+        .single();
+      
+      effectiveCompanyId = requestingProfile?.company_id;
+      console.log('Fallback company_id from profile:', effectiveCompanyId);
+    }
+
+    if (!effectiveCompanyId) {
+      console.error('No company context available');
+      return new Response(
+        JSON.stringify({ error: 'Company context required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Effective company ID:', effectiveCompanyId);
+
+    // Check if requesting user is admin in the effective company
+    // Using .maybeSingle() to avoid "multiple rows" error
+    const { data: adminRole, error: adminRoleError } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', requestingUser.id)
+      .eq('company_id', effectiveCompanyId)
+      .eq('role', 'admin')
+      .eq('status', 'active')
+      .maybeSingle();
+
+    console.log('Admin role check result:', adminRole, 'Error:', adminRoleError);
+
+    if (adminRoleError) {
+      console.error('Error checking admin role:', adminRoleError);
+      return new Response(
+        JSON.stringify({ error: 'Error verifying admin permissions' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!adminRole) {
+      console.error('User is not admin in company:', effectiveCompanyId);
+      return new Response(
+        JSON.stringify({ error: 'Only admins can reset passwords' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify target user belongs to the same company via user_roles (more robust for multi-tenant)
+    const { data: targetUserRole, error: targetRoleError } = await supabaseAdmin
+      .from('user_roles')
+      .select('user_id, role')
+      .eq('user_id', userId)
+      .eq('company_id', effectiveCompanyId)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    console.log('Target user role check:', targetUserRole, 'Error:', targetRoleError);
+
+    if (targetRoleError) {
+      console.error('Error checking target user:', targetRoleError);
+      return new Response(
+        JSON.stringify({ error: 'Error verifying target user' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!targetUserRole) {
+      console.error('Target user not found in company:', effectiveCompanyId);
+      return new Response(
+        JSON.stringify({ error: 'User not found in your company' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -118,20 +178,6 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Password must be at least 6 characters' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Verify target user belongs to same company
-    const { data: targetProfile } = await supabaseAdmin
-      .from('profiles')
-      .select('company_id')
-      .eq('id', userId)
-      .single();
-
-    if (!targetProfile || targetProfile.company_id !== requestingProfile.company_id) {
-      return new Response(
-        JSON.stringify({ error: 'User not found in your company' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -161,6 +207,17 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: updateError.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Mark user to change password on next login
+    const { error: profileUpdateError } = await supabaseAdmin
+      .from('profiles')
+      .update({ must_change_password: true })
+      .eq('id', userId);
+
+    if (profileUpdateError) {
+      console.warn('Warning: Could not set must_change_password flag:', profileUpdateError);
+      // Don't fail the request, password was already reset successfully
     }
 
     console.log('Password reset successful for user:', userId);

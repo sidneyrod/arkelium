@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +34,7 @@ const roleColors: Record<string, string> = {
 
 const UsersTab = ({ users, loading, onUpdate }: UsersTabProps) => {
   const { user: currentUser } = useAuth();
+  const { activeCompanyId } = useActiveCompanyStore();
   const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editUser, setEditUser] = useState<UserWithRole | null>(null);
@@ -44,18 +46,37 @@ const UsersTab = ({ users, loading, onUpdate }: UsersTabProps) => {
   const [isResettingPassword, setIsResettingPassword] = useState<string | null>(null);
 
   const handleResetPassword = async (targetUser: UserWithRole) => {
+    if (!activeCompanyId) {
+      toast.error('Contexto da empresa não disponível');
+      return;
+    }
+    
     setIsResettingPassword(targetUser.id);
     try {
       const { data, error } = await supabase.functions.invoke('reset-user-password', {
-        body: { userId: targetUser.id },
+        body: { userId: targetUser.id, companyId: activeCompanyId },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Try to parse error response for better message
+        let errorMessage = 'Falha ao resetar senha';
+        try {
+          const errorData = await error.context?.json?.();
+          errorMessage = errorData?.error || error.message || errorMessage;
+        } catch {
+          errorMessage = error.message || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
 
-      if (data?.newPassword) {
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      if (data?.tempPassword) {
         setPasswordDialog({
           open: true,
-          password: data.newPassword,
+          password: data.tempPassword,
           userName: `${targetUser.firstName} ${targetUser.lastName}`.trim(),
         });
         toast.success('Senha resetada com sucesso');

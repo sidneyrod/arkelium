@@ -332,7 +332,7 @@ const Users = () => {
     
     try {
       const { data, error } = await supabase.functions.invoke('reset-user-password', {
-        body: { userId: userToReset.id }
+        body: { userId: userToReset.id, companyId: activeCompanyId }
       });
 
       if (error) {
