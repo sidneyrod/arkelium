@@ -282,11 +282,19 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
           return;
         }
 
-        // Show appropriate success message
+        // Show appropriate success message with temporary password
+        const tempPassword = response.data?.tempPassword;
         const successMessage = response.data?.reused 
           ? 'Usuário existente foi reativado com sucesso.' 
           : 'Usuário criado com sucesso.';
-        toast({ title: t.common.success, description: successMessage });
+        
+        toast({ 
+          title: t.common.success, 
+          description: tempPassword 
+            ? `${successMessage} Senha temporária: ${tempPassword}` 
+            : successMessage,
+          duration: tempPassword ? 15000 : 5000, // Show longer if password is displayed
+        });
       }
 
       onSubmit(formData);
@@ -440,14 +448,14 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
                 </div>
               </div>
 
-              {/* Default Password Info for new users */}
+              {/* Temporary Password Info for new users */}
               {isNewUser && (
                 <div className="p-3 rounded-lg border border-border bg-muted/30">
                   <p className="text-sm text-muted-foreground">
-                    <strong>Note:</strong> New users will receive a default password: <code className="bg-background px-1 py-0.5 rounded text-xs">Admin123!</code>
+                    <strong>Nota:</strong> Uma senha temporária segura será gerada automaticamente e exibida após criar o usuário.
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    They will be required to change it on their first login.
+                    O usuário deverá alterar a senha no primeiro login.
                   </p>
                 </div>
               )}
