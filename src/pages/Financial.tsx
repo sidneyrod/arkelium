@@ -369,7 +369,7 @@ const Financial = () => {
       eventTypeConfig[e.eventType]?.label || e.eventType,
       e.clientName || '',
       e.cleanerName || '',
-      e.serviceReference || '',
+      e.referenceNumber || e.serviceReference || '',
       paymentMethodLabels[e.paymentMethod || ''] || e.paymentMethod || '',
       e.grossAmount.toFixed(2),
       e.deductions.toFixed(2),
@@ -480,7 +480,7 @@ const Financial = () => {
                 <td>${eventTypeConfig[e.eventType]?.label || e.eventType}</td>
                 <td>${e.clientName || '—'}</td>
                 <td>${e.cleanerName || '—'}</td>
-                <td class="ref">${e.serviceReference || '—'}</td>
+                <td class="ref">${e.referenceNumber || e.serviceReference || '—'}</td>
                 <td>${paymentMethodLabels[e.paymentMethod || ''] || e.paymentMethod || '—'}</td>
                 <td class="amount">$${e.grossAmount.toFixed(2)}</td>
                 <td class="amount">$${e.deductions.toFixed(2)}</td>
