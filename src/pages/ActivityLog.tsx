@@ -213,7 +213,7 @@ const ActivityLog = () => {
     return Object.keys(activityIcons).sort();
   }, []);
 
-  if (!hasRole(['admin', 'manager'])) {
+  if (!hasRole(['admin'])) {
     return (
       <div className="p-2 lg:p-3">
         <Card className="border-destructive/50 bg-destructive/5">
