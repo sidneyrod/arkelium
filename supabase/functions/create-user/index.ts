@@ -64,31 +64,34 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check if requesting user is admin
-    const { data: requestingUserRole } = await supabaseAdmin
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', requestingUser.id)
-      .single();
-
-    if (requestingUserRole?.role !== 'admin') {
-      return new Response(
-        JSON.stringify({ error: 'Only admins can create users' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Get requesting user's company_id
-    const { data: requestingProfile } = await supabaseAdmin
+    // Get requesting user's company_id first
+    const { data: requestingProfile, error: profileFetchError } = await supabaseAdmin
       .from('profiles')
       .select('company_id')
       .eq('id', requestingUser.id)
       .single();
 
-    if (!requestingProfile?.company_id) {
+    if (profileFetchError || !requestingProfile?.company_id) {
+      console.error('Error fetching profile or no company:', profileFetchError);
       return new Response(
         JSON.stringify({ error: 'Admin has no company' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if requesting user is admin IN THEIR COMPANY
+    const { data: requestingUserRole, error: roleError } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', requestingUser.id)
+      .eq('company_id', requestingProfile.company_id)
+      .single();
+
+    if (roleError || requestingUserRole?.role !== 'admin') {
+      console.error('User is not admin or role error:', roleError);
+      return new Response(
+        JSON.stringify({ error: 'Only admins can create users' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -186,12 +189,12 @@ Deno.serve(async (req) => {
       userRoleData.custom_role_id = roleId;
     }
     
-    const { error: roleError } = await supabaseAdmin
+    const { error: insertRoleError } = await supabaseAdmin
       .from('user_roles')
       .insert(userRoleData);
 
-    if (roleError) {
-      console.error('Error creating role:', roleError);
+    if (insertRoleError) {
+      console.error('Error creating role:', insertRoleError);
     }
 
     console.log('User setup complete:', newUser.user.id);
