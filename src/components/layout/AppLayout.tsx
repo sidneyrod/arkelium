@@ -9,6 +9,8 @@ import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 
+const RESTORED_SESSION_KEY = 'workspace-session-restored';
+
 // Map paths to labels
 const getPageLabel = (path: string, t: any): string => {
   const pathMap: Record<string, string> = {
@@ -46,7 +48,6 @@ const AppLayout = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
   const { openTab, activeTabId, setCurrentUser, currentUserId, userTabs } = useWorkspaceStore();
-  const hasRestoredSession = useRef(false);
   const isSessionReady = useRef(false);
 
   // Get current user's tabs
@@ -57,10 +58,10 @@ const AppLayout = () => {
     if (user?.id) {
       setCurrentUser(user.id);
       
-      // Restore session AFTER setCurrentUser has been called
-      if (!hasRestoredSession.current) {
-        hasRestoredSession.current = true;
-        
+      // Check if already restored for this user in this browser session
+      const restoredForUser = sessionStorage.getItem(RESTORED_SESSION_KEY);
+      
+      if (restoredForUser !== user.id) {
         // Use requestAnimationFrame to ensure state has been updated
         requestAnimationFrame(() => {
           const currentState = useWorkspaceStore.getState();
@@ -69,23 +70,25 @@ const AppLayout = () => {
           
           const tabToRestore = userTabsNow.find(tab => tab.id === activeTabNow);
           
-          if (tabToRestore && tabToRestore.path !== location.pathname) {
+          if (tabToRestore) {
+            // ALWAYS navigate to the active tab, regardless of current path
             navigate(tabToRestore.path, { replace: true });
           }
           
-          // Mark session as ready after restoration
+          // Mark as restored for this user in this session
+          sessionStorage.setItem(RESTORED_SESSION_KEY, user.id);
           isSessionReady.current = true;
         });
       } else {
-        // Already restored, mark as ready immediately
+        // Already restored in this session
         isSessionReady.current = true;
       }
     } else {
       setCurrentUser(null);
-      hasRestoredSession.current = false;
+      sessionStorage.removeItem(RESTORED_SESSION_KEY);
       isSessionReady.current = false;
     }
-  }, [user?.id, setCurrentUser, navigate, location.pathname]);
+  }, [user?.id, setCurrentUser, navigate]);
 
   // Auto-open tab when navigating directly to a URL
   useEffect(() => {

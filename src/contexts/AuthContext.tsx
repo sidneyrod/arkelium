@@ -218,6 +218,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async (): Promise<void> => {
+    // Clear workspace session restoration flag
+    sessionStorage.removeItem('workspace-session-restored');
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
