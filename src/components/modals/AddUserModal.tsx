@@ -14,6 +14,7 @@ import { toast } from '@/hooks/use-toast';
 import { User, Mail, Phone, MapPin, Shield, DollarSign, Briefcase, Loader2 } from 'lucide-react';
 import { userSchema, validateForm } from '@/lib/validations';
 import { CanadianProvince, EmploymentType, provinceNames } from '@/stores/payrollStore';
+import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
 
 interface AddUserModalProps {
   open: boolean;
@@ -70,6 +71,7 @@ const initialFormData: UserFormData = {
 const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalProps) => {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const { activeCompanyId } = useActiveCompanyStore();
   const [formData, setFormData] = useState<UserFormData>(initialFormData);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -77,15 +79,16 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
   const [availableRoles, setAvailableRoles] = useState<CustomRole[]>([]);
   const [loadingRoles, setLoadingRoles] = useState(false);
 
-  // Fetch available roles from custom_roles table
+  // Fetch available roles from custom_roles table - filtered by active company
   useEffect(() => {
     const fetchRoles = async () => {
-      if (!open) return;
+      if (!open || !activeCompanyId) return;
       setLoadingRoles(true);
       try {
         const { data, error } = await supabase
           .from('custom_roles')
           .select('id, name, base_role')
+          .eq('company_id', activeCompanyId)
           .eq('is_active', true)
           .order('name');
         
@@ -103,7 +106,7 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
       }
     };
     fetchRoles();
-  }, [open]);
+  }, [open, activeCompanyId]);
 
   // Reset form when modal opens/closes or editUser changes
   useEffect(() => {
@@ -150,9 +153,9 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
     setErrors({});
     setIsLoading(true);
 
-    const companyId = user?.profile?.company_id;
-    if (!companyId) {
-      toast({ title: 'Error', description: 'No company found', variant: 'destructive' });
+    // Use activeCompanyId from store instead of profile
+    if (!activeCompanyId) {
+      toast({ title: 'Error', description: 'Nenhuma empresa selecionada', variant: 'destructive' });
       setIsLoading(false);
       return;
     }
@@ -194,7 +197,7 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
           .from('user_roles')
           .upsert({ 
             user_id: editUser.id,
-            company_id: companyId,
+            company_id: activeCompanyId,
             role: baseRole,
             custom_role_id: formData.roleId || null,
             status: 'active'
@@ -230,7 +233,7 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
             postalCode: formData.postalCode,
             role: baseRole,
             roleId: formData.roleId, // Pass custom_role_id
-            companyId,
+            companyId: activeCompanyId, // Use active company from store
             hourlyRate: formData.hourlyRate,
             salary: formData.salary,
             province: formData.province,
@@ -238,15 +241,48 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
           },
         });
 
+        // Handle errors from edge function
         if (response.error) {
-          throw new Error(response.error.message || 'Failed to create user');
+          // Try to parse specific error from response data
+          const errorData = response.data;
+          const errorMessage = errorData?.error || response.error.message || 'Failed to create user';
+          const errorCode = errorData?.code || '';
+          
+          // Handle specific error codes
+          if (errorCode === 'email_exists') {
+            setErrors(prev => ({ ...prev, email: 'Este e-mail já está cadastrado' }));
+            toast({ 
+              title: 'E-mail já cadastrado', 
+              description: 'Este e-mail já está registrado no sistema. Use outro e-mail.', 
+              variant: 'destructive' 
+            });
+          } else {
+            toast({ title: 'Erro', description: errorMessage, variant: 'destructive' });
+          }
+          setIsLoading(false);
+          return;
         }
 
+        // Check for error in response data (when HTTP is 200 but operation failed)
         if (response.data?.error) {
-          throw new Error(response.data.error);
+          const errorMessage = response.data.error;
+          const errorCode = response.data.code || '';
+          
+          if (errorCode === 'email_exists') {
+            setErrors(prev => ({ ...prev, email: 'Este e-mail já está cadastrado' }));
+            toast({ 
+              title: 'E-mail já cadastrado', 
+              description: 'Este e-mail já está registrado no sistema. Use outro e-mail.', 
+              variant: 'destructive' 
+            });
+          } else {
+            toast({ title: 'Erro', description: errorMessage, variant: 'destructive' });
+          }
+          setIsLoading(false);
+          return;
         }
 
-        toast({ title: t.common.success, description: 'User created successfully' });
+        toast({ title: t.common.success, description: 'Usuário criado com sucesso' });
       }
 
       onSubmit(formData);
