@@ -102,11 +102,30 @@ const Users = () => {
     fetchRolesData();
   }, [fetchRolesData]);
 
-  // Server-side paginated fetch
+  // Server-side paginated fetch - fetches roles directly to avoid race conditions
   const fetchUsers = useCallback(async (from: number, to: number) => {
     if (!activeCompanyId) {
       return { data: [], count: 0 };
     }
+
+    // Fetch fresh roles data directly inside fetchUsers to avoid race conditions
+    const [rolesResult, customRolesResult] = await Promise.all([
+      supabase
+        .from('user_roles')
+        .select('user_id, role, custom_role_id')
+        .eq('company_id', activeCompanyId),
+      supabase
+        .from('custom_roles')
+        .select('id, name, base_role')
+        .eq('is_active', true)
+    ]);
+
+    const freshRoles = rolesResult.data || [];
+    const freshCustomRoles = customRolesResult.data || [];
+
+    // Update state for filters UI (non-blocking)
+    setRoles(freshRoles);
+    setCustomRoles(freshCustomRoles);
 
     let query = supabase
       .from('profiles')
@@ -145,11 +164,11 @@ const Users = () => {
       throw error;
     }
 
-    // Map profiles with roles
+    // Map profiles with fresh roles data
     const mappedUsers: User[] = (profiles || []).map((profile: any) => {
-      const userRole = roles.find(r => r.user_id === profile.id);
+      const userRole = freshRoles.find(r => r.user_id === profile.id);
       const customRole = userRole?.custom_role_id 
-        ? customRoles.find(cr => cr.id === userRole.custom_role_id)
+        ? freshCustomRoles.find(cr => cr.id === userRole.custom_role_id)
         : null;
       
       return {
@@ -191,7 +210,7 @@ const Users = () => {
     }
 
     return { data: filteredUsers, count: count || 0 };
-  }, [activeCompanyId, debouncedSearch, roles, customRoles, urlRoles, roleFilter, statusFilterFromUrl]);
+  }, [activeCompanyId, debouncedSearch, urlRoles, roleFilter, statusFilterFromUrl]);
 
   const {
     data: users,
@@ -205,12 +224,10 @@ const Users = () => {
   // Refresh when filters change
   useEffect(() => {
     refresh();
-  }, [debouncedSearch, roleFilter, roles, customRoles]);
+  }, [debouncedSearch, roleFilter]);
 
-  const handleAddUser = async (userData: UserFormData) => {
-    // Refresh roles data first to get updated role assignments
-    await fetchRolesData();
-    // Then refresh the user list
+  const handleAddUser = async () => {
+    // fetchUsers now fetches roles directly, so just refresh
     await refresh();
     setEditUser(null);
     setIsAddModalOpen(false);
