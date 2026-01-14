@@ -592,35 +592,17 @@ const PaymentsCollections = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      {/* Period Selector + Actions */}
-      <div className="flex items-center justify-between gap-2">
-        <PeriodSelector
-          value={dateRange}
-          onChange={setDateRange}
-        />
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={refreshAll}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-          <Button variant="outline" onClick={exportToCSV}>
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
-          </Button>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4 mt-1">
+      {/* Filters Row: Search, Status, Date, Actions */}
+      <div className="flex flex-wrap items-center gap-3">
         <SearchInput
           placeholder="Search..."
           value={search}
           onChange={setSearch}
-          className="w-full sm:max-w-xs"
+          className="w-full sm:w-auto sm:max-w-[200px]"
         />
         
         <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-[140px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -634,6 +616,22 @@ const PaymentsCollections = () => {
             <SelectItem value="draft">Draft</SelectItem>
           </SelectContent>
         </Select>
+
+        <PeriodSelector
+          value={dateRange}
+          onChange={setDateRange}
+        />
+
+        <div className="flex gap-2 ml-auto">
+          <Button variant="outline" onClick={refreshAll}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+          <Button variant="outline" onClick={exportToCSV}>
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+        </div>
       </div>
 
       {/* Tabs with Tables */}
