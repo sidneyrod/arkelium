@@ -27,9 +27,9 @@ const toastVariants = cva(
   {
     variants: {
       variant: {
-        default: "border bg-background text-foreground",
-        destructive: "destructive group border-destructive bg-destructive text-destructive-foreground",
-        success: "border-primary/30 bg-primary/10 text-primary",
+        default: "border-transparent bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:border-slate-200",
+        destructive: "destructive group border-transparent bg-red-600 text-white dark:bg-red-500 dark:text-white",
+        success: "border-transparent bg-emerald-600 text-white dark:bg-emerald-500 dark:text-white",
       },
     },
     defaultVariants: {
@@ -68,7 +68,7 @@ const ToastClose = React.forwardRef<
   <ToastPrimitives.Close
     ref={ref}
     className={cn(
-      "absolute right-2 top-2 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity group-hover:opacity-100 group-[.destructive]:text-red-300 hover:text-foreground group-[.destructive]:hover:text-red-50 focus:opacity-100 focus:outline-none focus:ring-2 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600",
+      "absolute right-2 top-2 rounded-md p-1 text-white/70 opacity-0 transition-opacity hover:text-white group-hover:opacity-100 dark:text-slate-600/70 dark:hover:text-slate-900 group-[.destructive]:text-white/70 group-[.destructive]:hover:text-white focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-white/30 dark:focus:ring-slate-400",
       className,
     )}
     toast-close=""
@@ -91,7 +91,7 @@ const ToastDescription = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Description>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Description>
 >(({ className, ...props }, ref) => (
-  <ToastPrimitives.Description ref={ref} className={cn("text-sm opacity-90", className)} {...props} />
+  <ToastPrimitives.Description ref={ref} className={cn("text-sm", className)} {...props} />
 ));
 ToastDescription.displayName = ToastPrimitives.Description.displayName;
 
