@@ -17,6 +17,7 @@ interface Profile {
   employment_type: string | null;
   primary_province: string | null;
   must_change_password: boolean | null;
+  is_super_admin: boolean | null;
 }
 
 interface UserWithRole {
@@ -25,6 +26,7 @@ interface UserWithRole {
   profile: Profile | null;
   role: UserRole | null;
   companyId: string | null;
+  isSuperAdmin: boolean;
 }
 
 interface AuthContextType {
@@ -33,6 +35,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   mustChangePassword: boolean;
+  isSuperAdmin: boolean;
   login: (email: string, password: string, remember?: boolean) => Promise<{ success: boolean; error?: string }>;
   signup: (email: string, password: string, firstName?: string, lastName?: string) => Promise<{ success: boolean; error?: string }>;
   signInWithGoogle: () => Promise<{ success: boolean; error?: string }>;
@@ -86,6 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         profile: profile as Profile | null,
         role,
         companyId: profile?.company_id || null,
+        isSuperAdmin: profile?.is_super_admin === true,
       };
     } catch (error) {
       console.error('Error in fetchUserData:', error);
@@ -231,6 +235,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const hasRole = (roles: UserRole[]): boolean => {
+    // Super-admins have all roles
+    if (user?.isSuperAdmin) return true;
     if (!user?.role) return false;
     return roles.includes(user.role);
   };
@@ -258,6 +264,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated: !!session, 
       isLoading, 
       mustChangePassword,
+      isSuperAdmin: user?.isSuperAdmin ?? false,
       login, 
       signup,
       signInWithGoogle,
