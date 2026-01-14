@@ -610,67 +610,8 @@ const PaymentsCollections = () => {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-border/50">
-          <CardContent className="pt-4 pb-3">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-success/10 flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-success" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Received</p>
-                <p className="text-2xl font-bold">${kpis.totalReceived.toFixed(2)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="pt-4 pb-3">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-warning/10 flex items-center justify-center">
-                <Clock className="h-6 w-6 text-warning" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Cash Pending</p>
-                <p className="text-2xl font-bold">${kpis.cashPending.toFixed(2)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="pt-4 pb-3">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                <CheckCircle className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Cash Approved</p>
-                <p className="text-2xl font-bold">${kpis.cashApproved.toFixed(2)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="pt-4 pb-3">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-destructive/10 flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-destructive" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Cash Disputed</p>
-                <p className="text-2xl font-bold">${kpis.cashDisputed.toFixed(2)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-4 mt-1">
         <SearchInput
           placeholder="Search..."
           value={search}
