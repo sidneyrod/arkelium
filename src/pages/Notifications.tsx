@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useNotifications, Notification, NotificationType, NotificationSeverity, notifyBroadcast, createNotification } from '@/hooks/useNotifications';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { format, formatDistanceToNow, subDays, subMonths } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -76,6 +77,7 @@ export default function Notifications() {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const { isAdmin, isAdminOrManager } = useRoleAccess();
   const { notifications, unreadCount, loading, markAsRead, markAllAsRead, refetch } = useNotifications();
 
@@ -165,6 +167,11 @@ export default function Notifications() {
 
     if (sendMode === 'individual' && !selectedUserId) {
       toast.error(t.notifications?.selectUser || 'Please select a user');
+      return;
+    }
+
+    if (sendMode === 'individual' && selectedUserId === user?.id) {
+      toast.error('You cannot send a notification to yourself');
       return;
     }
 
@@ -477,9 +484,11 @@ export default function Notifications() {
                     <SelectValue placeholder={t.notifications?.selectUserPlaceholder || 'Choose a user...'} />
                   </SelectTrigger>
                   <SelectContent>
-                    {users.map(user => (
-                      <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                    ))}
+                    {users
+                      .filter(u => u.id !== user?.id)
+                      .map(u => (
+                        <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
