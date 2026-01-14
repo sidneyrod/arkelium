@@ -9,7 +9,7 @@ interface UserPermission {
 }
 
 export const usePermissions = () => {
-  const { user, hasRole } = useAuth();
+  const { user, hasRole, isSuperAdmin } = useAuth();
   const [permissions, setPermissions] = useState<UserPermission[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -21,9 +21,9 @@ export const usePermissions = () => {
     }
 
     try {
-      // Admin always has all permissions
-      if (hasRole(['admin'])) {
-        // Return full access for admin
+      // Super-admin and Admin always have all permissions
+      if (isSuperAdmin || hasRole(['admin'])) {
+        // Return full access
         const { data } = await supabase
           .from('permissions')
           .select('module, action');
@@ -55,7 +55,7 @@ export const usePermissions = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, hasRole]);
+  }, [user, hasRole, isSuperAdmin]);
 
   useEffect(() => {
     fetchPermissions();
@@ -63,15 +63,15 @@ export const usePermissions = () => {
 
   const hasPermission = useCallback(
     (module: string, action: string): boolean => {
-      // Admin always has access
-      if (hasRole(['admin'])) return true;
+      // Super-admin and Admin always have access
+      if (isSuperAdmin || hasRole(['admin'])) return true;
 
       const perm = permissions.find(
         (p) => p.module === module && p.action === action
       );
       return perm?.granted ?? false;
     },
-    [permissions, hasRole]
+    [permissions, hasRole, isSuperAdmin]
   );
 
   const canView = useCallback(

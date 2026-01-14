@@ -2193,6 +2193,7 @@ export type Database = {
           fixed_amount_per_job: number | null
           hourly_rate: number | null
           id: string
+          is_super_admin: boolean
           last_login_at: string | null
           last_name: string | null
           must_change_password: boolean | null
@@ -2218,6 +2219,7 @@ export type Database = {
           fixed_amount_per_job?: number | null
           hourly_rate?: number | null
           id: string
+          is_super_admin?: boolean
           last_login_at?: string | null
           last_name?: string | null
           must_change_password?: boolean | null
@@ -2243,6 +2245,7 @@ export type Database = {
           fixed_amount_per_job?: number | null
           hourly_rate?: number | null
           id?: string
+          is_super_admin?: boolean
           last_login_at?: string | null
           last_name?: string | null
           must_change_password?: boolean | null
