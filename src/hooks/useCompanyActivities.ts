@@ -107,7 +107,8 @@ export function useAllAccessibleActivities() {
             id,
             trade_name,
             legal_name,
-            status
+            status,
+            organization_id
           )
         `)
         .eq('is_active', true)

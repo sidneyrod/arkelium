@@ -37,6 +37,7 @@ export interface ScheduledJob {
   serviceCatalogId?: string | null;
   billableAmount?: number | null;
   isBillable?: boolean;
+  organizationId?: string | null;
 }
 
 export interface CleanerAvailability {

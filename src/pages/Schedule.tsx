@@ -73,6 +73,15 @@ interface ScheduledJob {
   visitRoute?: string;
   paymentMethod?: string; // Track payment method for invoice vs receipt rules
   serviceDate?: string;
+  // Enterprise Multi-Company Fields
+  operationType?: 'billable_service' | 'non_billable_visit' | 'internal_work';
+  activityCode?: string;
+  operatingCompanyId?: string;
+  operatingCompanyName?: string;
+  serviceCatalogId?: string | null;
+  billableAmount?: number | null;
+  isBillable?: boolean;
+  organizationId?: string | null;
 }
 
 
@@ -200,6 +209,7 @@ const Schedule = () => {
           service_catalog_id,
           billable_amount,
           is_billable,
+          organization_id,
           clients(id, name),
           profiles:cleaner_id(id, first_name, last_name),
           client_locations(address, city)
@@ -246,6 +256,7 @@ const Schedule = () => {
           serviceCatalogId: job.service_catalog_id,
           billableAmount: job.billable_amount,
           isBillable: job.is_billable ?? true,
+          organizationId: job.organization_id || null,
         };
       });
       
@@ -510,6 +521,7 @@ const Schedule = () => {
     operatingCompanyId?: string;
     serviceCatalogId?: string | null;
     billableAmount?: number;
+    organizationId?: string | null;
   }) => {
     try {
       // Use operating company from enterprise flow, fallback to active/user company
@@ -552,6 +564,7 @@ const Schedule = () => {
           service_catalog_id: jobData.serviceCatalogId || null,
           billable_amount: isBillable ? (jobData.billableAmount || null) : null,
           is_billable: isBillable,
+          organization_id: jobData.organizationId || null,
         })
         .select()
         .single();
@@ -610,6 +623,7 @@ const Schedule = () => {
     operatingCompanyId?: string;
     serviceCatalogId?: string | null;
     billableAmount?: number;
+    organizationId?: string | null;
   }) => {
     if (!editingJob) return;
     
@@ -639,6 +653,7 @@ const Schedule = () => {
           service_catalog_id: updatedJobData.serviceCatalogId || null,
           billable_amount: isBillable ? (updatedJobData.billableAmount || null) : null,
           is_billable: isBillable,
+          organization_id: updatedJobData.organizationId || null,
         })
         .eq('id', editingJob.id);
       
@@ -1001,6 +1016,7 @@ const Schedule = () => {
               compensation_status: compensationStatus,
               service_date: job.date,
               notes: paymentData.paymentNotes || null,
+              organization_id: job.organizationId || null,
             } as any).select('id').single();
             
             // Log activity for cash handling

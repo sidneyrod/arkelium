@@ -7,7 +7,7 @@ import { Building2, AlertCircle } from "lucide-react";
 
 interface OperatingCompanySelectorProps {
   value: string;
-  onChange: (companyId: string, companyName: string) => void;
+  onChange: (companyId: string, companyName: string, organizationId?: string) => void;
   activityCode: string;
   disabled?: boolean;
 }
@@ -77,7 +77,7 @@ export function OperatingCompanySelector({
           value={effectiveCompanyId}
           onValueChange={(id) => {
             const company = compatibleCompanies.find(c => c.id === id);
-            onChange(id, company?.trade_name || '');
+            onChange(id, company?.trade_name || '', company?.organization_id || undefined);
           }}
           disabled={disabled}
         >
