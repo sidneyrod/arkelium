@@ -189,23 +189,20 @@ export function NewBookingModal({
   // Reset form when modal opens
   useEffect(() => {
     if (open) {
-      // Reset enterprise fields
-      setOperationType('billable_service');
-      setActivityCode('cleaning');
-      setActivityLabel('Cleaning Services');
-      setOperatingCompanyId(activeCompanyId || '');
-      setOperatingCompanyName(activeCompanyName || '');
-      setServiceCatalogId(null);
-      setServiceName('');
-      setSelectedService(null);
-      
       if (job) {
         const [year, month, day] = job.date.split('-').map(Number);
         const jobDate = new Date(year, month - 1, day, 12, 0, 0);
         
-        // Map old job type to operation type
-        const mappedOpType: OperationType = job.jobType === 'visit' ? 'non_billable_visit' : 'billable_service';
+        // Load enterprise fields from existing job
+        const mappedOpType: OperationType = job.operationType || (job.jobType === 'visit' ? 'non_billable_visit' : 'billable_service');
         setOperationType(mappedOpType);
+        setActivityCode(job.activityCode || 'cleaning');
+        setActivityLabel('Cleaning Services'); // Will be refreshed by ActivitySelector
+        setOperatingCompanyId(job.operatingCompanyId || activeCompanyId || '');
+        setOperatingCompanyName(job.operatingCompanyName || activeCompanyName || '');
+        setServiceCatalogId(job.serviceCatalogId || null);
+        setServiceName('');
+        setSelectedService(null);
         
         setFormData({
           clientId: job.clientId,
@@ -221,10 +218,20 @@ export function NewBookingModal({
           status: job.status,
           visitPurpose: job.visitPurpose || '',
           visitRoute: job.visitRoute || '',
-          billableAmount: '',
+          billableAmount: job.billableAmount?.toString() || '',
           paymentMethod: 'e_transfer',
         });
       } else {
+        // Reset enterprise fields for new booking
+        setOperationType('billable_service');
+        setActivityCode('cleaning');
+        setActivityLabel('Cleaning Services');
+        setOperatingCompanyId(activeCompanyId || '');
+        setOperatingCompanyName(activeCompanyName || '');
+        setServiceCatalogId(null);
+        setServiceName('');
+        setSelectedService(null);
+        
         let initialDate = new Date();
         if (preselectedDate) {
           initialDate = new Date(preselectedDate.getFullYear(), preselectedDate.getMonth(), preselectedDate.getDate(), 12, 0, 0);

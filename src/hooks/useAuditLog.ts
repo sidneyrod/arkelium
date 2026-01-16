@@ -5,7 +5,7 @@ export type AuditAction =
   | 'user_created' | 'user_updated' | 'user_deleted'
   | 'client_created' | 'client_updated' | 'client_deleted' | 'client_inactivated'
   | 'contract_created' | 'contract_updated' | 'contract_deleted'
-  | 'job_created' | 'job_updated' | 'job_completed' | 'job_cancelled'
+  | 'job_created' | 'job_updated' | 'job_completed' | 'job_cancelled' | 'job_started'
   | 'invoice_created' | 'invoice_sent' | 'invoice_paid' | 'invoice_cancelled' | 'invoice_updated'
   | 'receipt_generated' | 'receipt_sent' | 'receipt_resent'
   | 'payment_registered' | 'payment_confirmed' | 'payment_rejected'
@@ -18,7 +18,12 @@ export type AuditAction =
   | 'financial_period_created' | 'financial_period_closed' | 'financial_period_reopened' | 'financial_period_updated'
   | 'estimate_created' | 'estimate_updated' | 'estimate_deleted' | 'estimate_sent'
   | 'cash_kept_by_cleaner' | 'cash_delivered_to_office' | 'cash_compensation_settled'
-  | 'job_overdue_alert';
+  | 'cash_approved' | 'cash_disputed' | 'cash_settled'
+  | 'job_overdue_alert'
+  // Enterprise Multi-Company Actions
+  | 'organization_created' | 'organization_updated'
+  | 'company_switched' | 'operating_company_selected'
+  | 'activity_configured' | 'service_catalog_updated';
 
 export type AuditSource = 'ui' | 'api' | 'system' | 'migration';
 
