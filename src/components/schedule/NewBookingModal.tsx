@@ -36,6 +36,7 @@ interface NewBookingModalProps {
     operatingCompanyId?: string;
     serviceCatalogId?: string | null;
     billableAmount?: number;
+    organizationId?: string | null;
   }) => void;
   job?: ScheduledJob;
   preselectedDate?: Date | null;
@@ -133,6 +134,7 @@ export function NewBookingModal({
   const [activityLabel, setActivityLabel] = useState('Cleaning Services');
   const [operatingCompanyId, setOperatingCompanyId] = useState(activeCompanyId || '');
   const [operatingCompanyName, setOperatingCompanyName] = useState(activeCompanyName || '');
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [serviceCatalogId, setServiceCatalogId] = useState<string | null>(null);
   const [serviceName, setServiceName] = useState('');
   const [selectedService, setSelectedService] = useState<ServiceCatalogItem | null>(null);
@@ -200,6 +202,7 @@ export function NewBookingModal({
         setActivityLabel('Cleaning Services'); // Will be refreshed by ActivitySelector
         setOperatingCompanyId(job.operatingCompanyId || activeCompanyId || '');
         setOperatingCompanyName(job.operatingCompanyName || activeCompanyName || '');
+        setOrganizationId(job.organizationId || null);
         setServiceCatalogId(job.serviceCatalogId || null);
         setServiceName('');
         setSelectedService(null);
@@ -228,6 +231,7 @@ export function NewBookingModal({
         setActivityLabel('Cleaning Services');
         setOperatingCompanyId(activeCompanyId || '');
         setOperatingCompanyName(activeCompanyName || '');
+        setOrganizationId(null);
         setServiceCatalogId(null);
         setServiceName('');
         setSelectedService(null);
@@ -401,6 +405,7 @@ export function NewBookingModal({
       billableAmount: operationType === 'billable_service' && formData.billableAmount 
         ? parseFloat(formData.billableAmount) 
         : undefined,
+      organizationId,
     };
     
     onSave(jobData as any);
@@ -458,9 +463,10 @@ export function NewBookingModal({
             {/* SECTION C: Operating Company */}
             <OperatingCompanySelector
               value={operatingCompanyId}
-              onChange={(id, name) => {
+              onChange={(id, name, orgId) => {
                 setOperatingCompanyId(id);
                 setOperatingCompanyName(name);
+                setOrganizationId(orgId || null);
                 // Reset client when company changes
                 setFormData(prev => ({ ...prev, clientId: '', clientName: '', address: '' }));
               }}
