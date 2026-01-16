@@ -159,6 +159,7 @@ export type Database = {
           id: string
           job_id: string
           notes: string | null
+          organization_id: string | null
           payment_receipt_id: string | null
           payroll_period_id: string | null
           service_date: string
@@ -184,6 +185,7 @@ export type Database = {
           id?: string
           job_id: string
           notes?: string | null
+          organization_id?: string | null
           payment_receipt_id?: string | null
           payroll_period_id?: string | null
           service_date: string
@@ -209,6 +211,7 @@ export type Database = {
           id?: string
           job_id?: string
           notes?: string | null
+          organization_id?: string | null
           payment_receipt_id?: string | null
           payroll_period_id?: string | null
           service_date?: string
@@ -264,6 +267,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_collections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
@@ -719,6 +729,7 @@ export type Database = {
           email: string | null
           id: string
           legal_name: string
+          organization_id: string | null
           phone: string | null
           postal_code: string | null
           province: string | null
@@ -741,6 +752,7 @@ export type Database = {
           email?: string | null
           id?: string
           legal_name: string
+          organization_id?: string | null
           phone?: string | null
           postal_code?: string | null
           province?: string | null
@@ -763,6 +775,7 @@ export type Database = {
           email?: string | null
           id?: string
           legal_name?: string
+          organization_id?: string | null
           phone?: string | null
           postal_code?: string | null
           province?: string | null
@@ -779,6 +792,54 @@ export type Database = {
             columns: ["archived_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "companies_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_activities: {
+        Row: {
+          activity_code: string
+          activity_label: string
+          company_id: string
+          created_at: string
+          display_order: number | null
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          activity_code: string
+          activity_label: string
+          company_id: string
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          activity_code?: string
+          activity_label?: string
+          company_id?: string
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_activities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -1576,8 +1637,10 @@ export type Database = {
       }
       jobs: {
         Row: {
+          activity_code: string | null
           after_photos: Json | null
           before_photos: Json | null
+          billable_amount: number | null
           checklist: Json | null
           cleaner_id: string | null
           client_id: string
@@ -1591,6 +1654,8 @@ export type Database = {
           job_type: string | null
           location_id: string | null
           notes: string | null
+          operation_type: string | null
+          organization_id: string | null
           payment_amount: number | null
           payment_date: string | null
           payment_method: string | null
@@ -1598,6 +1663,7 @@ export type Database = {
           payment_received_by: string | null
           payment_reference: string | null
           scheduled_date: string
+          service_catalog_id: string | null
           start_time: string | null
           status: string
           updated_at: string
@@ -1608,8 +1674,10 @@ export type Database = {
           visit_route: string | null
         }
         Insert: {
+          activity_code?: string | null
           after_photos?: Json | null
           before_photos?: Json | null
+          billable_amount?: number | null
           checklist?: Json | null
           cleaner_id?: string | null
           client_id: string
@@ -1623,6 +1691,8 @@ export type Database = {
           job_type?: string | null
           location_id?: string | null
           notes?: string | null
+          operation_type?: string | null
+          organization_id?: string | null
           payment_amount?: number | null
           payment_date?: string | null
           payment_method?: string | null
@@ -1630,6 +1700,7 @@ export type Database = {
           payment_received_by?: string | null
           payment_reference?: string | null
           scheduled_date: string
+          service_catalog_id?: string | null
           start_time?: string | null
           status?: string
           updated_at?: string
@@ -1640,8 +1711,10 @@ export type Database = {
           visit_route?: string | null
         }
         Update: {
+          activity_code?: string | null
           after_photos?: Json | null
           before_photos?: Json | null
+          billable_amount?: number | null
           checklist?: Json | null
           cleaner_id?: string | null
           client_id?: string
@@ -1655,6 +1728,8 @@ export type Database = {
           job_type?: string | null
           location_id?: string | null
           notes?: string | null
+          operation_type?: string | null
+          organization_id?: string | null
           payment_amount?: number | null
           payment_date?: string | null
           payment_method?: string | null
@@ -1662,6 +1737,7 @@ export type Database = {
           payment_received_by?: string | null
           payment_reference?: string | null
           scheduled_date?: string
+          service_catalog_id?: string | null
           start_time?: string | null
           status?: string
           updated_at?: string
@@ -1698,6 +1774,20 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "client_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_service_catalog_id_fkey"
+            columns: ["service_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "service_catalog"
             referencedColumns: ["id"]
           },
         ]
@@ -1881,6 +1971,65 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      organization_members: {
+        Row: {
+          created_at: string
+          id: string
+          organization_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organization_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organization_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          created_at: string
+          id: string
+          legal_name: string | null
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          legal_name?: string | null
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          legal_name?: string | null
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       payment_receipts: {
         Row: {
@@ -2309,6 +2458,62 @@ export type Database = {
             columns: ["permission_id"]
             isOneToOne: false
             referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_catalog: {
+        Row: {
+          activity_code: string
+          billable_default: boolean | null
+          company_id: string
+          created_at: string
+          default_duration_minutes: number | null
+          default_rate: number | null
+          description: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          service_code: string | null
+          service_name: string
+          updated_at: string
+        }
+        Insert: {
+          activity_code: string
+          billable_default?: boolean | null
+          company_id: string
+          created_at?: string
+          default_duration_minutes?: number | null
+          default_rate?: number | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          service_code?: string | null
+          service_name: string
+          updated_at?: string
+        }
+        Update: {
+          activity_code?: string
+          billable_default?: boolean | null
+          company_id?: string
+          created_at?: string
+          default_duration_minutes?: number | null
+          default_rate?: number | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          service_code?: string | null
+          service_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_catalog_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
