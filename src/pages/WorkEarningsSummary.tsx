@@ -27,6 +27,7 @@ import { format } from 'date-fns';
 import { useWorkEarnings, CleanerWorkSummary } from '@/hooks/useWorkEarnings';
 import { CleanerDetailModal } from '@/components/work-earnings/CleanerDetailModal';
 import { ExportReportButton } from '@/components/work-earnings/ExportReportButton';
+import { FinancialInfoBanner } from '@/components/financial/FinancialInfoBanner';
 
 const WorkEarningsSummary = () => {
   const { t } = useLanguage();
@@ -80,6 +81,9 @@ const WorkEarningsSummary = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
+      {/* Info Banner */}
+      <FinancialInfoBanner variant="work" />
+      
       {/* Action bar – no title/subtitle */}
       <div className="flex items-center justify-end gap-2">
         <DatePickerDialog

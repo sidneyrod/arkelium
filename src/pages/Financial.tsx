@@ -11,6 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { toast } from '@/hooks/use-toast';
 import GenerateReportModal from '@/components/financial/GenerateReportModal';
 import { LedgerColumnSettings } from '@/components/financial/LedgerColumnSettings';
+import { FinancialInfoBanner } from '@/components/financial/FinancialInfoBanner';
 import { DatePickerDialog } from '@/components/ui/date-picker-dialog';
 import { FilterableColumnHeader, FilterOption } from '@/components/ui/filterable-column-header';
 import { useLedgerColumnOrder } from '@/hooks/useLedgerColumnOrder';
