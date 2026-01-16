@@ -40,6 +40,7 @@ import { useCompanyStore } from '@/stores/companyStore';
 import useRoleAccess from '@/hooks/useRoleAccess';
 import { useCompanyPreferences } from '@/hooks/useCompanyPreferences';
 import AddJobDrawer from '@/components/schedule/AddJobDrawer';
+import { NewBookingModal } from '@/components/schedule/NewBookingModal';
 import JobCompletionModal, { PaymentData } from '@/components/modals/JobCompletionModal';
 import StartServiceModal from '@/components/modals/StartServiceModal';
 import VisitCompletionModal, { VisitCompletionData } from '@/components/schedule/VisitCompletionModal';
