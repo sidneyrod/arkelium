@@ -1874,8 +1874,8 @@ const Schedule = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Add/Edit Job Drawer */}
-      <AddJobDrawer
+      {/* Add/Edit Job Modal (Enterprise) */}
+      <NewBookingModal
         open={showAddJob || !!editingJob}
         onOpenChange={(open) => {
           if (!open) {
