@@ -195,6 +195,11 @@ const Schedule = () => {
           visit_route,
           payment_method,
           payment_date,
+          operation_type,
+          activity_code,
+          service_catalog_id,
+          billable_amount,
+          is_billable,
           clients(id, name),
           profiles:cleaner_id(id, first_name, last_name),
           client_locations(address, city)
@@ -210,7 +215,7 @@ const Schedule = () => {
       
       const mappedJobs: ScheduledJob[] = (data || []).map((job: any) => {
         // Determine if this is a visit or cleaning job
-        const isVisit = job.job_type === 'visit';
+        const isVisit = job.job_type === 'visit' || job.operation_type === 'non_billable_visit';
         
         return {
           id: job.id,
@@ -235,6 +240,12 @@ const Schedule = () => {
           visitRoute: job.visit_route,
           paymentMethod: job.payment_method || undefined,
           serviceDate: job.scheduled_date,
+          // Enterprise fields
+          operationType: job.operation_type || 'billable_service',
+          activityCode: job.activity_code || 'cleaning',
+          serviceCatalogId: job.service_catalog_id,
+          billableAmount: job.billable_amount,
+          isBillable: job.is_billable ?? true,
         };
       });
       
@@ -493,9 +504,16 @@ const Schedule = () => {
     setShowAddJob(true);
   };
 
-  const handleAddJob = async (jobData: Omit<ScheduledJob, 'id'>) => {
+  const handleAddJob = async (jobData: Omit<ScheduledJob, 'id'> & {
+    operationType?: string;
+    activityCode?: string;
+    operatingCompanyId?: string;
+    serviceCatalogId?: string | null;
+    billableAmount?: number;
+  }) => {
     try {
-      let companyId = user?.profile?.company_id;
+      // Use operating company from enterprise flow, fallback to active/user company
+      let companyId = jobData.operatingCompanyId || activeCompanyId || user?.profile?.company_id;
       if (!companyId) {
         const { data: companyIdData } = await supabase.rpc('get_user_company_id');
         companyId = companyIdData;
@@ -510,23 +528,30 @@ const Schedule = () => {
       const durationMatch = jobData.duration.match(/(\d+\.?\d*)/);
       const durationMinutes = durationMatch ? parseFloat(durationMatch[1]) * 60 : 120;
       
-      // Determine job type - check if formData has jobType property
-      const isVisit = (jobData as any).jobType === 'visit';
+      // Determine job type - map from operation type or legacy jobType
+      const isVisit = (jobData as any).jobType === 'visit' || jobData.operationType === 'non_billable_visit';
+      const isBillable = jobData.operationType !== 'non_billable_visit' && jobData.operationType !== 'internal_work';
       
       const { data, error } = await supabase
         .from('jobs')
         .insert({
           company_id: companyId,
-          client_id: jobData.clientId,
+          client_id: jobData.clientId || null,
           cleaner_id: jobData.employeeId || null,
           scheduled_date: jobData.date,
           start_time: jobData.time,
           duration_minutes: durationMinutes,
           status: 'scheduled',
-          job_type: isVisit ? 'visit' : (jobData.services[0] || 'Standard Clean'),
+          job_type: isVisit ? 'visit' : (jobData.services?.[0] || 'Standard Clean'),
           notes: jobData.notes,
           visit_purpose: isVisit ? (jobData as any).visitPurpose : null,
           visit_route: isVisit ? (jobData as any).visitRoute : null,
+          // Enterprise fields
+          operation_type: jobData.operationType || 'billable_service',
+          activity_code: jobData.activityCode || 'cleaning',
+          service_catalog_id: jobData.serviceCatalogId || null,
+          billable_amount: isBillable ? (jobData.billableAmount || null) : null,
+          is_billable: isBillable,
         })
         .select()
         .single();
@@ -579,23 +604,41 @@ const Schedule = () => {
     setSelectedJob(null);
   };
 
-  const handleUpdateJob = async (updatedJobData: Omit<ScheduledJob, 'id'>) => {
+  const handleUpdateJob = async (updatedJobData: Omit<ScheduledJob, 'id'> & {
+    operationType?: string;
+    activityCode?: string;
+    operatingCompanyId?: string;
+    serviceCatalogId?: string | null;
+    billableAmount?: number;
+  }) => {
     if (!editingJob) return;
     
     try {
       const durationMatch = updatedJobData.duration.match(/(\d+\.?\d*)/);
       const durationMinutes = durationMatch ? parseFloat(durationMatch[1]) * 60 : 120;
       
+      // Determine if billable
+      const isVisit = (updatedJobData as any).jobType === 'visit' || updatedJobData.operationType === 'non_billable_visit';
+      const isBillable = updatedJobData.operationType !== 'non_billable_visit' && updatedJobData.operationType !== 'internal_work';
+      
       const { error } = await supabase
         .from('jobs')
         .update({
-          client_id: updatedJobData.clientId,
+          client_id: updatedJobData.clientId || null,
           cleaner_id: updatedJobData.employeeId || null,
           scheduled_date: updatedJobData.date,
           start_time: updatedJobData.time,
           duration_minutes: durationMinutes,
-          job_type: updatedJobData.services[0] || 'Standard Clean',
+          job_type: isVisit ? 'visit' : (updatedJobData.services?.[0] || 'Standard Clean'),
           notes: updatedJobData.notes,
+          visit_purpose: isVisit ? (updatedJobData as any).visitPurpose : null,
+          visit_route: isVisit ? (updatedJobData as any).visitRoute : null,
+          // Enterprise fields
+          operation_type: updatedJobData.operationType || undefined,
+          activity_code: updatedJobData.activityCode || undefined,
+          service_catalog_id: updatedJobData.serviceCatalogId || null,
+          billable_amount: isBillable ? (updatedJobData.billableAmount || null) : null,
+          is_billable: isBillable,
         })
         .eq('id', editingJob.id);
       

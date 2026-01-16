@@ -29,6 +29,14 @@ export interface ScheduledJob {
   jobType?: 'cleaning' | 'visit';
   visitPurpose?: string;
   visitRoute?: string;
+  // Enterprise Multi-Company Fields
+  operationType?: 'billable_service' | 'non_billable_visit' | 'internal_work';
+  activityCode?: string;
+  operatingCompanyId?: string;
+  operatingCompanyName?: string;
+  serviceCatalogId?: string | null;
+  billableAmount?: number | null;
+  isBillable?: boolean;
 }
 
 export interface CleanerAvailability {
