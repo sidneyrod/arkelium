@@ -334,7 +334,10 @@ const AddContractModal = ({ open, onOpenChange, onSubmit, editContract, clients 
           {/* Time Window & Location */}
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label className="text-xs">{t.contracts.timeWindow}</Label>
+              <Label className="flex items-center gap-1.5 text-xs">
+                <Clock className="h-3 w-3 text-muted-foreground" />
+                {t.contracts.timeWindow}
+              </Label>
               <Input
                 value={formData.timeWindow}
                 onChange={(e) => updateField('timeWindow', e.target.value)}
