@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { CANADIAN_TIMEZONES } from '@/hooks/useTimezone';
 import PreferencesTab from '@/components/company/PreferencesTab';
+import ActivitiesTab from '@/components/company/ActivitiesTab';
 import CompanyListTable, { CompanyListItem } from '@/components/company/CompanyListTable';
 import EditCompanyModal, { CompanyFormData } from '@/components/company/EditCompanyModal';
 import ConfirmDialog from '@/components/modals/ConfirmDialog';
@@ -959,6 +960,10 @@ const Company = () => {
               <Building2 className="h-4 w-4" />
               <span className="hidden sm:inline">{t.company.profile}</span>
             </TabsTrigger>
+            <TabsTrigger value="activities" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
+              <Zap className="h-4 w-4" />
+              <span className="hidden sm:inline">Activities</span>
+            </TabsTrigger>
             <TabsTrigger value="branding" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
               <Palette className="h-4 w-4" />
               <span className="hidden sm:inline">{t.company.branding}</span>
@@ -1001,6 +1006,14 @@ const Company = () => {
             onEditCompany={handleOpenEditModal}
             onDeleteCompany={handleDeleteCompany}
             onRegisterCompany={handleOpenRegisterModal}
+          />
+        </TabsContent>
+
+        {/* Activities Tab */}
+        <TabsContent value="activities" className="space-y-4 mt-4">
+          <ActivitiesTab 
+            companyId={activeCompanyId} 
+            isLoading={isFetching}
           />
         </TabsContent>
 

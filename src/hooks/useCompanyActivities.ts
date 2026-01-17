@@ -85,12 +85,49 @@ export function useCompanyActivities(companyId?: string) {
     },
   });
 
+  const updateActivity = useMutation({
+    mutationFn: async ({ id, activityLabel }: { id: string; activityLabel: string }) => {
+      const { data, error } = await supabase
+        .from('company_activities')
+        .update({ activity_label: activityLabel })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['company-activities', targetCompanyId] });
+    },
+  });
+
+  const reorderActivities = useMutation({
+    mutationFn: async (orderedIds: string[]) => {
+      const updates = orderedIds.map((id, index) => 
+        supabase
+          .from('company_activities')
+          .update({ display_order: index })
+          .eq('id', id)
+      );
+      
+      const results = await Promise.all(updates);
+      const error = results.find(r => r.error)?.error;
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['company-activities', targetCompanyId] });
+    },
+  });
+
   return {
     activities: query.data || [],
     isLoading: query.isLoading,
     error: query.error,
     addActivity,
     removeActivity,
+    updateActivity,
+    reorderActivities,
   };
 }
 
