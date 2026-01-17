@@ -1,6 +1,8 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAllAccessibleActivities, ACTIVITY_CODES } from "@/hooks/useCompanyActivities";
-import { Loader2 } from "lucide-react";
+import { useAllAccessibleActivities } from "@/hooks/useCompanyActivities";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, AlertCircle, Settings } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface ActivitySelectorProps {
   value: string;
@@ -11,11 +13,44 @@ interface ActivitySelectorProps {
 export function ActivitySelector({ value, onChange, disabled }: ActivitySelectorProps) {
   const { data: activities, isLoading } = useAllAccessibleActivities();
 
-  // If no activities configured, show default options
   const hasActivities = activities && activities.length > 0;
-  const displayActivities = hasActivities 
-    ? activities 
-    : Object.values(ACTIVITY_CODES).map(a => ({ code: a.code, label: a.label, companies: [] }));
+
+  if (isLoading) {
+    return (
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium">Activity / Service Category</label>
+        <div className="flex items-center gap-2 h-10 px-3 border rounded-md bg-muted/50">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span className="text-sm text-muted-foreground">Loading activities...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasActivities) {
+    return (
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium">Activity / Service Category</label>
+        <Alert variant="default" className="bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
+          <AlertCircle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-sm">
+            <span className="font-medium">No activities configured.</span>
+            <span className="block text-xs mt-1">
+              Go to{' '}
+              <Link 
+                to="/company" 
+                className="text-primary hover:underline inline-flex items-center gap-1"
+              >
+                <Settings className="h-3 w-3" />
+                Company Settings → Activities
+              </Link>
+              {' '}to add service types.
+            </span>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-1.5">
@@ -23,27 +58,20 @@ export function ActivitySelector({ value, onChange, disabled }: ActivitySelector
       <Select 
         value={value} 
         onValueChange={(code) => {
-          const activity = displayActivities.find(a => a.code === code);
+          const activity = activities.find(a => a.code === code);
           onChange(code, activity?.label || code);
         }}
-        disabled={disabled || isLoading}
+        disabled={disabled}
       >
         <SelectTrigger>
-          {isLoading ? (
-            <div className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Loading...</span>
-            </div>
-          ) : (
-            <SelectValue placeholder="Select activity..." />
-          )}
+          <SelectValue placeholder="Select activity..." />
         </SelectTrigger>
         <SelectContent>
-          {displayActivities.map((activity) => (
+          {activities.map((activity) => (
             <SelectItem key={activity.code} value={activity.code}>
               <div className="flex items-center justify-between w-full gap-2">
                 <span>{activity.label}</span>
-                {hasActivities && activity.companies.length > 0 && (
+                {activity.companies.length > 0 && (
                   <span className="text-xs text-muted-foreground">
                     ({activity.companies.length} {activity.companies.length === 1 ? 'company' : 'companies'})
                   </span>
