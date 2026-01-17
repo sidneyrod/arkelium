@@ -44,7 +44,7 @@ import { NewBookingModal } from '@/components/schedule/NewBookingModal';
 import JobCompletionModal, { PaymentData } from '@/components/modals/JobCompletionModal';
 import StartServiceModal from '@/components/modals/StartServiceModal';
 import VisitCompletionModal, { VisitCompletionData } from '@/components/schedule/VisitCompletionModal';
-import ConfirmDialog from '@/components/modals/ConfirmDialog';
+import CancelJobModal from '@/components/modals/CancelJobModal';
 import OverdueJobAlert from '@/components/schedule/OverdueJobAlert';
 import { notifyJobCreated, notifyJobUpdated, notifyJobCancelled, notifyVisitCreated, notifyJobCompleted, notifyInvoiceGenerated } from '@/hooks/useNotifications';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, startOfWeek, endOfWeek, addWeeks, subWeeks, isSameDay, addDays, subDays, parseISO } from 'date-fns';
@@ -146,7 +146,8 @@ const Schedule = () => {
   const [showStartService, setShowStartService] = useState(false);
   const [jobToStart, setJobToStart] = useState<ScheduledJob | null>(null);
   
-  const [jobToDelete, setJobToDelete] = useState<ScheduledJob | null>(null);
+  const [jobToCancel, setJobToCancel] = useState<ScheduledJob | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const [editingJob, setEditingJob] = useState<ScheduledJob | null>(null);
   const [employeeFilter, setEmployeeFilter] = useState('all');
   const [serviceTypeFilter, setServiceTypeFilter] = useState<'all' | 'cleaning' | 'visit'>('all');
@@ -684,43 +685,18 @@ const Schedule = () => {
     }
   };
 
-  const handleDeleteJob = async () => {
-    if (!jobToDelete) return;
-    
-    try {
-      const companyId = user?.profile?.company_id;
-      const { error } = await supabase
-        .from('jobs')
-        .delete()
-        .eq('id', jobToDelete.id)
-        .eq('company_id', companyId);
-      
-      if (error) {
-        console.error('Error deleting job:', error);
-        toast.error('Failed to delete job');
-        return;
-      }
-      
-      logActivity('job_cancelled', `Job cancelled for ${jobToDelete.clientName}`, jobToDelete.id, jobToDelete.clientName);
-      toast.success('Job deleted successfully');
-      
-      // Notify cleaner about job cancellation
-      if (jobToDelete.employeeId) {
-        await notifyJobCancelled(
-          jobToDelete.employeeId,
-          jobToDelete.clientName,
-          jobToDelete.date,
-          jobToDelete.id
-        );
-      }
-      
-      await fetchJobs();
-      setJobToDelete(null);
-      setSelectedJob(null);
-    } catch (error) {
-      console.error('Error in handleDeleteJob:', error);
-      toast.error('Failed to delete job');
-    }
+  // Open cancel modal for a job
+  const handleOpenCancelJob = (job: ScheduledJob) => {
+    setJobToCancel(job);
+    setShowCancelModal(true);
+    setSelectedJob(null);
+  };
+
+  // Callback when job is cancelled successfully
+  const handleJobCancelled = async () => {
+    await fetchJobs();
+    setJobToCancel(null);
+    setShowCancelModal(false);
   };
 
   // Open start service modal with before photo option
@@ -1943,7 +1919,8 @@ const Schedule = () => {
                       variant="outline" 
                       size="icon" 
                       className="text-destructive hover:text-destructive"
-                      onClick={() => setJobToDelete(selectedJob)}
+                      onClick={() => handleOpenCancelJob(selectedJob)}
+                      title="Cancel Job"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -1996,13 +1973,12 @@ const Schedule = () => {
         onStart={handleStartJob}
       />
 
-      {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        open={!!jobToDelete}
-        onOpenChange={() => setJobToDelete(null)}
-        onConfirm={handleDeleteJob}
-        title={t.common.confirmDelete}
-        description={`Are you sure you want to delete the job for "${jobToDelete?.clientName}"? This action cannot be undone.`}
+      {/* Cancel Job Modal (Enterprise Governance) */}
+      <CancelJobModal
+        open={showCancelModal}
+        onOpenChange={setShowCancelModal}
+        job={jobToCancel}
+        onSuccess={handleJobCancelled}
       />
     </div>
   );
