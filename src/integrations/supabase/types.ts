@@ -297,6 +297,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_cash_collections_organization"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       chart_of_accounts: {
@@ -1748,6 +1755,20 @@ export type Database = {
           visit_route?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_jobs_organization"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_jobs_service_catalog"
+            columns: ["service_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "service_catalog"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "jobs_cleaner_id_fkey"
             columns: ["cleaner_id"]
