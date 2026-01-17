@@ -764,7 +764,14 @@ const Schedule = () => {
     }
   };
 
-  const createCashReceipt = async (
+  // Helper to check if payment is on the same day as service
+  const isSameDayPayment = (paymentDate: Date, serviceDate: string): boolean => {
+    const serviceDateParsed = toSafeLocalDate(serviceDate);
+    return isSameDay(paymentDate, serviceDateParsed);
+  };
+
+  // Generic payment receipt generator (works for cash AND same-day e-transfers)
+  const createPaymentReceipt = async (
     job: ScheduledJob,
     paymentData: PaymentData,
     companyId: string
@@ -805,6 +812,10 @@ const Schedule = () => {
       // Generate receipt number
       const receiptNumber = `REC-${format(new Date(), 'yyyyMMdd')}-${Date.now().toString().slice(-6)}`;
       
+      // Format payment method for display
+      const paymentMethodDisplay = paymentData.paymentMethod === 'e_transfer' ? 'E-Transfer' : 
+        paymentData.paymentMethod === 'cash' ? 'Cash' : paymentData.paymentMethod;
+      
       // Generate receipt HTML
       const receiptData = {
         receiptNumber,
@@ -815,7 +826,7 @@ const Schedule = () => {
         cleanerName: job.employeeName,
         serviceDate: job.date,
         serviceDescription: `Cleaning service - ${job.duration}`,
-        paymentMethod: 'cash',
+        paymentMethod: paymentMethodDisplay,
         amount: subtotal,
         taxAmount,
         total,
@@ -843,7 +854,7 @@ const Schedule = () => {
       
       const receiptHtml = generatePaymentReceiptPdf(receiptData, company, branding);
       
-      // Insert payment receipt - cash receipts are confirmed immediately
+      // Insert payment receipt - same-day payments are confirmed immediately
       const { error: receiptError } = await supabase
         .from('payment_receipts')
         .insert({
@@ -852,7 +863,7 @@ const Schedule = () => {
           client_id: job.clientId,
           cleaner_id: job.employeeId || null,
           receipt_number: receiptNumber,
-          payment_method: 'cash',
+          payment_method: paymentData.paymentMethod,
           amount: subtotal,
           tax_amount: taxAmount,
           total,
@@ -861,7 +872,7 @@ const Schedule = () => {
           receipt_html: receiptHtml,
           created_by: user?.id || null,
           notes: paymentData.paymentNotes || null,
-          sent_at: new Date().toISOString(), // Cash receipts are confirmed immediately upon generation
+          sent_at: new Date().toISOString(), // Same-day receipts are confirmed immediately upon generation
         });
       
       if (receiptError) {
@@ -869,10 +880,10 @@ const Schedule = () => {
         return null;
       }
       
-      console.log(`Cash receipt ${receiptNumber} created successfully`);
+      console.log(`Payment receipt ${receiptNumber} created successfully (${paymentData.paymentMethod})`);
       return { receiptNumber, receiptHtml };
     } catch (error) {
-      console.error('Error in createCashReceipt:', error);
+      console.error('Error in createPaymentReceipt:', error);
       return null;
     }
   };
@@ -939,63 +950,74 @@ const Schedule = () => {
           paymentData?.paymentMethod || undefined
         );
         
-        // Handle cash payments - create receipt and cash collection record
-        if (paymentData?.paymentMethod === 'cash') {
+        // Determine if we should generate a receipt (cash OR same-day e-transfer)
+        const isCashPayment = paymentData?.paymentMethod === 'cash';
+        const isSameDayETransfer = paymentData?.paymentMethod === 'e_transfer' && 
+          paymentData?.paymentDate && 
+          isSameDayPayment(paymentData.paymentDate, job.date);
+        const shouldGenerateReceipt = isCashPayment || isSameDayETransfer;
+        
+        // Handle payments that generate receipts (cash or same-day e-transfer)
+        if (shouldGenerateReceipt && paymentData) {
           // Only auto-generate receipt if preference is enabled
           let receipt: { receiptNumber: string; receiptHtml: string } | null = null;
           
           if (companyPreferences.autoGenerateCashReceipt) {
-            receipt = await createCashReceipt(job, paymentData, companyId);
+            receipt = await createPaymentReceipt(job, paymentData, companyId);
             if (receipt) {
-              toast.success(`Receipt ${receipt.receiptNumber} generated successfully`);
+              const methodLabel = isCashPayment ? 'Cash' : 'E-Transfer';
+              toast.success(`${methodLabel} receipt ${receipt.receiptNumber} generated successfully`);
             
-            // Auto-send receipt if preference is enabled
-            if (companyPreferences.autoSendCashReceipt) {
-              try {
-                // Fetch receipt ID and client email
-                const { data: receiptData } = await supabase
-                  .from('payment_receipts')
-                  .select('id')
-                  .eq('receipt_number', receipt.receiptNumber)
-                  .eq('company_id', companyId)
-                  .single();
-                
-                if (receiptData) {
-                  // Fetch client email
-                  const { data: clientData } = await supabase
-                    .from('clients')
-                    .select('email, name')
-                    .eq('id', job.clientId)
+              // Auto-send receipt if preference is enabled
+              if (companyPreferences.autoSendCashReceipt) {
+                try {
+                  // Fetch receipt ID and client email
+                  const { data: receiptData } = await supabase
+                    .from('payment_receipts')
+                    .select('id')
+                    .eq('receipt_number', receipt.receiptNumber)
+                    .eq('company_id', companyId)
                     .single();
                   
-                  if (clientData?.email) {
-                    await supabase.functions.invoke('send-receipt-email', {
-                      body: { 
-                        receiptId: receiptData.id,
-                        recipientEmail: clientData.email,
-                        recipientName: clientData.name
-                      }
-                    });
-                    toast.success('Receipt sent to client');
+                  if (receiptData) {
+                    // Fetch client email
+                    const { data: clientData } = await supabase
+                      .from('clients')
+                      .select('email, name')
+                      .eq('id', job.clientId)
+                      .single();
+                    
+                    if (clientData?.email) {
+                      await supabase.functions.invoke('send-receipt-email', {
+                        body: { 
+                          receiptId: receiptData.id,
+                          recipientEmail: clientData.email,
+                          recipientName: clientData.name
+                        }
+                      });
+                      toast.success('Receipt sent to client');
+                    }
                   }
+                } catch (sendError) {
+                  console.error('Error auto-sending receipt:', sendError);
+                  // Don't show error toast - receipt was still generated
                 }
-              } catch (sendError) {
-                console.error('Error auto-sending receipt:', sendError);
-                // Don't show error toast - receipt was still generated
               }
             }
           } else {
             // Notify that receipt can be generated manually
-            toast.info('Cash payment recorded. Generate receipt manually from Receipts page.');
+            const methodLabel = isCashPayment ? 'Cash' : 'E-Transfer';
+            toast.info(`${methodLabel} payment recorded. Generate receipt manually from Receipts page.`);
           }
             
-            // Create cleaner payment entry for cash
-            if (job.employeeId) {
-              const durationHours = parseFloat(job.duration.replace(/[^0-9.]/g, '')) || 2;
-              await createCleanerPayment(job, paymentData.paymentAmount, durationHours, paymentData);
-            }
-            
-            // Create cash collection record for tracking
+          // Create cleaner payment entry for same-day payments
+          if (job.employeeId) {
+            const durationHours = parseFloat(job.duration.replace(/[^0-9.]/g, '')) || 2;
+            await createCleanerPayment(job, paymentData.paymentAmount, durationHours, paymentData);
+          }
+          
+          // Cash collection record is ONLY for cash payments (not e-transfer)
+          if (isCashPayment) {
             // When cash kept is disabled, always force delivered_to_office
             const cashHandling = companyPreferences.enableCashKeptByEmployee && paymentData.cashHandlingChoice === 'keep_cash' 
               ? 'kept_by_cleaner' 
@@ -1040,7 +1062,7 @@ const Schedule = () => {
             }
           }
           
-          // Skip invoice generation for cash payments
+          // Skip invoice generation for payments that generated receipts
           await fetchJobs();
           return;
         }
