@@ -15,7 +15,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { toast } from '@/hooks/use-toast';
-import { CancelInvoiceModal, DeleteInvoiceModal, RegenerateInvoiceModal } from '@/components/modals/InvoiceActionModals';
+import { CancelInvoiceModal, RegenerateInvoiceModal } from '@/components/modals/InvoiceActionModals';
+import VoidInvoiceModal from '@/components/modals/VoidInvoiceModal';
 import { PeriodSelector, DateRange } from '@/components/ui/period-selector';
 import { 
   FileText, 
@@ -29,9 +30,7 @@ import {
   Printer,
   Loader2,
   XCircle,
-  Trash2,
-  RefreshCw,
-  Lock
+  RefreshCw
 } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -108,7 +107,7 @@ const Invoices = () => {
   
   // Action modals
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showVoidModal, setShowVoidModal] = useState(false);
   const [showRegenerateModal, setShowRegenerateModal] = useState(false);
   const [actionInvoice, setActionInvoice] = useState<Invoice | null>(null);
   
@@ -422,9 +421,13 @@ const Invoices = () => {
                 <>
                   <DropdownMenuSeparator />
                   {isPaid ? (
-                    <DropdownMenuItem disabled className="text-muted-foreground">
-                      <Lock className="h-4 w-4 mr-2" />
-                      Invoice is locked (Paid)
+                    // For paid invoices - allow voiding (reversal) with reason
+                    <DropdownMenuItem 
+                      onClick={() => { setActionInvoice(invoice); setShowVoidModal(true); }}
+                      className="text-destructive"
+                    >
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Void Invoice (Reversal)
                     </DropdownMenuItem>
                   ) : (
                     <>
@@ -437,13 +440,6 @@ const Invoices = () => {
                           Cancel Invoice
                         </DropdownMenuItem>
                       )}
-                      <DropdownMenuItem 
-                        onClick={() => { setActionInvoice(invoice); setShowDeleteModal(true); }}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete Permanently
-                      </DropdownMenuItem>
                       {invoice.jobId && !isCancelled && (
                         <DropdownMenuItem 
                           onClick={() => { setActionInvoice(invoice); setShowRegenerateModal(true); }}
@@ -672,11 +668,11 @@ const Invoices = () => {
             invoice={actionInvoice}
             onSuccess={() => { setShowCancelModal(false); setActionInvoice(null); refresh(); }}
           />
-          <DeleteInvoiceModal
-            open={showDeleteModal}
-            onOpenChange={setShowDeleteModal}
+          <VoidInvoiceModal
+            open={showVoidModal}
+            onOpenChange={setShowVoidModal}
             invoice={actionInvoice}
-            onSuccess={() => { setShowDeleteModal(false); setActionInvoice(null); refresh(); }}
+            onSuccess={() => { setShowVoidModal(false); setActionInvoice(null); refresh(); }}
           />
           <RegenerateInvoiceModal
             open={showRegenerateModal}

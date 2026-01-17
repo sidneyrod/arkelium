@@ -35,6 +35,7 @@ import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { logActivity } from '@/stores/activityStore';
 import CashApprovalModal from '@/components/financial/CashApprovalModal';
+import VoidCashCollectionModal from '@/components/modals/VoidCashCollectionModal';
 
 // Type definitions
 interface CashCollection {
@@ -118,6 +119,7 @@ const PaymentsCollections = () => {
   // Modal state
   const [selectedCashCollection, setSelectedCashCollection] = useState<CashCollection | null>(null);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [showVoidModal, setShowVoidModal] = useState(false);
 
   // KPIs state
   const [kpis, setKpis] = useState({
@@ -481,6 +483,11 @@ const PaymentsCollections = () => {
               <ShieldCheck className="h-4 w-4" />
             </Button>
           )}
+          {(row.compensation_status === 'pending' || row.compensation_status === 'approved') && (
+            <Button size="sm" variant="ghost" onClick={() => { setSelectedCashCollection(row); setShowVoidModal(true); }} className="h-7 text-muted-foreground hover:text-destructive" title="Void Record">
+              <X className="h-4 w-4" />
+            </Button>
+          )}
           <Button size="sm" variant="ghost" className="h-7" title="View Details">
             <Eye className="h-4 w-4" />
           </Button>
@@ -703,6 +710,14 @@ const PaymentsCollections = () => {
           onDispute={(reason) => handleDisputeCash(selectedCashCollection.id, reason)}
         />
       )}
+
+      {/* Void Cash Collection Modal */}
+      <VoidCashCollectionModal
+        open={showVoidModal}
+        onOpenChange={setShowVoidModal}
+        cashCollection={selectedCashCollection}
+        onSuccess={() => { setShowVoidModal(false); setSelectedCashCollection(null); cashPagination.refresh(); fetchKpis(); }}
+      />
     </div>
   );
 };

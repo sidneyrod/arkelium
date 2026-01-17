@@ -157,6 +157,7 @@ export type Database = {
           handled_at: string
           handled_by_user_id: string | null
           id: string
+          is_voided: boolean | null
           job_id: string
           notes: string | null
           organization_id: string | null
@@ -166,6 +167,9 @@ export type Database = {
           settled_at: string | null
           settled_by: string | null
           updated_at: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
         }
         Insert: {
           amount: number
@@ -183,6 +187,7 @@ export type Database = {
           handled_at?: string
           handled_by_user_id?: string | null
           id?: string
+          is_voided?: boolean | null
           job_id: string
           notes?: string | null
           organization_id?: string | null
@@ -192,6 +197,9 @@ export type Database = {
           settled_at?: string | null
           settled_by?: string | null
           updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Update: {
           amount?: number
@@ -209,6 +217,7 @@ export type Database = {
           handled_at?: string
           handled_by_user_id?: string | null
           id?: string
+          is_voided?: boolean | null
           job_id?: string
           notes?: string | null
           organization_id?: string | null
@@ -218,6 +227,9 @@ export type Database = {
           settled_at?: string | null
           settled_by?: string | null
           updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Relationships: [
           {
@@ -293,6 +305,13 @@ export type Database = {
           {
             foreignKeyName: "cash_collections_settled_by_fkey"
             columns: ["settled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_collections_voided_by_fkey"
+            columns: ["voided_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1524,6 +1543,9 @@ export type Database = {
       }
       invoices: {
         Row: {
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           cleaner_id: string | null
           client_id: string
           company_id: string
@@ -1531,6 +1553,7 @@ export type Database = {
           due_date: string | null
           id: string
           invoice_number: string
+          is_voided: boolean | null
           job_id: string | null
           location_id: string | null
           notes: string | null
@@ -1549,8 +1572,14 @@ export type Database = {
           tax_rate: number | null
           total: number
           updated_at: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
         }
         Insert: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           cleaner_id?: string | null
           client_id: string
           company_id: string
@@ -1558,6 +1587,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           invoice_number: string
+          is_voided?: boolean | null
           job_id?: string | null
           location_id?: string | null
           notes?: string | null
@@ -1576,8 +1606,14 @@ export type Database = {
           tax_rate?: number | null
           total?: number
           updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Update: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           cleaner_id?: string | null
           client_id?: string
           company_id?: string
@@ -1585,6 +1621,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           invoice_number?: string
+          is_voided?: boolean | null
           job_id?: string | null
           location_id?: string | null
           notes?: string | null
@@ -1603,8 +1640,18 @@ export type Database = {
           tax_rate?: number | null
           total?: number
           updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "invoices_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "invoices_cleaner_id_fkey"
             columns: ["cleaner_id"]
@@ -1640,6 +1687,13 @@ export type Database = {
             referencedRelation: "client_locations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "invoices_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       jobs: {
@@ -1648,16 +1702,23 @@ export type Database = {
           after_photos: Json | null
           before_photos: Json | null
           billable_amount: number | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           checklist: Json | null
           cleaner_id: string | null
           client_id: string
           company_id: string
           completed_at: string | null
           created_at: string
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           duration_minutes: number | null
           end_time: string | null
           id: string
           is_billable: boolean | null
+          is_deleted: boolean | null
           job_type: string | null
           location_id: string | null
           notes: string | null
@@ -1685,16 +1746,23 @@ export type Database = {
           after_photos?: Json | null
           before_photos?: Json | null
           billable_amount?: number | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           checklist?: Json | null
           cleaner_id?: string | null
           client_id: string
           company_id: string
           completed_at?: string | null
           created_at?: string
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           duration_minutes?: number | null
           end_time?: string | null
           id?: string
           is_billable?: boolean | null
+          is_deleted?: boolean | null
           job_type?: string | null
           location_id?: string | null
           notes?: string | null
@@ -1722,16 +1790,23 @@ export type Database = {
           after_photos?: Json | null
           before_photos?: Json | null
           billable_amount?: number | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           checklist?: Json | null
           cleaner_id?: string | null
           client_id?: string
           company_id?: string
           completed_at?: string | null
           created_at?: string
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           duration_minutes?: number | null
           end_time?: string | null
           id?: string
           is_billable?: boolean | null
+          is_deleted?: boolean | null
           job_type?: string | null
           location_id?: string | null
           notes?: string | null
@@ -1770,6 +1845,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "jobs_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "jobs_cleaner_id_fkey"
             columns: ["cleaner_id"]
             isOneToOne: false
@@ -1788,6 +1870,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -2061,6 +2150,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          is_voided: boolean | null
           job_id: string
           notes: string | null
           payment_method: string
@@ -2073,6 +2163,9 @@ export type Database = {
           tax_amount: number | null
           total: number
           updated_at: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
         }
         Insert: {
           amount: number
@@ -2082,6 +2175,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          is_voided?: boolean | null
           job_id: string
           notes?: string | null
           payment_method: string
@@ -2094,6 +2188,9 @@ export type Database = {
           tax_amount?: number | null
           total: number
           updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Update: {
           amount?: number
@@ -2103,6 +2200,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          is_voided?: boolean | null
           job_id?: string
           notes?: string | null
           payment_method?: string
@@ -2115,6 +2213,9 @@ export type Database = {
           tax_amount?: number | null
           total?: number
           updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Relationships: [
           {
@@ -2150,6 +2251,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_receipts_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
