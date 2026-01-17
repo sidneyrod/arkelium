@@ -392,7 +392,7 @@ const AddJobModal = ({ open, onOpenChange, onSave, job, preselectedDate, presele
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? t.schedule.editJob : t.schedule.addJob}</DialogTitle>
         </DialogHeader>
