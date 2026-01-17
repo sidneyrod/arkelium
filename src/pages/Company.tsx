@@ -428,6 +428,7 @@ const Company = () => {
             postalCode: data.postal_code || undefined,
             website: data.website || undefined,
             timezone: data.timezone,
+            activities: data.activities || [],
           }
         });
 

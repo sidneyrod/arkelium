@@ -7,6 +7,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface ActivitySelection {
+  code: string;
+  label: string;
+}
+
 interface SetupCompanyRequest {
   companyName: string;
   legalName: string;
@@ -21,6 +26,8 @@ interface SetupCompanyRequest {
   timezone?: string;
   // If true, skip the check for existing company (for admin registering additional companies)
   skipCompanyCheck?: boolean;
+  // Activities to create for this company
+  activities?: ActivitySelection[];
 }
 
 serve(async (req) => {
@@ -78,7 +85,8 @@ serve(async (req) => {
     const body: SetupCompanyRequest = await req.json();
     const { 
       companyName, legalName, email, phone, province, businessNumber,
-      address, city, postalCode, website, timezone, skipCompanyCheck 
+      address, city, postalCode, website, timezone, skipCompanyCheck,
+      activities
     } = body;
 
     if (!companyName || !legalName) {
@@ -185,6 +193,27 @@ serve(async (req) => {
 
     console.log('User role created as admin');
 
+    // Create company activities if provided
+    if (activities && activities.length > 0) {
+      const activityRecords = activities.map((activity, index) => ({
+        company_id: company.id,
+        activity_code: activity.code,
+        activity_label: activity.label,
+        display_order: index,
+        is_active: true,
+      }));
+
+      const { error: activitiesError } = await supabaseAdmin
+        .from('company_activities')
+        .insert(activityRecords);
+
+      if (activitiesError) {
+        console.warn('Failed to create activities (non-fatal):', activitiesError);
+      } else {
+        console.log(`Created ${activities.length} activities for company`);
+      }
+    }
+
     // Create default chart of accounts
     try {
       await supabaseAdmin.rpc('create_default_chart_of_accounts', { p_company_id: company.id });
@@ -257,6 +286,7 @@ serve(async (req) => {
         details: {
           setup_type: 'new_company',
           admin_email: user.email,
+          activities_count: activities?.length || 0,
         },
       });
 

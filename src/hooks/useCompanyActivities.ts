@@ -13,7 +13,7 @@ export interface CompanyActivity {
   updated_at: string;
 }
 
-// Standard activity codes
+// Standard activity codes (suggestions for new companies)
 export const ACTIVITY_CODES = {
   cleaning: { code: 'cleaning', label: 'Cleaning Services' },
   snow_removal: { code: 'snow_removal', label: 'Snow Removal' },
@@ -68,6 +68,7 @@ export function useCompanyActivities(companyId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company-activities', targetCompanyId] });
+      queryClient.invalidateQueries({ queryKey: ['user-accessible-activities'] });
     },
   });
 
@@ -82,6 +83,7 @@ export function useCompanyActivities(companyId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company-activities', targetCompanyId] });
+      queryClient.invalidateQueries({ queryKey: ['user-accessible-activities'] });
     },
   });
 
@@ -99,6 +101,7 @@ export function useCompanyActivities(companyId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company-activities', targetCompanyId] });
+      queryClient.invalidateQueries({ queryKey: ['user-accessible-activities'] });
     },
   });
 
@@ -131,11 +134,26 @@ export function useCompanyActivities(companyId?: string) {
   };
 }
 
-// Hook to get all activities across accessible companies (for the booking modal)
-export function useAllAccessibleActivities() {
+// Hook to get activities only from companies the user has access to
+export function useUserAccessibleActivities() {
   return useQuery({
-    queryKey: ['all-accessible-activities'],
+    queryKey: ['user-accessible-activities'],
     queryFn: async () => {
+      // First, get companies the user has access to via user_roles
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('company_id')
+        .eq('status', 'active');
+
+      if (rolesError) throw rolesError;
+
+      const companyIds = userRoles?.map(r => r.company_id) || [];
+      
+      if (companyIds.length === 0) {
+        return [];
+      }
+
+      // Fetch activities only from accessible companies
       const { data, error } = await supabase
         .from('company_activities')
         .select(`
@@ -144,16 +162,16 @@ export function useAllAccessibleActivities() {
             id,
             trade_name,
             legal_name,
-            status,
-            organization_id
+            status
           )
         `)
         .eq('is_active', true)
+        .in('company_id', companyIds)
         .order('activity_label', { ascending: true });
 
       if (error) throw error;
       
-      // Group by activity_code
+      // Group by activity_code and filter for active companies
       const grouped = (data || []).reduce((acc, item) => {
         if (!acc[item.activity_code]) {
           acc[item.activity_code] = {
@@ -171,4 +189,9 @@ export function useAllAccessibleActivities() {
       return Object.values(grouped);
     },
   });
+}
+
+// Legacy hook - kept for backwards compatibility but uses the new filtered approach
+export function useAllAccessibleActivities() {
+  return useUserAccessibleActivities();
 }
