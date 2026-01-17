@@ -1,5 +1,5 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAllAccessibleActivities } from "@/hooks/useCompanyActivities";
+import { useUserAccessibleActivities } from "@/hooks/useCompanyActivities";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -11,7 +11,7 @@ interface ActivitySelectorProps {
 }
 
 export function ActivitySelector({ value, onChange, disabled }: ActivitySelectorProps) {
-  const { data: activities, isLoading } = useAllAccessibleActivities();
+  const { data: activities, isLoading } = useUserAccessibleActivities();
 
   const hasActivities = activities && activities.length > 0;
 
@@ -71,9 +71,9 @@ export function ActivitySelector({ value, onChange, disabled }: ActivitySelector
             <SelectItem key={activity.code} value={activity.code}>
               <div className="flex items-center justify-between w-full gap-2">
                 <span>{activity.label}</span>
-                {activity.companies.length > 0 && (
+                {activity.companies.length > 1 && (
                   <span className="text-xs text-muted-foreground">
-                    ({activity.companies.length} {activity.companies.length === 1 ? 'company' : 'companies'})
+                    ({activity.companies.length} companies)
                   </span>
                 )}
               </div>

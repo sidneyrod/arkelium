@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Building2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Loader2, Building2, Plus, X } from 'lucide-react';
 import { CANADIAN_TIMEZONES } from '@/hooks/useTimezone';
+import { ACTIVITY_CODES } from '@/hooks/useCompanyActivities';
 
 const canadianProvinces = [
   'Alberta', 'British Columbia', 'Manitoba', 'New Brunswick', 
@@ -13,6 +15,11 @@ const canadianProvinces = [
   'Prince Edward Island', 'Quebec', 'Saskatchewan',
   'Northwest Territories', 'Nunavut', 'Yukon'
 ];
+
+export interface ActivitySelection {
+  code: string;
+  label: string;
+}
 
 export interface CompanyFormData {
   trade_name: string;
@@ -25,6 +32,7 @@ export interface CompanyFormData {
   phone: string;
   website: string;
   timezone: string;
+  activities?: ActivitySelection[];
 }
 
 interface EditCompanyModalProps {
@@ -46,7 +54,8 @@ const defaultFormData: CompanyFormData = {
   email: '',
   phone: '',
   website: '',
-  timezone: 'America/Toronto'
+  timezone: 'America/Toronto',
+  activities: []
 };
 
 export default function EditCompanyModal({
@@ -58,25 +67,65 @@ export default function EditCompanyModal({
   mode
 }: EditCompanyModalProps) {
   const [formData, setFormData] = useState<CompanyFormData>(defaultFormData);
+  const [selectedActivities, setSelectedActivities] = useState<ActivitySelection[]>([]);
+  const [customActivityLabel, setCustomActivityLabel] = useState('');
 
   useEffect(() => {
     if (company) {
       setFormData(company);
+      setSelectedActivities(company.activities || []);
     } else {
       setFormData(defaultFormData);
+      setSelectedActivities([]);
     }
+    setCustomActivityLabel('');
   }, [company, open]);
 
   const handleSubmit = async () => {
     if (!formData.trade_name.trim() || !formData.legal_name.trim()) {
       return;
     }
-    await onSave(formData);
+    await onSave({ ...formData, activities: selectedActivities });
   };
 
   const updateField = (field: keyof CompanyFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
+
+  const toggleActivity = (code: string, label: string) => {
+    setSelectedActivities(prev => {
+      const exists = prev.find(a => a.code === code);
+      if (exists) {
+        return prev.filter(a => a.code !== code);
+      }
+      return [...prev, { code, label }];
+    });
+  };
+
+  const addCustomActivity = () => {
+    if (!customActivityLabel.trim()) return;
+    
+    // Generate a code from the label
+    const code = customActivityLabel.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    
+    // Check if already exists
+    if (selectedActivities.find(a => a.code === code)) {
+      setCustomActivityLabel('');
+      return;
+    }
+    
+    setSelectedActivities(prev => [...prev, { code, label: customActivityLabel.trim() }]);
+    setCustomActivityLabel('');
+  };
+
+  const removeCustomActivity = (code: string) => {
+    setSelectedActivities(prev => prev.filter(a => a.code !== code));
+  };
+
+  // Get custom activities (not in ACTIVITY_CODES)
+  const customActivities = selectedActivities.filter(
+    a => !Object.keys(ACTIVITY_CODES).includes(a.code)
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -206,6 +255,80 @@ export default function EditCompanyModal({
               </Select>
             </div>
           </div>
+
+          {/* Activities Section - Only show for create mode */}
+          {mode === 'create' && (
+            <div className="space-y-3 pt-2 border-t">
+              <Label className="text-base font-medium">Services Offered</Label>
+              <p className="text-sm text-muted-foreground">
+                Select the types of services this company provides. You can add more later in Settings.
+              </p>
+              
+              <div className="grid grid-cols-2 gap-3">
+                {Object.entries(ACTIVITY_CODES).map(([code, activity]) => (
+                  <div key={code} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`activity-${code}`}
+                      checked={selectedActivities.some(a => a.code === code)}
+                      onCheckedChange={() => toggleActivity(code, activity.label)}
+                    />
+                    <label
+                      htmlFor={`activity-${code}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    >
+                      {activity.label}
+                    </label>
+                  </div>
+                ))}
+              </div>
+
+              {/* Custom activities display */}
+              {customActivities.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {customActivities.map(activity => (
+                    <div
+                      key={activity.code}
+                      className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-md text-sm"
+                    >
+                      <span>{activity.label}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeCustomActivity(activity.code)}
+                        className="hover:bg-primary/20 rounded p-0.5"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Add custom activity */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Add custom service type..."
+                  value={customActivityLabel}
+                  onChange={(e) => setCustomActivityLabel(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addCustomActivity();
+                    }
+                  }}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={addCustomActivity}
+                  disabled={!customActivityLabel.trim()}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
