@@ -95,7 +95,7 @@ const AddClientModal = ({ open, onOpenChange, onSubmit, editClient }: AddClientM
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {formData.type === 'commercial' ? (
