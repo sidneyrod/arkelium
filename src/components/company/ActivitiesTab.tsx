@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { useCompanyActivities, ACTIVITY_CODES, type CompanyActivity } from '@/hooks/useCompanyActivities';
+import ConfirmDialog from '@/components/modals/ConfirmDialog';
 import { 
   Plus, 
   Pencil, 
@@ -29,6 +30,8 @@ export default function ActivitiesTab({ companyId, isLoading: externalLoading }:
   const [editingActivity, setEditingActivity] = useState<CompanyActivity | null>(null);
   const [form, setForm] = useState({ code: '', label: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [activityToDelete, setActivityToDelete] = useState<CompanyActivity | null>(null);
 
   // Get suggestion activities that are not already added
   const availableSuggestions = Object.values(ACTIVITY_CODES).filter(
@@ -93,17 +96,19 @@ export default function ActivitiesTab({ companyId, isLoading: externalLoading }:
     }
   };
 
-  const handleRemove = async (activity: CompanyActivity) => {
-    // Confirmation before deletion
-    if (!window.confirm(`Remove "${activity.activity_label}"? This will hide it from booking options.`)) {
-      return;
-    }
+  const handleRemoveClick = (activity: CompanyActivity) => {
+    setActivityToDelete(activity);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleRemoveConfirm = async () => {
+    if (!activityToDelete) return;
 
     try {
-      await removeActivity.mutateAsync(activity.id);
+      await removeActivity.mutateAsync(activityToDelete.id);
       toast({
         title: 'Activity removed',
-        description: `${activity.activity_label} has been deactivated`,
+        description: `${activityToDelete.activity_label} has been deactivated`,
         duration: 3000,
       });
     } catch (error: any) {
@@ -114,6 +119,9 @@ export default function ActivitiesTab({ companyId, isLoading: externalLoading }:
         duration: 5000,
       });
       console.error('Activity removal error:', error);
+    } finally {
+      setDeleteConfirmOpen(false);
+      setActivityToDelete(null);
     }
   };
 
@@ -210,7 +218,7 @@ export default function ActivitiesTab({ companyId, isLoading: externalLoading }:
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => handleRemove(activity)}
+                      onClick={() => handleRemoveClick(activity)}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -291,6 +299,17 @@ export default function ActivitiesTab({ companyId, isLoading: externalLoading }:
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        onConfirm={handleRemoveConfirm}
+        title={`Remove "${activityToDelete?.activity_label}"?`}
+        description="This activity will be hidden from booking options. You can re-add it later if needed."
+        confirmText="Remove"
+        cancelText="Cancel"
+        variant="destructive"
+      />
     </>
   );
 }
