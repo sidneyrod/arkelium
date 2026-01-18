@@ -94,18 +94,26 @@ export default function ActivitiesTab({ companyId, isLoading: externalLoading }:
   };
 
   const handleRemove = async (activity: CompanyActivity) => {
+    // Confirmation before deletion
+    if (!window.confirm(`Remove "${activity.activity_label}"? This will hide it from booking options.`)) {
+      return;
+    }
+
     try {
       await removeActivity.mutateAsync(activity.id);
       toast({
-        title: 'Success',
-        description: 'Activity removed successfully'
+        title: 'Activity removed',
+        description: `${activity.activity_label} has been deactivated`,
+        duration: 3000,
       });
     } catch (error: any) {
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to remove activity',
-        variant: 'destructive'
+        title: 'Unable to remove activity',
+        description: 'Please try again or contact support if the issue persists.',
+        variant: 'destructive',
+        duration: 5000,
       });
+      console.error('Activity removal error:', error);
     }
   };
 
