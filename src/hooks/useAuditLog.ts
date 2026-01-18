@@ -23,7 +23,9 @@ export type AuditAction =
   // Enterprise Multi-Company Actions
   | 'organization_created' | 'organization_updated'
   | 'company_switched' | 'operating_company_selected'
-  | 'activity_configured' | 'service_catalog_updated';
+  | 'activity_configured' | 'service_catalog_updated'
+  // System Validation Actions
+  | 'ledger_validation_warning';
 
 export type AuditSource = 'ui' | 'api' | 'system' | 'migration';
 
