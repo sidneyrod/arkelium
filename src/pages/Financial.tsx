@@ -140,6 +140,8 @@ const Financial = () => {
     const fetchFilterOptions = async () => {
       if (!activeCompanyId) return;
       
+      // Note: financial_ledger view queries use 'any' cast because TypeScript types 
+      // may not be regenerated yet after view changes
       const [clientsRes, cleanersRes, eventTypesRes, statusRes, paymentMethodsRes] = await Promise.all([
         supabase
           .from('clients')
@@ -151,24 +153,24 @@ const Financial = () => {
           .select('id, first_name, last_name')
           .eq('company_id', activeCompanyId)
           .order('first_name'),
-        // Fetch unique event types from ledger
+        // Fetch unique event types from ledger (cast to any for view compatibility)
         supabase
-          .from('financial_ledger')
+          .from('financial_ledger' as any)
           .select('event_type')
           .eq('company_id', activeCompanyId)
-          .not('event_type', 'is', null),
+          .not('event_type', 'is', null) as any,
         // Fetch unique statuses from ledger
         supabase
-          .from('financial_ledger')
+          .from('financial_ledger' as any)
           .select('status')
           .eq('company_id', activeCompanyId)
-          .not('status', 'is', null),
+          .not('status', 'is', null) as any,
         // Fetch unique payment methods from ledger
         supabase
-          .from('financial_ledger')
+          .from('financial_ledger' as any)
           .select('payment_method')
           .eq('company_id', activeCompanyId)
-          .not('payment_method', 'is', null)
+          .not('payment_method', 'is', null) as any
       ]);
       
       if (clientsRes.data) {
@@ -183,15 +185,15 @@ const Financial = () => {
       
       // Process dynamic filter options
       if (eventTypesRes.data) {
-        const unique = [...new Set(eventTypesRes.data.map(r => r.event_type).filter(Boolean))];
+        const unique = [...new Set((eventTypesRes.data as any[]).map((r: any) => r.event_type).filter(Boolean))];
         setEventTypes(unique.sort());
       }
       if (statusRes.data) {
-        const unique = [...new Set(statusRes.data.map(r => r.status).filter(Boolean))];
+        const unique = [...new Set((statusRes.data as any[]).map((r: any) => r.status).filter(Boolean))];
         setStatusTypes(unique.sort());
       }
       if (paymentMethodsRes.data) {
-        const unique = [...new Set(paymentMethodsRes.data.map(r => r.payment_method).filter(Boolean))];
+        const unique = [...new Set((paymentMethodsRes.data as any[]).map((r: any) => r.payment_method).filter(Boolean))];
         setPaymentMethods(unique.sort());
       }
     };
@@ -208,12 +210,13 @@ const Financial = () => {
     const startDate = globalPeriod.from ? format(globalPeriod.from, 'yyyy-MM-dd') : format(startOfMonth(new Date()), 'yyyy-MM-dd');
     const endDate = globalPeriod.to ? format(globalPeriod.to, 'yyyy-MM-dd') : format(endOfMonth(new Date()), 'yyyy-MM-dd');
 
+    // Using 'as any' cast for financial_ledger view until TypeScript types are regenerated
     let query = supabase
-      .from('financial_ledger')
+      .from('financial_ledger' as any)
       .select('*', { count: 'exact' })
       .eq('company_id', activeCompanyId)
       .gte('transaction_date', startDate)
-      .lte('transaction_date', endDate);
+      .lte('transaction_date', endDate) as any;
 
     // Apply filters
     if (eventTypeFilter !== 'all') {
