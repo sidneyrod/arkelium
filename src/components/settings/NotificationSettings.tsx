@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Bell, BellOff } from 'lucide-react';
+import { Bell, BellOff, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -121,63 +121,64 @@ export const NotificationSettings = () => {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Bell className="h-5 w-5" />
-            {t.notifications?.preferences || 'Notification Preferences'}
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            {t.notifications?.preferencesDesc || 'Choose which notifications you want to receive'}
-          </p>
-        </div>
-        {hasChanges && (
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-            ) : null}
-            {t.common?.save || 'Save Changes'}
-          </Button>
-        )}
-      </div>
-
-      {settingGroups.map((group, index) => (
-        <Card key={index}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">{group.title}</CardTitle>
-            <CardDescription>{group.description}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {group.settings.map((setting) => (
-              <div key={setting.key} className="flex items-center justify-between">
-                <Label htmlFor={setting.key} className="flex-1 cursor-pointer">
-                  {setting.label}
-                </Label>
-                <Switch
-                  id={setting.key}
-                  checked={localPrefs[setting.key as keyof NotificationPreferences] as boolean}
-                  onCheckedChange={(checked) => handleToggle(setting.key as keyof NotificationPreferences, checked)}
-                />
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      ))}
-
-      <Card className="border-dashed">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-4">
-            <BellOff className="h-8 w-8 text-muted-foreground" />
-            <div>
-              <p className="font-medium">{t.notifications?.futureFeatures || 'Coming Soon'}</p>
-              <p className="text-sm text-muted-foreground">
-                {t.notifications?.futureDescription || 'Email and push notifications will be available in a future update.'}
-              </p>
-            </div>
+    <Card className="border-border/40 shadow-sm">
+      <CardHeader className="pb-3 border-b border-border/40">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <Bell className="h-4 w-4 text-primary" />
+              {t.notifications?.preferences || 'Notification Preferences'}
+            </CardTitle>
+            <CardDescription className="text-xs mt-0.5">
+              {t.notifications?.preferencesDesc || 'Choose which notifications you want to receive'}
+            </CardDescription>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+          {hasChanges && (
+            <Button size="sm" onClick={handleSave} disabled={saving}>
+              {saving && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+              {t.common?.save || 'Save'}
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="pt-4">
+        <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+          {settingGroups.map((group, index) => (
+            <div key={index} className="p-3 rounded-lg border border-border/40 bg-muted/20">
+              <div className="mb-3">
+                <p className="text-xs font-semibold text-foreground">{group.title}</p>
+                <p className="text-[10px] text-muted-foreground">{group.description}</p>
+              </div>
+              <div className="space-y-2.5">
+                {group.settings.map((setting) => (
+                  <div key={setting.key} className="flex items-center justify-between gap-2">
+                    <Label htmlFor={setting.key} className="text-xs cursor-pointer leading-tight flex-1">
+                      {setting.label}
+                    </Label>
+                    <Switch
+                      id={setting.key}
+                      checked={localPrefs[setting.key as keyof NotificationPreferences] as boolean}
+                      onCheckedChange={(checked) => handleToggle(setting.key as keyof NotificationPreferences, checked)}
+                      className="scale-90"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Coming Soon - Compact */}
+        <div className="mt-4 p-3 rounded-lg border border-dashed border-border/50 flex items-center gap-3">
+          <BellOff className="h-5 w-5 text-muted-foreground shrink-0" />
+          <div>
+            <p className="text-xs font-medium">{t.notifications?.futureFeatures || 'Coming Soon'}</p>
+            <p className="text-[10px] text-muted-foreground">
+              {t.notifications?.futureDescription || 'Email and push notifications will be available in a future update.'}
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
