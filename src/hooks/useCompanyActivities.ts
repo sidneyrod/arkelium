@@ -195,3 +195,42 @@ export function useUserAccessibleActivities() {
 export function useAllAccessibleActivities() {
   return useUserAccessibleActivities();
 }
+
+// Fetch all unique activities across all companies (for suggestions in company creation)
+export function useGlobalActivitySuggestions() {
+  return useQuery({
+    queryKey: ['global-activity-suggestions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('company_activities')
+        .select('activity_code, activity_label')
+        .eq('is_active', true);
+
+      if (error) throw error;
+
+      // Deduplicate by activity_code, keeping first occurrence
+      const unique = new Map<string, { code: string; label: string }>();
+      
+      for (const item of data || []) {
+        if (!unique.has(item.activity_code)) {
+          unique.set(item.activity_code, {
+            code: item.activity_code,
+            label: item.activity_label
+          });
+        }
+      }
+
+      // Also include ACTIVITY_CODES as fallback for empty databases
+      Object.entries(ACTIVITY_CODES).forEach(([code, activity]) => {
+        if (!unique.has(code)) {
+          unique.set(code, { code, label: activity.label });
+        }
+      });
+
+      return Array.from(unique.values()).sort((a, b) => 
+        a.label.localeCompare(b.label)
+      );
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+}

@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Building2, Plus, X } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Building2, Plus, X, Search } from 'lucide-react';
 import { CANADIAN_TIMEZONES } from '@/hooks/useTimezone';
-import { ACTIVITY_CODES } from '@/hooks/useCompanyActivities';
+import { useGlobalActivitySuggestions } from '@/hooks/useCompanyActivities';
 
 const canadianProvinces = [
   'Alberta', 'British Columbia', 'Manitoba', 'New Brunswick', 
@@ -68,7 +70,18 @@ export default function EditCompanyModal({
 }: EditCompanyModalProps) {
   const [formData, setFormData] = useState<CompanyFormData>(defaultFormData);
   const [selectedActivities, setSelectedActivities] = useState<ActivitySelection[]>([]);
-  const [customActivityLabel, setCustomActivityLabel] = useState('');
+  const [activityPopoverOpen, setActivityPopoverOpen] = useState(false);
+  const [activitySearch, setActivitySearch] = useState('');
+  
+  const { data: activitySuggestions = [], isLoading: loadingSuggestions } = useGlobalActivitySuggestions();
+  
+  // Filter suggestions: not selected and matches search
+  const availableSuggestions = activitySuggestions.filter(
+    s => !selectedActivities.some(a => a.code === s.code)
+  ).filter(
+    s => activitySearch === '' || 
+         s.label.toLowerCase().includes(activitySearch.toLowerCase())
+  );
 
   useEffect(() => {
     if (company) {
@@ -78,7 +91,8 @@ export default function EditCompanyModal({
       setFormData(defaultFormData);
       setSelectedActivities([]);
     }
-    setCustomActivityLabel('');
+    setActivitySearch('');
+    setActivityPopoverOpen(false);
   }, [company, open]);
 
   const handleSubmit = async () => {
@@ -92,40 +106,30 @@ export default function EditCompanyModal({
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const toggleActivity = (code: string, label: string) => {
-    setSelectedActivities(prev => {
-      const exists = prev.find(a => a.code === code);
-      if (exists) {
-        return prev.filter(a => a.code !== code);
-      }
-      return [...prev, { code, label }];
-    });
+  const addActivity = (code: string, label: string) => {
+    if (!selectedActivities.some(a => a.code === code)) {
+      setSelectedActivities(prev => [...prev, { code, label }]);
+    }
+    setActivitySearch('');
   };
 
-  const addCustomActivity = () => {
-    if (!customActivityLabel.trim()) return;
+  const addCustomActivity = (label: string) => {
+    if (!label.trim()) return;
     
     // Generate a code from the label
-    const code = customActivityLabel.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    const code = label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
     
     // Check if already exists
-    if (selectedActivities.find(a => a.code === code)) {
-      setCustomActivityLabel('');
-      return;
+    if (!selectedActivities.find(a => a.code === code)) {
+      setSelectedActivities(prev => [...prev, { code, label: label.trim() }]);
     }
-    
-    setSelectedActivities(prev => [...prev, { code, label: customActivityLabel.trim() }]);
-    setCustomActivityLabel('');
+    setActivitySearch('');
+    setActivityPopoverOpen(false);
   };
 
-  const removeCustomActivity = (code: string) => {
+  const removeActivity = (code: string) => {
     setSelectedActivities(prev => prev.filter(a => a.code !== code));
   };
-
-  // Get custom activities (not in ACTIVITY_CODES)
-  const customActivities = selectedActivities.filter(
-    a => !Object.keys(ACTIVITY_CODES).includes(a.code)
-  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -264,69 +268,94 @@ export default function EditCompanyModal({
                 Select the types of services this company provides. You can add more later in Settings.
               </p>
               
-              <div className="grid grid-cols-2 gap-3">
-                {Object.entries(ACTIVITY_CODES).map(([code, activity]) => (
-                  <div key={code} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`activity-${code}`}
-                      checked={selectedActivities.some(a => a.code === code)}
-                      onCheckedChange={() => toggleActivity(code, activity.label)}
+              {/* Selected activities as chips */}
+              <div className="flex flex-wrap gap-2 min-h-[36px]">
+                {selectedActivities.map(activity => (
+                  <Badge 
+                    key={activity.code} 
+                    variant="secondary" 
+                    className="gap-1 py-1.5 px-3 text-sm"
+                  >
+                    {activity.label}
+                    <X 
+                      className="h-3 w-3 cursor-pointer hover:text-destructive transition-colors" 
+                      onClick={() => removeActivity(activity.code)} 
                     />
-                    <label
-                      htmlFor={`activity-${code}`}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                    >
-                      {activity.label}
-                    </label>
-                  </div>
+                  </Badge>
                 ))}
-              </div>
-
-              {/* Custom activities display */}
-              {customActivities.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {customActivities.map(activity => (
-                    <div
-                      key={activity.code}
-                      className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-md text-sm"
-                    >
-                      <span>{activity.label}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeCustomActivity(activity.code)}
-                        className="hover:bg-primary/20 rounded p-0.5"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
+                
+                {/* Add button with popover */}
+                <Popover open={activityPopoverOpen} onOpenChange={setActivityPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-8 gap-1">
+                      <Plus className="h-3.5 w-3.5" /> Add Service
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-0" align="start">
+                    {/* Search input */}
+                    <div className="p-2 border-b">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                        <Input 
+                          placeholder="Search services..." 
+                          value={activitySearch}
+                          onChange={(e) => setActivitySearch(e.target.value)}
+                          className="h-8 pl-8"
+                        />
+                      </div>
                     </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Add custom activity */}
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Add custom service type..."
-                  value={customActivityLabel}
-                  onChange={(e) => setCustomActivityLabel(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      addCustomActivity();
-                    }
-                  }}
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={addCustomActivity}
-                  disabled={!customActivityLabel.trim()}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
+                    
+                    {/* Suggestions list */}
+                    <ScrollArea className="h-[200px]">
+                      <div className="p-1">
+                        {loadingSuggestions ? (
+                          <div className="flex items-center justify-center py-4">
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          </div>
+                        ) : availableSuggestions.length > 0 ? (
+                          availableSuggestions.map(activity => (
+                            <button
+                              key={activity.code}
+                              type="button"
+                              className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent transition-colors"
+                              onClick={() => addActivity(activity.code, activity.label)}
+                            >
+                              {activity.label}
+                            </button>
+                          ))
+                        ) : activitySearch && (
+                          <p className="text-sm text-muted-foreground px-3 py-2">
+                            No matching services found
+                          </p>
+                        )}
+                        
+                        {/* Custom activity option */}
+                        <div className="border-t mt-1 pt-1">
+                          <button
+                            type="button"
+                            className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent text-muted-foreground transition-colors flex items-center gap-1"
+                            onClick={() => {
+                              const label = window.prompt('Enter custom service name:');
+                              if (label?.trim()) {
+                                addCustomActivity(label);
+                              }
+                            }}
+                          >
+                            <Plus className="h-3 w-3" />
+                            Add custom service...
+                          </button>
+                        </div>
+                      </div>
+                    </ScrollArea>
+                  </PopoverContent>
+                </Popover>
               </div>
+              
+              {selectedActivities.length === 0 && (
+                <p className="text-sm text-muted-foreground italic">
+                  Click "Add Service" to select the types of services this company provides.
+                </p>
+              )}
             </div>
           )}
         </div>
