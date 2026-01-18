@@ -2755,24 +2755,23 @@ export type Database = {
     Views: {
       financial_ledger: {
         Row: {
+          accounting_date: string | null
+          amount_gross: number | null
+          amount_net: number | null
+          amount_tax: number | null
           cleaner_id: string | null
-          cleaner_name: string | null
           client_id: string | null
-          client_name: string | null
           company_id: string | null
           created_at: string | null
-          deductions: number | null
-          event_type: string | null
-          gross_amount: number | null
           id: string | null
           job_id: string | null
-          net_amount: number | null
-          notes: string | null
           payment_method: string | null
           reference_number: string | null
-          service_reference: string | null
+          source_type: string | null
           status: string | null
           transaction_date: string | null
+          transaction_type: string | null
+          updated_at: string | null
         }
         Relationships: []
       }
