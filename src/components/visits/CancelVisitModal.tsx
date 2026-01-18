@@ -7,8 +7,10 @@ import { Loader2, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { logAuditEntry } from '@/hooks/useAuditLog';
 import type { Visit } from '@/pages/VisitHistory';
+
+// NOTE: Audit logging is handled by database trigger (audit_job_status_change)
+// Do NOT call logAuditEntry() manually to avoid duplication
 
 interface CancelVisitModalProps {
   open: boolean;
@@ -31,29 +33,31 @@ const CancelVisitModal = ({ open, onOpenChange, visit, onSuccess }: CancelVisitM
     try {
       setIsLoading(true);
 
+      // CRITICAL: Pass cancel_reason to the dedicated field (required by DB trigger)
+      // The database trigger audit_job_status_change will:
+      // 1. Validate that cancel_reason is not empty
+      // 2. Automatically create the audit log entry
+      // 3. Set cancelled_at if not provided
       const { error } = await supabase
         .from('jobs')
         .update({
           status: 'cancelled',
+          cancel_reason: reason.trim(), // Required by DB trigger
+          cancelled_by: user?.id,
+          cancelled_at: new Date().toISOString(),
+          // Optionally append to notes for visibility, but reason is in dedicated field
           notes: visit.notes 
-            ? `${visit.notes}\n\n--- Cancellation Reason ---\n${reason}`
-            : `--- Cancellation Reason ---\n${reason}`,
+            ? `${visit.notes}\n\n[Visit cancelled]`
+            : '[Visit cancelled]',
           updated_at: new Date().toISOString(),
         })
         .eq('id', visit.id);
 
       if (error) throw error;
 
-      await logAuditEntry({
-        action: 'job_cancelled',
-        entityType: 'visit',
-        entityId: visit.id,
-        details: {
-          description: 'Visit cancelled',
-          reason: reason,
-          previousStatus: visit.status,
-        }
-      }, user?.id, user?.profile?.company_id);
+      // NOTE: Do NOT call logAuditEntry() here!
+      // The database trigger creates the audit log automatically.
+      // Calling it here would create duplicate entries.
 
       toast.success('Visit cancelled successfully');
       onSuccess();
