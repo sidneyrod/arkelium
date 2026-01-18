@@ -9,6 +9,7 @@ import { useServerPagination } from '@/hooks/useServerPagination';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { toast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import GenerateReportModal from '@/components/financial/GenerateReportModal';
 import { LedgerColumnSettings } from '@/components/financial/LedgerColumnSettings';
 import { FinancialInfoBanner } from '@/components/financial/FinancialInfoBanner';
@@ -26,36 +27,22 @@ import {
   ArrowDownRight,
   Minus,
   FileBarChart,
-  Eye,
   Banknote,
-  Wallet
+  Wallet,
+  AlertTriangle
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { cn } from '@/lib/utils';
 
-// Types
-interface LedgerEntry {
-  id: string;
-  companyId: string;
-  clientId: string | null;
-  cleanerId: string | null;
-  jobId: string | null;
-  transactionDate: string;
-  eventType: string;
-  clientName: string | null;
-  cleanerName: string | null;
-  serviceReference: string | null;
-  referenceNumber: string | null;
-  paymentMethod: string | null;
-  grossAmount: number;
-  deductions: number;
-  netAmount: number;
-  status: string;
-  createdAt: string;
-  notes: string | null;
-}
+// Import local types - enterprise type-safe approach
+import type { LedgerEntry } from '@/types/financial-ledger';
+import { 
+  queryFinancialLedger, 
+  queryLedgerDistinctValues,
+  type LedgerQueryParams 
+} from '@/lib/supabase-queries';
 
 // Status configuration
 const statusConfig: Record<string, { color: string; bgColor: string; label: string }> = {
@@ -104,6 +91,9 @@ const Financial = () => {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   
+  // Validation error state for enterprise error handling
+  const [validationError, setValidationError] = useState<string | null>(null);
+  
   // Filters
   const [eventTypeFilter, setEventTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -140,9 +130,8 @@ const Financial = () => {
     const fetchFilterOptions = async () => {
       if (!activeCompanyId) return;
       
-      // Note: financial_ledger view queries use 'any' cast because TypeScript types 
-      // may not be regenerated yet after view changes
-      const [clientsRes, cleanersRes, eventTypesRes, statusRes, paymentMethodsRes] = await Promise.all([
+      // Fetch clients and cleaners from their respective tables (type-safe)
+      const [clientsRes, cleanersRes] = await Promise.all([
         supabase
           .from('clients')
           .select('id, name')
@@ -153,24 +142,6 @@ const Financial = () => {
           .select('id, first_name, last_name')
           .eq('company_id', activeCompanyId)
           .order('first_name'),
-        // Fetch unique event types from ledger (cast to any for view compatibility)
-        supabase
-          .from('financial_ledger' as any)
-          .select('event_type')
-          .eq('company_id', activeCompanyId)
-          .not('event_type', 'is', null) as any,
-        // Fetch unique statuses from ledger
-        supabase
-          .from('financial_ledger' as any)
-          .select('status')
-          .eq('company_id', activeCompanyId)
-          .not('status', 'is', null) as any,
-        // Fetch unique payment methods from ledger
-        supabase
-          .from('financial_ledger' as any)
-          .select('payment_method')
-          .eq('company_id', activeCompanyId)
-          .not('payment_method', 'is', null) as any
       ]);
       
       if (clientsRes.data) {
@@ -182,26 +153,23 @@ const Financial = () => {
           name: `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unknown'
         })));
       }
-      
-      // Process dynamic filter options
-      if (eventTypesRes.data) {
-        const unique = [...new Set((eventTypesRes.data as any[]).map((r: any) => r.event_type).filter(Boolean))];
-        setEventTypes(unique.sort());
-      }
-      if (statusRes.data) {
-        const unique = [...new Set((statusRes.data as any[]).map((r: any) => r.status).filter(Boolean))];
-        setStatusTypes(unique.sort());
-      }
-      if (paymentMethodsRes.data) {
-        const unique = [...new Set((paymentMethodsRes.data as any[]).map((r: any) => r.payment_method).filter(Boolean))];
-        setPaymentMethods(unique.sort());
-      }
+
+      // Fetch unique filter values from financial_ledger view (type-safe via helper)
+      const [eventTypesData, statusData, paymentMethodsData] = await Promise.all([
+        queryLedgerDistinctValues('event_type', activeCompanyId),
+        queryLedgerDistinctValues('status', activeCompanyId),
+        queryLedgerDistinctValues('payment_method', activeCompanyId),
+      ]);
+
+      setEventTypes(eventTypesData);
+      setStatusTypes(statusData);
+      setPaymentMethods(paymentMethodsData);
     };
     
     fetchFilterOptions();
   }, [activeCompanyId]);
 
-  // Server-side pagination fetch function
+  // Server-side pagination fetch function - type-safe with Zod validation
   const fetchLedgerEntries = useCallback(async (from: number, to: number) => {
     if (!activeCompanyId) {
       return { data: [], count: 0 };
@@ -210,133 +178,43 @@ const Financial = () => {
     const startDate = globalPeriod.from ? format(globalPeriod.from, 'yyyy-MM-dd') : format(startOfMonth(new Date()), 'yyyy-MM-dd');
     const endDate = globalPeriod.to ? format(globalPeriod.to, 'yyyy-MM-dd') : format(endOfMonth(new Date()), 'yyyy-MM-dd');
 
-    // Using 'as any' cast for financial_ledger view until TypeScript types are regenerated
-    let query = supabase
-      .from('financial_ledger' as any)
-      .select('*', { count: 'exact' })
-      .eq('company_id', activeCompanyId)
-      .gte('transaction_date', startDate)
-      .lte('transaction_date', endDate) as any;
+    // Build query params
+    const params: LedgerQueryParams = {
+      companyId: activeCompanyId,
+      startDate,
+      endDate,
+      eventTypeFilter,
+      statusFilter,
+      paymentMethodFilter,
+      clientFilter,
+      cleanerFilter,
+      referenceFilter,
+      grossFilter,
+      deductFilter,
+      netFilter,
+      search: debouncedSearch,
+      from,
+      to,
+    };
 
-    // Apply filters
-    if (eventTypeFilter !== 'all') {
-      query = query.eq('event_type', eventTypeFilter);
-    }
-    if (statusFilter !== 'all') {
-      query = query.eq('status', statusFilter);
-    }
-    if (paymentMethodFilter !== 'all') {
-      query = query.eq('payment_method', paymentMethodFilter);
-    }
-    if (clientFilter !== 'all') {
-      query = query.eq('client_id', clientFilter);
-    }
-    if (cleanerFilter !== 'all') {
-      query = query.eq('cleaner_id', cleanerFilter);
-    }
-    if (debouncedSearch) {
-      query = query.or(`client_name.ilike.%${debouncedSearch}%,cleaner_name.ilike.%${debouncedSearch}%,reference_number.ilike.%${debouncedSearch}%`);
-    }
+    // Execute type-safe query with Zod validation
+    const result = await queryFinancialLedger(params);
 
-    // Reference filter (by prefix)
-    if (referenceFilter !== 'all') {
-      query = query.ilike('reference_number', `${referenceFilter}%`);
-    }
-
-    // Gross amount filter (ranges)
-    if (grossFilter !== 'all') {
-      switch (grossFilter) {
-        case '0-50':
-          query = query.gte('gross_amount', 0).lte('gross_amount', 50);
-          break;
-        case '50-100':
-          query = query.gt('gross_amount', 50).lte('gross_amount', 100);
-          break;
-        case '100-250':
-          query = query.gt('gross_amount', 100).lte('gross_amount', 250);
-          break;
-        case '250-500':
-          query = query.gt('gross_amount', 250).lte('gross_amount', 500);
-          break;
-        case '500+':
-          query = query.gt('gross_amount', 500);
-          break;
-      }
-    }
-
-    // Deductions filter (ranges)
-    if (deductFilter !== 'all') {
-      switch (deductFilter) {
-        case '0':
-          query = query.eq('deductions', 0);
-          break;
-        case '0-25':
-          query = query.gt('deductions', 0).lte('deductions', 25);
-          break;
-        case '25-50':
-          query = query.gt('deductions', 25).lte('deductions', 50);
-          break;
-        case '50+':
-          query = query.gt('deductions', 50);
-          break;
-      }
-    }
-
-    // Net amount filter (ranges)
-    if (netFilter !== 'all') {
-      switch (netFilter) {
-        case '0-50':
-          query = query.gte('net_amount', 0).lte('net_amount', 50);
-          break;
-        case '50-100':
-          query = query.gt('net_amount', 50).lte('net_amount', 100);
-          break;
-        case '100-250':
-          query = query.gt('net_amount', 100).lte('net_amount', 250);
-          break;
-        case '250-500':
-          query = query.gt('net_amount', 250).lte('net_amount', 500);
-          break;
-        case '500+':
-          query = query.gt('net_amount', 500);
-          break;
-      }
-    }
-
-    query = query
-      .order('transaction_date', { ascending: false })
-      .range(from, to);
-
-    const { data, error, count } = await query;
-
-    if (error) {
-      console.error('Error fetching ledger:', error);
+    // Handle query errors
+    if (result.error) {
       toast({ title: 'Error', description: 'Failed to load financial data', variant: 'destructive' });
+      setValidationError(null);
       return { data: [], count: 0 };
     }
 
-    const mappedEntries: LedgerEntry[] = (data || []).map((entry: any) => ({
-      id: entry.id,
-      companyId: entry.company_id,
-      clientId: entry.client_id,
-      cleanerId: entry.cleaner_id,
-      jobId: entry.job_id,
-      transactionDate: entry.transaction_date,
-      eventType: entry.event_type,
-      clientName: entry.client_name,
-      cleanerName: entry.cleaner_name,
-      serviceReference: entry.service_reference,
-      referenceNumber: entry.reference_number,
-      paymentMethod: entry.payment_method,
-      grossAmount: parseFloat(entry.gross_amount) || 0,
-      deductions: parseFloat(entry.deductions) || 0,
-      netAmount: parseFloat(entry.net_amount) || 0,
-      status: entry.status,
-      createdAt: entry.created_at,
-      notes: entry.notes,
-    }));
+    // Handle validation errors (show banner but don't crash)
+    if (result.validation.hasErrors) {
+      setValidationError(`${result.validation.errorCount} record(s) failed validation and may not be displayed.`);
+    } else {
+      setValidationError(null);
+    }
 
-    return { data: mappedEntries, count: count || 0 };
+    return { data: result.data, count: result.count };
   }, [activeCompanyId, globalPeriod, eventTypeFilter, statusFilter, paymentMethodFilter, clientFilter, cleanerFilter, debouncedSearch, referenceFilter, grossFilter, deductFilter, netFilter]);
 
   const {
@@ -806,6 +684,16 @@ const Financial = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-3">
+      {/* Validation Error Banner - Enterprise error handling */}
+      {validationError && (
+        <Alert variant="destructive" className="py-2">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="text-sm">
+            Ledger data validation warning: {validationError}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Single Compact Top Bar: Search + Date Picker + Actions */}
       <div className="flex items-center justify-between gap-3 flex-wrap pb-1">
         <div className="flex items-center gap-3">
