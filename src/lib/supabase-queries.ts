@@ -219,7 +219,7 @@ export async function queryFinancialLedger(
     return {
       data: [],
       count: 0,
-      validation: { valid: [], errors: [], hasErrors: false, errorCount: 0 },
+      validation: { valid: [], errors: [], hasErrors: false, errorCount: 0, affectedRowIds: [] },
       error: new Error(error.message)
     };
   }
@@ -227,9 +227,10 @@ export async function queryFinancialLedger(
   // Validate with Zod
   const validation = validateLedgerRows(data || []);
 
-  // Log validation errors (sync, non-blocking)
+  // Log validation errors (async, non-blocking)
   if (validation.hasErrors) {
-    logLedgerValidationErrors(validation.errors, companyId);
+    // Fire and forget - don't block the response
+    logLedgerValidationErrors(validation.errors, companyId).catch(() => {});
   }
 
   // Map to UI format

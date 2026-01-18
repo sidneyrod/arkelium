@@ -98,13 +98,15 @@ export type ValidatedLedgerRow = z.infer<typeof financialLedgerRowSchema>;
 
 export interface LedgerValidationResult {
   valid: FinancialLedgerRow[];
-  errors: Array<{ 
-    index: number; 
+  errors: Array<{
+    index: number;
     error: z.ZodError;
     rowId?: string;
   }>;
   hasErrors: boolean;
   errorCount: number;
+  /** Row IDs that failed validation - for admin modal display */
+  affectedRowIds: string[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -138,7 +140,8 @@ export function validateLedgerRows(data: unknown[]): LedgerValidationResult {
     valid, 
     errors, 
     hasErrors: errors.length > 0,
-    errorCount: errors.length 
+    errorCount: errors.length,
+    affectedRowIds: errors.map(e => e.rowId).filter((id): id is string => !!id)
   };
 }
 
@@ -173,6 +176,7 @@ function safeNumber(primary: unknown, fallback: unknown): number {
  * - grossAmount = gross_amount ?? amount_gross ?? 0
  * - netAmount = net_amount ?? amount_net ?? 0  
  * - deductions = deductions ?? amount_tax ?? 0
+ * - transactionDate = transaction_date ?? accounting_date ?? created_at ?? ''
  * 
  * TODO: Consider updating the financial_ledger view to use consistent
  * column names (gross_amount, net_amount, deductions) to eliminate
@@ -186,8 +190,8 @@ export function mapToLedgerEntries(rows: FinancialLedgerRow[]): LedgerEntry[] {
     cleanerId: row.cleaner_id ?? null,
     jobId: row.job_id ?? null,
     
-    // Date: prefer transaction_date, fallback to accounting_date, then empty
-    transactionDate: row.transaction_date || row.accounting_date || '',
+    // Date: prefer transaction_date, fallback to accounting_date, then created_at
+    transactionDate: row.transaction_date || row.accounting_date || row.created_at || '',
     
     eventType: row.event_type,
     clientName: row.client_name ?? null,
@@ -212,30 +216,49 @@ export function mapToLedgerEntries(rows: FinancialLedgerRow[]): LedgerEntry[] {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Logs validation errors to console (source=system)
+ * Logs validation errors to console and activity_logs (source=system)
  * Does not include sensitive data in the log
  * 
- * NOTE: Using console.warn instead of audit log to avoid circular deps
- * and because 'system_event' is not a valid AuditAction type.
- * For enterprise, consider adding 'ledger_validation_error' to AuditAction.
+ * @param errors - Array of validation errors
+ * @param companyId - Company ID for logging context
  */
-export function logLedgerValidationErrors(
+export async function logLedgerValidationErrors(
   errors: LedgerValidationResult['errors'],
   companyId: string
-): void {
+): Promise<void> {
   if (errors.length === 0) return;
 
-  // Log to console with structured data (non-sensitive)
-  console.warn('[Ledger Validation]', {
+  // Structured log data (non-sensitive)
+  const logData = {
     companyId,
     errorCount: errors.length,
-    affectedRows: errors.slice(0, 10).map(e => ({
-      index: e.index,
+    affectedRowIds: errors.slice(0, 20).map(e => e.rowId || 'unknown'),
+    sampleIssues: errors.slice(0, 5).map(e => ({
       rowId: e.rowId || 'unknown',
-      issues: e.error.issues.map(i => i.path.join('.') + ': ' + i.message).slice(0, 5)
+      fields: e.error.issues.map(i => i.path.join('.')).slice(0, 3)
     }))
-  });
+  };
 
-  // TODO: Add 'ledger_validation_error' to AuditAction type and log to activity_logs
-  // await logAuditEntry({ action: 'ledger_validation_error', ... }, undefined, companyId);
+  // Console warning (always)
+  console.warn('[Ledger Validation]', logData);
+
+  // Persist to activity_logs (source=system)
+  try {
+    await logAuditEntry(
+      {
+        action: 'ledger_validation_warning',
+        entityType: 'financial_ledger',
+        source: 'system',
+        details: {
+          errorCount: errors.length,
+          affectedRowIds: logData.affectedRowIds,
+          sampleIssues: logData.sampleIssues
+        }
+      },
+      undefined, // no userId for system events
+      companyId
+    );
+  } catch (err) {
+    console.error('Failed to log validation warning to audit:', err);
+  }
 }
