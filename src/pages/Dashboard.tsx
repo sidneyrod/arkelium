@@ -347,16 +347,12 @@ const Dashboard = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      {/* Welcome Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <div className="space-y-0">
-          <h1 className="text-base font-semibold tracking-tight heading-primary">{t.dashboard.welcome}, {userName}</h1>
-          <p className="text-xs label-secondary">{t.dashboard.subtitle}</p>
-        </div>
-        {isAdminOrManager && (
+      {/* Period Selector - Admin/Manager only */}
+      {isAdminOrManager && (
+        <div className="flex justify-end">
           <PeriodSelector value={period} onChange={setPeriod} />
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Stats Grid - Premium Cards with Color Variants */}
       {/* For cleaners: show only Today's Jobs and Upcoming Schedule */}

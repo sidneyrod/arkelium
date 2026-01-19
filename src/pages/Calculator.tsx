@@ -193,8 +193,6 @@ const Calculator = () => {
   return (
     <div className="p-2 lg:p-3 space-y-2">
       <PageHeader 
-        title={t.calculator.title}
-        description="Create and manage service estimates for clients"
         action={{
           label: t.calculator.addEstimate,
           icon: Plus,

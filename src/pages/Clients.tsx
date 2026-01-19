@@ -625,8 +625,6 @@ const Clients = () => {
   return (
     <div className="p-2 lg:p-3 space-y-2">
       <PageHeader 
-        title={t.clients.title}
-        description="Manage your clients and their cleaning locations"
         action={{
           label: t.clients.addClient,
           icon: UserPlus,

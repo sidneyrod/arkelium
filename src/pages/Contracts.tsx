@@ -526,8 +526,6 @@ const Contracts = () => {
   return (
     <div className="p-2 lg:p-3 space-y-2">
       <PageHeader 
-        title={t.contracts.title}
-        description="Manage service contracts and agreements"
         action={{
           label: t.contracts.addContract,
           icon: FilePlus,

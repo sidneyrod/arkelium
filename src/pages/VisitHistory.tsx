@@ -359,12 +359,6 @@ const VisitHistory = () => {
 
   return (
     <div className="space-y-2 p-2 lg:p-3">
-      <div className="pt-3">
-        <PageHeader 
-          title="Visit History"
-          description="Track, manage and convert all business visits"
-        />
-      </div>
 
       {/* Search and Filters */}
       <Card className="border-border/40 shadow-sm">

@@ -216,23 +216,20 @@ export default function Notifications() {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      <PageHeader
-        title={t.notifications?.title || 'Notifications'}
-        description={t.notifications?.description || 'Manage your notifications and alerts'}
-      >
+      <div className="flex items-center justify-end gap-2">
         {unreadCount > 0 && (
-          <Button variant="outline" onClick={markAllAsRead}>
+          <Button variant="outline" size="sm" onClick={markAllAsRead}>
             <CheckCheck className="h-4 w-4 mr-2" />
             {t.notifications?.markAllRead || 'Mark all read'}
           </Button>
         )}
         {isAdminOrManager && (
-          <Button onClick={() => setShowBroadcastModal(true)}>
+          <Button size="sm" onClick={() => setShowBroadcastModal(true)}>
             <Send className="h-4 w-4 mr-2" />
             {t.notifications?.sendNotification || 'Send Notification'}
           </Button>
         )}
-      </PageHeader>
+      </div>
 
       {/* Filters */}
       <Card>
