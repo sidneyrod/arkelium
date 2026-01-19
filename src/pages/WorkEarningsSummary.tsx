@@ -88,7 +88,7 @@ const WorkEarningsSummary = () => {
           selected={dateRange}
           onSelect={handleDateRangeSelect}
           dateFormat="MMM d, yyyy"
-          className="text-xs h-9"
+          className="text-xs h-9 w-auto"
         />
 
         <Button variant="outline" size="sm" className="gap-2" onClick={fetchData}>
