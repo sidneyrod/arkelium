@@ -88,23 +88,23 @@ const WorkEarningsSummary = () => {
   return (
     <div className="p-2 lg:p-3 space-y-2">
       {/* Inline KPIs + Action Controls */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        {/* Left side: Mini KPIs inline */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md">
-            <Briefcase className="h-3.5 w-3.5 text-primary" />
+      <div className="flex items-center gap-2">
+        {/* KPIs with flex-1 to expand proportionally */}
+        <div className="flex items-center gap-2 flex-1">
+          <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+            <Briefcase className="h-3.5 w-3.5 text-primary shrink-0" />
             <span className="text-[10px] text-muted-foreground">Jobs</span>
             <span className="font-semibold text-sm">{globalSummary.totalJobsCompleted}</span>
           </div>
           
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md">
-            <Clock className="h-3.5 w-3.5 text-blue-500" />
+          <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+            <Clock className="h-3.5 w-3.5 text-blue-500 shrink-0" />
             <span className="text-[10px] text-muted-foreground">Hours</span>
             <span className="font-semibold text-sm">{globalSummary.totalHoursWorked.toFixed(1)}h</span>
           </div>
           
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md">
-            <TrendingUp className="h-3.5 w-3.5 text-green-500" />
+          <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+            <TrendingUp className="h-3.5 w-3.5 text-green-500 shrink-0" />
             <span className="text-[10px] text-muted-foreground">Revenue</span>
             <span className="font-semibold text-sm">${globalSummary.totalGrossServiceRevenue.toLocaleString()}</span>
           </div>
@@ -112,20 +112,20 @@ const WorkEarningsSummary = () => {
           {/* Cash KPIs - only when enableCashKept = true */}
           {enableCashKept && (
             <>
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md">
-                <Banknote className="h-3.5 w-3.5 text-amber-500" />
+              <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+                <Banknote className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                 <span className="text-[10px] text-muted-foreground">Collected</span>
                 <span className="font-semibold text-sm">${globalSummary.totalCashCollected.toLocaleString()}</span>
               </div>
               
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md">
-                <DollarSign className="h-3.5 w-3.5 text-purple-500" />
+              <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+                <DollarSign className="h-3.5 w-3.5 text-purple-500 shrink-0" />
                 <span className="text-[10px] text-muted-foreground">Kept</span>
                 <span className="font-semibold text-sm">${globalSummary.cashKeptApproved.toLocaleString()}</span>
               </div>
               
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md">
-                <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+              <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+                <CheckCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                 <span className="text-[10px] text-muted-foreground">To Office</span>
                 <span className="font-semibold text-sm">${globalSummary.cashDeliveredToOffice.toLocaleString()}</span>
               </div>
