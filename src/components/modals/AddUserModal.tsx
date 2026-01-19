@@ -452,10 +452,10 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
               {isNewUser && (
                 <div className="p-3 rounded-lg border border-border bg-muted/30">
                   <p className="text-sm text-muted-foreground">
-                    <strong>Nota:</strong> Uma senha temporária segura será gerada automaticamente e exibida após criar o usuário.
+                    <strong>{t.users.tempPasswordNote}</strong> {t.users.tempPasswordDescription}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    O usuário deverá alterar a senha no primeiro login.
+                    {t.users.tempPasswordChangeRequired}
                   </p>
                 </div>
               )}
