@@ -598,12 +598,6 @@ const PaymentsCollections = () => {
   }
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      {/* Info Banner */}
-      <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-amber-50/50 border-amber-200 text-amber-800 dark:bg-amber-950/20 dark:border-amber-800 dark:text-amber-200 text-xs">
-        <Info className="h-3.5 w-3.5 flex-shrink-0" />
-        <span>Operational finance workflow. Approve/dispute cash handling, review invoices/receipts. Items may be pending here before accounting consolidation.</span>
-      </div>
-      
       {/* Filters Row: Search, Status, Date, Actions */}
       <div className="flex flex-wrap items-center gap-3">
         <SearchInput
