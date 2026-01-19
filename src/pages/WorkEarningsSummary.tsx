@@ -68,11 +68,17 @@ const WorkEarningsSummary = () => {
   if (isLoading) {
     return (
       <div className="p-2 lg:p-3 space-y-2">
-        <Skeleton className="h-10 w-64" />
-        <div className="grid gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-20" />
-          ))}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-8 w-24" />
+            <Skeleton className="h-8 w-24" />
+            <Skeleton className="h-8 w-28" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-8 w-40" />
+            <Skeleton className="h-8 w-20" />
+            <Skeleton className="h-8 w-28" />
+          </div>
         </div>
         <Skeleton className="h-64" />
       </div>
@@ -81,137 +87,74 @@ const WorkEarningsSummary = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      {/* Action bar – no title/subtitle */}
-      <div className="flex items-center justify-end gap-2">
-        <DatePickerDialog
-          mode="range"
-          selected={dateRange}
-          onSelect={handleDateRangeSelect}
-          dateFormat="MMM d, yyyy"
-          className="text-xs h-9 w-auto"
-        />
+      {/* Inline KPIs + Action Controls */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        {/* Left side: Mini KPIs inline */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md">
+            <Briefcase className="h-3.5 w-3.5 text-primary" />
+            <span className="text-[10px] text-muted-foreground">Jobs</span>
+            <span className="font-semibold text-sm">{globalSummary.totalJobsCompleted}</span>
+          </div>
+          
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md">
+            <Clock className="h-3.5 w-3.5 text-blue-500" />
+            <span className="text-[10px] text-muted-foreground">Hours</span>
+            <span className="font-semibold text-sm">{globalSummary.totalHoursWorked.toFixed(1)}h</span>
+          </div>
+          
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md">
+            <TrendingUp className="h-3.5 w-3.5 text-green-500" />
+            <span className="text-[10px] text-muted-foreground">Revenue</span>
+            <span className="font-semibold text-sm">${globalSummary.totalGrossServiceRevenue.toLocaleString()}</span>
+          </div>
+          
+          {/* Cash KPIs - only when enableCashKept = true */}
+          {enableCashKept && (
+            <>
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md">
+                <Banknote className="h-3.5 w-3.5 text-amber-500" />
+                <span className="text-[10px] text-muted-foreground">Collected</span>
+                <span className="font-semibold text-sm">${globalSummary.totalCashCollected.toLocaleString()}</span>
+              </div>
+              
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md">
+                <DollarSign className="h-3.5 w-3.5 text-purple-500" />
+                <span className="text-[10px] text-muted-foreground">Kept</span>
+                <span className="font-semibold text-sm">${globalSummary.cashKeptApproved.toLocaleString()}</span>
+              </div>
+              
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md">
+                <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+                <span className="text-[10px] text-muted-foreground">To Office</span>
+                <span className="font-semibold text-sm">${globalSummary.cashDeliveredToOffice.toLocaleString()}</span>
+              </div>
+            </>
+          )}
+        </div>
+        
+        {/* Right side: Action Controls */}
+        <div className="flex items-center gap-2 shrink-0">
+          <DatePickerDialog
+            mode="range"
+            selected={dateRange}
+            onSelect={handleDateRangeSelect}
+            dateFormat="MMM d, yyyy"
+            className="text-xs h-8 w-auto"
+          />
 
-        <Button variant="outline" size="sm" className="gap-2" onClick={fetchData}>
-          <RefreshCw className="h-3.5 w-3.5" />
-          Refresh
-        </Button>
+          <Button variant="outline" size="sm" className="gap-2 h-8" onClick={fetchData}>
+            <RefreshCw className="h-3.5 w-3.5" />
+            Refresh
+          </Button>
 
-        <ExportReportButton
-          period={period}
-          globalSummary={globalSummary}
-          getExportData={getExportData}
-          enableCashKept={enableCashKept}
-        />
-      </div>
-
-      {/* Global Summary Cards */}
-      <div className={cn(
-        "grid gap-2.5 sm:grid-cols-3",
-        enableCashKept ? "lg:grid-cols-6" : "lg:grid-cols-3"
-      )}>
-        <Card className="border-border/50">
-          <CardContent className="pt-3 pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Briefcase className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Jobs Completed</p>
-                <p className="text-xl font-bold">{globalSummary.totalJobsCompleted}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="pt-3 pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                <Clock className="h-4 w-4 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Hours Worked</p>
-                <p className="text-xl font-bold">{globalSummary.totalHoursWorked.toFixed(1)}h</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="pt-3 pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center">
-                <TrendingUp className="h-4 w-4 text-green-500" />
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Gross Revenue</p>
-                <p className="text-xl font-bold">${globalSummary.totalGrossServiceRevenue.toLocaleString()}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {enableCashKept && (
-          <Card className="border-border/50">
-            <CardContent className="pt-3 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                  <Banknote className="h-4 w-4 text-amber-500" />
-                </div>
-                <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cash Collected</p>
-                  <p className="text-xl font-bold">${globalSummary.totalCashCollected.toLocaleString()}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {enableCashKept && (
-          <Card className="border-border/50">
-            <CardContent className="pt-3 pb-3">
-              <div className="space-y-0.5">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cash Kept by Staff</p>
-                <div className="flex items-center gap-1.5">
-                  {globalSummary.cashKeptPending > 0 && (
-                    <Badge variant="outline" className="text-[9px] bg-amber-50 text-amber-700 border-amber-200">
-                      ${globalSummary.cashKeptPending} pending
-                    </Badge>
-                  )}
-                  {globalSummary.cashKeptApproved > 0 && (
-                    <Badge variant="outline" className="text-[9px] bg-blue-50 text-blue-700 border-blue-200">
-                      ${globalSummary.cashKeptApproved} approved
-                    </Badge>
-                  )}
-                  {globalSummary.cashKeptSettled > 0 && (
-                    <Badge variant="outline" className="text-[9px] bg-green-50 text-green-700 border-green-200">
-                      ${globalSummary.cashKeptSettled} settled
-                    </Badge>
-                  )}
-                  {globalSummary.cashKeptPending === 0 && globalSummary.cashKeptApproved === 0 && globalSummary.cashKeptSettled === 0 && (
-                    <span className="text-sm text-muted-foreground">$0</span>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {enableCashKept && (
-          <Card className="border-border/50">
-            <CardContent className="pt-3 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-lg bg-green-600/10 flex items-center justify-center">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cash to Office</p>
-                  <p className="text-xl font-bold">${globalSummary.cashDeliveredToOffice.toLocaleString()}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+          <ExportReportButton
+            period={period}
+            globalSummary={globalSummary}
+            getExportData={getExportData}
+            enableCashKept={enableCashKept}
+          />
+        </div>
       </div>
 
       {/* Staff Work Summary Table */}
