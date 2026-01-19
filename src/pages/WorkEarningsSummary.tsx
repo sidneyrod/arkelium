@@ -148,19 +148,21 @@ const WorkEarningsSummary = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-border/50">
-          <CardContent className="pt-3 pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                <Banknote className="h-4 w-4 text-amber-500" />
+        {enableCashKept && (
+          <Card className="border-border/50">
+            <CardContent className="pt-3 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <Banknote className="h-4 w-4 text-amber-500" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cash Collected</p>
+                  <p className="text-xl font-bold">${globalSummary.totalCashCollected.toLocaleString()}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cash Collected</p>
-                <p className="text-xl font-bold">${globalSummary.totalCashCollected.toLocaleString()}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         {enableCashKept && (
           <Card className="border-border/50">
@@ -192,19 +194,21 @@ const WorkEarningsSummary = () => {
           </Card>
         )}
 
-        <Card className="border-border/50">
-          <CardContent className="pt-3 pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-lg bg-green-600/10 flex items-center justify-center">
-                <CheckCircle className="h-4 w-4 text-green-600" />
+        {enableCashKept && (
+          <Card className="border-border/50">
+            <CardContent className="pt-3 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-green-600/10 flex items-center justify-center">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cash to Office</p>
+                  <p className="text-xl font-bold">${globalSummary.cashDeliveredToOffice.toLocaleString()}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cash to Office</p>
-                <p className="text-xl font-bold">${globalSummary.cashDeliveredToOffice.toLocaleString()}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Staff Work Summary Table */}
@@ -229,7 +233,7 @@ const WorkEarningsSummary = () => {
                   <TableHead className="text-right w-[100px]">Hours</TableHead>
                   <TableHead className="text-right w-[120px]">Service Value</TableHead>
                   {enableCashKept && <TableHead className="text-right w-[120px]">Cash Kept (Approved)</TableHead>}
-                  <TableHead className="text-right w-[120px]">Cash Delivered</TableHead>
+                  {enableCashKept && <TableHead className="text-right w-[120px]">Cash Delivered</TableHead>}
                   <TableHead className="w-[80px]">Flags</TableHead>
                   <TableHead className="w-[40px]"></TableHead>
                 </TableRow>
@@ -276,15 +280,17 @@ const WorkEarningsSummary = () => {
                         )}
                       </TableCell>
                     )}
-                    <TableCell className="text-right">
-                      {cleaner.cashDeliveredToOffice > 0 ? (
-                        <span className="text-green-600 font-medium">
-                          ${cleaner.cashDeliveredToOffice.toLocaleString()}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
+                    {enableCashKept && (
+                      <TableCell className="text-right">
+                        {cleaner.cashDeliveredToOffice > 0 ? (
+                          <span className="text-green-600 font-medium">
+                            ${cleaner.cashDeliveredToOffice.toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                    )}
                     <TableCell>
                       {cleaner.hasDisputes && (
                         <Badge variant="outline" className="text-[9px] bg-red-50 text-red-700 border-red-200">

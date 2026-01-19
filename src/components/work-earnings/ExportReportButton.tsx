@@ -40,9 +40,15 @@ export function ExportReportButton({
         return;
       }
 
-      // Remove 'Cash Kept by Employee' column if feature is disabled
+      // Remove all cash-related columns if feature is disabled
       const filteredData = enableCashKept ? data : data.map(row => {
-        const { 'Cash Kept by Employee': _, ...rest } = row;
+        const { 
+          'Cash Kept by Employee': _cashKept, 
+          'Cash Handling': _cashHandling,
+          'Cash Status': _cashStatus,
+          'Cash Delivered to Office': _cashDelivered,
+          ...rest 
+        } = row;
         return rest;
       });
 
