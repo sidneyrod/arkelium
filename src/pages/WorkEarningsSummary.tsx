@@ -105,7 +105,10 @@ const WorkEarningsSummary = () => {
       </div>
 
       {/* Global Summary Cards */}
-      <div className="grid gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
+      <div className={cn(
+        "grid gap-2.5 sm:grid-cols-3",
+        enableCashKept ? "lg:grid-cols-6" : "lg:grid-cols-3"
+      )}>
         <Card className="border-border/50">
           <CardContent className="pt-3 pb-3">
             <div className="flex items-center gap-2.5">
