@@ -81,9 +81,6 @@ const WorkEarningsSummary = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      {/* Info Banner */}
-      <FinancialInfoBanner variant="work" />
-      
       {/* Action bar – no title/subtitle */}
       <div className="flex items-center justify-end gap-2">
         <DatePickerDialog
