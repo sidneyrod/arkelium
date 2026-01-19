@@ -624,20 +624,20 @@ const Clients = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      <PageHeader 
-        action={{
-          label: t.clients.addClient,
-          icon: UserPlus,
-          onClick: () => { setEditClient(null); setIsAddModalOpen(true); },
-        }}
-      />
-
-      <SearchInput 
-        placeholder={t.clients.searchClients}
-        value={search}
-        onChange={setSearch}
-        className="max-w-sm"
-      />
+      {/* Consolidated Header: Search + Add Button */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <SearchInput 
+          placeholder={t.clients.searchClients}
+          value={search}
+          onChange={setSearch}
+          className="w-64"
+        />
+        <div className="flex-1" />
+        <Button onClick={() => { setEditClient(null); setIsAddModalOpen(true); }} size="sm" className="gap-2">
+          <UserPlus className="h-4 w-4" />
+          {t.clients.addClient}
+        </Button>
+      </div>
 
       <PaginatedDataTable 
         columns={columns}

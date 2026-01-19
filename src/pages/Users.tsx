@@ -471,23 +471,16 @@ const Users = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      <PageHeader 
-        action={{
-          label: t.users.addUser,
-          icon: UserPlus,
-          onClick: () => { setEditUser(null); setIsAddModalOpen(true); },
-        }}
-      />
-
-      <div className="flex flex-col sm:flex-row gap-4">
+      {/* Consolidated Header: Search + Filter + Add Button */}
+      <div className="flex items-center gap-3 flex-wrap">
         <SearchInput 
           placeholder={t.users.searchUsers}
           value={search}
           onChange={setSearch}
-          className="max-w-sm"
+          className="w-64"
         />
         <Select value={roleFilter} onValueChange={setRoleFilter}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-[140px]">
             <Filter className="h-4 w-4 mr-2" />
             <SelectValue placeholder="Filter by role" />
           </SelectTrigger>
@@ -498,6 +491,11 @@ const Users = () => {
             <SelectItem value="cleaner">Cleaner</SelectItem>
           </SelectContent>
         </Select>
+        <div className="flex-1" />
+        <Button onClick={() => { setEditUser(null); setIsAddModalOpen(true); }} size="sm" className="gap-2">
+          <UserPlus className="h-4 w-4" />
+          {t.users.addUser}
+        </Button>
         {urlRoles && (
           <div className="flex items-center text-sm text-muted-foreground bg-muted/50 px-3 py-1 rounded-md">
             Showing: {urlRoles.split(',').join(', ')}

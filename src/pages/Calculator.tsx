@@ -192,57 +192,29 @@ const Calculator = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      <PageHeader 
-        action={{
-          label: t.calculator.addEstimate,
-          icon: Plus,
-          onClick: () => setShowAddModal(true),
-        }}
-      />
-
-      {/* Summary Cards */}
-      <div className="grid gap-2.5 sm:grid-cols-3">
-        <Card className="border-border/50">
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                <CalcIcon className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Estimates</p>
-                <p className="text-2xl font-bold">{totalEstimates}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-warning/10 flex items-center justify-center">
-                <Send className="h-5 w-5 text-warning" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Pending Response</p>
-                <p className="text-2xl font-bold">{pendingEstimates}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-success/10 flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Accepted Value</p>
-                <p className="text-2xl font-bold">${acceptedValue.toLocaleString()}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Consolidated Header: KPIs inline + Add Button */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 min-w-0">
+            <CalcIcon className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-xs text-muted-foreground">Total:</span>
+            <span className="font-semibold">{totalEstimates}</span>
+          </div>
+          <div className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-warning/10 border border-warning/20 min-w-0">
+            <Send className="h-4 w-4 text-warning shrink-0" />
+            <span className="text-xs text-muted-foreground">Pending:</span>
+            <span className="font-semibold">{pendingEstimates}</span>
+          </div>
+          <div className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-success/10 border border-success/20 min-w-0">
+            <DollarSign className="h-4 w-4 text-success shrink-0" />
+            <span className="text-xs text-muted-foreground">Accepted:</span>
+            <span className="font-semibold">${acceptedValue.toLocaleString()}</span>
+          </div>
+        </div>
+        <Button onClick={() => setShowAddModal(true)} size="sm" className="gap-2">
+          <Plus className="h-4 w-4" />
+          {t.calculator.addEstimate}
+        </Button>
       </div>
 
       {/* Estimates Table */}

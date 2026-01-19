@@ -221,87 +221,49 @@ const Receipts = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <PageHeader 
-          title="Payment Receipts"
-          description="Manage cash payment receipts for completed services"
-        />
-        <Button onClick={() => setGenerateModalOpen(true)} className="gap-2">
+      {/* Consolidated Header: KPIs inline + PeriodSelector + Search + Generate Button */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 min-w-0">
+            <Receipt className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-xs text-muted-foreground">Total:</span>
+            <span className="font-semibold">{filteredReceipts.length}</span>
+          </div>
+          <div className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-success/10 border border-success/20 min-w-0">
+            <DollarSign className="h-4 w-4 text-success shrink-0" />
+            <span className="text-xs text-muted-foreground">Amount:</span>
+            <span className="font-semibold">${totalAmount.toFixed(0)}</span>
+          </div>
+          <div className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20 min-w-0">
+            <Mail className="h-4 w-4 text-blue-500 shrink-0" />
+            <span className="text-xs text-muted-foreground">Sent:</span>
+            <span className="font-semibold">{sentCount}/{filteredReceipts.length}</span>
+          </div>
+        </div>
+        <PeriodSelector value={dateRange} onChange={setDateRange} />
+      </div>
+
+      {/* Consolidated Actions: Search + Generate Button */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative flex-1 max-w-[280px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search receipts..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-9"
+          />
+        </div>
+        <div className="flex-1" />
+        <Button onClick={() => setGenerateModalOpen(true)} size="sm" className="gap-2">
           <Plus className="h-4 w-4" />
           Generate Receipt
         </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-2.5 md:grid-cols-3">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-primary/10">
-                <Receipt className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Receipts</p>
-                <p className="text-2xl font-bold">{filteredReceipts.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-success/10">
-                <DollarSign className="h-6 w-6 text-success" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Amount</p>
-                <p className="text-2xl font-bold">${totalAmount.toFixed(2)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-blue-500/10">
-                <Mail className="h-6 w-6 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Sent</p>
-                <p className="text-2xl font-bold">{sentCount} / {filteredReceipts.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
+      {/* Receipts Table */}
       <Card>
-        <CardHeader className="pb-4">
-          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Receipts List
-            </CardTitle>
-            
-            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-              <PeriodSelector value={dateRange} onChange={setDateRange} />
-              
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search receipts..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 w-full sm:w-64"
-                />
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           {loading ? (
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />

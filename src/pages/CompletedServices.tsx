@@ -340,53 +340,30 @@ const CompletedServices = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      <div className="flex justify-end">
+      {/* Consolidated Header: KPIs inline + PeriodSelector */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-success/10 border border-success/20 min-w-0">
+            <CheckCircle className="h-4 w-4 text-success shrink-0" />
+            <span className="text-xs text-muted-foreground">Pending:</span>
+            <span className="font-semibold">{pagination.totalCount}</span>
+          </div>
+          <div className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 min-w-0">
+            <FileText className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-xs text-muted-foreground">Selected:</span>
+            <span className="font-semibold">{selectedCount}</span>
+          </div>
+          <div className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-info/10 border border-info/20 min-w-0">
+            <DollarSign className="h-4 w-4 text-info shrink-0" />
+            <span className="text-xs text-muted-foreground">Est. Total:</span>
+            <span className="font-semibold">${estimatedTotal.toFixed(0)}</span>
+          </div>
+        </div>
         <PeriodSelector value={period} onChange={setPeriod} />
       </div>
 
-      <div className="grid gap-2.5 md:grid-cols-3">
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
-                <CheckCircle className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Pending Invoices</p>
-                <p className="text-2xl font-bold">{pagination.totalCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Selected</p>
-                <p className="text-2xl font-bold">{selectedCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-info/10 flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-info" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Est. Total</p>
-                <p className="text-2xl font-bold">${estimatedTotal.toFixed(0)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+      {/* Consolidated Actions: Select All + Search + Generate Button */}
+      <div className="flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <Checkbox 
             checked={selectedServices.length === services.length && services.length > 0}
@@ -394,28 +371,28 @@ const CompletedServices = () => {
           />
           <span className="text-sm text-muted-foreground">Select All</span>
         </div>
-        <div className="flex items-center gap-4">
-          <SearchInput 
-            placeholder="Search services..."
-            value={search}
-            onChange={setSearch}
-            className="max-w-sm"
-          />
-          {isAdmin ? (
-            <Button 
-              onClick={() => setShowGenerateDialog(true)}
-              disabled={selectedServices.length === 0}
-              className="gap-2"
-            >
-              <Receipt className="h-4 w-4" />
-              Generate Invoices ({selectedCount})
-            </Button>
-          ) : (
-            <div className="text-xs text-muted-foreground bg-muted px-3 py-2 rounded-md">
-              Only administrators can generate invoices
-            </div>
-          )}
-        </div>
+        <div className="flex-1" />
+        <SearchInput 
+          placeholder="Search services..."
+          value={search}
+          onChange={setSearch}
+          className="w-64"
+        />
+        {isAdmin ? (
+          <Button 
+            onClick={() => setShowGenerateDialog(true)}
+            disabled={selectedServices.length === 0}
+            className="gap-2"
+            size="sm"
+          >
+            <Receipt className="h-4 w-4" />
+            Generate ({selectedCount})
+          </Button>
+        ) : (
+          <div className="text-xs text-muted-foreground bg-muted px-3 py-2 rounded-md">
+            Only admins can generate
+          </div>
+        )}
       </div>
 
       <PaginatedDataTable 
