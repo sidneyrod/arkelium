@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
+import { useCompanyPreferences } from '@/hooks/useCompanyPreferences';
 import PageHeader from '@/components/ui/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -105,9 +106,11 @@ const statusConfig: Record<string, { label: string; variant: 'active' | 'pending
 const PaymentsCollections = () => {
   const { user } = useAuth();
   const { activeCompanyId } = useActiveCompanyStore();
+  const { preferences } = useCompanyPreferences();
+  const enableCashKept = preferences.enableCashKeptByEmployee;
   
-  // State
-  const [activeTab, setActiveTab] = useState('cash');
+  // State - Default tab to 'receipts' if cash kept is disabled
+  const [activeTab, setActiveTab] = useState(enableCashKept ? 'cash' : 'receipts');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('pending'); // Default to pending for governance focus
@@ -643,10 +646,12 @@ const PaymentsCollections = () => {
       {/* Tabs with Tables */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="cash" className="gap-2">
-            <Banknote className="h-4 w-4" />
-            Cash Collections
-          </TabsTrigger>
+          {enableCashKept && (
+            <TabsTrigger value="cash" className="gap-2">
+              <Banknote className="h-4 w-4" />
+              Cash Collections
+            </TabsTrigger>
+          )}
           <TabsTrigger value="receipts" className="gap-2">
             <Receipt className="h-4 w-4" />
             Receipts
@@ -657,17 +662,19 @@ const PaymentsCollections = () => {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="cash" className="mt-4">
-          <PaginatedDataTable
-            columns={cashColumns}
-            data={cashPagination.data}
-            pagination={cashPagination.pagination}
-            onPageChange={cashPagination.setPage}
-            onPageSizeChange={cashPagination.setPageSize}
-            isLoading={cashPagination.isLoading}
-            emptyMessage="No cash collections found."
-          />
-        </TabsContent>
+        {enableCashKept && (
+          <TabsContent value="cash" className="mt-4">
+            <PaginatedDataTable
+              columns={cashColumns}
+              data={cashPagination.data}
+              pagination={cashPagination.pagination}
+              onPageChange={cashPagination.setPage}
+              onPageSizeChange={cashPagination.setPageSize}
+              isLoading={cashPagination.isLoading}
+              emptyMessage="No cash collections found."
+            />
+          </TabsContent>
+        )}
 
         <TabsContent value="receipts" className="mt-4">
           <PaginatedDataTable

@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
+import { useCompanyPreferences } from '@/hooks/useCompanyPreferences';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -34,9 +35,15 @@ const CashPendingCard = () => {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const { activeCompanyId } = useActiveCompanyStore();
+  const { preferences, isLoading: prefsLoading } = useCompanyPreferences();
   const [pendingCash, setPendingCash] = useState<CashCollection[]>([]);
   const [totalPending, setTotalPending] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+
+  // If the "Cash Kept by Employee" feature is disabled, don't render this card
+  if (!prefsLoading && !preferences.enableCashKeptByEmployee) {
+    return null;
+  }
 
   const labels = {
     en: {
