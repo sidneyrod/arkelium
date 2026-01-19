@@ -216,89 +216,85 @@ export default function Notifications() {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      <div className="flex items-center justify-end gap-2">
+      {/* Consolidated Header: Filters + Action Buttons */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[180px] max-w-[280px]">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder={t.common?.search || 'Search...'}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 h-9"
+          />
+        </div>
+
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+          <SelectTrigger className="w-[120px] h-9">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t.common?.all || 'All'}</SelectItem>
+            <SelectItem value="unread">{t.notifications?.unread || 'Unread'}</SelectItem>
+            <SelectItem value="read">{t.notifications?.read || 'Read'}</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as any)}>
+          <SelectTrigger className="w-[120px] h-9">
+            <SelectValue placeholder="Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t.common?.all || 'All'}</SelectItem>
+            <SelectItem value="job">Job</SelectItem>
+            <SelectItem value="visit">Visit</SelectItem>
+            <SelectItem value="off_request">Off Request</SelectItem>
+            <SelectItem value="invoice">Invoice</SelectItem>
+            <SelectItem value="payroll">Payroll</SelectItem>
+            <SelectItem value="system">System</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={dateFilter} onValueChange={(v) => setDateFilter(v as any)}>
+          <SelectTrigger className="w-[120px] h-9">
+            <SelectValue placeholder="Period" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t.common?.all || 'All time'}</SelectItem>
+            <SelectItem value="today">{t.common?.today || 'Today'}</SelectItem>
+            <SelectItem value="week">{t.notifications?.lastWeek || 'Last 7 days'}</SelectItem>
+            <SelectItem value="month">{t.notifications?.lastMonth || 'Last 30 days'}</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {isAdmin && (
+          <Select value={userFilter} onValueChange={setUserFilter}>
+            <SelectTrigger className="w-[140px] h-9">
+              <SelectValue placeholder="Recipient" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t.common?.all || 'All users'}</SelectItem>
+              {users.map(user => (
+                <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
+        <div className="flex-1" />
+
         {unreadCount > 0 && (
-          <Button variant="outline" size="sm" onClick={markAllAsRead}>
+          <Button variant="outline" size="sm" onClick={markAllAsRead} className="h-9">
             <CheckCheck className="h-4 w-4 mr-2" />
-            {t.notifications?.markAllRead || 'Mark all read'}
+            Mark all read
           </Button>
         )}
         {isAdminOrManager && (
-          <Button size="sm" onClick={() => setShowBroadcastModal(true)}>
+          <Button size="sm" onClick={() => setShowBroadcastModal(true)} className="h-9">
             <Send className="h-4 w-4 mr-2" />
-            {t.notifications?.sendNotification || 'Send Notification'}
+            Send
           </Button>
         )}
       </div>
-
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={t.common?.search || 'Search...'}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-
-            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder={t.notifications?.status || 'Status'} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t.common?.all || 'All'}</SelectItem>
-                <SelectItem value="unread">{t.notifications?.unread || 'Unread'}</SelectItem>
-                <SelectItem value="read">{t.notifications?.read || 'Read'}</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as any)}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder={t.notifications?.type || 'Type'} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t.common?.all || 'All'}</SelectItem>
-                <SelectItem value="job">Job</SelectItem>
-                <SelectItem value="visit">Visit</SelectItem>
-                <SelectItem value="off_request">Off Request</SelectItem>
-                <SelectItem value="invoice">Invoice</SelectItem>
-                <SelectItem value="payroll">Payroll</SelectItem>
-                <SelectItem value="system">System</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={dateFilter} onValueChange={(v) => setDateFilter(v as any)}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder={t.notifications?.period || 'Period'} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t.common?.all || 'All time'}</SelectItem>
-                <SelectItem value="today">{t.common?.today || 'Today'}</SelectItem>
-                <SelectItem value="week">{t.notifications?.lastWeek || 'Last 7 days'}</SelectItem>
-                <SelectItem value="month">{t.notifications?.lastMonth || 'Last 30 days'}</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {isAdmin && (
-              <Select value={userFilter} onValueChange={setUserFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder={t.notifications?.recipient || 'Recipient'} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t.common?.all || 'All users'}</SelectItem>
-                  {users.map(user => (
-                    <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">

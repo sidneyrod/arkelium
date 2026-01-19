@@ -422,81 +422,48 @@ const OffRequests = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      {isAdminOrManager && (
-        <div className="flex justify-end">
-          <Button onClick={() => setShowRequestModal(true)} className="gap-2">
+      {/* Consolidated Header: KPIs inline + New Request Button */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div 
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-warning/10 border border-warning/20 min-w-0 cursor-pointer hover:ring-2 hover:ring-warning/30 transition-all"
+            onClick={() => setActiveTab('pending')}
+          >
+            <Clock className="h-4 w-4 text-warning shrink-0" />
+            <span className="text-xs text-muted-foreground">{isEnglish ? 'Pending:' : 'Pendentes:'}</span>
+            <span className="font-semibold">{pendingCount}</span>
+          </div>
+          <div 
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 min-w-0 cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all"
+            onClick={() => setActiveTab('active')}
+          >
+            <CalendarOff className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-xs text-muted-foreground">{isEnglish ? 'Active:' : 'Ativos:'}</span>
+            <span className="font-semibold">{activeBlocksCount}</span>
+          </div>
+          <div 
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-success/10 border border-success/20 min-w-0 cursor-pointer hover:ring-2 hover:ring-success/30 transition-all"
+            onClick={() => setActiveTab('approved')}
+          >
+            <Check className="h-4 w-4 text-success shrink-0" />
+            <span className="text-xs text-muted-foreground">{isEnglish ? 'Approved:' : 'Aprovados:'}</span>
+            <span className="font-semibold">{approvedCount}</span>
+          </div>
+          <div 
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/20 min-w-0 cursor-pointer hover:ring-2 hover:ring-destructive/30 transition-all"
+            onClick={() => setActiveTab('rejected')}
+          >
+            <X className="h-4 w-4 text-destructive shrink-0" />
+            <span className="text-xs text-muted-foreground">{isEnglish ? 'Rejected:' : 'Rejeitados:'}</span>
+            <span className="font-semibold">{rejectedCount}</span>
+          </div>
+        </div>
+        {isAdminOrManager && (
+          <Button onClick={() => setShowRequestModal(true)} size="sm" className="gap-2">
             <Plus className="h-4 w-4" />
             {isEnglish ? 'New Request' : 'Nova Solicitação'}
           </Button>
-        </div>
-      )}
-
-      {/* Stats */}
-      <div className="grid gap-2.5 md:grid-cols-4">
-        <Card className="border-border/50 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all" 
-              onClick={() => setActiveTab('pending')}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
-                <Clock className="h-5 w-5 text-warning" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  {isEnglish ? 'Pending' : 'Pendentes'}
-                </p>
-                <p className="text-2xl font-bold">{pendingCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all"
-              onClick={() => setActiveTab('active')}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <CalendarOff className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  {isEnglish ? 'Active Blocks' : 'Bloqueios Ativos'}
-                </p>
-                <p className="text-2xl font-bold">{activeBlocksCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all"
-              onClick={() => setActiveTab('approved')}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
-                <Check className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  {isEnglish ? 'Approved' : 'Aprovados'}
-                </p>
-                <p className="text-2xl font-bold">{approvedCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all"
-              onClick={() => setActiveTab('rejected')}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center">
-                <X className="h-5 w-5 text-destructive" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  {isEnglish ? 'Rejected' : 'Rejeitados'}
-                </p>
-                <p className="text-2xl font-bold">{rejectedCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        )}
       </div>
 
       {/* Filters */}

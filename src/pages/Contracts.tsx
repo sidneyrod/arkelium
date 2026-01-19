@@ -525,20 +525,20 @@ const Contracts = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      <PageHeader 
-        action={{
-          label: t.contracts.addContract,
-          icon: FilePlus,
-          onClick: () => { setEditContract(null); setIsAddModalOpen(true); },
-        }}
-      />
-
-      <SearchInput 
-        placeholder="Search contracts..."
-        value={search}
-        onChange={setSearch}
-        className="max-w-sm"
-      />
+      {/* Consolidated Header: Search + Add Button */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <SearchInput 
+          placeholder="Search contracts..."
+          value={search}
+          onChange={setSearch}
+          className="w-64"
+        />
+        <div className="flex-1" />
+        <Button onClick={() => { setEditContract(null); setIsAddModalOpen(true); }} size="sm" className="gap-2">
+          <FilePlus className="h-4 w-4" />
+          {t.contracts.addContract}
+        </Button>
+      </div>
 
       <PaginatedDataTable 
         columns={columns}
