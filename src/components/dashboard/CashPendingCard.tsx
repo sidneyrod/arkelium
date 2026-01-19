@@ -40,11 +40,6 @@ const CashPendingCard = () => {
   const [totalPending, setTotalPending] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  // If the "Cash Kept by Employee" feature is disabled, don't render this card
-  if (!prefsLoading && !preferences.enableCashKeptByEmployee) {
-    return null;
-  }
-
   const labels = {
     en: {
       title: 'Cash Pending Compensation',
@@ -68,7 +63,11 @@ const CashPendingCard = () => {
 
   useEffect(() => {
     const fetchPendingCash = async () => {
-      if (!activeCompanyId) return;
+      // Don't fetch if feature is disabled
+      if (!activeCompanyId || !preferences.enableCashKeptByEmployee) {
+        setIsLoading(false);
+        return;
+      }
 
       try {
         const { data, error } = await supabase
@@ -109,7 +108,12 @@ const CashPendingCard = () => {
     };
 
     fetchPendingCash();
-  }, [activeCompanyId]);
+  }, [activeCompanyId, preferences.enableCashKeptByEmployee]);
+
+  // If the feature is disabled, don't render the card
+  if (!prefsLoading && !preferences.enableCashKeptByEmployee) {
+    return null;
+  }
 
   if (isLoading) {
     return (
