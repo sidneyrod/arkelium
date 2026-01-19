@@ -131,6 +131,9 @@ export const translations = {
       userCreated: 'User created successfully',
       userUpdated: 'User updated successfully',
       userDeleted: 'User deleted successfully',
+      tempPasswordNote: 'Note:',
+      tempPasswordDescription: 'A secure temporary password will be automatically generated and displayed after creating the user.',
+      tempPasswordChangeRequired: 'The user will need to change their password on the first login.',
     },
     // Clients
     clients: {
@@ -815,6 +818,9 @@ export const translations = {
       userCreated: 'Utilisateur créé avec succès',
       userUpdated: 'Utilisateur mis à jour avec succès',
       userDeleted: 'Utilisateur supprimé avec succès',
+      tempPasswordNote: 'Remarque :',
+      tempPasswordDescription: 'Un mot de passe temporaire sécurisé sera automatiquement généré et affiché après la création de l\'utilisateur.',
+      tempPasswordChangeRequired: 'L\'utilisateur devra changer son mot de passe lors de la première connexion.',
     },
     // Clients
     clients: {
