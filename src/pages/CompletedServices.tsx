@@ -340,11 +340,7 @@ const CompletedServices = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <PageHeader 
-          title="Completed Services"
-          description="Select completed services to generate invoices"
-        />
+      <div className="flex justify-end">
         <PeriodSelector value={period} onChange={setPeriod} />
       </div>
 

@@ -422,20 +422,14 @@ const OffRequests = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      <div className="flex items-center justify-between">
-        <PageHeader 
-          title={isEnglish ? "Off Requests" : "Solicitações de Folga"}
-          description={isEnglish 
-            ? "Review and manage employee off requests" 
-            : "Gerencie solicitações de folga dos funcionários"}
-        />
-        {isAdminOrManager && (
+      {isAdminOrManager && (
+        <div className="flex justify-end">
           <Button onClick={() => setShowRequestModal(true)} className="gap-2">
             <Plus className="h-4 w-4" />
             {isEnglish ? 'New Request' : 'Nova Solicitação'}
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid gap-2.5 md:grid-cols-4">

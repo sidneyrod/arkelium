@@ -472,8 +472,6 @@ const Users = () => {
   return (
     <div className="p-2 lg:p-3 space-y-2">
       <PageHeader 
-        title={t.users.title}
-        description="Manage employees and system users"
         action={{
           label: t.users.addUser,
           icon: UserPlus,

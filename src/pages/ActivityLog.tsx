@@ -313,7 +313,6 @@ const ActivityLog = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      <PageHeader title={t.activityLog.title} description={t.activityLog.description} />
       
       {/* Filters */}
       <Card className="border-border/50">
