@@ -86,14 +86,10 @@ const MobileNavigation = () => {
   }
   operationsItems.push({ path: '/visit-history', label: 'Visit History', icon: MapPin });
   if (isAdminOrManager) {
-    operationsItems.push({ path: '/off-requests', label: 'Requests', icon: CalendarOff });
+    operationsItems.push({ path: '/off-requests', label: 'Field Requests', icon: CalendarOff });
   } else if (isCleaner) {
-    operationsItems.push({ path: '/my-off-requests', label: 'Requests', icon: CalendarOff });
+    operationsItems.push({ path: '/my-off-requests', label: 'Field Requests', icon: CalendarOff });
   }
-  if (isAdminOrManager) {
-    operationsItems.push({ path: '/activity-log', label: t.nav.activityLog, icon: ClipboardList });
-  }
-  operationsItems.push({ path: '/notifications', label: 'Notifications', icon: Bell });
   modules.push({ title: 'Operations', icon: Briefcase, items: operationsItems });
 
   // Module 2: Clients (Admin/Manager only)
@@ -112,9 +108,10 @@ const MobileNavigation = () => {
   // Module 3: Financial
   const financialItems: MenuItem[] = [];
   if (isAdminOrManager) {
-    financialItems.push({ path: '/financial', label: 'Ledger', icon: BookOpen });
     financialItems.push({ path: '/invoices', label: 'Invoices', icon: FileText });
     financialItems.push({ path: '/receipts', label: 'Receipts', icon: Receipt });
+    financialItems.push({ path: '/payments', label: 'Payments & Collections', icon: DollarSign });
+    financialItems.push({ path: '/financial', label: 'Ledger', icon: BookOpen });
   }
   if (isAdmin) {
     financialItems.push({ path: '/work-time-tracking', label: 'Work & Time Tracking', icon: Clock });
@@ -128,16 +125,17 @@ const MobileNavigation = () => {
 
   // Module 4: Administration (Admin only)
   if (isAdmin) {
+    const adminItems: MenuItem[] = [
+      { path: '/company', label: 'Company Profile', icon: Building2 },
+      { path: '/users', label: t.nav.users, icon: Users },
+      { path: '/access-roles', label: 'Access & Roles', icon: Shield },
+      { path: '/settings', label: t.nav.settings, icon: Settings },
+      { path: '/activity-log', label: 'Audit & Activity Log', icon: ClipboardList },
+    ];
     modules.push({
       title: 'Administration',
       icon: Settings2,
-      muted: true,
-      items: [
-        { path: '/access-roles', label: 'Access & Roles', icon: Shield },
-        { path: '/users', label: t.nav.users, icon: Users },
-        { path: '/company', label: 'Companies', icon: Building2 },
-        { path: '/settings', label: t.nav.settings, icon: Settings },
-      ]
+      items: adminItems
     });
   }
 

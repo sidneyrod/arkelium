@@ -124,19 +124,11 @@ const Sidebar = () => {
   
   operationsItems.push({ path: '/visit-history', label: 'Visit History', icon: MapPin });
   
-  // Requests (renamed from Field Requests)
+  // Field Requests
   if (canView('off_requests') && !isCleaner) {
-    operationsItems.push({ path: '/off-requests', label: 'Requests', icon: CalendarOff });
+    operationsItems.push({ path: '/off-requests', label: 'Field Requests', icon: CalendarOff });
   } else if (isCleaner) {
-    operationsItems.push({ path: '/my-off-requests', label: 'Requests', icon: CalendarOff });
-  }
-  
-  if (canView('activity_log')) {
-    operationsItems.push({ path: '/activity-log', label: t.nav.activityLog, icon: ClipboardList });
-  }
-  
-  if (canView('notifications') || isCleaner) {
-    operationsItems.push({ path: '/notifications', label: 'Notifications', icon: Bell });
+    operationsItems.push({ path: '/my-off-requests', label: 'Field Requests', icon: CalendarOff });
   }
 
   // =============================
@@ -159,17 +151,20 @@ const Sidebar = () => {
   // =====================
   const financialItems: MenuItem[] = [];
   
-  // Ledger first (source of truth)
-  if (canView('ledger')) {
-    financialItems.push({ path: '/financial', label: 'Ledger', icon: BookOpen });
-  }
-  
   if (canView('invoices')) {
     financialItems.push({ path: '/invoices', label: 'Invoices', icon: FileText });
   }
   
   if (canView('receipts')) {
     financialItems.push({ path: '/receipts', label: 'Receipts', icon: Receipt });
+  }
+  
+  if (canView('payments_collections')) {
+    financialItems.push({ path: '/payments', label: 'Payments & Collections', icon: DollarSign });
+  }
+  
+  if (canView('ledger')) {
+    financialItems.push({ path: '/financial', label: 'Ledger', icon: BookOpen });
   }
   
   // Work & Time Tracking - admin only
@@ -188,10 +183,13 @@ const Sidebar = () => {
   const adminItems: MenuItem[] = [];
   
   if (isAdmin) {
-    adminItems.push({ path: '/access-roles', label: 'Access & Roles', icon: Shield });
+    adminItems.push({ path: '/company', label: 'Company Profile', icon: Building2 });
     adminItems.push({ path: '/users', label: t.nav.users, icon: Users });
-    adminItems.push({ path: '/company', label: 'Companies', icon: Building2 });
+    adminItems.push({ path: '/access-roles', label: 'Access & Roles', icon: Shield });
     adminItems.push({ path: '/settings', label: t.nav.settings, icon: Settings });
+    if (canView('activity_log')) {
+      adminItems.push({ path: '/activity-log', label: 'Audit & Activity Log', icon: ClipboardList });
+    }
   }
 
   const renderHomeLink = () => {
@@ -304,7 +302,7 @@ const Sidebar = () => {
               />
             )}
 
-            {/* Module 4: Administration (more muted styling) */}
+            {/* Module 4: Administration */}
             {adminItems.length > 0 && (
               <SidebarMenuGroup
                 title="Administration"
@@ -313,7 +311,6 @@ const Sidebar = () => {
                 collapsed={collapsed}
                 isOpen={openGroup === 'Administration'}
                 onToggle={() => handleGroupToggle('Administration')}
-                muted
               />
             )}
           </div>
