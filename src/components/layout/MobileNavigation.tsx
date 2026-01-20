@@ -84,9 +84,9 @@ const MobileNavigation = () => {
   }
   operationsItems.push({ path: '/visit-history', label: 'Visit History', icon: MapPin });
   if (isAdminOrManager) {
-    operationsItems.push({ path: '/off-requests', label: 'Off Requests', icon: CalendarOff });
+    operationsItems.push({ path: '/off-requests', label: 'Field Requests', icon: CalendarOff });
   } else if (isCleaner) {
-    operationsItems.push({ path: '/my-off-requests', label: 'Off Requests', icon: CalendarOff });
+    operationsItems.push({ path: '/my-off-requests', label: 'Field Requests', icon: CalendarOff });
   }
   if (isAdminOrManager) {
     operationsItems.push({ path: '/activity-log', label: t.nav.activityLog, icon: ClipboardList });
@@ -141,7 +141,7 @@ const MobileNavigation = () => {
   if (isAdminOrManager) {
     quickAccessItems.push({ path: '/clients', label: t.nav.clients, icon: UserCircle });
   } else if (isCleaner) {
-    quickAccessItems.push({ path: '/my-off-requests', label: 'Off Requests', icon: CalendarOff });
+    quickAccessItems.push({ path: '/my-off-requests', label: 'Field Requests', icon: CalendarOff });
   }
 
   return (

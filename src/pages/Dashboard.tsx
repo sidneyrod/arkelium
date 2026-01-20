@@ -620,7 +620,7 @@ const Dashboard = () => {
               />
               <AlertCard 
                 type="conflict" 
-                title="Pending Off Requests" 
+                title="Pending Field Requests" 
                 count={alertStats.pendingOffRequests} 
               />
               <AlertCard 

@@ -532,7 +532,7 @@ const AddJobModal = ({ open, onOpenChange, onSave, job, preselectedDate, presele
                 {(blockedCleaners.length > 0 || unavailableCleaners.length > 0) && (
                   <p className="text-xs text-muted-foreground">
                     {blockedCleaners.length > 0 
-                      ? 'Some employees are blocked due to approved off requests.' 
+                      ? 'Some employees are blocked due to approved field requests.'
                       : 'Some employees are unavailable due to schedule conflicts.'}
                   </p>
                 )}

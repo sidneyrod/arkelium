@@ -302,7 +302,7 @@ const OffRequestModal = ({ open, onOpenChange, onSubmit, employeeName }: OffRequ
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CalendarOff className="h-5 w-5 text-primary" />
-            {isEnglish ? 'Off Request' : 'Solicitação de Folga'}
+            {isEnglish ? 'Field Request' : 'Solicitação de Campo'}
           </DialogTitle>
         </DialogHeader>
         
