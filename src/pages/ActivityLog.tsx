@@ -235,7 +235,13 @@ const ActivityLog = () => {
     pagination,
     setPage,
     setPageSize,
+    refresh,
   } = useServerPagination<ActivityLogEntry>(fetchLogs, { pageSize: 25 });
+
+  // Refresh when filters change
+  useEffect(() => {
+    refresh();
+  }, [debouncedSearch, selectedType, dateRange.from, dateRange.to]);
 
   // Get unique action types for filter dropdown
   const actionTypes = useMemo(() => {

@@ -126,6 +126,11 @@ const CompletedServices = () => {
     refresh: refreshServices,
   } = useServerPagination<CompletedService>(fetchServices, { pageSize: 25 });
 
+  // Refresh when filters change
+  useEffect(() => {
+    refreshServices();
+  }, [debouncedSearch, period]);
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       setSelectedServices(services.map(s => s.id));

@@ -237,7 +237,13 @@ const VisitHistory = () => {
     pagination,
     setPage,
     setPageSize,
+    refresh,
   } = useServerPagination<Visit>(fetchVisits, { pageSize: 25 });
+
+  // Refresh when filters change
+  useEffect(() => {
+    refresh();
+  }, [debouncedSearch, periodFilter, clientFilter, employeeFilter, statusFilter]);
 
   const handleViewDetails = (visit: Visit) => {
     setSelectedVisit(visit);
