@@ -25,8 +25,9 @@ import {
   DollarSign,
   Bell,
   BookOpen,
-  CreditCard,
-  Shield
+  Shield,
+  Clock,
+  Settings2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -43,8 +44,11 @@ const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+  
+  // Exclusive accordion - only one group open at a time
+  const [openGroup, setOpenGroup] = useState<string | null>('Operations');
 
-  // Auto-collapse on smaller desktop screens + expose sidebar width as CSS var (used to center TopBar search)
+  // Auto-collapse on smaller desktop screens + expose sidebar width as CSS var
   useEffect(() => {
     const updateLayout = () => {
       const width = window.innerWidth;
@@ -55,7 +59,7 @@ const Sidebar = () => {
       }
 
       const isDesktop = width >= 1024;
-      const sidebarWidth = isDesktop ? (collapsed ? '60px' : '224px') : '0px';
+      const sidebarWidth = isDesktop ? (collapsed ? '56px' : '208px') : '0px';
       document.documentElement.style.setProperty('--app-sidebar-width', sidebarWidth);
     };
 
@@ -63,6 +67,32 @@ const Sidebar = () => {
     window.addEventListener('resize', updateLayout);
     return () => window.removeEventListener('resize', updateLayout);
   }, [collapsed]);
+
+  // Auto-expand group when navigating to a page within it
+  useEffect(() => {
+    const path = location.pathname;
+    
+    // Check which group contains the active path
+    if (path === '/' || path.startsWith('/schedule') || path.startsWith('/completed-services') || 
+        path.startsWith('/visit-history') || path.startsWith('/off-requests') || 
+        path.startsWith('/my-off-requests') || path.startsWith('/activity-log') || 
+        path.startsWith('/notifications')) {
+      if (path !== '/') setOpenGroup('Operations');
+    } else if (path.startsWith('/clients') || path.startsWith('/contracts') || path.startsWith('/calculator')) {
+      setOpenGroup('Clients');
+    } else if (path.startsWith('/financial') || path.startsWith('/invoices') || 
+               path.startsWith('/receipts') || path.startsWith('/work-time-tracking') || 
+               path.startsWith('/my-payroll')) {
+      setOpenGroup('Financial');
+    } else if (path.startsWith('/access-roles') || path.startsWith('/users') || 
+               path.startsWith('/company') || path.startsWith('/settings')) {
+      setOpenGroup('Administration');
+    }
+  }, [location.pathname]);
+
+  const handleGroupToggle = (groupName: string) => {
+    setOpenGroup(prev => prev === groupName ? null : groupName);
+  };
 
   // Role checks
   const isAdmin = hasRole(['admin']);
@@ -84,38 +114,33 @@ const Sidebar = () => {
   // =====================
   const operationsItems: MenuItem[] = [];
   
-  // Schedule - check permission or show for cleaner
   if (canView('schedule') || isCleaner) {
     operationsItems.push({ path: '/schedule', label: t.nav.schedule, icon: Calendar });
   }
   
-  // Completed Services - permission-based
   if (canView('completed_services')) {
     operationsItems.push({ path: '/completed-services', label: 'Completed Services', icon: CheckCircle });
   }
   
-  // Visit History - all authenticated users can view (RLS filters)
   operationsItems.push({ path: '/visit-history', label: 'Visit History', icon: MapPin });
   
-  // Field Requests - admin/manager see full list, cleaner sees their own
+  // Requests (renamed from Field Requests)
   if (canView('off_requests') && !isCleaner) {
-    operationsItems.push({ path: '/off-requests', label: 'Field Requests', icon: CalendarOff });
+    operationsItems.push({ path: '/off-requests', label: 'Requests', icon: CalendarOff });
   } else if (isCleaner) {
-    operationsItems.push({ path: '/my-off-requests', label: 'Field Requests', icon: CalendarOff });
+    operationsItems.push({ path: '/my-off-requests', label: 'Requests', icon: CalendarOff });
   }
   
-  // Activity Log - permission-based (admin-only by default)
   if (canView('activity_log')) {
     operationsItems.push({ path: '/activity-log', label: t.nav.activityLog, icon: ClipboardList });
   }
   
-  // Notifications - permission-based or cleaner
   if (canView('notifications') || isCleaner) {
     operationsItems.push({ path: '/notifications', label: 'Notifications', icon: Bell });
   }
 
   // =============================
-  // MODULE 2: CLIENTS & CONTRACTS
+  // MODULE 2: CLIENTS
   // =============================
   const clientsItems: MenuItem[] = [];
   
@@ -126,7 +151,7 @@ const Sidebar = () => {
     clientsItems.push({ path: '/contracts', label: t.nav.contracts, icon: FileText });
   }
   if (canView('estimates')) {
-    clientsItems.push({ path: '/calculator', label: 'Estimate', icon: FileSpreadsheet });
+    clientsItems.push({ path: '/calculator', label: 'Estimates', icon: FileSpreadsheet });
   }
 
   // =====================
@@ -134,43 +159,39 @@ const Sidebar = () => {
   // =====================
   const financialItems: MenuItem[] = [];
   
-  if (canView('payments_collections')) {
-    financialItems.push({ path: '/payments', label: 'Payments & Collections', icon: CreditCard });
-  }
-  
+  // Ledger first (source of truth)
   if (canView('ledger')) {
     financialItems.push({ path: '/financial', label: 'Ledger', icon: BookOpen });
   }
   
   if (canView('invoices')) {
-    financialItems.push({ path: '/invoices', label: 'Invoices', icon: Receipt });
+    financialItems.push({ path: '/invoices', label: 'Invoices', icon: FileText });
   }
   
   if (canView('receipts')) {
     financialItems.push({ path: '/receipts', label: 'Receipts', icon: Receipt });
   }
   
-  // Work & Time Tracking - admin only (payroll module)
+  // Work & Time Tracking - admin only
   if (isAdmin && canView('payroll')) {
-    financialItems.push({ path: '/work-time-tracking', label: 'Work & Time Tracking', icon: Wallet });
+    financialItems.push({ path: '/work-time-tracking', label: 'Work & Time Tracking', icon: Clock });
   }
   
-  // Cleaner's own payroll view
+  // Cleaner's own view
   if (isCleaner) {
     financialItems.push({ path: '/my-payroll', label: t.payroll.myWorkSummary, icon: Wallet });
   }
 
   // ===========================
-  // MODULE 4: COMPANY MANAGEMENT
+  // MODULE 4: ADMINISTRATION
   // ===========================
-  const companyItems: MenuItem[] = [];
+  const adminItems: MenuItem[] = [];
   
-  // These remain admin-only (not permission-configurable)
   if (isAdmin) {
-    companyItems.push({ path: '/access-roles', label: 'Access & Roles', icon: Shield });
-    companyItems.push({ path: '/users', label: t.nav.users, icon: Users });
-    companyItems.push({ path: '/company', label: t.nav.company, icon: Building2 });
-    companyItems.push({ path: '/settings', label: t.nav.settings, icon: Settings });
+    adminItems.push({ path: '/access-roles', label: 'Access & Roles', icon: Shield });
+    adminItems.push({ path: '/users', label: t.nav.users, icon: Users });
+    adminItems.push({ path: '/company', label: 'Companies', icon: Building2 });
+    adminItems.push({ path: '/settings', label: t.nav.settings, icon: Settings });
   }
 
   const renderHomeLink = () => {
@@ -181,7 +202,7 @@ const Sidebar = () => {
         href="/"
         onClick={handleNavClick('/', 'Dashboard')}
         className={cn(
-          "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer",
+          "flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 cursor-pointer",
           active 
             ? "bg-primary text-primary-foreground" 
             : "text-muted-foreground hover:bg-accent hover:text-foreground",
@@ -217,16 +238,16 @@ const Sidebar = () => {
     <TooltipProvider delayDuration={0}>
       <aside className={cn(
         "hidden lg:flex flex-col min-h-screen sticky top-0 border-r border-border bg-sidebar-background transition-all duration-300 ease-in-out",
-        collapsed ? "w-[60px]" : "w-56"
+        collapsed ? "w-14" : "w-52"
       )} style={{ height: 'calc(100vh / 0.85)' }}>
         {/* Logo Section */}
         <div className={cn(
-          "flex items-center h-14 px-4 shrink-0 border-b border-border",
-          collapsed ? "justify-center px-2" : "justify-start gap-2.5"
+          "flex items-center h-14 px-3 shrink-0 border-b border-border",
+          collapsed ? "justify-center px-2" : "justify-start gap-2"
         )}>
           <div className={cn(
             "shrink-0 flex items-center justify-center",
-            collapsed ? "w-8 h-8" : "w-7 h-7"
+            collapsed ? "w-7 h-7" : "w-6 h-6"
           )}>
             <img 
               src={arkeliumLogo} 
@@ -235,16 +256,16 @@ const Sidebar = () => {
             />
           </div>
           {!collapsed && (
-            <span className="text-base font-semibold tracking-tight text-foreground">
+            <span className="text-[15px] font-semibold tracking-tight text-foreground">
               Arkelium
             </span>
           )}
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3">
-          <div className="space-y-1">
-            {/* Home */}
+        <nav className="flex-1 py-3 px-2.5">
+          <div className="space-y-0.5">
+            {/* Dashboard */}
             {renderHomeLink()}
 
             {/* Module 1: Operations */}
@@ -254,17 +275,20 @@ const Sidebar = () => {
                 icon={Briefcase}
                 items={operationsItems}
                 collapsed={collapsed}
-                defaultOpen={true}
+                isOpen={openGroup === 'Operations'}
+                onToggle={() => handleGroupToggle('Operations')}
               />
             )}
 
-            {/* Module 2: Clients & Contracts */}
+            {/* Module 2: Clients */}
             {clientsItems.length > 0 && (
               <SidebarMenuGroup
                 title="Clients"
                 icon={Handshake}
                 items={clientsItems}
                 collapsed={collapsed}
+                isOpen={openGroup === 'Clients'}
+                onToggle={() => handleGroupToggle('Clients')}
               />
             )}
 
@@ -275,16 +299,21 @@ const Sidebar = () => {
                 icon={DollarSign}
                 items={financialItems}
                 collapsed={collapsed}
+                isOpen={openGroup === 'Financial'}
+                onToggle={() => handleGroupToggle('Financial')}
               />
             )}
 
-            {/* Module 4: Company Management */}
-            {companyItems.length > 0 && (
+            {/* Module 4: Administration (more muted styling) */}
+            {adminItems.length > 0 && (
               <SidebarMenuGroup
-                title="Company"
-                icon={Building2}
-                items={companyItems}
+                title="Administration"
+                icon={Settings2}
+                items={adminItems}
                 collapsed={collapsed}
+                isOpen={openGroup === 'Administration'}
+                onToggle={() => handleGroupToggle('Administration')}
+                muted
               />
             )}
           </div>
