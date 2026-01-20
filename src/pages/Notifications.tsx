@@ -92,7 +92,7 @@ export default function Notifications() {
   const [broadcastMessage, setBroadcastMessage] = useState('');
   const [broadcastTarget, setBroadcastTarget] = useState<'all' | 'cleaner' | 'manager'>('all');
   const [sendingBroadcast, setSendingBroadcast] = useState(false);
-  const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
+  const [users, setUsers] = useState<{ id: string; name: string; role: string }[]>([]);
   const [userFilter, setUserFilter] = useState<string>('all');
   const [sendMode, setSendMode] = useState<'broadcast' | 'individual'>('broadcast');
   const [selectedUserId, setSelectedUserId] = useState<string>('');
@@ -106,13 +106,24 @@ export default function Notifications() {
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, first_name, last_name')
         .order('first_name');
 
-      if (error) throw error;
-      setUsers(data?.map(u => ({ id: u.id, name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || 'Unknown' })) || []);
+      if (profilesError) throw profilesError;
+
+      const { data: rolesData } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
+
+      const roleMap = new Map(rolesData?.map(r => [r.user_id, r.role]) || []);
+
+      setUsers(profilesData?.map(u => ({ 
+        id: u.id, 
+        name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || 'Unknown',
+        role: roleMap.get(u.id) || 'user'
+      })) || []);
     } catch (error) {
       console.error('Error fetching users:', error);
     }
@@ -481,19 +492,31 @@ export default function Notifications() {
                       variant="outline"
                       role="combobox"
                       aria-expanded={userSearchOpen}
-                      className="w-full justify-between font-normal"
+                      className="w-full justify-between font-normal h-11 bg-background hover:bg-accent/50"
                     >
-                      {selectedUserId 
-                        ? users.find(u => u.id === selectedUserId)?.name 
-                        : (t.notifications?.selectUserPlaceholder || 'Choose a user...')}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      {selectedUserId ? (
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-medium shrink-0">
+                            {users.find(u => u.id === selectedUserId)?.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                          </div>
+                          <span className="truncate">{users.find(u => u.id === selectedUserId)?.name}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <User className="h-4 w-4" />
+                          <span>{t.notifications?.selectUserPlaceholder || 'Choose a user...'}</span>
+                        </div>
+                      )}
+                      <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0 shadow-lg" align="start" sideOffset={4}>
                     <Command>
-                      <CommandInput placeholder={t.notifications?.searchUser || 'Search user...'} />
-                      <CommandList>
-                        <CommandEmpty>{t.common?.noResults || 'No user found.'}</CommandEmpty>
+                      <CommandInput placeholder={t.notifications?.searchUser || 'Search user...'} className="h-10" />
+                      <CommandList className="max-h-[280px]">
+                        <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
+                          {t.common?.noResults || 'No user found.'}
+                        </CommandEmpty>
                         <CommandGroup>
                           {users
                             .filter(u => u.id !== user?.id)
@@ -505,14 +528,19 @@ export default function Notifications() {
                                   setSelectedUserId(u.id);
                                   setUserSearchOpen(false);
                                 }}
+                                className="flex items-center gap-3 py-2.5 px-3 cursor-pointer"
                               >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    selectedUserId === u.id ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {u.name}
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-medium shrink-0">
+                                  {u.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium truncate">{u.name}</div>
+                                  <div className="text-xs text-muted-foreground capitalize">{u.role}</div>
+                                </div>
+                                <Check className={cn(
+                                  "h-4 w-4 shrink-0 text-primary",
+                                  selectedUserId === u.id ? "opacity-100" : "opacity-0"
+                                )} />
                               </CommandItem>
                             ))}
                         </CommandGroup>
