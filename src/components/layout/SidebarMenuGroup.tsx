@@ -110,7 +110,7 @@ const SidebarMenuGroup = ({
 
   // Expanded mode - show full collapsible group
   return (
-    <Collapsible open={isOpen || hasActiveItem} onOpenChange={handleToggle} className="py-0.5">
+    <Collapsible open={isOpen} onOpenChange={handleToggle} className="py-0.5">
       <CollapsibleTrigger asChild>
         <button
           className={cn(
@@ -126,12 +126,12 @@ const SidebarMenuGroup = ({
             <GroupIcon className="h-4 w-4 shrink-0" />
             <span className="tracking-[-0.01em]">{title}</span>
           </div>
-          <ChevronRight 
-            className={cn(
-              "h-3.5 w-3.5 shrink-0 transition-transform duration-200 text-muted-foreground/50",
-              (isOpen || hasActiveItem) && "rotate-90"
-            )} 
-          />
+        <ChevronRight 
+          className={cn(
+            "h-3.5 w-3.5 shrink-0 transition-transform duration-200 text-muted-foreground/50",
+            isOpen && "rotate-90"
+          )} 
+        />
         </button>
       </CollapsibleTrigger>
       <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
