@@ -1,14 +1,9 @@
 import * as React from "react";
-import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, addDays } from "date-fns";
-import { CalendarIcon, ChevronDown, Check } from "lucide-react";
+import { format, startOfDay, endOfDay, startOfMonth } from "date-fns";
+import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -22,8 +17,6 @@ export interface DateRange {
   endDate: Date;
 }
 
-export type PeriodPreset = 'today' | 'this_week' | 'last_week' | 'biweekly' | 'this_month' | 'last_month' | 'custom';
-
 interface PeriodSelectorProps {
   value: DateRange;
   onChange: (range: DateRange) => void;
@@ -32,28 +25,14 @@ interface PeriodSelectorProps {
 
 const periodLabels = {
   en: {
-    today: 'Today',
-    this_week: 'This Week',
-    last_week: 'Last Week',
-    biweekly: 'Last 2 Weeks',
-    this_month: 'This Month',
-    last_month: 'Last Month',
-    custom: 'Custom Range',
-    selectPeriod: 'Select Period',
+    selectRange: 'Select Range',
     from: 'From',
     to: 'To',
     apply: 'Apply',
     cancel: 'Cancel',
   },
   fr: {
-    today: "Aujourd'hui",
-    this_week: 'Cette Semaine',
-    last_week: 'Semaine Dernière',
-    biweekly: '2 Dernières Semaines',
-    this_month: 'Ce Mois',
-    last_month: 'Mois Dernier',
-    custom: 'Période Personnalisée',
-    selectPeriod: 'Sélectionner Période',
+    selectRange: 'Sélectionner Période',
     from: 'De',
     to: 'À',
     apply: 'Appliquer',
@@ -61,131 +40,65 @@ const periodLabels = {
   },
 };
 
+// Helper to get default date range (first day of current month to today)
+export function getDefaultDateRange(): DateRange {
+  const today = new Date();
+  return {
+    startDate: startOfMonth(today),
+    endDate: endOfDay(today),
+  };
+}
+
 export function PeriodSelector({ value, onChange, className }: PeriodSelectorProps) {
   const { language } = useLanguage();
   const labels = periodLabels[language] || periodLabels.en;
   
-  const [selectedPreset, setSelectedPreset] = React.useState<PeriodPreset>('this_month');
   const [customStart, setCustomStart] = React.useState<Date | undefined>(value.startDate);
   const [customEnd, setCustomEnd] = React.useState<Date | undefined>(value.endDate);
-  const [isOpen, setIsOpen] = React.useState(false);
-  const [showCustomCalendar, setShowCustomCalendar] = React.useState(false);
+  const [showCalendarDialog, setShowCalendarDialog] = React.useState(false);
 
-  const getPresetRange = (preset: PeriodPreset): DateRange => {
-    const today = new Date();
-    
-    switch (preset) {
-      case 'today':
-        return { startDate: startOfDay(today), endDate: endOfDay(today) };
-      case 'this_week':
-        return { startDate: startOfWeek(today, { weekStartsOn: 1 }), endDate: endOfWeek(today, { weekStartsOn: 1 }) };
-      case 'last_week':
-        const lastWeekStart = subDays(startOfWeek(today, { weekStartsOn: 1 }), 7);
-        return { startDate: lastWeekStart, endDate: addDays(lastWeekStart, 6) };
-      case 'biweekly':
-        return { startDate: subDays(today, 13), endDate: endOfDay(today) };
-      case 'this_month':
-        return { startDate: startOfMonth(today), endDate: endOfMonth(today) };
-      case 'last_month':
-        const lastMonth = subDays(startOfMonth(today), 1);
-        return { startDate: startOfMonth(lastMonth), endDate: endOfMonth(lastMonth) };
-      case 'custom':
-        return value;
-      default:
-        return { startDate: startOfMonth(today), endDate: endOfMonth(today) };
-    }
-  };
+  // Sync local state when value prop changes
+  React.useEffect(() => {
+    setCustomStart(value.startDate);
+    setCustomEnd(value.endDate);
+  }, [value.startDate, value.endDate]);
 
-  const handlePresetSelect = (preset: PeriodPreset) => {
-    setSelectedPreset(preset);
-    if (preset === 'custom') {
-      setShowCustomCalendar(true);
-      setCustomStart(value.startDate);
-      setCustomEnd(value.endDate);
-    } else {
-      const range = getPresetRange(preset);
-      onChange(range);
-      setIsOpen(false);
-      setShowCustomCalendar(false);
-    }
-  };
-
-  const handleCustomApply = () => {
+  const handleApply = () => {
     if (customStart && customEnd) {
       onChange({ startDate: startOfDay(customStart), endDate: endOfDay(customEnd) });
-      setIsOpen(false);
-      setShowCustomCalendar(false);
+      setShowCalendarDialog(false);
     }
   };
 
-  const handleCustomCancel = () => {
-    setShowCustomCalendar(false);
-    setSelectedPreset('this_month');
+  const handleCancel = () => {
+    setCustomStart(value.startDate);
+    setCustomEnd(value.endDate);
+    setShowCalendarDialog(false);
   };
 
-  const getDisplayLabel = (): string => {
-    if (selectedPreset === 'custom') {
-      return `${format(value.startDate, 'MMM d')} - ${format(value.endDate, 'MMM d, yyyy')}`;
-    }
-    return labels[selectedPreset];
+  const handleOpenDialog = () => {
+    setCustomStart(value.startDate);
+    setCustomEnd(value.endDate);
+    setShowCalendarDialog(true);
   };
-
-  const presets: { key: PeriodPreset; label: string; dividerAfter?: boolean }[] = [
-    { key: 'today', label: labels.today },
-    { key: 'this_week', label: labels.this_week },
-    { key: 'last_week', label: labels.last_week },
-    { key: 'biweekly', label: labels.biweekly, dividerAfter: true },
-    { key: 'this_month', label: labels.this_month },
-    { key: 'last_month', label: labels.last_month, dividerAfter: true },
-    { key: 'custom', label: labels.custom },
-  ];
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
-        <PopoverTrigger asChild>
-          <Button variant="outline" className="min-w-[180px] justify-between">
-            <div className="flex items-center gap-2">
-              <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-              <span>{getDisplayLabel()}</span>
-            </div>
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent 
-          className="p-0 w-48"
-          align="start"
-          sideOffset={4}
-        >
-          <div className="py-1">
-            {presets.map((preset) => (
-              <React.Fragment key={preset.key}>
-                <button
-                  className={cn(
-                    "w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center justify-between transition-colors",
-                    selectedPreset === preset.key && "bg-muted"
-                  )}
-                  onClick={() => handlePresetSelect(preset.key)}
-                >
-                  <span>{preset.label}</span>
-                  {selectedPreset === preset.key && preset.key !== 'custom' && (
-                    <Check className="h-4 w-4 text-primary" />
-                  )}
-                </button>
-                {preset.dividerAfter && (
-                  <div className="h-px bg-border my-1" />
-                )}
-              </React.Fragment>
-            ))}
-          </div>
-        </PopoverContent>
-      </Popover>
+      <Button 
+        variant="outline" 
+        className="min-w-[200px] justify-start"
+        onClick={handleOpenDialog}
+      >
+        <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+        <span>
+          {format(value.startDate, 'MMM d')} - {format(value.endDate, 'MMM d, yyyy')}
+        </span>
+      </Button>
 
-      {/* Custom Range Dialog - centered on screen */}
-      <Dialog open={showCustomCalendar} onOpenChange={setShowCustomCalendar}>
+      <Dialog open={showCalendarDialog} onOpenChange={setShowCalendarDialog}>
         <DialogContent className="max-w-fit">
           <DialogHeader>
-            <DialogTitle>{labels.custom}</DialogTitle>
+            <DialogTitle>{labels.selectRange}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-6 py-4">
             <div className="space-y-2">
@@ -210,22 +123,15 @@ export function PeriodSelector({ value, onChange, className }: PeriodSelectorPro
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={handleCustomCancel}>
+            <Button variant="outline" onClick={handleCancel}>
               {labels.cancel}
             </Button>
-            <Button onClick={handleCustomApply} disabled={!customStart || !customEnd || customStart > customEnd}>
+            <Button onClick={handleApply} disabled={!customStart || !customEnd || customStart > customEnd}>
               {labels.apply}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Display current range inline */}
-      {selectedPreset !== 'custom' && (
-        <span className="text-sm text-muted-foreground hidden sm:inline">
-          {format(value.startDate, 'MMM d')} - {format(value.endDate, 'MMM d, yyyy')}
-        </span>
-      )}
     </div>
   );
 }
