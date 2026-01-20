@@ -10,7 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import { format, isWithinInterval } from 'date-fns';
 import { FileSpreadsheet, FileText, Download, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { DateRange } from 'react-day-picker';
+import { getDefaultDateRange } from '@/components/ui/period-selector';
 
 // ✅ CORREÇÃO CRÍTICA 1: Importar helpers de datas seguras
 import { formatSafeDate, toSafeLocalDate, toDateOnlyString } from '@/lib/dates';
@@ -46,7 +46,10 @@ const paymentMethodLabels: Record<string, string> = {
 export const GenerateReportModal = ({ open, onOpenChange }: GenerateReportModalProps) => {
   const { user } = useAuth();
   const { logAction } = useAuditLog();
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date } | undefined>(() => {
+    const defaultRange = getDefaultDateRange();
+    return { from: defaultRange.startDate, to: defaultRange.endDate };
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [reportData, setReportData] = useState<PaidInvoice[] | null>(null);
   const [isGenerated, setIsGenerated] = useState(false);
@@ -273,7 +276,7 @@ export const GenerateReportModal = ({ open, onOpenChange }: GenerateReportModalP
             <DatePickerDialog
               mode="range"
               selected={dateRange}
-              onSelect={(range) => setDateRange(range as DateRange | undefined)}
+              onSelect={(range) => setDateRange(range as { from: Date; to: Date } | undefined)}
               placeholder="Select date range"
             />
             <p className="text-xs text-muted-foreground">

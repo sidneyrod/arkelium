@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePickerDialog } from '@/components/ui/date-picker-dialog';
 import { Activity, User, Users, FileText, Calendar as CalendarIcon, DollarSign, Settings, LogIn, LogOut, CalendarOff, ShieldAlert, Search, X, Banknote } from 'lucide-react';
+import { getDefaultDateRange } from '@/components/ui/period-selector';
 import { format, formatDistanceToNow, startOfDay, endOfDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -117,9 +118,9 @@ const ActivityLog = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
-  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
-    from: undefined,
-    to: undefined,
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>(() => {
+    const defaultRange = getDefaultDateRange();
+    return { from: defaultRange.startDate, to: defaultRange.endDate };
   });
 
   const companyId = user?.profile?.company_id;

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import StatusBadge from '@/components/ui/status-badge';
-import PeriodSelector from '@/components/ui/period-selector';
+import { PeriodSelector, getDefaultDateRange } from '@/components/ui/period-selector';
 import PaginatedDataTable, { Column } from '@/components/ui/paginated-data-table';
 import { useServerPagination } from '@/hooks/useServerPagination';
 import SearchInput from '@/components/ui/search-input';
@@ -33,7 +33,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { format } from 'date-fns';
 import { logActivity } from '@/stores/activityStore';
 import CashApprovalModal from '@/components/financial/CashApprovalModal';
 import VoidCashCollectionModal from '@/components/modals/VoidCashCollectionModal';
@@ -114,10 +114,7 @@ const PaymentsCollections = () => {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('pending'); // Default to pending for governance focus
-  const [dateRange, setDateRange] = useState({
-    startDate: startOfMonth(subMonths(new Date(), 1)),
-    endDate: endOfMonth(new Date()),
-  });
+  const [dateRange, setDateRange] = useState(getDefaultDateRange());
   
   // Modal state
   const [selectedCashCollection, setSelectedCashCollection] = useState<CashCollection | null>(null);

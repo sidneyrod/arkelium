@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { getDefaultDateRange } from '@/components/ui/period-selector';
+import { format } from 'date-fns';
 import { useCompanyPreferences } from '@/hooks/useCompanyPreferences';
 
 export interface WorkEarningsPeriod {
@@ -52,18 +54,10 @@ export function useWorkEarnings() {
   const { preferences, isLoading: prefsLoading } = useCompanyPreferences();
   
   const [period, setPeriod] = useState<WorkEarningsPeriod>(() => {
-    // Default to current biweekly period
-    const today = new Date();
-    const weekStart = new Date(today);
-    weekStart.setDate(today.getDate() - today.getDay() + 1); // Monday
-    const periodStart = new Date(weekStart);
-    periodStart.setDate(periodStart.getDate() - 7); // Start from last week's Monday
-    const periodEnd = new Date(periodStart);
-    periodEnd.setDate(periodEnd.getDate() + 13); // 2 weeks
-    
+    const defaultRange = getDefaultDateRange();
     return {
-      startDate: periodStart.toISOString().split('T')[0],
-      endDate: periodEnd.toISOString().split('T')[0],
+      startDate: format(defaultRange.startDate, 'yyyy-MM-dd'),
+      endDate: format(defaultRange.endDate, 'yyyy-MM-dd'),
     };
   });
   
