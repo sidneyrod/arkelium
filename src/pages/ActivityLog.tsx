@@ -20,9 +20,10 @@ type ActivityAction =
   | 'user_created' | 'user_updated' | 'user_deleted'
   | 'client_created' | 'client_updated' | 'client_deleted' | 'client_inactivated'
   | 'contract_created' | 'contract_updated' | 'contract_deleted'
-  | 'job_created' | 'job_updated' | 'job_started' | 'job_completed' | 'job_cancelled'
+  | 'job_created' | 'job_updated' | 'job_started' | 'job_completed' | 'job_cancelled' | 'job_soft_deleted'
   | 'visit_completed'
-  | 'invoice_created' | 'invoice_sent' | 'invoice_paid' | 'invoice_cancelled' | 'invoice_updated'
+  | 'invoice_created' | 'invoice_sent' | 'invoice_paid' | 'invoice_cancelled' | 'invoice_updated' | 'invoice_voided'
+  | 'receipt_generated' | 'receipt_sent' | 'receipt_resent' | 'receipt_voided'
   | 'payment_registered' | 'payment_confirmed' | 'payment_rejected'
   | 'estimate_created' | 'estimate_updated' | 'estimate_deleted' | 'estimate_sent'
   | 'payroll_created' | 'payroll_approved' | 'payroll_paid' | 'payroll_reprocessed'
@@ -32,7 +33,9 @@ type ActivityAction =
   | 'company_created' | 'company_updated'
   | 'financial_transaction_created' | 'financial_transaction_updated'
   | 'financial_period_created' | 'financial_period_closed' | 'financial_period_reopened' | 'financial_period_updated'
-  | 'cash_kept_by_cleaner' | 'cash_delivered_to_office' | 'cash_compensation_settled';
+  | 'cash_kept_by_cleaner' | 'cash_delivered_to_office' | 'cash_compensation_settled'
+  | 'cash_approved' | 'cash_disputed' | 'cash_settled' | 'cash_voided'
+  | 'permission_changed' | 'permission_granted' | 'permission_revoked';
 
 interface ActivityLogEntry {
   id: string;
@@ -45,6 +48,8 @@ interface ActivityLogEntry {
     entityName?: string;
     [key: string]: unknown;
   } | null;
+  after_data: Record<string, unknown> | null;
+  before_data: Record<string, unknown> | null;
   performer_first_name: string | null;
   performer_last_name: string | null;
   user_id: string | null;
@@ -119,6 +124,27 @@ const ActivityLog = () => {
 
   const companyId = user?.profile?.company_id;
 
+  // Permissions map for translating permission IDs to readable names
+  const [permissionsMap, setPermissionsMap] = useState<Record<string, { module: string; action: string }>>({});
+
+  useEffect(() => {
+    const loadPermissions = async () => {
+      if (!companyId) return;
+      const { data } = await supabase
+        .from('permissions')
+        .select('id, module, action')
+        .eq('company_id', companyId);
+      if (data) {
+        const map: Record<string, { module: string; action: string }> = {};
+        data.forEach((p: { id: string; module: string; action: string }) => {
+          map[p.id] = { module: p.module, action: p.action };
+        });
+        setPermissionsMap(map);
+      }
+    };
+    loadPermissions();
+  }, [companyId]);
+
   // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
@@ -132,7 +158,7 @@ const ActivityLog = () => {
     // First get logs with pagination
     let query = supabase
       .from('activity_logs')
-      .select('id, action, entity_type, entity_id, created_at, details, user_id, performed_by_user_id', { count: 'exact' })
+      .select('id, action, entity_type, entity_id, created_at, details, user_id, performed_by_user_id, after_data, before_data', { count: 'exact' })
       .eq('company_id', companyId);
 
     // Filter by action type
@@ -239,16 +265,168 @@ const ActivityLog = () => {
     );
   }
 
+  const formatLabel = (str: string): string => {
+    return str.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  };
+
   const getTypeLabel = (action: string): string => {
-    return action.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    return formatLabel(action);
   };
 
   const getDescription = (log: ActivityLogEntry): string => {
+    // If there's an explicit description, use it
     if (log.details?.description) {
       return log.details.description;
     }
-    const entityName = log.details?.entityName || log.entity_id?.slice(0, 8) || '';
-    return `${getTypeLabel(log.action)}${entityName ? `: ${entityName}` : ''}`;
+
+    // Handle specific action types with enriched descriptions
+    switch (log.action) {
+      case 'permission_changed':
+      case 'permission_granted':
+      case 'permission_revoked': {
+        const data = (log.after_data || log.before_data) as Record<string, unknown> | null;
+        if (data) {
+          const role = (data.role as string) || 'Unknown';
+          const permId = data.permission_id as string;
+          const perm = permissionsMap[permId];
+          const isGranted = log.action === 'permission_granted' || 
+                           (log.action === 'permission_changed' && log.after_data?.granted === true);
+          
+          if (perm) {
+            const moduleLabel = formatLabel(perm.module);
+            const actionLabel = formatLabel(perm.action);
+            const status = isGranted ? 'granted' : 'revoked';
+            return `${formatLabel(role)}: ${moduleLabel} - ${actionLabel} access ${status}`;
+          }
+          return `${formatLabel(role)}: Permission ${isGranted ? 'granted' : 'revoked'}`;
+        }
+        break;
+      }
+      
+      case 'invoice_updated':
+      case 'invoice_created':
+      case 'invoice_sent':
+      case 'invoice_paid':
+      case 'invoice_cancelled':
+      case 'invoice_voided': {
+        const data = (log.after_data || log.details) as Record<string, unknown> | null;
+        if (data) {
+          const invoiceNumber = (data.invoice_number as string) || (data.number as string);
+          if (invoiceNumber) {
+            const actionVerb = log.action.replace('invoice_', '');
+            return `Invoice ${invoiceNumber} ${actionVerb}`;
+          }
+        }
+        break;
+      }
+
+      case 'user_created':
+      case 'user_updated':
+      case 'user_deleted': {
+        const data = (log.after_data || log.details) as Record<string, unknown> | null;
+        if (data) {
+          const email = data.email as string;
+          const firstName = data.first_name as string;
+          const lastName = data.last_name as string;
+          const name = firstName || lastName ? `${firstName || ''} ${lastName || ''}`.trim() : null;
+          if (name || email) {
+            const actionVerb = log.action.replace('user_', '');
+            return `User ${name || email} ${actionVerb}`;
+          }
+        }
+        break;
+      }
+
+      case 'client_created':
+      case 'client_updated':
+      case 'client_deleted':
+      case 'client_inactivated': {
+        const data = (log.after_data || log.details) as Record<string, unknown> | null;
+        if (data) {
+          const clientName = data.name as string;
+          if (clientName) {
+            const actionVerb = log.action.replace('client_', '');
+            return `Client ${clientName} ${actionVerb}`;
+          }
+        }
+        break;
+      }
+
+      case 'job_created':
+      case 'job_updated':
+      case 'job_started':
+      case 'job_completed':
+      case 'job_cancelled': {
+        const data = (log.after_data || log.details) as Record<string, unknown> | null;
+        if (data) {
+          const jobType = data.job_type as string;
+          const scheduledDate = data.scheduled_date as string;
+          const actionVerb = log.action.replace('job_', '');
+          if (jobType && scheduledDate) {
+            return `${formatLabel(jobType)} on ${scheduledDate} ${actionVerb}`;
+          } else if (jobType) {
+            return `${formatLabel(jobType)} job ${actionVerb}`;
+          }
+        }
+        break;
+      }
+
+      case 'financial_period_created':
+      case 'financial_period_closed':
+      case 'financial_period_reopened':
+      case 'financial_period_updated': {
+        const data = (log.after_data || log.details) as Record<string, unknown> | null;
+        if (data) {
+          const periodName = data.name as string;
+          const startDate = data.start_date as string;
+          const endDate = data.end_date as string;
+          const actionVerb = log.action.replace('financial_period_', '');
+          if (periodName) {
+            return `Period "${periodName}" ${actionVerb}`;
+          } else if (startDate && endDate) {
+            return `Period ${startDate} to ${endDate} ${actionVerb}`;
+          }
+        }
+        break;
+      }
+
+      case 'cash_approved':
+      case 'cash_disputed':
+      case 'cash_settled':
+      case 'cash_voided': {
+        const data = (log.after_data || log.details) as Record<string, unknown> | null;
+        if (data) {
+          const amount = data.amount as number;
+          const actionVerb = log.action.replace('cash_', '');
+          if (amount) {
+            return `Cash collection $${amount.toFixed(2)} ${actionVerb}`;
+          }
+        }
+        break;
+      }
+
+      case 'receipt_voided':
+      case 'receipt_generated':
+      case 'receipt_sent': {
+        const data = (log.after_data || log.details) as Record<string, unknown> | null;
+        if (data) {
+          const receiptNumber = data.receipt_number as string;
+          const actionVerb = log.action.replace('receipt_', '');
+          if (receiptNumber) {
+            return `Receipt ${receiptNumber} ${actionVerb}`;
+          }
+        }
+        break;
+      }
+    }
+
+    // Fallback: use entityName if available, otherwise generic type
+    const entityName = log.details?.entityName;
+    if (entityName) {
+      return `${getTypeLabel(log.action)}: ${entityName}`;
+    }
+    
+    return getTypeLabel(log.action);
   };
 
   const getPerformerName = (log: ActivityLogEntry): string => {
