@@ -21,7 +21,12 @@ import {
   Briefcase,
   Handshake,
   DollarSign,
-  ChevronRight
+  ChevronRight,
+  Bell,
+  BookOpen,
+  Shield,
+  Clock,
+  Settings2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -39,6 +44,7 @@ interface MenuModule {
   title: string;
   icon: React.ComponentType<{ className?: string }>;
   items: MenuItem[];
+  muted?: boolean;
 }
 
 const MobileNavigation = () => {
@@ -48,7 +54,7 @@ const MobileNavigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
-  const [expandedModules, setExpandedModules] = useState<string[]>(['Operations']);
+  const [expandedModule, setExpandedModule] = useState<string | null>('Operations');
 
   const isAdmin = hasRole(['admin']);
   const isAdminOrManager = hasRole(['admin', 'manager']);
@@ -66,11 +72,7 @@ const MobileNavigation = () => {
   };
 
   const toggleModule = (title: string) => {
-    setExpandedModules(prev => 
-      prev.includes(title) 
-        ? prev.filter(m => m !== title) 
-        : [...prev, title]
-    );
+    setExpandedModule(prev => prev === title ? null : title);
   };
 
   // Build modules based on role
@@ -84,54 +86,62 @@ const MobileNavigation = () => {
   }
   operationsItems.push({ path: '/visit-history', label: 'Visit History', icon: MapPin });
   if (isAdminOrManager) {
-    operationsItems.push({ path: '/off-requests', label: 'Field Requests', icon: CalendarOff });
+    operationsItems.push({ path: '/off-requests', label: 'Requests', icon: CalendarOff });
   } else if (isCleaner) {
-    operationsItems.push({ path: '/my-off-requests', label: 'Field Requests', icon: CalendarOff });
+    operationsItems.push({ path: '/my-off-requests', label: 'Requests', icon: CalendarOff });
   }
   if (isAdminOrManager) {
     operationsItems.push({ path: '/activity-log', label: t.nav.activityLog, icon: ClipboardList });
   }
+  operationsItems.push({ path: '/notifications', label: 'Notifications', icon: Bell });
   modules.push({ title: 'Operations', icon: Briefcase, items: operationsItems });
 
-  // Module 2: Clients & Contracts (Admin/Manager only)
+  // Module 2: Clients (Admin/Manager only)
   if (isAdminOrManager) {
     modules.push({
-      title: 'Clients & Contracts',
+      title: 'Clients',
       icon: Handshake,
       items: [
         { path: '/clients', label: t.nav.clients, icon: UserCircle },
         { path: '/contracts', label: t.nav.contracts, icon: FileText },
-        { path: '/calculator', label: 'Estimate', icon: FileSpreadsheet },
+        { path: '/calculator', label: 'Estimates', icon: FileSpreadsheet },
       ]
     });
   }
 
-  // Module 3: Financial (Admin/Manager for invoices, Admin only for payroll)
+  // Module 3: Financial
   const financialItems: MenuItem[] = [];
   if (isAdminOrManager) {
-    financialItems.push({ path: '/invoices', label: 'Invoices', icon: Receipt });
+    financialItems.push({ path: '/financial', label: 'Ledger', icon: BookOpen });
+    financialItems.push({ path: '/invoices', label: 'Invoices', icon: FileText });
+    financialItems.push({ path: '/receipts', label: 'Receipts', icon: Receipt });
   }
   if (isAdmin) {
-    financialItems.push({ path: '/payroll', label: 'Work & Time Tracking', icon: Wallet });
+    financialItems.push({ path: '/work-time-tracking', label: 'Work & Time Tracking', icon: Clock });
+  }
+  if (isCleaner) {
+    financialItems.push({ path: '/my-payroll', label: t.payroll.myWorkSummary, icon: Wallet });
   }
   if (financialItems.length > 0) {
     modules.push({ title: 'Financial', icon: DollarSign, items: financialItems });
   }
 
-  // Module 4: Company Management (Admin only)
+  // Module 4: Administration (Admin only)
   if (isAdmin) {
     modules.push({
-      title: 'Company',
-      icon: Building2,
+      title: 'Administration',
+      icon: Settings2,
+      muted: true,
       items: [
+        { path: '/access-roles', label: 'Access & Roles', icon: Shield },
         { path: '/users', label: t.nav.users, icon: Users },
-        { path: '/company', label: t.nav.company, icon: Building2 },
+        { path: '/company', label: 'Companies', icon: Building2 },
         { path: '/settings', label: t.nav.settings, icon: Settings },
       ]
     });
   }
 
-  // Quick access items for bottom bar (Home + first 3 items from Operations)
+  // Quick access items for bottom bar
   const quickAccessItems: MenuItem[] = [
     { path: '/', label: 'Dashboard', icon: Home },
     { path: '/schedule', label: t.nav.schedule, icon: Calendar },
@@ -141,7 +151,7 @@ const MobileNavigation = () => {
   if (isAdminOrManager) {
     quickAccessItems.push({ path: '/clients', label: t.nav.clients, icon: UserCircle });
   } else if (isCleaner) {
-    quickAccessItems.push({ path: '/my-off-requests', label: 'Field Requests', icon: CalendarOff });
+    quickAccessItems.push({ path: '/my-off-requests', label: 'Requests', icon: CalendarOff });
   }
 
   return (
@@ -174,7 +184,7 @@ const MobileNavigation = () => {
           </SheetTrigger>
           <SheetContent side="bottom" className="h-auto max-h-[80vh] rounded-t-2xl overflow-y-auto">
             <SheetHeader className="pb-4">
-              <SheetTitle className="text-left">Menu</SheetTitle>
+              <SheetTitle className="text-left text-[15px]">Menu</SheetTitle>
             </SheetHeader>
             
             {/* Home */}
@@ -190,13 +200,13 @@ const MobileNavigation = () => {
               )}
             >
               <Home className="h-5 w-5" />
-              <span className="font-medium">Dashboard</span>
+              <span className="font-medium text-[14px]">Dashboard</span>
             </a>
 
             {/* Modules */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               {modules.map((module) => {
-                const isExpanded = expandedModules.includes(module.title);
+                const isExpanded = expandedModule === module.title;
                 const hasActiveItem = module.items.some(item => isActive(item.path));
                 
                 return (
@@ -211,12 +221,14 @@ const MobileNavigation = () => {
                           "w-full flex items-center justify-between px-4 py-3 rounded-xl transition-colors",
                           hasActiveItem 
                             ? "bg-primary/5 text-primary" 
-                            : "text-foreground hover:bg-muted"
+                            : module.muted
+                              ? "text-muted-foreground/70 hover:bg-muted"
+                              : "text-foreground hover:bg-muted"
                         )}
                       >
                         <div className="flex items-center gap-3">
                           <module.icon className="h-5 w-5" />
-                          <span className="font-medium">{module.title}</span>
+                          <span className="font-medium text-[14px]">{module.title}</span>
                         </div>
                         <ChevronRight 
                           className={cn(
@@ -227,7 +239,7 @@ const MobileNavigation = () => {
                       </button>
                     </CollapsibleTrigger>
                     <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
-                      <div className="ml-6 mt-1 space-y-1 border-l border-border/50 pl-4">
+                      <div className="ml-6 mt-1 space-y-0.5 border-l border-border/50 pl-4">
                         {module.items.map((item) => (
                           <a
                             key={item.path}
@@ -244,7 +256,7 @@ const MobileNavigation = () => {
                             )}
                           >
                             <item.icon className="h-4 w-4" />
-                            <span className="text-sm">{item.label}</span>
+                            <span className="text-[13px]">{item.label}</span>
                           </a>
                         ))}
                       </div>
