@@ -232,8 +232,8 @@ export const notifyOffRequestApproved = async (
 ) => {
   return createNotification({
     recipient_user_id: cleanerId,
-    title: 'Off Request Approved',
-    message: `Your time off request from ${startDate} to ${endDate} has been approved`,
+    title: 'Field Request Approved',
+    message: `Your field request from ${startDate} to ${endDate} has been approved`,
     type: 'off_request',
     severity: 'info',
     metadata: { off_request_id: requestId }
@@ -249,8 +249,8 @@ export const notifyOffRequestRejected = async (
 ) => {
   return createNotification({
     recipient_user_id: cleanerId,
-    title: 'Off Request Rejected',
-    message: `Your time off request from ${startDate} to ${endDate} has been rejected${reason ? `: ${reason}` : ''}`,
+    title: 'Field Request Rejected',
+    message: `Your field request from ${startDate} to ${endDate} has been rejected${reason ? `: ${reason}` : ''}`,
     type: 'off_request',
     severity: 'warning',
     metadata: { off_request_id: requestId, reason }

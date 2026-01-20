@@ -97,11 +97,11 @@ const Sidebar = () => {
   // Visit History - all authenticated users can view (RLS filters)
   operationsItems.push({ path: '/visit-history', label: 'Visit History', icon: MapPin });
   
-  // Off Requests - admin/manager see full list, cleaner sees their own
+  // Field Requests - admin/manager see full list, cleaner sees their own
   if (canView('off_requests') && !isCleaner) {
-    operationsItems.push({ path: '/off-requests', label: 'Off Requests', icon: CalendarOff });
+    operationsItems.push({ path: '/off-requests', label: 'Field Requests', icon: CalendarOff });
   } else if (isCleaner) {
-    operationsItems.push({ path: '/my-off-requests', label: 'Off Requests', icon: CalendarOff });
+    operationsItems.push({ path: '/my-off-requests', label: 'Field Requests', icon: CalendarOff });
   }
   
   // Activity Log - permission-based (admin-only by default)

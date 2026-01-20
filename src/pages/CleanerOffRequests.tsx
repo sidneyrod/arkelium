@@ -221,10 +221,10 @@ const CleanerOffRequests = () => {
     <div className="p-2 lg:p-3 space-y-2">
       <div className="flex items-center justify-between">
         <PageHeader 
-          title={isEnglish ? "My Off Requests" : "Minhas Solicitações de Folga"}
+          title={isEnglish ? "My Field Requests" : "Minhas Solicitações de Campo"}
           description={isEnglish 
-            ? "Request and track your time off" 
-            : "Solicite e acompanhe suas folgas"}
+            ? "Request and track your field time" 
+            : "Solicite e acompanhe seu tempo de campo"}
         />
         <Button onClick={() => setShowModal(true)} className="gap-2">
           <Plus className="h-4 w-4" />

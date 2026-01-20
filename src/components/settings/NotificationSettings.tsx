@@ -79,13 +79,13 @@ export const NotificationSettings = () => {
       ]
     },
     {
-      title: t.notifications?.offRequestNotifications || 'Off Request Notifications',
-      description: t.notifications?.offRequestNotificationsDesc || 'Notifications about time off requests',
+      title: t.notifications?.offRequestNotifications || 'Field Request Notifications',
+      description: t.notifications?.offRequestNotificationsDesc || 'Notifications about field requests',
       settings: isAdminOrManager ? [
-        { key: 'notify_off_requests', label: t.notifications?.offRequests || 'New off requests from employees' },
-        { key: 'notify_off_request_status', label: t.notifications?.offRequestStatus || 'Off request status updates' }
+        { key: 'notify_off_requests', label: t.notifications?.offRequests || 'New field requests from employees' },
+        { key: 'notify_off_request_status', label: t.notifications?.offRequestStatus || 'Field request status updates' }
       ] : [
-        { key: 'notify_off_request_status', label: t.notifications?.offRequestStatus || 'Off request approvals/rejections' }
+        { key: 'notify_off_request_status', label: t.notifications?.offRequestStatus || 'Field request approvals/rejections' }
       ]
     },
     ...(isAdminOrManager ? [{

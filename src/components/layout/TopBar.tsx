@@ -53,7 +53,7 @@ const navigationItems = [
   { id: 'schedule', title: 'Schedule', path: '/schedule', keywords: ['schedule', 'agenda', 'calendar', 'calendário', 'jobs', 'appointments'] },
   { id: 'completed-services', title: 'Completed Services', path: '/completed-services', keywords: ['completed', 'services', 'serviços', 'concluídos', 'finished'] },
   { id: 'visit-history', title: 'Visit History', path: '/visit-history', keywords: ['visit', 'history', 'histórico', 'visitas', 'visits', 'past'] },
-  { id: 'off-requests', title: 'Off Requests', path: '/off-requests', keywords: ['off', 'requests', 'solicitações', 'time off', 'folga', 'vacation', 'férias'] },
+  { id: 'off-requests', title: 'Field Requests', path: '/off-requests', keywords: ['field', 'requests', 'solicitações', 'time off', 'folga', 'vacation', 'férias'] },
   { id: 'activity-log', title: 'Activity Log', path: '/activity-log', keywords: ['activity', 'log', 'atividade', 'registro', 'history', 'histórico', 'audit'] },
   { id: 'notifications', title: 'Notifications', path: '/notifications', keywords: ['notifications', 'notificações', 'alerts', 'alertas', 'messages'] },
   { id: 'clients', title: 'Clients', path: '/clients', keywords: ['clients', 'clientes', 'customers'] },

@@ -247,7 +247,7 @@ export default function Notifications() {
             <SelectItem value="all">{t.common?.all || 'All'}</SelectItem>
             <SelectItem value="job">Job</SelectItem>
             <SelectItem value="visit">Visit</SelectItem>
-            <SelectItem value="off_request">Off Request</SelectItem>
+            <SelectItem value="off_request">Field Request</SelectItem>
             <SelectItem value="invoice">Invoice</SelectItem>
             <SelectItem value="payroll">Payroll</SelectItem>
             <SelectItem value="system">System</SelectItem>
