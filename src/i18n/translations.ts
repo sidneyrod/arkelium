@@ -551,6 +551,7 @@ export const translations = {
       individual: 'Individual',
       selectUser: 'Select User',
       selectUserPlaceholder: 'Choose a user...',
+      searchUser: 'Search user...',
       notificationSent: 'Notification sent',
       target: 'Target Audience',
       allUsers: 'All Users',
@@ -685,6 +686,7 @@ export const translations = {
       today: 'Today',
       optional: 'Optional',
       added: 'added',
+      noResults: 'No results found.',
     },
   },
   fr: {
@@ -1238,6 +1240,7 @@ export const translations = {
       individual: 'Individuel',
       selectUser: 'Sélectionner utilisateur',
       selectUserPlaceholder: 'Choisir un utilisateur...',
+      searchUser: 'Rechercher un utilisateur...',
       notificationSent: 'Notification envoyée',
       target: 'Public cible',
       allUsers: 'Tous les utilisateurs',
@@ -1372,6 +1375,7 @@ export const translations = {
       today: 'Aujourd\'hui',
       optional: 'Optionnel',
       added: 'ajouté(s)',
+      noResults: 'Aucun résultat trouvé.',
     },
   },
 };
