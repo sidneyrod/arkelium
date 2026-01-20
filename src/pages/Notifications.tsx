@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Bell, Check, CheckCheck, Filter, Search, ExternalLink, AlertTriangle, Info, AlertCircle, Send, Users, User } from 'lucide-react';
+import { Bell, Check, CheckCheck, Filter, Search, ExternalLink, AlertTriangle, Info, AlertCircle, Send, Users, User, ChevronsUpDown } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import PageHeader from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -94,6 +96,7 @@ export default function Notifications() {
   const [userFilter, setUserFilter] = useState<string>('all');
   const [sendMode, setSendMode] = useState<'broadcast' | 'individual'>('broadcast');
   const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [userSearchOpen, setUserSearchOpen] = useState(false);
 
   useEffect(() => {
     if (isAdminOrManager) {
@@ -472,18 +475,51 @@ export default function Notifications() {
             ) : (
               <div className="space-y-2">
                 <Label>{t.notifications?.selectUser || 'Select User'}</Label>
-                <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t.notifications?.selectUserPlaceholder || 'Choose a user...'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users
-                      .filter(u => u.id !== user?.id)
-                      .map(u => (
-                        <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={userSearchOpen} onOpenChange={setUserSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={userSearchOpen}
+                      className="w-full justify-between font-normal"
+                    >
+                      {selectedUserId 
+                        ? users.find(u => u.id === selectedUserId)?.name 
+                        : (t.notifications?.selectUserPlaceholder || 'Choose a user...')}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder={t.notifications?.searchUser || 'Search user...'} />
+                      <CommandList>
+                        <CommandEmpty>{t.common?.noResults || 'No user found.'}</CommandEmpty>
+                        <CommandGroup>
+                          {users
+                            .filter(u => u.id !== user?.id)
+                            .map(u => (
+                              <CommandItem
+                                key={u.id}
+                                value={u.name}
+                                onSelect={() => {
+                                  setSelectedUserId(u.id);
+                                  setUserSearchOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedUserId === u.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {u.name}
+                              </CommandItem>
+                            ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             )}
 
