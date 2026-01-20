@@ -36,6 +36,7 @@ import {
 } from 'recharts';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO, isWithinInterval } from 'date-fns';
 import { toSafeLocalDate } from '@/lib/dates';
+import { getDefaultDateRange } from '@/components/ui/period-selector';
 
 
 interface DashboardStats {
@@ -75,10 +76,7 @@ const Dashboard = () => {
   const { isCleaner, isAdminOrManager } = useRoleAccess();
   const { activeCompanyId } = useActiveCompanyStore();
   
-  const [period, setPeriod] = useState<DateRange>({
-    startDate: startOfMonth(new Date()),
-    endDate: endOfMonth(new Date()),
-  });
+  const [period, setPeriod] = useState<DateRange>(getDefaultDateRange());
   
   const [stats, setStats] = useState<DashboardStats>({
     todayJobs: 0,

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { PeriodSelector, DateRange } from '@/components/ui/period-selector';
+import { PeriodSelector, DateRange, getDefaultDateRange } from '@/components/ui/period-selector';
 import {
   Table,
   TableBody,
@@ -32,7 +32,7 @@ import {
   Plus
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { format, startOfWeek, endOfWeek } from 'date-fns';
+import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { openPdfPreview } from '@/utils/pdfGenerator';
 import ViewReceiptModal from '@/components/receipts/ViewReceiptModal';
@@ -65,10 +65,7 @@ const Receipts = () => {
   const [receipts, setReceipts] = useState<PaymentReceipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [dateRange, setDateRange] = useState<DateRange>({
-    startDate: startOfWeek(new Date(), { weekStartsOn: 1 }),
-    endDate: endOfWeek(new Date(), { weekStartsOn: 1 }),
-  });
+  const [dateRange, setDateRange] = useState<DateRange>(getDefaultDateRange());
   const [selectedReceipt, setSelectedReceipt] = useState<PaymentReceipt | null>(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [generateModalOpen, setGenerateModalOpen] = useState(false);

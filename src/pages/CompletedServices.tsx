@@ -13,9 +13,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { PeriodSelector, DateRange } from '@/components/ui/period-selector';
+import { PeriodSelector, DateRange, getDefaultDateRange } from '@/components/ui/period-selector';
 import { toast } from 'sonner';
-import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
+import { format, parseISO, isWithinInterval } from 'date-fns';
 import { 
   CheckCircle, 
   FileText, 
@@ -46,10 +46,7 @@ const CompletedServices = () => {
   const [showGenerateDialog, setShowGenerateDialog] = useState(false);
   const [invoiceFrequency, setInvoiceFrequency] = useState<'weekly' | 'biweekly' | 'monthly'>('weekly');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [period, setPeriod] = useState<DateRange>({
-    startDate: startOfMonth(new Date()),
-    endDate: endOfMonth(new Date()),
-  });
+  const [period, setPeriod] = useState<DateRange>(getDefaultDateRange());
 
   const isAdmin = hasRole(['admin']);
   const isManager = hasRole(['manager']);

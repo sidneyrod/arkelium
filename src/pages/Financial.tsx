@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
-import { DateRange } from 'react-day-picker';
+import { getDefaultDateRange, DateRange as PeriodDateRange } from '@/components/ui/period-selector';
 import { cn } from '@/lib/utils';
 
 // Import local types - enterprise type-safe approach
@@ -105,9 +105,9 @@ const Financial = () => {
   const [grossFilter, setGrossFilter] = useState<string>('all');
   const [deductFilter, setDeductFilter] = useState<string>('all');
   const [netFilter, setNetFilter] = useState<string>('all');
-  const [globalPeriod, setGlobalPeriod] = useState<DateRange>({
-    from: startOfMonth(new Date()),
-    to: endOfMonth(new Date()),
+  const [globalPeriod, setGlobalPeriod] = useState<{ from: Date; to: Date }>(() => {
+    const defaultRange = getDefaultDateRange();
+    return { from: defaultRange.startDate, to: defaultRange.endDate };
   });
   
   // Unique values for filters
@@ -706,7 +706,7 @@ const Financial = () => {
           <DatePickerDialog
             mode="range"
             selected={globalPeriod}
-            onSelect={(value) => value && setGlobalPeriod(value as DateRange)}
+            onSelect={(value) => value && setGlobalPeriod(value as { from: Date; to: Date })}
             className="h-8 text-xs w-auto"
             dateFormat="MMM d, yyyy"
           />

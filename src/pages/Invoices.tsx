@@ -17,7 +17,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { toast } from '@/hooks/use-toast';
 import { CancelInvoiceModal, RegenerateInvoiceModal } from '@/components/modals/InvoiceActionModals';
 import VoidInvoiceModal from '@/components/modals/VoidInvoiceModal';
-import { PeriodSelector, DateRange } from '@/components/ui/period-selector';
+import { PeriodSelector, DateRange, getDefaultDateRange } from '@/components/ui/period-selector';
 import { 
   FileText, 
   MoreHorizontal, 
@@ -32,7 +32,7 @@ import {
   XCircle,
   RefreshCw
 } from 'lucide-react';
-import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { formatSafeDate, toSafeLocalDate } from '@/lib/dates';
 
@@ -89,13 +89,10 @@ const Invoices = () => {
           endDate: toSafeLocalDate(urlTo),
         };
       } catch {
-        // Fall back to this month
+        // Fall back to default
       }
     }
-    return {
-      startDate: startOfMonth(new Date()),
-      endDate: endOfMonth(new Date()),
-    };
+    return getDefaultDateRange();
   };
   
   const [search, setSearch] = useState('');
