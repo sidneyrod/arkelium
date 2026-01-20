@@ -182,6 +182,11 @@ const Contracts = () => {
     refresh: refreshContracts,
   } = useServerPagination<Contract>(fetchContracts, { pageSize: 25 });
 
+  // Refresh when search changes
+  useEffect(() => {
+    refreshContracts();
+  }, [debouncedSearch]);
+
   // Fetch clients for modal
   useEffect(() => {
     const fetchClients = async () => {
