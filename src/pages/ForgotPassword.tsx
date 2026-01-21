@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Moon, Sun } from 'lucide-react';
+import { ArrowLeft, Moon, Sun } from 'lucide-react';
 
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select';
 
 import arkeliumLogo from '@/assets/arkelium-logo.png';
+import arkeliumSymbol from '@/assets/arkelium-symbol.png';
 
 type Lang = 'en' | 'fr';
 
@@ -37,27 +38,35 @@ export default function ForgotPassword() {
     const dict = {
       en: {
         title: 'Reset Password',
-        subtitle: 'Enter your email address and we will send you a reset link',
+        subtitle: "Enter your email address and we'll send you a reset link",
         email: 'Email',
-        placeholder: 'name@company.com',
+        emailPlaceholder: 'name@company.com',
         button: 'Send Reset Link',
         back: 'Back to login',
+        security: 'Protected by enterprise-grade security and audit controls',
+        powered: 'Powered by Arkelium',
+        tagline1: 'Enterprise Operations',
+        tagline2: '& Financial Control',
         sent: 'If an account exists for this email, a reset link has been sent.',
-        invalid: 'Please enter a valid email.',
+        invalid: 'Please enter a valid email address.',
         failed: 'Unable to send reset link. Please try again.',
       },
       fr: {
         title: 'Réinitialiser le mot de passe',
-        subtitle: "Entrez votre e-mail et nous vous enverrons un lien de réinitialisation",
+        subtitle: 'Entrez votre adresse e-mail et nous vous enverrons un lien de réinitialisation',
         email: 'E-mail',
-        placeholder: 'nom@entreprise.com',
+        emailPlaceholder: 'nom@entreprise.com',
         button: 'Envoyer le lien',
         back: 'Retour à la connexion',
-        sent: "Si un compte existe pour cet e-mail, un lien a été envoyé.",
-        invalid: 'Veuillez saisir un e-mail valide.',
+        security: "Protégé par une sécurité et des contrôles d'audit de niveau entreprise",
+        powered: 'Propulsé par Arkelium',
+        tagline1: 'Opérations Entreprise',
+        tagline2: '& Contrôle Financier',
+        sent: 'Si un compte existe pour cet e-mail, un lien a été envoyé.',
+        invalid: 'Veuillez saisir une adresse e-mail valide.',
         failed: "Impossible d'envoyer le lien. Réessayez.",
       },
-    } satisfies Record<Lang, any>;
+    } satisfies Record<Lang, Record<string, string>>;
 
     return dict[(language as Lang) || 'en'];
   }, [language]);
@@ -91,27 +100,24 @@ export default function ForgotPassword() {
 
   return (
     <div
-      className={`fixed inset-0 overflow-hidden ${
-        isDark
-          ? 'bg-[hsl(220,20%,8%)]'
-          : 'bg-[hsl(220,20%,97%)]'
-      }`}
-      style={{ zoom: 0.85 }}
+      className={`fixed inset-0 overflow-hidden ${isDark ? 'auth-bg-dark' : 'auth-bg-light'} ${isDark ? 'auth-texture' : 'auth-texture auth-texture-light'}`}
     >
       {/* Top right controls */}
       <div className="fixed top-6 right-6 z-20">
         <div className="flex items-center gap-3">
           <Select value={(language as Lang) || 'en'} onValueChange={(val: Lang) => setLanguage(val)}>
             <SelectTrigger
-              className={`w-16 h-9 backdrop-blur-sm transition-colors text-xs ${
+              className={`w-[72px] h-10 text-sm font-medium transition-colors ${
                 isDark
-                  ? 'bg-[hsl(220,20%,12%)] border-[hsl(220,15%,20%)] hover:bg-[hsl(220,20%,16%)] text-[hsl(220,15%,70%)]'
-                  : 'bg-white border-[hsl(220,15%,85%)] hover:bg-[hsl(220,20%,95%)] text-[hsl(220,20%,30%)]'
+                  ? 'bg-[#1a1c22]/80 border-white/10 hover:bg-[#22242a] text-white/70'
+                  : 'bg-white/90 border-black/10 hover:bg-white text-black/70'
               }`}
             >
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className={isDark ? 'bg-[hsl(220,20%,12%)] border-[hsl(220,15%,20%)]' : 'bg-white border-[hsl(220,15%,85%)]'}>
+            <SelectContent
+              className={isDark ? 'bg-[#1a1c22] border-white/10' : 'bg-white border-black/10'}
+            >
               <SelectItem value="en">EN</SelectItem>
               <SelectItem value="fr">FR</SelectItem>
             </SelectContent>
@@ -121,110 +127,199 @@ export default function ForgotPassword() {
             variant="outline"
             size="icon"
             onClick={toggleTheme}
-            className={`h-9 w-9 backdrop-blur-sm transition-colors ${
+            className={`h-10 w-10 transition-colors ${
               isDark
-                ? 'bg-[hsl(220,20%,12%)] border-[hsl(220,15%,20%)] hover:bg-[hsl(220,20%,16%)] text-[hsl(220,15%,70%)]'
-                : 'bg-white border-[hsl(220,15%,85%)] hover:bg-[hsl(220,20%,95%)] text-[hsl(220,20%,30%)]'
+                ? 'bg-[#1a1c22]/80 border-white/10 hover:bg-[#22242a] text-white/70'
+                : 'bg-white/90 border-black/10 hover:bg-white text-black/70'
             }`}
           >
-            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            {isDark ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
           </Button>
         </div>
       </div>
 
-      {/* Bottom left */}
+      {/* Bottom left powered by */}
       <div
-        className={`fixed bottom-8 left-8 text-xs font-medium tracking-wide ${
-          isDark ? 'text-[hsl(220,15%,40%)]' : 'text-[hsl(220,15%,50%)]'
+        className={`fixed bottom-8 left-8 text-xs font-medium tracking-wide z-10 ${
+          isDark ? 'text-white/30' : 'text-black/30'
         }`}
       >
-        Powered by Arkelium
+        {t.powered}
       </div>
 
-      {/* Centered Card */}
-      <div className="relative z-10 w-full h-full flex items-center justify-center p-6 py-12">
-        <div className="w-full max-w-[440px]">
-          <div
-            className={`rounded-xl p-8 ${
-              isDark
-                ? 'bg-[hsl(220,20%,10%)] border border-[hsl(220,15%,18%)] shadow-2xl'
-                : 'bg-white border border-[hsl(220,15%,88%)] shadow-[0_4px_24px_-4px_rgba(0,0,0,0.08)]'
+      {/* Main container - two columns */}
+      <div className="relative z-10 w-full h-full flex items-center justify-center px-6 lg:px-12">
+        {/* Left column - Branding (hidden on mobile/tablet) */}
+        <div className="hidden lg:flex flex-col items-start justify-center flex-1 max-w-sm xl:max-w-md pr-12 xl:pr-20">
+          <img
+            src={arkeliumLogo}
+            alt="Arkelium"
+            className="h-28 xl:h-32 w-auto mb-8 select-none"
+          />
+          <h2
+            className={`text-xl xl:text-2xl font-light tracking-wide mb-1 ${
+              isDark ? 'text-gold' : 'text-gold-light'
             }`}
           >
+            {t.tagline1}
+          </h2>
+          <h2
+            className={`text-xl xl:text-2xl font-light tracking-wide ${
+              isDark ? 'text-gold' : 'text-gold-light'
+            }`}
+          >
+            {t.tagline2}
+          </h2>
+        </div>
+
+        {/* Right column - Reset Password Card */}
+        <div className="w-full max-w-[480px]">
+          <div
+            className={`rounded-2xl p-8 sm:p-10 ${isDark ? 'auth-card-dark' : 'auth-card-light'}`}
+          >
+            {/* Card Header */}
             <div className="flex flex-col items-center gap-3 mb-6">
-              <img src={arkeliumLogo} alt="Arkelium" className="h-20 w-auto select-none" />
-              <div className="text-center">
-                <h1 className={`text-lg font-semibold ${isDark ? 'text-[hsl(220,15%,90%)]' : 'text-[hsl(220,20%,15%)]'}`}>
-                  {t.title}
-                </h1>
-                <p className={`mt-1.5 text-sm ${isDark ? 'text-[hsl(220,15%,55%)]' : 'text-[hsl(220,15%,45%)]'}`}>
-                  {t.subtitle}
-                </p>
-              </div>
+              <img
+                src={arkeliumSymbol}
+                alt="Arkelium"
+                className="h-16 w-auto select-none"
+              />
+              <span
+                className={`text-base font-semibold tracking-[0.25em] ${
+                  isDark ? 'text-gold' : 'text-gold-light'
+                }`}
+              >
+                ARKELIUM
+              </span>
             </div>
 
-            {errorMsg ? (
+            {/* Title & Subtitle */}
+            <div className="text-center mb-8">
+              <h1
+                className={`text-xl font-semibold mb-2 ${
+                  isDark ? 'text-white/90' : 'text-black/90'
+                }`}
+              >
+                {t.title}
+              </h1>
+              <p
+                className={`text-sm ${
+                  isDark ? 'text-white/50' : 'text-black/50'
+                }`}
+              >
+                {t.subtitle}
+              </p>
+            </div>
+
+            {/* Error Message */}
+            {errorMsg && (
               <div
-                className={`mb-5 rounded-lg px-4 py-3 text-sm ${
+                className={`mb-6 rounded-xl px-4 py-3 text-sm font-medium ${
                   isDark
-                    ? 'bg-red-950/30 border border-red-900/30 text-red-200/90'
+                    ? 'bg-red-950/40 border border-red-900/40 text-red-300'
                     : 'bg-red-50 border border-red-200 text-red-700'
                 }`}
               >
                 {errorMsg}
               </div>
-            ) : null}
+            )}
 
-            {successMsg ? (
+            {/* Success Message */}
+            {successMsg && (
               <div
-                className={`mb-5 rounded-lg px-4 py-3 text-sm ${
+                className={`mb-6 rounded-xl px-4 py-3 text-sm font-medium ${
                   isDark
-                    ? 'bg-blue-950/30 border border-blue-900/30 text-blue-200/90'
-                    : 'bg-blue-50 border border-blue-200 text-blue-700'
+                    ? 'bg-emerald-950/40 border border-emerald-900/40 text-emerald-300'
+                    : 'bg-emerald-50 border border-emerald-200 text-emerald-700'
                 }`}
               >
                 {successMsg}
               </div>
-            ) : null}
+            )}
 
+            {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Email Field */}
               <div className="space-y-2">
-                <Label className={isDark ? 'text-[hsl(220,15%,80%)]' : 'text-[hsl(220,20%,20%)]'}>{t.email}</Label>
+                <Label
+                  className={`text-sm font-medium ${
+                    isDark ? 'text-white/80' : 'text-black/80'
+                  }`}
+                >
+                  {t.email}
+                </Label>
                 <Input
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   type="email"
                   autoComplete="email"
-                  placeholder={t.placeholder}
-                  className={`h-11 ${
-                    isDark
-                      ? 'bg-[hsl(220,20%,8%)] border-[hsl(220,15%,20%)] text-[hsl(220,15%,90%)] placeholder:text-[hsl(220,15%,35%)]'
-                      : 'bg-white border-[hsl(220,15%,85%)] text-[hsl(220,20%,15%)] placeholder:text-[hsl(220,15%,55%)]'
+                  placeholder={t.emailPlaceholder}
+                  className={`h-12 rounded-xl text-sm ${
+                    isDark ? 'auth-input-dark' : 'auth-input-light'
                   }`}
                 />
               </div>
 
-              <Button 
-                type="submit" 
-                disabled={isSubmitting} 
-                className={`h-11 w-full rounded-lg text-sm font-semibold ${
-                  isDark 
-                    ? 'bg-[hsl(220,20%,90%)] text-[hsl(220,20%,10%)] hover:bg-[hsl(220,20%,85%)]' 
-                    : 'bg-[hsl(220,20%,15%)] text-white hover:bg-[hsl(220,20%,25%)]'
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className={`h-12 w-full rounded-xl text-sm font-semibold ${
+                  isDark ? 'dark-btn' : 'gold-btn'
                 }`}
               >
-                {isSubmitting ? '...' : t.button}
+                {isSubmitting ? (
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : (
+                  t.button
+                )}
               </Button>
 
+              {/* Back to Login */}
               <div className="flex items-center justify-center">
                 <Link
                   to="/login"
-                  className={`text-sm underline-offset-4 hover:underline ${
-                    isDark ? 'text-[hsl(220,15%,65%)]' : 'text-[hsl(220,15%,40%)]'
+                  className={`flex items-center gap-2 text-sm font-medium transition-colors ${
+                    isDark
+                      ? 'text-gold hover:text-[#d4b46d]'
+                      : 'text-gold-light hover:text-[#9a7a3d]'
                   }`}
                 >
-                  ← {t.back}
+                  <ArrowLeft className="h-4 w-4" />
+                  {t.back}
                 </Link>
+              </div>
+
+              {/* Security Text */}
+              <div className="flex items-center justify-center gap-2 pt-2">
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    isDark ? 'bg-white/20' : 'bg-black/20'
+                  }`}
+                />
+                <span
+                  className={`text-xs ${isDark ? 'text-white/35' : 'text-black/40'}`}
+                >
+                  {t.security}
+                </span>
+              </div>
+
+              {/* Separator */}
+              <div
+                className={`border-t ${
+                  isDark ? 'border-white/8' : 'border-black/8'
+                }`}
+              />
+
+              {/* Powered by */}
+              <div
+                className={`text-center text-sm font-medium ${
+                  isDark ? 'text-white/40' : 'text-black/40'
+                }`}
+              >
+                {t.powered}
               </div>
             </form>
           </div>

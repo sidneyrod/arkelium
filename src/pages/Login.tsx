@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Moon, Sun, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Moon, Sun } from 'lucide-react';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -19,12 +19,13 @@ import {
 } from '@/components/ui/select';
 
 import arkeliumLogo from '@/assets/arkelium-logo.png';
+import arkeliumSymbol from '@/assets/arkelium-symbol.png';
 
 type Lang = 'en' | 'fr';
 
 export default function Login() {
-  const navigate = useNavigate();
   const auth = useAuth();
+  const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage } = useLanguage();
 
@@ -32,10 +33,8 @@ export default function Login() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -44,26 +43,36 @@ export default function Login() {
       en: {
         email: 'Email',
         password: 'Password',
+        emailPlaceholder: 'name@company.com',
+        passwordPlaceholder: 'Enter your password',
         remember: 'Remember me',
-        forgot: 'Forgot password?',
-        secure: 'Secure access for authorized users only',
-        loading: 'Signing in...',
-        button: 'Sign In',
-        invalid: 'Please enter a valid email and password.',
-        failed: 'Unable to sign in. Please check your credentials.',
+        help: 'Need help accessing your account?',
+        button: 'Sign in to Arkelium',
+        security: 'Protected by enterprise-grade security and audit controls',
+        powered: 'Powered by Arkelium',
+        tagline1: 'Enterprise Operations',
+        tagline2: '& Financial Control',
+        invalidEmail: 'Please enter a valid email address.',
+        invalidPassword: 'Password is required.',
+        loginFailed: 'Invalid email or password.',
       },
       fr: {
         email: 'E-mail',
         password: 'Mot de passe',
+        emailPlaceholder: 'nom@entreprise.com',
+        passwordPlaceholder: 'Entrez votre mot de passe',
         remember: 'Se souvenir de moi',
-        forgot: 'Mot de passe oublié ?',
-        secure: 'Accès sécurisé réservé aux utilisateurs autorisés',
-        loading: 'Connexion...',
-        button: 'Se connecter',
-        invalid: 'Veuillez saisir un e-mail et un mot de passe valides.',
-        failed: 'Impossible de se connecter. Vérifiez vos identifiants.',
+        help: "Besoin d'aide pour accéder à votre compte ?",
+        button: 'Se connecter à Arkelium',
+        security: "Protégé par une sécurité et des contrôles d'audit de niveau entreprise",
+        powered: 'Propulsé par Arkelium',
+        tagline1: 'Opérations Entreprise',
+        tagline2: '& Contrôle Financier',
+        invalidEmail: 'Veuillez saisir une adresse e-mail valide.',
+        invalidPassword: 'Le mot de passe est requis.',
+        loginFailed: 'E-mail ou mot de passe invalide.',
       },
-    } satisfies Record<Lang, any>;
+    } satisfies Record<Lang, Record<string, string>>;
 
     return dict[(language as Lang) || 'en'];
   }, [language]);
@@ -73,25 +82,23 @@ export default function Login() {
     setErrorMsg(null);
 
     const emailTrim = email.trim();
-    if (!emailTrim || !password.trim()) {
-      setErrorMsg(t.invalid);
+    if (!emailTrim || !emailTrim.includes('@')) {
+      setErrorMsg(t.invalidEmail);
+      return;
+    }
+    if (!password) {
+      setErrorMsg(t.invalidPassword);
       return;
     }
 
     setIsSubmitting(true);
     try {
-      localStorage.setItem('arkelium_remember_me', String(rememberMe));
-
-      if (typeof (auth as any).login !== 'function') {
-        throw new Error('AuthContext: login() not found.');
-      }
-
+      localStorage.setItem('arkelium_remember_me', rememberMe ? 'true' : 'false');
       await (auth as any).login(emailTrim, password);
-
-      navigate('/', { replace: true });
-    } catch (err) {
+      navigate('/');
+    } catch (err: any) {
       console.error('[Login] login error:', err);
-      setErrorMsg(t.failed);
+      setErrorMsg(t.loginFailed);
     } finally {
       setIsSubmitting(false);
     }
@@ -99,27 +106,24 @@ export default function Login() {
 
   return (
     <div
-      className={`fixed inset-0 overflow-hidden ${
-        isDark
-          ? 'bg-[hsl(220,20%,8%)]'
-          : 'bg-[hsl(220,20%,97%)]'
-      }`}
-      style={{ zoom: 0.85 }}
+      className={`fixed inset-0 overflow-hidden ${isDark ? 'auth-bg-dark' : 'auth-bg-light'} ${isDark ? 'auth-texture' : 'auth-texture auth-texture-light'}`}
     >
       {/* Top right controls */}
       <div className="fixed top-6 right-6 z-20">
         <div className="flex items-center gap-3">
           <Select value={(language as Lang) || 'en'} onValueChange={(val: Lang) => setLanguage(val)}>
             <SelectTrigger
-              className={`w-16 h-9 backdrop-blur-sm transition-colors text-xs ${
+              className={`w-[72px] h-10 text-sm font-medium transition-colors ${
                 isDark
-                  ? 'bg-[hsl(220,20%,12%)] border-[hsl(220,15%,20%)] hover:bg-[hsl(220,20%,16%)] text-[hsl(220,15%,70%)]'
-                  : 'bg-white border-[hsl(220,15%,85%)] hover:bg-[hsl(220,20%,95%)] text-[hsl(220,20%,30%)]'
+                  ? 'bg-[#1a1c22]/80 border-white/10 hover:bg-[#22242a] text-white/70'
+                  : 'bg-white/90 border-black/10 hover:bg-white text-black/70'
               }`}
             >
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className={isDark ? 'bg-[hsl(220,20%,12%)] border-[hsl(220,15%,20%)]' : 'bg-white border-[hsl(220,15%,85%)]'}>
+            <SelectContent
+              className={isDark ? 'bg-[#1a1c22] border-white/10' : 'bg-white border-black/10'}
+            >
               <SelectItem value="en">EN</SelectItem>
               <SelectItem value="fr">FR</SelectItem>
             </SelectContent>
@@ -129,130 +133,225 @@ export default function Login() {
             variant="outline"
             size="icon"
             onClick={toggleTheme}
-            className={`h-9 w-9 backdrop-blur-sm transition-colors ${
+            className={`h-10 w-10 transition-colors ${
               isDark
-                ? 'bg-[hsl(220,20%,12%)] border-[hsl(220,15%,20%)] hover:bg-[hsl(220,20%,16%)] text-[hsl(220,15%,70%)]'
-                : 'bg-white border-[hsl(220,15%,85%)] hover:bg-[hsl(220,20%,95%)] text-[hsl(220,20%,30%)]'
+                ? 'bg-[#1a1c22]/80 border-white/10 hover:bg-[#22242a] text-white/70'
+                : 'bg-white/90 border-black/10 hover:bg-white text-black/70'
             }`}
           >
-            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            {isDark ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
           </Button>
         </div>
       </div>
 
-      {/* Bottom left */}
+      {/* Bottom left powered by */}
       <div
-        className={`fixed bottom-8 left-8 text-xs font-medium tracking-wide ${
-          isDark ? 'text-[hsl(220,15%,40%)]' : 'text-[hsl(220,15%,50%)]'
+        className={`fixed bottom-8 left-8 text-xs font-medium tracking-wide z-10 ${
+          isDark ? 'text-white/30' : 'text-black/30'
         }`}
       >
-        Powered by Arkelium
+        {t.powered}
       </div>
 
-      {/* Centered Card */}
-      <div className="relative z-10 w-full h-full flex items-center justify-center p-6 py-12">
-        <div className="w-full max-w-[440px]">
-          <div
-            className={`rounded-xl p-8 ${
-              isDark
-                ? 'bg-[hsl(220,20%,10%)] border border-[hsl(220,15%,18%)] shadow-2xl'
-                : 'bg-white border border-[hsl(220,15%,88%)] shadow-[0_4px_24px_-4px_rgba(0,0,0,0.08)]'
+      {/* Main container - two columns */}
+      <div className="relative z-10 w-full h-full flex items-center justify-center px-6 lg:px-12">
+        {/* Left column - Branding (hidden on mobile/tablet) */}
+        <div className="hidden lg:flex flex-col items-start justify-center flex-1 max-w-sm xl:max-w-md pr-12 xl:pr-20">
+          <img
+            src={arkeliumLogo}
+            alt="Arkelium"
+            className="h-28 xl:h-32 w-auto mb-8 select-none"
+          />
+          <h2
+            className={`text-xl xl:text-2xl font-light tracking-wide mb-1 ${
+              isDark ? 'text-gold' : 'text-gold-light'
             }`}
           >
-            <div className="flex flex-col items-center gap-2 mb-8">
-              <img src={arkeliumLogo} alt="Arkelium" className="h-24 w-auto select-none" />
+            {t.tagline1}
+          </h2>
+          <h2
+            className={`text-xl xl:text-2xl font-light tracking-wide ${
+              isDark ? 'text-gold' : 'text-gold-light'
+            }`}
+          >
+            {t.tagline2}
+          </h2>
+        </div>
+
+        {/* Right column - Login Card */}
+        <div className="w-full max-w-[480px]">
+          <div
+            className={`rounded-2xl p-8 sm:p-10 ${isDark ? 'auth-card-dark' : 'auth-card-light'}`}
+          >
+            {/* Card Header */}
+            <div className="flex flex-col items-center gap-3 mb-8">
+              <img
+                src={arkeliumSymbol}
+                alt="Arkelium"
+                className="h-16 w-auto select-none"
+              />
+              <span
+                className={`text-base font-semibold tracking-[0.25em] ${
+                  isDark ? 'text-gold' : 'text-gold-light'
+                }`}
+              >
+                ARKELIUM
+              </span>
             </div>
 
-            {errorMsg ? (
+            {/* Error Message */}
+            {errorMsg && (
               <div
-                className={`mb-5 rounded-lg px-4 py-3 text-sm ${
+                className={`mb-6 rounded-xl px-4 py-3 text-sm font-medium ${
                   isDark
-                    ? 'bg-red-950/30 border border-red-900/30 text-red-200/90'
+                    ? 'bg-red-950/40 border border-red-900/40 text-red-300'
                     : 'bg-red-50 border border-red-200 text-red-700'
                 }`}
               >
                 {errorMsg}
               </div>
-            ) : null}
+            )}
 
+            {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Email Field */}
               <div className="space-y-2">
-                <Label className={isDark ? 'text-[hsl(220,15%,80%)]' : 'text-[hsl(220,20%,20%)]'}>{t.email}</Label>
+                <Label
+                  className={`text-sm font-medium ${
+                    isDark ? 'text-white/80' : 'text-black/80'
+                  }`}
+                >
+                  {t.email}
+                </Label>
                 <Input
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   type="email"
                   autoComplete="email"
-                  placeholder="name@company.com"
-                  className={`h-11 ${
-                    isDark
-                      ? 'bg-[hsl(220,20%,8%)] border-[hsl(220,15%,20%)] text-[hsl(220,15%,90%)] placeholder:text-[hsl(220,15%,35%)]'
-                      : 'bg-white border-[hsl(220,15%,85%)] text-[hsl(220,20%,15%)] placeholder:text-[hsl(220,15%,55%)]'
+                  placeholder={t.emailPlaceholder}
+                  className={`h-12 rounded-xl text-sm ${
+                    isDark ? 'auth-input-dark' : 'auth-input-light'
                   }`}
                 />
               </div>
 
+              {/* Password Field */}
               <div className="space-y-2">
-                <Label className={isDark ? 'text-[hsl(220,15%,80%)]' : 'text-[hsl(220,20%,20%)]'}>{t.password}</Label>
+                <Label
+                  className={`text-sm font-medium ${
+                    isDark ? 'text-white/80' : 'text-black/80'
+                  }`}
+                >
+                  {t.password}
+                </Label>
                 <div className="relative">
                   <Input
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     type={showPassword ? 'text' : 'password'}
                     autoComplete="current-password"
-                    placeholder="••••••••"
-                    className={`h-11 pr-12 ${
-                      isDark
-                        ? 'bg-[hsl(220,20%,8%)] border-[hsl(220,15%,20%)] text-[hsl(220,15%,90%)] placeholder:text-[hsl(220,15%,35%)]'
-                        : 'bg-white border-[hsl(220,15%,85%)] text-[hsl(220,20%,15%)] placeholder:text-[hsl(220,15%,55%)]'
+                    placeholder={t.passwordPlaceholder}
+                    className={`h-12 rounded-xl text-sm pr-12 ${
+                      isDark ? 'auth-input-dark' : 'auth-input-light'
                     }`}
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-2 transition ${
-                      isDark ? 'text-[hsl(220,15%,50%)] hover:bg-[hsl(220,20%,15%)]' : 'text-[hsl(220,15%,45%)] hover:bg-[hsl(220,20%,95%)]'
+                    onClick={() => setShowPassword(!showPassword)}
+                    className={`absolute right-4 top-1/2 -translate-y-1/2 transition-colors ${
+                      isDark
+                        ? 'text-white/40 hover:text-white/70'
+                        : 'text-black/40 hover:text-black/70'
                     }`}
-                    aria-label="Toggle password visibility"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
                   </button>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between gap-4">
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <Checkbox checked={rememberMe} onCheckedChange={(v) => setRememberMe(Boolean(v))} />
-                  <span className={`text-sm ${isDark ? 'text-[hsl(220,15%,65%)]' : 'text-[hsl(220,15%,40%)]'}`}>{t.remember}</span>
-                </label>
-
+              {/* Remember Me & Help Link */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <Checkbox
+                    id="remember"
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(checked === true)}
+                    className={`h-5 w-5 rounded border-2 transition-colors ${
+                      isDark
+                        ? 'border-white/20 data-[state=checked]:bg-[#c9a962] data-[state=checked]:border-[#c9a962]'
+                        : 'border-black/20 data-[state=checked]:bg-[#b08a45] data-[state=checked]:border-[#b08a45]'
+                    }`}
+                  />
+                  <label
+                    htmlFor="remember"
+                    className={`text-sm cursor-pointer select-none ${
+                      isDark ? 'text-white/60' : 'text-black/60'
+                    }`}
+                  >
+                    {t.remember}
+                  </label>
+                </div>
                 <Link
                   to="/forgot-password"
-                  className={`text-sm underline-offset-4 hover:underline ${
-                    isDark ? 'text-[hsl(220,15%,65%)]' : 'text-[hsl(220,15%,40%)]'
+                  className={`text-sm font-medium transition-colors ${
+                    isDark
+                      ? 'text-gold hover:text-[#d4b46d]'
+                      : 'text-gold-light hover:text-[#9a7a3d]'
                   }`}
                 >
-                  {t.forgot}
+                  {t.help}
                 </Link>
               </div>
 
-              <Button 
-                type="submit" 
-                disabled={isSubmitting} 
-                className={`h-11 w-full rounded-lg text-sm font-semibold ${
-                  isDark 
-                    ? 'bg-[hsl(220,20%,90%)] text-[hsl(220,20%,10%)] hover:bg-[hsl(220,20%,85%)]' 
-                    : 'bg-[hsl(220,20%,15%)] text-white hover:bg-[hsl(220,20%,25%)]'
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className={`h-12 w-full rounded-xl text-sm font-semibold ${
+                  isDark ? 'dark-btn' : 'gold-btn'
                 }`}
               >
-                {isSubmitting ? t.loading : t.button}
+                {isSubmitting ? (
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : (
+                  t.button
+                )}
               </Button>
 
-              <div className={`flex items-center justify-center gap-2 text-xs ${
-                isDark ? 'text-[hsl(220,15%,45%)]' : 'text-[hsl(220,15%,50%)]'
-              }`}>
-                <span className={`inline-block h-2 w-2 rounded-full ${isDark ? 'bg-[hsl(220,15%,40%)]' : 'bg-[hsl(220,15%,50%)]'}`} />
-                <span>{t.secure}</span>
+              {/* Security Text */}
+              <div className="flex items-center justify-center gap-2 pt-2">
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    isDark ? 'bg-white/20' : 'bg-black/20'
+                  }`}
+                />
+                <span
+                  className={`text-xs ${isDark ? 'text-white/35' : 'text-black/40'}`}
+                >
+                  {t.security}
+                </span>
+              </div>
+
+              {/* Separator */}
+              <div
+                className={`border-t ${
+                  isDark ? 'border-white/[0.08]' : 'border-black/[0.08]'
+                }`}
+              />
+
+              {/* Powered by */}
+              <div
+                className={`text-center text-sm font-medium ${
+                  isDark ? 'text-white/40' : 'text-black/40'
+                }`}
+              >
+                {t.powered}
               </div>
             </form>
           </div>

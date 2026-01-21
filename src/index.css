@@ -324,3 +324,143 @@
 *:focus-visible {
   @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
 }
+
+/* =====================================================
+   AUTHENTICATION SCREENS - Premium Enterprise Design
+   ===================================================== */
+
+/* Background with golden particle texture - Dark Mode */
+.auth-bg-dark {
+  background: linear-gradient(145deg, #0a0b0e 0%, #12141a 40%, #0d0e12 100%);
+}
+
+/* Background with golden particle texture - Light Mode */
+.auth-bg-light {
+  background: linear-gradient(145deg, #f8f9fb 0%, #f5f6f8 40%, #f2f3f5 100%);
+}
+
+/* Golden dust texture overlay */
+.auth-texture::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(ellipse 70% 90% at 12% 55%, rgba(201, 162, 77, 0.14) 0%, rgba(201, 162, 77, 0.04) 35%, transparent 60%),
+    radial-gradient(circle at 8% 75%, rgba(201, 162, 77, 0.08) 0%, transparent 25%);
+  pointer-events: none;
+}
+
+.auth-texture-light::before {
+  background: 
+    radial-gradient(ellipse 70% 90% at 12% 55%, rgba(201, 162, 77, 0.22) 0%, rgba(201, 162, 77, 0.08) 35%, transparent 60%),
+    radial-gradient(circle at 8% 75%, rgba(201, 162, 77, 0.12) 0%, transparent 25%);
+}
+
+/* Auth card - Dark Mode with glassmorphism */
+.auth-card-dark {
+  background: rgba(22, 24, 30, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 
+    0 32px 64px -16px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+}
+
+/* Auth card - Light Mode */
+.auth-card-light {
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 
+    0 24px 48px -12px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+}
+
+/* Gold gradient button (Light Mode) */
+.gold-btn {
+  background: linear-gradient(145deg, #c9a962 0%, #a88a4f 100%);
+  color: #1a1b21;
+  font-weight: 600;
+  border: none;
+  box-shadow: 0 4px 12px -2px rgba(201, 162, 77, 0.35);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.gold-btn:hover {
+  background: linear-gradient(145deg, #d4b46d 0%, #b3945a 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px -2px rgba(201, 162, 77, 0.45);
+}
+
+.gold-btn:active {
+  transform: translateY(0);
+}
+
+/* Dark gradient button (Dark Mode) */
+.dark-btn {
+  background: linear-gradient(145deg, #2a2c33 0%, #1f2126 100%);
+  color: #e5e6e8;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark-btn:hover {
+  background: linear-gradient(145deg, #35373f 0%, #2a2c33 100%);
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+.dark-btn:active {
+  transform: translateY(0);
+}
+
+/* Gold text color */
+.text-gold {
+  color: #c9a962;
+}
+
+.text-gold-light {
+  color: #b08a45;
+}
+
+/* Gold checkbox styling */
+.gold-checkbox[data-state="checked"] {
+  background: linear-gradient(145deg, #c9a962 0%, #a88a4f 100%) !important;
+  border-color: #c9a962 !important;
+}
+
+/* Auth input styling - Dark */
+.auth-input-dark {
+  background: rgba(10, 11, 14, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e5e6e8;
+}
+
+.auth-input-dark::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.auth-input-dark:focus {
+  border-color: rgba(201, 162, 77, 0.5);
+  box-shadow: 0 0 0 3px rgba(201, 162, 77, 0.1);
+}
+
+/* Auth input styling - Light */
+.auth-input-light {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  color: #1a1b21;
+}
+
+.auth-input-light::placeholder {
+  color: rgba(0, 0, 0, 0.35);
+}
+
+.auth-input-light:focus {
+  border-color: rgba(176, 138, 69, 0.6);
+  box-shadow: 0 0 0 3px rgba(201, 162, 77, 0.12);
+}
