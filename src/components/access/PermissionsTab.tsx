@@ -31,7 +31,8 @@ const PermissionsTab = ({ permissions, rolePermissions, loading, onUpdate }: Per
 
   const groupedPermissions = useMemo(() => {
     const groups: Record<string, Permission[]> = {};
-    permissions.forEach((perm) => {
+    // Only include modules that exist in MODULE_LABELS (allowlist)
+    permissions.filter(perm => perm.module in MODULE_LABELS).forEach((perm) => {
       if (!groups[perm.module]) groups[perm.module] = [];
       groups[perm.module].push(perm);
     });
