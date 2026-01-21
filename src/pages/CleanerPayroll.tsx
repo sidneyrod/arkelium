@@ -2,10 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import PageHeader from '@/components/ui/page-header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Clock, 
   Calendar, 
@@ -14,8 +11,7 @@ import {
   TrendingUp,
   CalendarDays,
   Timer,
-  Building2,
-  Info
+  Building2
 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO, differenceInMinutes } from 'date-fns';
 
@@ -171,13 +167,7 @@ const CleanerPayroll = () => {
   if (isLoading) {
     return (
       <div className="p-2 lg:p-3 space-y-2">
-        <Skeleton className="h-10 w-48" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Skeleton className="h-24" />
-          <Skeleton className="h-24" />
-          <Skeleton className="h-24" />
-          <Skeleton className="h-24" />
-        </div>
+        <Skeleton className="h-10 w-full" />
         <Skeleton className="h-64" />
       </div>
     );
@@ -185,111 +175,54 @@ const CleanerPayroll = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      <PageHeader 
-        title={t.payroll.myWorkSummary}
-        description={t.payroll.myWorkSummaryDescription}
-      />
-
-      {/* Disclaimer Alert */}
-      <Alert className="border-info/30 bg-info/5">
-        <Info className="h-4 w-4 text-info" />
-        <AlertDescription className="text-sm text-muted-foreground">
-          {t.payroll.workSummaryDisclaimer}
-        </AlertDescription>
-      </Alert>
-
-      {/* Hours Summary Cards */}
-      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                <Timer className="h-5 w-5 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  {t.payroll.today}
-                </p>
-                <p className="text-2xl font-bold">{formatHours(summary.totalHoursDaily)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <CalendarDays className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  {t.payroll.thisWeek}
-                </p>
-                <p className="text-2xl font-bold">{formatHours(summary.totalHoursWeekly)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                <Calendar className="h-5 w-5 text-orange-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  {t.payroll.biweekly}
-                </p>
-                <p className="text-2xl font-bold">{formatHours(summary.totalHoursBiweekly)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  {t.payroll.thisMonth}
-                </p>
-                <p className="text-2xl font-bold">{formatHours(summary.totalHoursMonthly)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50 border-l-4 border-l-info">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-info/10 flex items-center justify-center">
-                <Briefcase className="h-5 w-5 text-info" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  {t.payroll.servicesCompleted}
-                </p>
-                <p className="text-2xl font-bold">{summary.jobsCompleted}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Single-Line Header: Inline KPI Badges */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Badge Today */}
+        <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+          <Timer className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+          <span className="text-[10px] text-muted-foreground">{t.payroll.today}</span>
+          <span className="font-semibold text-sm">{formatHours(summary.totalHoursDaily)}</span>
+        </div>
+        
+        {/* Badge This Week */}
+        <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+          <CalendarDays className="h-3.5 w-3.5 text-primary shrink-0" />
+          <span className="text-[10px] text-muted-foreground">{t.payroll.thisWeek}</span>
+          <span className="font-semibold text-sm">{formatHours(summary.totalHoursWeekly)}</span>
+        </div>
+        
+        {/* Badge Biweekly */}
+        <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+          <Calendar className="h-3.5 w-3.5 text-orange-500 shrink-0" />
+          <span className="text-[10px] text-muted-foreground">{t.payroll.biweekly}</span>
+          <span className="font-semibold text-sm">{formatHours(summary.totalHoursBiweekly)}</span>
+        </div>
+        
+        {/* Badge This Month */}
+        <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+          <TrendingUp className="h-3.5 w-3.5 text-success shrink-0" />
+          <span className="text-[10px] text-muted-foreground">{t.payroll.thisMonth}</span>
+          <span className="font-semibold text-sm">{formatHours(summary.totalHoursMonthly)}</span>
+        </div>
+        
+        {/* Badge Services Completed */}
+        <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+          <Briefcase className="h-3.5 w-3.5 text-info shrink-0" />
+          <span className="text-[10px] text-muted-foreground">{t.payroll.servicesCompleted}</span>
+          <span className="font-semibold text-sm">{summary.jobsCompleted}</span>
+        </div>
       </div>
 
       {/* Completed Jobs This Month */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Briefcase className="h-4 w-4" />
+      <div className="rounded-xl border border-border/50 overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-2.5 border-b bg-muted/30">
+          <Briefcase className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">
             {t.payroll.completedServicesThisMonth}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </span>
+        </div>
+        
+        <div className="p-3">
           {jobs.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               {t.payroll.noServicesThisMonth}
@@ -348,8 +281,8 @@ const CleanerPayroll = () => {
               })}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };
