@@ -4,8 +4,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
 import { supabase } from '@/lib/supabase';
 import { notifyOffRequestCreated } from '@/hooks/useNotifications';
-import PageHeader from '@/components/ui/page-header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -110,8 +108,6 @@ const CleanerOffRequests = () => {
     if (!user?.id || !activeCompanyId) return;
     
     try {
-      
-      // Only fetch requests for the current user (cleaner)
       const { data, error } = await supabase
         .from('absence_requests')
         .select('id, start_date, end_date, reason, request_type, status, created_at, approved_at')
@@ -180,7 +176,6 @@ const CleanerOffRequests = () => {
         return;
       }
       
-      // Notify admin about the new off request
       const cleanerName = user.profile.first_name 
         ? `${user.profile.first_name} ${user.profile.last_name || ''}`.trim()
         : user.profile.email || 'Employee';
@@ -219,77 +214,57 @@ const CleanerOffRequests = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      <div className="flex items-center justify-between">
-        <PageHeader 
-          title={isEnglish ? "My Field Requests" : "Minhas Solicitações de Campo"}
-          description={isEnglish 
-            ? "Request and track your field time" 
-            : "Solicite e acompanhe seu tempo de campo"}
-        />
-        <Button onClick={() => setShowModal(true)} className="gap-2">
+      {/* Single-Line Header: KPIs inline + New Request Button */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Inline KPIs */}
+        <div className="flex items-center gap-2 flex-1">
+          {/* Badge Pending */}
+          <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+            <Clock className="h-3.5 w-3.5 text-warning shrink-0" />
+            <span className="text-[10px] text-muted-foreground">
+              {isEnglish ? 'Pending' : 'Pendentes'}
+            </span>
+            <span className="font-semibold text-sm">{pendingCount}</span>
+          </div>
+          
+          {/* Badge Active Blocks */}
+          <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+            <CalendarOff className="h-3.5 w-3.5 text-primary shrink-0" />
+            <span className="text-[10px] text-muted-foreground">
+              {isEnglish ? 'Active Blocks' : 'Bloqueios Ativos'}
+            </span>
+            <span className="font-semibold text-sm">{activeBlocksCount}</span>
+          </div>
+          
+          {/* Badge Total Approved */}
+          <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+            <Check className="h-3.5 w-3.5 text-success shrink-0" />
+            <span className="text-[10px] text-muted-foreground">
+              {isEnglish ? 'Total Approved' : 'Total Aprovados'}
+            </span>
+            <span className="font-semibold text-sm">{approvedCount}</span>
+          </div>
+        </div>
+
+        {/* New Request Button */}
+        <Button onClick={() => setShowModal(true)} size="sm" className="gap-1.5 h-8">
           <Plus className="h-4 w-4" />
           {isEnglish ? 'New Request' : 'Nova Solicitação'}
         </Button>
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-2.5 md:grid-cols-3">
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
-                <Clock className="h-5 w-5 text-warning" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  {isEnglish ? 'Pending' : 'Pendentes'}
-                </p>
-                <p className="text-2xl font-bold">{pendingCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <CalendarOff className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  {isEnglish ? 'Active Blocks' : 'Bloqueios Ativos'}
-                </p>
-                <p className="text-2xl font-bold">{activeBlocksCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
-                <Check className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  {isEnglish ? 'Total Approved' : 'Total Aprovados'}
-                </p>
-                <p className="text-2xl font-bold">{approvedCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Requests List */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CalendarDays className="h-5 w-5" />
+      <div className="rounded-xl border border-border/50 overflow-hidden">
+        {/* Header inline */}
+        <div className="flex items-center gap-2 px-4 py-2.5 border-b bg-muted/30">
+          <CalendarDays className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">
             {isEnglish ? 'My Requests' : 'Minhas Solicitações'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </span>
+        </div>
+        
+        {/* Content */}
+        <div className="p-4">
           {requests.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
@@ -309,7 +284,7 @@ const CleanerOffRequests = () => {
                 const StatusIcon = statusConf.icon;
                 const typeConf = requestTypeConfig[request.request_type as keyof typeof requestTypeConfig] || requestTypeConfig.time_off;
                 const TypeIcon = typeConf.icon;
-              const days = differenceInDays(parseLocalDate(request.end_date), parseLocalDate(request.start_date)) + 1;
+                const days = differenceInDays(parseLocalDate(request.end_date), parseLocalDate(request.start_date)) + 1;
                 const isCurrentlyActive = request.status === 'approved' && 
                   !isPast(parseLocalDate(request.end_date)) &&
                   !isFuture(parseLocalDate(request.start_date));
@@ -341,7 +316,7 @@ const CleanerOffRequests = () => {
                         {/* Date Range */}
                         <div className="flex items-center gap-2 text-sm">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">
+                          <span className="font-medium">
                             {format(parseLocalDate(request.start_date), 'dd/MM/yyyy')}
                           </span>
                           <ArrowRight className="h-4 w-4 text-muted-foreground" />
@@ -371,8 +346,8 @@ const CleanerOffRequests = () => {
               })}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Off Request Modal */}
       <OffRequestModal
