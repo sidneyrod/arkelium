@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, Lock } from 'lucide-react';
+import { Shield, Lock, Layers } from 'lucide-react';
 import RolesTab from '@/components/access/RolesTab';
+import BaseRolesTab from '@/components/access/BaseRolesTab';
 import UserPermissionsTab from '@/components/access/UserPermissionsTab';
 import { toast } from 'sonner';
 
@@ -35,7 +36,7 @@ export interface RolePermission {
 
 const AccessRoles = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('roles');
+  const [activeTab, setActiveTab] = useState('access-levels');
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [rolePermissions, setRolePermissions] = useState<RolePermission[]>([]);
@@ -85,7 +86,11 @@ const AccessRoles = () => {
   return (
     <div className="p-2 lg:p-3 space-y-4">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full max-w-xs grid-cols-2 mb-4">
+        <TabsList className="grid w-full max-w-md grid-cols-3 mb-4">
+          <TabsTrigger value="access-levels" className="flex items-center gap-2">
+            <Layers className="h-4 w-4" />
+            <span className="hidden sm:inline">Access Levels</span>
+          </TabsTrigger>
           <TabsTrigger value="roles" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
             <span className="hidden sm:inline">Roles</span>
@@ -95,6 +100,9 @@ const AccessRoles = () => {
             <span className="hidden sm:inline">Permissions</span>
           </TabsTrigger>
         </TabsList>
+        <TabsContent value="access-levels" className="mt-6">
+          <BaseRolesTab onUpdate={fetchPermissions} />
+        </TabsContent>
         <TabsContent value="roles" className="mt-6">
           <RolesTab onUpdate={fetchPermissions} />
         </TabsContent>

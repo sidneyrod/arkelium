@@ -140,6 +140,65 @@ export type Database = {
           },
         ]
       }
+      base_roles: {
+        Row: {
+          code: string
+          color: string | null
+          company_id: string
+          created_at: string | null
+          description: string | null
+          display_name: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          is_system: boolean | null
+          name: string
+          permission_level: number
+          sort_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          color?: string | null
+          company_id: string
+          created_at?: string | null
+          description?: string | null
+          display_name?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          name: string
+          permission_level?: number
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          color?: string | null
+          company_id?: string
+          created_at?: string | null
+          description?: string | null
+          display_name?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          name?: string
+          permission_level?: number
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "base_roles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cash_collections: {
         Row: {
           amount: number
@@ -1058,6 +1117,7 @@ export type Database = {
       custom_roles: {
         Row: {
           base_role: Database["public"]["Enums"]["app_role"]
+          base_role_id: string | null
           company_id: string
           created_at: string
           created_by: string | null
@@ -1070,6 +1130,7 @@ export type Database = {
         }
         Insert: {
           base_role?: Database["public"]["Enums"]["app_role"]
+          base_role_id?: string | null
           company_id: string
           created_at?: string
           created_by?: string | null
@@ -1082,6 +1143,7 @@ export type Database = {
         }
         Update: {
           base_role?: Database["public"]["Enums"]["app_role"]
+          base_role_id?: string | null
           company_id?: string
           created_at?: string
           created_by?: string | null
@@ -1093,6 +1155,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "custom_roles_base_role_id_fkey"
+            columns: ["base_role_id"]
+            isOneToOne: false
+            referencedRelation: "base_roles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "custom_roles_company_id_fkey"
             columns: ["company_id"]
@@ -2905,6 +2974,10 @@ export type Database = {
           p_role: Database["public"]["Enums"]["app_role"]
         }
         Returns: boolean
+      }
+      initialize_company_base_roles: {
+        Args: { p_company_id: string }
+        Returns: undefined
       }
       initialize_company_permissions: {
         Args: { p_company_id: string }

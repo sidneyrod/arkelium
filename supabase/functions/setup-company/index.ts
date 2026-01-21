@@ -222,6 +222,21 @@ serve(async (req) => {
       console.warn('Failed to create chart of accounts (non-fatal):', chartError);
     }
 
+    // Initialize default base roles for the company
+    try {
+      await supabaseAdmin.rpc('initialize_company_base_roles', { p_company_id: company.id });
+      console.log('Default base roles created');
+    } catch (baseRolesError) {
+      console.warn('Failed to create base roles (non-fatal):', baseRolesError);
+    }
+
+    // Initialize default permissions for the company
+    try {
+      await supabaseAdmin.rpc('initialize_company_permissions', { p_company_id: company.id });
+      console.log('Default permissions created');
+    } catch (permissionsError) {
+      console.warn('Failed to create permissions (non-fatal):', permissionsError);
+    }
     // Create company branding with defaults
     const { error: brandingError } = await supabaseAdmin
       .from('company_branding')
