@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -155,8 +155,9 @@
   }
 
   body {
-    @apply bg-background text-foreground font-outfit;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
 
@@ -252,6 +253,15 @@
   .section-subtle {
     @apply bg-muted/30;
   }
+
+  /* Hide scrollbar utility */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @keyframes fade-up {
@@ -296,6 +306,17 @@
   }
 }
 
+@keyframes float-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;
@@ -310,183 +331,151 @@
   @apply bg-border rounded-full hover:bg-muted-foreground/30 transition-colors;
 }
 
-/* Hide scrollbar utility */
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-
 /* Custom focus styles */
 *:focus-visible {
   @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
 }
 
 /* =====================================================
-   AUTHENTICATION SCREENS - Premium Enterprise Design
-   Arkelium Gold Identity: #C9A24D
+   ARKELIUM ENTERPRISE AUTHENTICATION SYSTEM
+   Premium SaaS Design - Black, White, Gray + Gold Accent
    ===================================================== */
 
-/* ===== DARK MODE BACKGROUND (3 Layers - Organic) ===== */
+/* === DARK MODE BACKGROUND (Cosmic Dust + Vignette) === */
 .auth-bg-dark {
-  background: linear-gradient(135deg, #0B0F14 0%, #070A0F 70%);
   position: relative;
+  background: linear-gradient(145deg, #0B0D10 0%, #0E1116 50%, #080A0D 100%);
+  overflow: hidden;
 }
 
-/* Golden glow + neutral glow overlay - Dark */
+/* Golden bloom + neutral glow - Dark */
 .auth-bg-dark::before {
   content: '';
   position: absolute;
   inset: 0;
   background: 
-    /* Layer 1: Glow dourado esquerdo */
-    radial-gradient(circle at 22% 52%, rgba(201, 162, 77, 0.16) 0%, transparent 55%),
-    /* Layer 2: Glow neutro superior direito */
-    radial-gradient(circle at 70% 15%, rgba(255, 255, 255, 0.06) 0%, transparent 45%);
+    /* Left golden bloom - subtle */
+    radial-gradient(ellipse 55% 75% at 15% 50%, rgba(200, 166, 90, 0.09) 0%, transparent 65%),
+    /* Top right neutral glow */
+    radial-gradient(circle at 82% 18%, rgba(255, 255, 255, 0.025) 0%, transparent 45%),
+    /* Center subtle wash */
+    radial-gradient(ellipse 80% 50% at 50% 50%, rgba(255, 255, 255, 0.008) 0%, transparent 60%);
   pointer-events: none;
   z-index: 1;
 }
 
-/* Dust texture overlay - Dark */
+/* Cosmic dust texture + vignette - Dark */
 .auth-bg-dark::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: 
-    radial-gradient(circle at 20% 80%, rgba(201, 162, 77, 0.025) 0%, transparent 20%),
-    radial-gradient(circle at 60% 20%, rgba(201, 162, 77, 0.02) 0%, transparent 15%),
-    radial-gradient(circle at 85% 65%, rgba(201, 162, 77, 0.018) 0%, transparent 18%);
-  opacity: 0.9;
+  background-image: 
+    /* Fine particle texture */
+    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+    radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.008) 1px, transparent 1px),
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.006) 1px, transparent 1px);
+  background-size: 120px 120px, 180px 180px, 90px 90px;
+  /* Vignette overlay */
+  box-shadow: inset 0 0 180px 60px rgba(0, 0, 0, 0.4);
   pointer-events: none;
-  z-index: 1;
+  z-index: 2;
 }
 
-/* ===== LIGHT MODE BACKGROUND ===== */
+/* === LIGHT MODE BACKGROUND === */
 .auth-bg-light {
-  background: linear-gradient(145deg, #faf9f7 0%, #f5f4f2 50%, #f0efed 100%);
   position: relative;
+  background: linear-gradient(145deg, #FAFAFA 0%, #F5F5F5 50%, #F0F0F0 100%);
+  overflow: hidden;
 }
 
-/* Golden glow overlay - Light */
 .auth-bg-light::before {
   content: '';
   position: absolute;
   inset: 0;
   background: 
-    radial-gradient(circle at 22% 52%, rgba(201, 162, 77, 0.10) 0%, transparent 55%),
-    radial-gradient(circle at 70% 15%, rgba(0, 0, 0, 0.03) 0%, transparent 45%);
+    /* Subtle golden hint left */
+    radial-gradient(ellipse 50% 70% at 12% 50%, rgba(200, 166, 90, 0.04) 0%, transparent 60%),
+    /* Soft neutral top right */
+    radial-gradient(circle at 85% 15%, rgba(0, 0, 0, 0.015) 0%, transparent 40%);
   pointer-events: none;
   z-index: 1;
 }
 
-/* ===== AUTH CARD - Glassmorphism Premium ===== */
+.auth-bg-light::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  /* Minimal grain texture */
+  background-image: 
+    radial-gradient(circle at 30% 40%, rgba(0, 0, 0, 0.008) 1px, transparent 1px),
+    radial-gradient(circle at 70% 60%, rgba(0, 0, 0, 0.006) 1px, transparent 1px);
+  background-size: 100px 100px, 150px 150px;
+  /* Inverted vignette for depth */
+  box-shadow: inset 0 0 120px 40px rgba(0, 0, 0, 0.03);
+  pointer-events: none;
+  z-index: 2;
+}
 
-/* Dark Mode Card - Floating Glass */
+/* === CARD GLASSMORPHISM === */
 .auth-card-dark {
-  background: rgba(20, 24, 30, 0.72);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 18px;
+  background: rgba(18, 20, 26, 0.68) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.04) !important;
+  border-radius: 20px !important;
   box-shadow: 
-    0 20px 50px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    0 25px 50px -12px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.02),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
 }
 
-/* Light Mode Card */
 .auth-card-light {
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.88) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+  border-radius: 20px !important;
   box-shadow: 
-    0 20px 50px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    0 20px 45px -10px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.02),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
 }
 
-/* ===== GOLD BUTTON - Premium Gradient (Both Themes) ===== */
-.gold-btn {
-  background: linear-gradient(180deg, #D6B86A 0%, #C9A24D 100%) !important;
-  color: #1A1A1A !important;
-  font-weight: 600 !important;
-  border: none !important;
-  box-shadow: 0 6px 18px rgba(201, 162, 77, 0.35);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-.gold-btn:hover:not(:disabled) {
-  background: linear-gradient(180deg, #E0C374 0%, #D4AD58 100%) !important;
-  transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(201, 162, 77, 0.45);
-}
-
-.gold-btn:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 4px 12px rgba(201, 162, 77, 0.3);
-}
-
-.gold-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-/* ===== DARK BUTTON - Premium Gray (Dark Theme Alternative) ===== */
-.dark-btn {
-  background: linear-gradient(145deg, #2a2c33 0%, #1f2126 100%) !important;
-  color: #e5e6e8 !important;
-  font-weight: 600 !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 
-    0 4px 12px -4px rgba(0, 0, 0, 0.5),
-    0 2px 4px -2px rgba(0, 0, 0, 0.3);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-.dark-btn:hover:not(:disabled) {
-  background: linear-gradient(145deg, #35373f 0%, #2a2c33 100%) !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
-  transform: translateY(-1px);
-}
-
-.dark-btn:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-.dark-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-/* ===== AUTH INPUTS - Premium Dark Fields ===== */
-
-/* Dark Mode Input */
+/* === INPUTS - DARK MODE === */
 .auth-input-dark {
-  background: rgba(10, 14, 20, 0.55) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  color: #E6E8EB !important;
-  transition: all 0.15s ease !important;
+  background: rgba(12, 14, 18, 0.65) !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  border-radius: 10px !important;
+  color: #E7EAF0 !important;
+  height: 48px !important;
+  font-size: 14px !important;
+  padding-left: 14px !important;
+  padding-right: 14px !important;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .auth-input-dark::placeholder {
-  color: rgba(230, 232, 235, 0.45) !important;
+  color: rgba(154, 163, 175, 0.55) !important;
 }
 
 .auth-input-dark:focus {
-  border-color: rgba(201, 162, 77, 0.45) !important;
-  box-shadow: 0 0 0 2px rgba(201, 162, 77, 0.15) !important;
   outline: none !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04) !important;
+  background: rgba(14, 16, 20, 0.75) !important;
 }
 
-/* Light Mode Input */
+/* === INPUTS - LIGHT MODE === */
 .auth-input-light {
-  background: rgba(255, 255, 255, 0.95) !important;
-  border: 1px solid rgba(0, 0, 0, 0.10) !important;
-  color: #1a1b21 !important;
-  transition: all 0.15s ease !important;
+  background: rgba(245, 245, 245, 0.8) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 10px !important;
+  color: #1A1A1A !important;
+  height: 48px !important;
+  font-size: 14px !important;
+  padding-left: 14px !important;
+  padding-right: 14px !important;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .auth-input-light::placeholder {
@@ -494,49 +483,287 @@
 }
 
 .auth-input-light:focus {
-  border-color: rgba(176, 138, 61, 0.5) !important;
-  box-shadow: 0 0 0 2px rgba(201, 162, 77, 0.12) !important;
   outline: none !important;
+  border-color: rgba(0, 0, 0, 0.18) !important;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.04) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
 }
 
-/* ===== PILL BUTTONS - Top Right Controls ===== */
+/* === PRIMARY BUTTON - DARK MODE (Gray Premium) === */
+.auth-btn-dark {
+  background: linear-gradient(180deg, #2C2E34 0%, #22242A 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  color: #E7EAF0 !important;
+  height: 48px !important;
+  border-radius: 12px !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  letter-spacing: 0.01em !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 4px 12px rgba(0, 0, 0, 0.35) !important;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.auth-btn-dark:hover:not(:disabled) {
+  background: linear-gradient(180deg, #363840 0%, #2C2E34 100%) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 6px 16px rgba(0, 0, 0, 0.4) !important;
+}
+
+.auth-btn-dark:active:not(:disabled) {
+  transform: translateY(0) !important;
+  background: linear-gradient(180deg, #26282E 0%, #1E2026 100%) !important;
+}
+
+.auth-btn-dark:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+/* === PRIMARY BUTTON - LIGHT MODE (Gold) === */
+.auth-btn-light {
+  background: linear-gradient(180deg, #D1B46C 0%, #C8A65A 100%) !important;
+  border: 1px solid rgba(200, 166, 90, 0.3) !important;
+  color: #1A1A1A !important;
+  height: 48px !important;
+  border-radius: 12px !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  letter-spacing: 0.01em !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 4px 14px rgba(200, 166, 90, 0.3) !important;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.auth-btn-light:hover:not(:disabled) {
+  background: linear-gradient(180deg, #DCBF77 0%, #D1B46C 100%) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 6px 18px rgba(200, 166, 90, 0.35) !important;
+}
+
+.auth-btn-light:active:not(:disabled) {
+  transform: translateY(0) !important;
+  background: linear-gradient(180deg, #C8A65A 0%, #B89A4E 100%) !important;
+}
+
+.auth-btn-light:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+/* === TOP RIGHT CONTROL PILLS === */
 .auth-pill-dark {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.6);
-  transition: all 0.15s ease;
+  background: rgba(20, 22, 28, 0.7) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  color: rgba(231, 234, 240, 0.7) !important;
+  backdrop-filter: blur(12px) !important;
+  transition: all 0.15s ease !important;
 }
 
 .auth-pill-dark:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.8);
+  background: rgba(28, 30, 36, 0.8) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(231, 234, 240, 0.9) !important;
 }
 
 .auth-pill-light {
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  color: rgba(0, 0, 0, 0.6);
-  transition: all 0.15s ease;
+  background: rgba(255, 255, 255, 0.75) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  color: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(12px) !important;
+  transition: all 0.15s ease !important;
 }
 
 .auth-pill-light:hover {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(0, 0, 0, 0.12);
-  color: rgba(0, 0, 0, 0.8);
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  color: rgba(0, 0, 0, 0.8) !important;
 }
 
-/* ===== GOLD TEXT - Headline Styling ===== */
+/* === CHECKBOX STYLES === */
+.auth-checkbox-dark {
+  width: 18px !important;
+  height: 18px !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.18) !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+  transition: all 0.15s ease !important;
+}
+
+.auth-checkbox-dark[data-state="checked"] {
+  background: rgba(200, 166, 90, 0.18) !important;
+  border-color: rgba(200, 166, 90, 0.45) !important;
+}
+
+.auth-checkbox-dark[data-state="checked"] svg {
+  color: rgba(231, 234, 240, 0.9) !important;
+}
+
+.auth-checkbox-light {
+  width: 18px !important;
+  height: 18px !important;
+  border: 1.5px solid rgba(0, 0, 0, 0.2) !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+  transition: all 0.15s ease !important;
+}
+
+.auth-checkbox-light[data-state="checked"] {
+  background: rgba(200, 166, 90, 0.15) !important;
+  border-color: rgba(200, 166, 90, 0.5) !important;
+}
+
+.auth-checkbox-light[data-state="checked"] svg {
+  color: #8B7355 !important;
+}
+
+/* === HELP LINK === */
+.auth-help-link-dark {
+  color: rgba(200, 166, 90, 0.65) !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  transition: all 0.15s ease !important;
+  text-decoration: none !important;
+}
+
+.auth-help-link-dark:hover {
+  color: rgba(200, 166, 90, 0.9) !important;
+  text-decoration: underline !important;
+}
+
+.auth-help-link-light {
+  color: rgba(139, 115, 85, 0.75) !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  transition: all 0.15s ease !important;
+  text-decoration: none !important;
+}
+
+.auth-help-link-light:hover {
+  color: rgba(139, 115, 85, 1) !important;
+  text-decoration: underline !important;
+}
+
+/* === BRAND GOLD COLOR === */
 .text-brand-gold {
-  color: #D6B86A;
+  color: #C8A65A !important;
 }
 
-.text-brand-gold-light {
-  color: #B08A3D;
+/* === LOGO GOLD FILTER === */
+.filter-gold {
+  filter: sepia(100%) saturate(200%) brightness(0.9) hue-rotate(5deg) !important;
 }
 
-/* ===== GOLD CHECKBOX ===== */
-.gold-checkbox[data-state="checked"] {
-  background: linear-gradient(145deg, #C9A24D 0%, #B08A3D 100%) !important;
-  border-color: #C9A24D !important;
+/* === TAGLINE TYPOGRAPHY === */
+.auth-tagline {
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: 0.3px;
+  line-height: 1.38;
+}
+
+/* === FORM LABEL === */
+.auth-label-dark {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #9AA3AF !important;
+  letter-spacing: 0.2px !important;
+}
+
+.auth-label-light {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #5A5A5A !important;
+  letter-spacing: 0.2px !important;
+}
+
+/* === CARD BRAND TEXT === */
+.auth-brand-text {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.3em !important;
+}
+
+/* === SEPARATOR === */
+.auth-separator-dark {
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.auth-separator-light {
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+/* === PASSWORD TOGGLE BUTTON === */
+.auth-eye-btn-dark {
+  color: rgba(154, 163, 175, 0.6) !important;
+  transition: color 0.15s ease !important;
+}
+
+.auth-eye-btn-dark:hover {
+  color: rgba(231, 234, 240, 0.8) !important;
+}
+
+.auth-eye-btn-light {
+  color: rgba(0, 0, 0, 0.4) !important;
+  transition: color 0.15s ease !important;
+}
+
+.auth-eye-btn-light:hover {
+  color: rgba(0, 0, 0, 0.7) !important;
+}
+
+/* === MUTED TEXT === */
+.auth-muted-dark {
+  color: rgba(154, 163, 175, 0.5) !important;
+}
+
+.auth-muted-light {
+  color: rgba(0, 0, 0, 0.4) !important;
+}
+
+/* === POWERED BY TEXT === */
+.auth-powered-dark {
+  color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.auth-powered-light {
+  color: rgba(0, 0, 0, 0.25) !important;
+}
+
+/* === CARD ANIMATION === */
+.auth-card-animate {
+  animation: float-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* === ERROR/SUCCESS ALERTS === */
+.auth-alert-error-dark {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border: 1px solid rgba(239, 68, 68, 0.2) !important;
+  color: #FCA5A5 !important;
+}
+
+.auth-alert-error-light {
+  background: rgba(239, 68, 68, 0.08) !important;
+  border: 1px solid rgba(239, 68, 68, 0.15) !important;
+  color: #DC2626 !important;
+}
+
+.auth-alert-success-dark {
+  background: rgba(34, 197, 94, 0.1) !important;
+  border: 1px solid rgba(34, 197, 94, 0.2) !important;
+  color: #86EFAC !important;
+}
+
+.auth-alert-success-light {
+  background: rgba(34, 197, 94, 0.08) !important;
+  border: 1px solid rgba(34, 197, 94, 0.15) !important;
+  color: #16A34A !important;
 }

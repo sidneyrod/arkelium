@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Moon, Sun } from 'lucide-react';
+import { ArrowLeft, Settings, ChevronDown } from 'lucide-react';
 
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -100,16 +100,18 @@ export default function ForgotPassword() {
 
   return (
     <div className={`fixed inset-0 overflow-hidden ${isDark ? 'auth-bg-dark' : 'auth-bg-light'}`}>
-      {/* Top right controls - Pill buttons */}
+      {/* Top right controls */}
       <div className="fixed top-6 right-6 z-20">
         <div className="flex items-center gap-2">
+          {/* Language selector */}
           <Select value={(language as Lang) || 'en'} onValueChange={(val: Lang) => setLanguage(val)}>
             <SelectTrigger
-              className={`w-[68px] h-9 text-[13px] font-medium rounded-lg ${
+              className={`w-[72px] h-9 text-[13px] font-medium rounded-lg gap-1 ${
                 isDark ? 'auth-pill-dark' : 'auth-pill-light'
               }`}
             >
               <SelectValue />
+              <ChevronDown className="h-3.5 w-3.5 opacity-50" />
             </SelectTrigger>
             <SelectContent
               className={isDark ? 'bg-[#1a1c22] border-white/10' : 'bg-white border-black/10'}
@@ -119,13 +121,14 @@ export default function ForgotPassword() {
             </SelectContent>
           </Select>
 
+          {/* Settings/Theme toggle */}
           <Button
             variant="ghost"
             size="icon"
             onClick={toggleTheme}
             className={`h-9 w-9 rounded-lg ${isDark ? 'auth-pill-dark' : 'auth-pill-light'}`}
           >
-            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            <Settings className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -133,61 +136,63 @@ export default function ForgotPassword() {
       {/* Bottom left powered by */}
       <div
         className={`fixed bottom-6 left-8 text-[11px] font-medium tracking-wider z-10 ${
-          isDark ? 'text-white/25' : 'text-black/25'
+          isDark ? 'auth-powered-dark' : 'auth-powered-light'
         }`}
       >
         {t.powered}
       </div>
 
-      {/* Main container - 40/60 grid layout */}
-      <div className="relative z-10 w-full h-full max-w-[1200px] mx-auto grid grid-cols-1 lg:grid-cols-[2fr_3fr] items-center px-6 lg:px-8">
+      {/* Main container */}
+      <div className="relative z-10 w-full h-full max-w-[1280px] mx-auto grid grid-cols-1 lg:grid-cols-[2fr_3fr] items-center px-6 lg:px-10">
         
-        {/* Left column - Branding (40%) */}
-        <div className="hidden lg:flex flex-col items-start justify-center pl-4 xl:pl-8">
+        {/* Left column - Branding */}
+        <div className="hidden lg:flex flex-col items-start justify-center pl-4 xl:pl-6">
+          {/* Logo */}
           <img
             src={arkeliumLogo}
             alt="Arkelium"
-            className="h-24 xl:h-28 w-auto mb-10 select-none"
+            className="h-20 xl:h-24 w-auto mb-10 select-none filter-gold"
           />
-          <h2 className="text-[28px] xl:text-[32px] font-medium leading-[1.25] tracking-wide text-brand-gold mb-1">
+          {/* Tagline */}
+          <h2 className="auth-tagline text-brand-gold mb-1 opacity-85">
             {t.tagline1}
           </h2>
-          <h2 className="text-[28px] xl:text-[32px] font-medium leading-[1.25] tracking-wide text-brand-gold">
+          <h2 className="auth-tagline text-brand-gold opacity-85">
             {t.tagline2}
           </h2>
         </div>
 
-        {/* Right column - Reset Password Card (60%) */}
+        {/* Right column - Reset Card */}
         <div className="flex items-center justify-center lg:justify-end lg:pr-4 xl:pr-8">
           <div
-            className={`w-full max-w-[520px] rounded-[18px] p-9 sm:p-10 ${
+            className={`w-full max-w-[480px] rounded-[20px] p-8 sm:p-10 auth-card-animate ${
               isDark ? 'auth-card-dark' : 'auth-card-light'
             }`}
           >
             {/* Card Header - Logo + ARKELIUM */}
-            <div className="flex flex-col items-center gap-3 mb-6">
+            <div className="flex flex-col items-center gap-3 mb-7">
               <img
                 src={arkeliumSymbol}
                 alt="Arkelium"
-                className="h-14 w-auto select-none"
+                className="h-12 w-auto select-none filter-gold"
               />
-              <span className="text-[15px] font-semibold tracking-[0.3em] text-brand-gold">
+              <span className="auth-brand-text text-brand-gold">
                 ARKELIUM
               </span>
             </div>
 
             {/* Title & Subtitle */}
-            <div className="text-center mb-8">
+            <div className="text-center mb-7">
               <h1
-                className={`text-xl font-semibold mb-2 ${
-                  isDark ? 'text-white/90' : 'text-black/90'
+                className={`text-lg font-semibold mb-1.5 ${
+                  isDark ? 'text-[#E7EAF0]' : 'text-[#1A1A1A]'
                 }`}
               >
                 {t.title}
               </h1>
               <p
-                className={`text-[14px] leading-relaxed ${
-                  isDark ? 'text-white/50' : 'text-black/50'
+                className={`text-[13px] leading-relaxed ${
+                  isDark ? 'text-[#9AA3AF]' : 'text-[#6B7280]'
                 }`}
               >
                 {t.subtitle}
@@ -197,10 +202,8 @@ export default function ForgotPassword() {
             {/* Error Message */}
             {errorMsg && (
               <div
-                className={`mb-6 rounded-xl px-4 py-3 text-[13px] font-medium ${
-                  isDark
-                    ? 'bg-red-950/50 border border-red-900/50 text-red-300'
-                    : 'bg-red-50 border border-red-200 text-red-700'
+                className={`mb-5 rounded-xl px-4 py-3 text-[13px] font-medium ${
+                  isDark ? 'auth-alert-error-dark' : 'auth-alert-error-light'
                 }`}
               >
                 {errorMsg}
@@ -210,10 +213,8 @@ export default function ForgotPassword() {
             {/* Success Message */}
             {successMsg && (
               <div
-                className={`mb-6 rounded-xl px-4 py-3 text-[13px] font-medium ${
-                  isDark
-                    ? 'bg-emerald-950/50 border border-emerald-900/50 text-emerald-300'
-                    : 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+                className={`mb-5 rounded-xl px-4 py-3 text-[13px] font-medium ${
+                  isDark ? 'auth-alert-success-dark' : 'auth-alert-success-light'
                 }`}
               >
                 {successMsg}
@@ -224,11 +225,7 @@ export default function ForgotPassword() {
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email Field */}
               <div className="space-y-2">
-                <Label
-                  className={`text-[13px] font-medium ${
-                    isDark ? 'text-[#C9CDD3]' : 'text-[#4a4a4a]'
-                  }`}
-                >
+                <Label className={isDark ? 'auth-label-dark' : 'auth-label-light'}>
                   {t.email}
                 </Label>
                 <Input
@@ -237,9 +234,7 @@ export default function ForgotPassword() {
                   type="email"
                   autoComplete="email"
                   placeholder={t.emailPlaceholder}
-                  className={`h-[46px] rounded-xl text-[14px] ${
-                    isDark ? 'auth-input-dark' : 'auth-input-light'
-                  }`}
+                  className={isDark ? 'auth-input-dark' : 'auth-input-light'}
                 />
               </div>
 
@@ -247,7 +242,7 @@ export default function ForgotPassword() {
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="h-[47px] w-full rounded-xl text-[14px] font-semibold gold-btn"
+                className={`w-full ${isDark ? 'auth-btn-dark' : 'auth-btn-light'}`}
               >
                 {isSubmitting ? (
                   <div className="flex items-center gap-2">
@@ -262,10 +257,8 @@ export default function ForgotPassword() {
               <div className="flex items-center justify-center pt-1">
                 <Link
                   to="/login"
-                  className={`flex items-center gap-2 text-[13px] font-medium transition-all duration-150 hover:underline ${
-                    isDark
-                      ? 'text-[#C9A24D]/80 hover:text-[#C9A24D]'
-                      : 'text-[#B08A3D]/80 hover:text-[#B08A3D]'
+                  className={`flex items-center gap-2 text-[13px] font-medium transition-all duration-150 ${
+                    isDark ? 'auth-help-link-dark' : 'auth-help-link-light'
                   }`}
                 >
                   <ArrowLeft className="h-4 w-4" />
@@ -274,14 +267,16 @@ export default function ForgotPassword() {
               </div>
 
               {/* Security Text */}
-              <div className="flex items-center justify-center gap-2 pt-3">
+              <div className="flex items-center justify-center gap-2 pt-2">
                 <span
                   className={`h-[5px] w-[5px] rounded-full ${
-                    isDark ? 'bg-white/15' : 'bg-black/15'
+                    isDark ? 'bg-white/10' : 'bg-black/10'
                   }`}
                 />
                 <span
-                  className={`text-[11px] tracking-wide ${isDark ? 'text-white/30' : 'text-black/35'}`}
+                  className={`text-[11px] tracking-wide ${
+                    isDark ? 'auth-muted-dark' : 'auth-muted-light'
+                  }`}
                 >
                   {t.security}
                 </span>
@@ -290,14 +285,14 @@ export default function ForgotPassword() {
               {/* Separator */}
               <div
                 className={`border-t ${
-                  isDark ? 'border-white/[0.06]' : 'border-black/[0.06]'
+                  isDark ? 'auth-separator-dark' : 'auth-separator-light'
                 }`}
               />
 
               {/* Powered by */}
               <div
                 className={`text-center text-[13px] font-medium ${
-                  isDark ? 'text-white/35' : 'text-black/35'
+                  isDark ? 'text-white/30' : 'text-black/30'
                 }`}
               >
                 {t.powered}
