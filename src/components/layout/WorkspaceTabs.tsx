@@ -51,15 +51,18 @@ const WorkspaceTabs = () => {
     if (!container) return;
 
     const handleWheel = (e: WheelEvent) => {
-      if (e.deltaY !== 0) {
+      // Support both vertical scroll (deltaY) and horizontal scroll (deltaX)
+      const delta = e.deltaY || e.deltaX;
+      if (delta !== 0) {
         e.preventDefault();
-        container.scrollLeft += e.deltaY;
+        // Multiplier for more responsive scrolling
+        container.scrollLeft += delta * 2;
       }
     };
 
     container.addEventListener('wheel', handleWheel, { passive: false });
     return () => container.removeEventListener('wheel', handleWheel);
-  }, []);
+  }, [tabs.length]);
 
   // Drag-to-scroll handlers (for scrolling the container)
   const handleScrollMouseDown = useCallback((e: React.MouseEvent) => {
@@ -211,7 +214,7 @@ const WorkspaceTabs = () => {
             "flex items-center overflow-x-auto scrollbar-hide scroll-smooth select-none",
             isScrollDragging && "cursor-grabbing"
           )}
-          style={{ scrollBehavior: isScrollDragging ? 'auto' : 'smooth' }}
+          style={{ scrollBehavior: 'auto' }}
           onMouseDown={handleScrollMouseDown}
           onMouseMove={handleScrollMouseMove}
           onMouseUp={handleScrollMouseUp}
