@@ -155,10 +155,10 @@ export default function Login() {
             alt="Arkelium"
             className="h-24 xl:h-28 w-auto mb-10 select-none"
           />
-          <h2 className="text-[28px] xl:text-[32px] font-medium leading-[1.25] tracking-wide text-brand-gold mb-1">
+          <h2 className="text-[30px] xl:text-[32px] font-medium leading-[1.3] tracking-[0.2px] text-brand-gold mb-1">
             {t.tagline1}
           </h2>
-          <h2 className="text-[28px] xl:text-[32px] font-medium leading-[1.25] tracking-wide text-brand-gold">
+          <h2 className="text-[30px] xl:text-[32px] font-medium leading-[1.3] tracking-[0.2px] text-brand-gold">
             {t.tagline2}
           </h2>
         </div>

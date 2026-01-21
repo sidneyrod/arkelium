@@ -330,26 +330,22 @@
    Arkelium Gold Identity: #C9A24D
    ===================================================== */
 
-/* ===== DARK MODE BACKGROUND (3 Layers) ===== */
+/* ===== DARK MODE BACKGROUND (3 Layers - Organic) ===== */
 .auth-bg-dark {
-  background: 
-    /* Layer 3: Base gradient escuro profundo */
-    linear-gradient(145deg, #0a0c10 0%, #070a0e 50%, #050709 100%);
+  background: linear-gradient(135deg, #0B0F14 0%, #070A0F 70%);
   position: relative;
 }
 
-/* Golden glow + dust texture overlay - Dark */
+/* Golden glow + neutral glow overlay - Dark */
 .auth-bg-dark::before {
   content: '';
   position: absolute;
   inset: 0;
   background: 
-    /* Layer 1: Glow dourado principal vindo da esquerda */
-    radial-gradient(ellipse 60% 80% at 15% 50%, rgba(201, 162, 77, 0.14) 0%, rgba(201, 162, 77, 0.04) 40%, transparent 65%),
-    /* Layer 2: Glow secundário superior */
-    radial-gradient(circle at 8% 25%, rgba(201, 162, 77, 0.08) 0%, transparent 35%),
-    /* Layer 2.5: Highlight sutil */
-    radial-gradient(circle at 75% 15%, rgba(255, 255, 255, 0.02) 0%, transparent 30%);
+    /* Layer 1: Glow dourado esquerdo */
+    radial-gradient(circle at 22% 52%, rgba(201, 162, 77, 0.16) 0%, transparent 55%),
+    /* Layer 2: Glow neutro superior direito */
+    radial-gradient(circle at 70% 15%, rgba(255, 255, 255, 0.06) 0%, transparent 45%);
   pointer-events: none;
   z-index: 1;
 }
@@ -360,10 +356,10 @@
   position: absolute;
   inset: 0;
   background: 
-    radial-gradient(circle at 20% 80%, rgba(201, 162, 77, 0.03) 0%, transparent 20%),
+    radial-gradient(circle at 20% 80%, rgba(201, 162, 77, 0.025) 0%, transparent 20%),
     radial-gradient(circle at 60% 20%, rgba(201, 162, 77, 0.02) 0%, transparent 15%),
-    radial-gradient(circle at 80% 70%, rgba(201, 162, 77, 0.02) 0%, transparent 18%);
-  opacity: 0.8;
+    radial-gradient(circle at 85% 65%, rgba(201, 162, 77, 0.018) 0%, transparent 18%);
+  opacity: 0.9;
   pointer-events: none;
   z-index: 1;
 }
@@ -380,60 +376,57 @@
   position: absolute;
   inset: 0;
   background: 
-    radial-gradient(ellipse 60% 80% at 15% 50%, rgba(201, 162, 77, 0.12) 0%, rgba(201, 162, 77, 0.03) 40%, transparent 65%),
-    radial-gradient(circle at 8% 25%, rgba(201, 162, 77, 0.06) 0%, transparent 35%);
+    radial-gradient(circle at 22% 52%, rgba(201, 162, 77, 0.10) 0%, transparent 55%),
+    radial-gradient(circle at 70% 15%, rgba(0, 0, 0, 0.03) 0%, transparent 45%);
   pointer-events: none;
   z-index: 1;
 }
 
 /* ===== AUTH CARD - Glassmorphism Premium ===== */
 
-/* Dark Mode Card */
+/* Dark Mode Card - Floating Glass */
 .auth-card-dark {
-  background: rgba(18, 20, 26, 0.72);
+  background: rgba(20, 24, 30, 0.72);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 18px;
   box-shadow: 
-    0 32px 64px -16px rgba(0, 0, 0, 0.55),
-    0 16px 32px -8px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+    0 20px 50px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 /* Light Mode Card */
 .auth-card-light {
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 18px;
   box-shadow: 
-    0 32px 64px -16px rgba(0, 0, 0, 0.08),
-    0 16px 32px -8px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
+    0 20px 50px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
 
 /* ===== GOLD BUTTON - Premium Gradient (Both Themes) ===== */
 .gold-btn {
-  background: linear-gradient(145deg, #C9A24D 0%, #B08A3D 100%) !important;
-  color: #1a1a1a !important;
+  background: linear-gradient(180deg, #D6B86A 0%, #C9A24D 100%) !important;
+  color: #1A1A1A !important;
   font-weight: 600 !important;
   border: none !important;
-  box-shadow: 
-    0 4px 12px -2px rgba(201, 162, 77, 0.35),
-    0 2px 4px -1px rgba(201, 162, 77, 0.2);
+  box-shadow: 0 6px 18px rgba(201, 162, 77, 0.35);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .gold-btn:hover:not(:disabled) {
-  background: linear-gradient(145deg, #D4AD58 0%, #BB9548 100%) !important;
+  background: linear-gradient(180deg, #E0C374 0%, #D4AD58 100%) !important;
   transform: translateY(-1px);
-  box-shadow: 
-    0 6px 16px -2px rgba(201, 162, 77, 0.45),
-    0 3px 6px -1px rgba(201, 162, 77, 0.25);
+  box-shadow: 0 8px 24px rgba(201, 162, 77, 0.45);
 }
 
 .gold-btn:active:not(:disabled) {
   transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(201, 162, 77, 0.3);
 }
 
 .gold-btn:disabled {
@@ -468,41 +461,41 @@
   cursor: not-allowed;
 }
 
-/* ===== AUTH INPUTS - Premium Fields ===== */
+/* ===== AUTH INPUTS - Premium Dark Fields ===== */
 
 /* Dark Mode Input */
 .auth-input-dark {
-  background: rgba(8, 10, 14, 0.6) !important;
+  background: rgba(10, 14, 20, 0.55) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  color: #e5e6e8 !important;
+  color: #E6E8EB !important;
   transition: all 0.15s ease !important;
 }
 
 .auth-input-dark::placeholder {
-  color: rgba(255, 255, 255, 0.28) !important;
+  color: rgba(230, 232, 235, 0.45) !important;
 }
 
 .auth-input-dark:focus {
-  border-color: rgba(201, 162, 77, 0.4) !important;
-  box-shadow: 0 0 0 2px rgba(201, 162, 77, 0.12) !important;
+  border-color: rgba(201, 162, 77, 0.45) !important;
+  box-shadow: 0 0 0 2px rgba(201, 162, 77, 0.15) !important;
   outline: none !important;
 }
 
 /* Light Mode Input */
 .auth-input-light {
-  background: #ffffff !important;
+  background: rgba(255, 255, 255, 0.95) !important;
   border: 1px solid rgba(0, 0, 0, 0.10) !important;
   color: #1a1b21 !important;
   transition: all 0.15s ease !important;
 }
 
 .auth-input-light::placeholder {
-  color: rgba(0, 0, 0, 0.32) !important;
+  color: rgba(0, 0, 0, 0.35) !important;
 }
 
 .auth-input-light:focus {
   border-color: rgba(176, 138, 61, 0.5) !important;
-  box-shadow: 0 0 0 2px rgba(201, 162, 77, 0.10) !important;
+  box-shadow: 0 0 0 2px rgba(201, 162, 77, 0.12) !important;
   outline: none !important;
 }
 
@@ -533,9 +526,9 @@
   color: rgba(0, 0, 0, 0.8);
 }
 
-/* ===== GOLD TEXT ===== */
+/* ===== GOLD TEXT - Headline Styling ===== */
 .text-brand-gold {
-  color: #C9A24D;
+  color: #D6B86A;
 }
 
 .text-brand-gold-light {
