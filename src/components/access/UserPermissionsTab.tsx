@@ -23,9 +23,9 @@ interface UserPermissionsTabProps {
 
 const MODULE_LABELS: Record<string, string> = {
   dashboard: 'Dashboard', schedule: 'Schedule', jobs: 'Jobs / Services', completed_services: 'Completed Services',
-  payments_collections: 'Payments & Collections', ledger: 'Ledger', invoices: 'Invoices', receipts: 'Receipts',
-  activity_log: 'Activity Log', notifications: 'Notifications', company_settings: 'Company Settings',
-  access_roles: 'Access & Roles', reports: 'Reports', clients: 'Clients', contracts: 'Contracts', payroll: 'Payroll',
+  off_requests: 'Field Requests', clients: 'Clients', contracts: 'Contracts', estimates: 'Estimates',
+  invoices: 'Invoices', receipts: 'Receipts', payments_collections: 'Payments & Collections', ledger: 'Ledger',
+  payroll: 'Work & Time Tracking', activity_log: 'Activity Log', notifications: 'Notifications',
 };
 
 const ACTION_LABELS: Record<string, string> = { view: 'View', create: 'Create', edit: 'Edit', delete: 'Delete' };
