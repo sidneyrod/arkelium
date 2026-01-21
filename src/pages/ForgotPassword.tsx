@@ -99,18 +99,14 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div
-      className={`fixed inset-0 overflow-hidden ${isDark ? 'auth-bg-dark' : 'auth-bg-light'} ${isDark ? 'auth-texture' : 'auth-texture auth-texture-light'}`}
-    >
-      {/* Top right controls */}
+    <div className={`fixed inset-0 overflow-hidden ${isDark ? 'auth-bg-dark' : 'auth-bg-light'}`}>
+      {/* Top right controls - Pill buttons */}
       <div className="fixed top-6 right-6 z-20">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Select value={(language as Lang) || 'en'} onValueChange={(val: Lang) => setLanguage(val)}>
             <SelectTrigger
-              className={`w-[72px] h-10 text-sm font-medium transition-colors ${
-                isDark
-                  ? 'bg-[#1a1c22]/80 border-white/10 hover:bg-[#22242a] text-white/70'
-                  : 'bg-white/90 border-black/10 hover:bg-white text-black/70'
+              className={`w-[68px] h-9 text-[13px] font-medium rounded-lg ${
+                isDark ? 'auth-pill-dark' : 'auth-pill-light'
               }`}
             >
               <SelectValue />
@@ -124,71 +120,58 @@ export default function ForgotPassword() {
           </Select>
 
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
             onClick={toggleTheme}
-            className={`h-10 w-10 transition-colors ${
-              isDark
-                ? 'bg-[#1a1c22]/80 border-white/10 hover:bg-[#22242a] text-white/70'
-                : 'bg-white/90 border-black/10 hover:bg-white text-black/70'
-            }`}
+            className={`h-9 w-9 rounded-lg ${isDark ? 'auth-pill-dark' : 'auth-pill-light'}`}
           >
-            {isDark ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
         </div>
       </div>
 
       {/* Bottom left powered by */}
       <div
-        className={`fixed bottom-8 left-8 text-xs font-medium tracking-wide z-10 ${
-          isDark ? 'text-white/30' : 'text-black/30'
+        className={`fixed bottom-6 left-8 text-[11px] font-medium tracking-wider z-10 ${
+          isDark ? 'text-white/25' : 'text-black/25'
         }`}
       >
         {t.powered}
       </div>
 
-      {/* Main container - two columns */}
-      <div className="relative z-10 w-full h-full flex items-center justify-center px-6 lg:px-12">
-        {/* Left column - Branding (hidden on mobile/tablet) */}
-        <div className="hidden lg:flex flex-col items-start justify-center flex-1 max-w-sm xl:max-w-md pr-12 xl:pr-20">
+      {/* Main container - 40/60 grid layout */}
+      <div className="relative z-10 w-full h-full max-w-[1200px] mx-auto grid grid-cols-1 lg:grid-cols-[2fr_3fr] items-center px-6 lg:px-8">
+        
+        {/* Left column - Branding (40%) */}
+        <div className="hidden lg:flex flex-col items-start justify-center pl-4 xl:pl-8">
           <img
             src={arkeliumLogo}
             alt="Arkelium"
-            className="h-28 xl:h-32 w-auto mb-8 select-none"
+            className="h-24 xl:h-28 w-auto mb-10 select-none"
           />
-          <h2
-            className={`text-xl xl:text-2xl font-light tracking-wide mb-1 ${
-              isDark ? 'text-gold' : 'text-gold-light'
-            }`}
-          >
+          <h2 className="text-[28px] xl:text-[32px] font-medium leading-[1.25] tracking-wide text-brand-gold mb-1">
             {t.tagline1}
           </h2>
-          <h2
-            className={`text-xl xl:text-2xl font-light tracking-wide ${
-              isDark ? 'text-gold' : 'text-gold-light'
-            }`}
-          >
+          <h2 className="text-[28px] xl:text-[32px] font-medium leading-[1.25] tracking-wide text-brand-gold">
             {t.tagline2}
           </h2>
         </div>
 
-        {/* Right column - Reset Password Card */}
-        <div className="w-full max-w-[480px]">
+        {/* Right column - Reset Password Card (60%) */}
+        <div className="flex items-center justify-center lg:justify-end lg:pr-4 xl:pr-8">
           <div
-            className={`rounded-2xl p-8 sm:p-10 ${isDark ? 'auth-card-dark' : 'auth-card-light'}`}
+            className={`w-full max-w-[520px] rounded-[18px] p-9 sm:p-10 ${
+              isDark ? 'auth-card-dark' : 'auth-card-light'
+            }`}
           >
-            {/* Card Header */}
+            {/* Card Header - Logo + ARKELIUM */}
             <div className="flex flex-col items-center gap-3 mb-6">
               <img
                 src={arkeliumSymbol}
                 alt="Arkelium"
-                className="h-16 w-auto select-none"
+                className="h-14 w-auto select-none"
               />
-              <span
-                className={`text-base font-semibold tracking-[0.25em] ${
-                  isDark ? 'text-gold' : 'text-gold-light'
-                }`}
-              >
+              <span className="text-[15px] font-semibold tracking-[0.3em] text-brand-gold">
                 ARKELIUM
               </span>
             </div>
@@ -203,7 +186,7 @@ export default function ForgotPassword() {
                 {t.title}
               </h1>
               <p
-                className={`text-sm ${
+                className={`text-[14px] leading-relaxed ${
                   isDark ? 'text-white/50' : 'text-black/50'
                 }`}
               >
@@ -214,9 +197,9 @@ export default function ForgotPassword() {
             {/* Error Message */}
             {errorMsg && (
               <div
-                className={`mb-6 rounded-xl px-4 py-3 text-sm font-medium ${
+                className={`mb-6 rounded-xl px-4 py-3 text-[13px] font-medium ${
                   isDark
-                    ? 'bg-red-950/40 border border-red-900/40 text-red-300'
+                    ? 'bg-red-950/50 border border-red-900/50 text-red-300'
                     : 'bg-red-50 border border-red-200 text-red-700'
                 }`}
               >
@@ -227,9 +210,9 @@ export default function ForgotPassword() {
             {/* Success Message */}
             {successMsg && (
               <div
-                className={`mb-6 rounded-xl px-4 py-3 text-sm font-medium ${
+                className={`mb-6 rounded-xl px-4 py-3 text-[13px] font-medium ${
                   isDark
-                    ? 'bg-emerald-950/40 border border-emerald-900/40 text-emerald-300'
+                    ? 'bg-emerald-950/50 border border-emerald-900/50 text-emerald-300'
                     : 'bg-emerald-50 border border-emerald-200 text-emerald-700'
                 }`}
               >
@@ -242,8 +225,8 @@ export default function ForgotPassword() {
               {/* Email Field */}
               <div className="space-y-2">
                 <Label
-                  className={`text-sm font-medium ${
-                    isDark ? 'text-white/80' : 'text-black/80'
+                  className={`text-[13px] font-medium ${
+                    isDark ? 'text-[#C9CDD3]' : 'text-[#4a4a4a]'
                   }`}
                 >
                   {t.email}
@@ -254,7 +237,7 @@ export default function ForgotPassword() {
                   type="email"
                   autoComplete="email"
                   placeholder={t.emailPlaceholder}
-                  className={`h-12 rounded-xl text-sm ${
+                  className={`h-[46px] rounded-xl text-[14px] ${
                     isDark ? 'auth-input-dark' : 'auth-input-light'
                   }`}
                 />
@@ -264,9 +247,7 @@ export default function ForgotPassword() {
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className={`h-12 w-full rounded-xl text-sm font-semibold ${
-                  isDark ? 'dark-btn' : 'gold-btn'
-                }`}
+                className="h-[47px] w-full rounded-xl text-[14px] font-semibold gold-btn"
               >
                 {isSubmitting ? (
                   <div className="flex items-center gap-2">
@@ -278,13 +259,13 @@ export default function ForgotPassword() {
               </Button>
 
               {/* Back to Login */}
-              <div className="flex items-center justify-center">
+              <div className="flex items-center justify-center pt-1">
                 <Link
                   to="/login"
-                  className={`flex items-center gap-2 text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-2 text-[13px] font-medium transition-all duration-150 hover:underline ${
                     isDark
-                      ? 'text-gold hover:text-[#d4b46d]'
-                      : 'text-gold-light hover:text-[#9a7a3d]'
+                      ? 'text-[#C9A24D]/80 hover:text-[#C9A24D]'
+                      : 'text-[#B08A3D]/80 hover:text-[#B08A3D]'
                   }`}
                 >
                   <ArrowLeft className="h-4 w-4" />
@@ -293,14 +274,14 @@ export default function ForgotPassword() {
               </div>
 
               {/* Security Text */}
-              <div className="flex items-center justify-center gap-2 pt-2">
+              <div className="flex items-center justify-center gap-2 pt-3">
                 <span
-                  className={`h-1.5 w-1.5 rounded-full ${
-                    isDark ? 'bg-white/20' : 'bg-black/20'
+                  className={`h-[5px] w-[5px] rounded-full ${
+                    isDark ? 'bg-white/15' : 'bg-black/15'
                   }`}
                 />
                 <span
-                  className={`text-xs ${isDark ? 'text-white/35' : 'text-black/40'}`}
+                  className={`text-[11px] tracking-wide ${isDark ? 'text-white/30' : 'text-black/35'}`}
                 >
                   {t.security}
                 </span>
@@ -309,14 +290,14 @@ export default function ForgotPassword() {
               {/* Separator */}
               <div
                 className={`border-t ${
-                  isDark ? 'border-white/8' : 'border-black/8'
+                  isDark ? 'border-white/[0.06]' : 'border-black/[0.06]'
                 }`}
               />
 
               {/* Powered by */}
               <div
-                className={`text-center text-sm font-medium ${
-                  isDark ? 'text-white/40' : 'text-black/40'
+                className={`text-center text-[13px] font-medium ${
+                  isDark ? 'text-white/35' : 'text-black/35'
                 }`}
               >
                 {t.powered}

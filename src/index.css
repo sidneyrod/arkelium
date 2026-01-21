@@ -327,140 +327,223 @@
 
 /* =====================================================
    AUTHENTICATION SCREENS - Premium Enterprise Design
+   Arkelium Gold Identity: #C9A24D
    ===================================================== */
 
-/* Background with golden particle texture - Dark Mode */
+/* ===== DARK MODE BACKGROUND (3 Layers) ===== */
 .auth-bg-dark {
-  background: linear-gradient(145deg, #0a0b0e 0%, #12141a 40%, #0d0e12 100%);
+  background: 
+    /* Layer 3: Base gradient escuro profundo */
+    linear-gradient(145deg, #0a0c10 0%, #070a0e 50%, #050709 100%);
+  position: relative;
 }
 
-/* Background with golden particle texture - Light Mode */
-.auth-bg-light {
-  background: linear-gradient(145deg, #f8f9fb 0%, #f5f6f8 40%, #f2f3f5 100%);
-}
-
-/* Golden dust texture overlay */
-.auth-texture::before {
+/* Golden glow + dust texture overlay - Dark */
+.auth-bg-dark::before {
   content: '';
   position: absolute;
   inset: 0;
   background: 
-    radial-gradient(ellipse 70% 90% at 12% 55%, rgba(201, 162, 77, 0.14) 0%, rgba(201, 162, 77, 0.04) 35%, transparent 60%),
-    radial-gradient(circle at 8% 75%, rgba(201, 162, 77, 0.08) 0%, transparent 25%);
+    /* Layer 1: Glow dourado principal vindo da esquerda */
+    radial-gradient(ellipse 60% 80% at 15% 50%, rgba(201, 162, 77, 0.14) 0%, rgba(201, 162, 77, 0.04) 40%, transparent 65%),
+    /* Layer 2: Glow secundário superior */
+    radial-gradient(circle at 8% 25%, rgba(201, 162, 77, 0.08) 0%, transparent 35%),
+    /* Layer 2.5: Highlight sutil */
+    radial-gradient(circle at 75% 15%, rgba(255, 255, 255, 0.02) 0%, transparent 30%);
   pointer-events: none;
+  z-index: 1;
 }
 
-.auth-texture-light::before {
+/* Dust texture overlay - Dark */
+.auth-bg-dark::after {
+  content: '';
+  position: absolute;
+  inset: 0;
   background: 
-    radial-gradient(ellipse 70% 90% at 12% 55%, rgba(201, 162, 77, 0.22) 0%, rgba(201, 162, 77, 0.08) 35%, transparent 60%),
-    radial-gradient(circle at 8% 75%, rgba(201, 162, 77, 0.12) 0%, transparent 25%);
+    radial-gradient(circle at 20% 80%, rgba(201, 162, 77, 0.03) 0%, transparent 20%),
+    radial-gradient(circle at 60% 20%, rgba(201, 162, 77, 0.02) 0%, transparent 15%),
+    radial-gradient(circle at 80% 70%, rgba(201, 162, 77, 0.02) 0%, transparent 18%);
+  opacity: 0.8;
+  pointer-events: none;
+  z-index: 1;
 }
 
-/* Auth card - Dark Mode with glassmorphism */
+/* ===== LIGHT MODE BACKGROUND ===== */
+.auth-bg-light {
+  background: linear-gradient(145deg, #faf9f7 0%, #f5f4f2 50%, #f0efed 100%);
+  position: relative;
+}
+
+/* Golden glow overlay - Light */
+.auth-bg-light::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(ellipse 60% 80% at 15% 50%, rgba(201, 162, 77, 0.12) 0%, rgba(201, 162, 77, 0.03) 40%, transparent 65%),
+    radial-gradient(circle at 8% 25%, rgba(201, 162, 77, 0.06) 0%, transparent 35%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ===== AUTH CARD - Glassmorphism Premium ===== */
+
+/* Dark Mode Card */
 .auth-card-dark {
-  background: rgba(22, 24, 30, 0.88);
+  background: rgba(18, 20, 26, 0.72);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow: 
-    0 32px 64px -16px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+    0 32px 64px -16px rgba(0, 0, 0, 0.55),
+    0 16px 32px -8px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
 }
 
-/* Auth card - Light Mode */
+/* Light Mode Card */
 .auth-card-light {
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1px solid rgba(0, 0, 0, 0.06);
   box-shadow: 
-    0 24px 48px -12px rgba(0, 0, 0, 0.1),
-    0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+    0 32px 64px -16px rgba(0, 0, 0, 0.08),
+    0 16px 32px -8px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
 }
 
-/* Gold gradient button (Light Mode) */
+/* ===== GOLD BUTTON - Premium Gradient (Both Themes) ===== */
 .gold-btn {
-  background: linear-gradient(145deg, #c9a962 0%, #a88a4f 100%);
-  color: #1a1b21;
-  font-weight: 600;
-  border: none;
-  box-shadow: 0 4px 12px -2px rgba(201, 162, 77, 0.35);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(145deg, #C9A24D 0%, #B08A3D 100%) !important;
+  color: #1a1a1a !important;
+  font-weight: 600 !important;
+  border: none !important;
+  box-shadow: 
+    0 4px 12px -2px rgba(201, 162, 77, 0.35),
+    0 2px 4px -1px rgba(201, 162, 77, 0.2);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-.gold-btn:hover {
-  background: linear-gradient(145deg, #d4b46d 0%, #b3945a 100%);
+.gold-btn:hover:not(:disabled) {
+  background: linear-gradient(145deg, #D4AD58 0%, #BB9548 100%) !important;
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px -2px rgba(201, 162, 77, 0.45);
+  box-shadow: 
+    0 6px 16px -2px rgba(201, 162, 77, 0.45),
+    0 3px 6px -1px rgba(201, 162, 77, 0.25);
 }
 
-.gold-btn:active {
+.gold-btn:active:not(:disabled) {
   transform: translateY(0);
 }
 
-/* Dark gradient button (Dark Mode) */
+.gold-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* ===== DARK BUTTON - Premium Gray (Dark Theme Alternative) ===== */
 .dark-btn {
-  background: linear-gradient(145deg, #2a2c33 0%, #1f2126 100%);
-  color: #e5e6e8;
-  font-weight: 600;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.5);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(145deg, #2a2c33 0%, #1f2126 100%) !important;
+  color: #e5e6e8 !important;
+  font-weight: 600 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 
+    0 4px 12px -4px rgba(0, 0, 0, 0.5),
+    0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-.dark-btn:hover {
-  background: linear-gradient(145deg, #35373f 0%, #2a2c33 100%);
-  border-color: rgba(255, 255, 255, 0.12);
+.dark-btn:hover:not(:disabled) {
+  background: linear-gradient(145deg, #35373f 0%, #2a2c33 100%) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
   transform: translateY(-1px);
 }
 
-.dark-btn:active {
+.dark-btn:active:not(:disabled) {
   transform: translateY(0);
 }
 
-/* Gold text color */
-.text-gold {
-  color: #c9a962;
+.dark-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
-.text-gold-light {
-  color: #b08a45;
-}
+/* ===== AUTH INPUTS - Premium Fields ===== */
 
-/* Gold checkbox styling */
-.gold-checkbox[data-state="checked"] {
-  background: linear-gradient(145deg, #c9a962 0%, #a88a4f 100%) !important;
-  border-color: #c9a962 !important;
-}
-
-/* Auth input styling - Dark */
+/* Dark Mode Input */
 .auth-input-dark {
-  background: rgba(10, 11, 14, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #e5e6e8;
+  background: rgba(8, 10, 14, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #e5e6e8 !important;
+  transition: all 0.15s ease !important;
 }
 
 .auth-input-dark::placeholder {
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.28) !important;
 }
 
 .auth-input-dark:focus {
-  border-color: rgba(201, 162, 77, 0.5);
-  box-shadow: 0 0 0 3px rgba(201, 162, 77, 0.1);
+  border-color: rgba(201, 162, 77, 0.4) !important;
+  box-shadow: 0 0 0 2px rgba(201, 162, 77, 0.12) !important;
+  outline: none !important;
 }
 
-/* Auth input styling - Light */
+/* Light Mode Input */
 .auth-input-light {
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  color: #1a1b21;
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.10) !important;
+  color: #1a1b21 !important;
+  transition: all 0.15s ease !important;
 }
 
 .auth-input-light::placeholder {
-  color: rgba(0, 0, 0, 0.35);
+  color: rgba(0, 0, 0, 0.32) !important;
 }
 
 .auth-input-light:focus {
-  border-color: rgba(176, 138, 69, 0.6);
-  box-shadow: 0 0 0 3px rgba(201, 162, 77, 0.12);
+  border-color: rgba(176, 138, 61, 0.5) !important;
+  box-shadow: 0 0 0 2px rgba(201, 162, 77, 0.10) !important;
+  outline: none !important;
+}
+
+/* ===== PILL BUTTONS - Top Right Controls ===== */
+.auth-pill-dark {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+  transition: all 0.15s ease;
+}
+
+.auth-pill-dark:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.auth-pill-light {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.6);
+  transition: all 0.15s ease;
+}
+
+.auth-pill-light:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: rgba(0, 0, 0, 0.8);
+}
+
+/* ===== GOLD TEXT ===== */
+.text-brand-gold {
+  color: #C9A24D;
+}
+
+.text-brand-gold-light {
+  color: #B08A3D;
+}
+
+/* ===== GOLD CHECKBOX ===== */
+.gold-checkbox[data-state="checked"] {
+  background: linear-gradient(145deg, #C9A24D 0%, #B08A3D 100%) !important;
+  border-color: #C9A24D !important;
 }
