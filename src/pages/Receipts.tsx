@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import PageHeader from '@/components/ui/page-header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -218,129 +216,129 @@ const Receipts = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      {/* Consolidated Header: KPIs inline + PeriodSelector + Search + Generate Button */}
+      {/* Single Consolidated Row: Search + KPIs + DatePicker + Button */}
       <div className="flex items-center gap-2 flex-wrap">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <div className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 min-w-0">
-            <Receipt className="h-4 w-4 text-primary shrink-0" />
-            <span className="text-xs text-muted-foreground">Total:</span>
-            <span className="font-semibold">{filteredReceipts.length}</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-success/10 border border-success/20 min-w-0">
-            <DollarSign className="h-4 w-4 text-success shrink-0" />
-            <span className="text-xs text-muted-foreground">Amount:</span>
-            <span className="font-semibold">${totalAmount.toFixed(0)}</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20 min-w-0">
-            <Mail className="h-4 w-4 text-blue-500 shrink-0" />
-            <span className="text-xs text-muted-foreground">Sent:</span>
-            <span className="font-semibold">{sentCount}/{filteredReceipts.length}</span>
-          </div>
-        </div>
-        <PeriodSelector value={dateRange} onChange={setDateRange} />
-      </div>
-
-      {/* Consolidated Actions: Search + Generate Button */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 max-w-[280px]">
+        {/* Search Input */}
+        <div className="relative w-full sm:w-48">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search receipts..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 h-9"
+            className="pl-9 h-8"
           />
         </div>
-        <div className="flex-1" />
-        <Button onClick={() => setGenerateModalOpen(true)} size="sm" className="gap-2">
+
+        {/* Inline KPIs with flex-1 (neutral style like Invoices) */}
+        <div className="flex items-center gap-2 flex-1">
+          <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+            <Receipt className="h-3.5 w-3.5 text-primary shrink-0" />
+            <span className="text-[10px] text-muted-foreground">Total</span>
+            <span className="font-semibold text-sm">{filteredReceipts.length}</span>
+          </div>
+          
+          <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+            <DollarSign className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+            <span className="text-[10px] text-muted-foreground">Amount</span>
+            <span className="font-semibold text-sm">${totalAmount.toFixed(2)}</span>
+          </div>
+          
+          <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+            <Mail className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+            <span className="text-[10px] text-muted-foreground">Sent</span>
+            <span className="font-semibold text-sm">{sentCount}/{filteredReceipts.length}</span>
+          </div>
+        </div>
+
+        {/* Date Filter */}
+        <PeriodSelector value={dateRange} onChange={setDateRange} className="shrink-0" />
+        
+        {/* Generate Button */}
+        <Button onClick={() => setGenerateModalOpen(true)} size="sm" className="gap-1.5 h-8">
           <Plus className="h-4 w-4" />
           Generate Receipt
         </Button>
       </div>
 
       {/* Receipts Table */}
-      <Card>
-        <CardContent className="pt-4">
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-            </div>
-          ) : filteredReceipts.length === 0 ? (
-            <div className="text-center py-12">
-              <Receipt className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No receipts found for this period</p>
-            </div>
-          ) : (
-            <div className="rounded-xl border border-border/50 overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Receipt #</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Client</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Cleaner</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Service Date</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Method</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Total</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Status</TableHead>
-                    <TableHead className="w-10"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredReceipts.map((receipt) => (
-                    <TableRow 
-                      key={receipt.id} 
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => handleViewReceipt(receipt)}
-                    >
-                      <TableCell className="font-mono font-medium">{receipt.receipt_number}</TableCell>
-                      <TableCell>{receipt.client_name}</TableCell>
-                      <TableCell className="hidden md:table-cell">{receipt.cleaner_name}</TableCell>
-                      <TableCell>{format(new Date(receipt.service_date), 'MMM d, yyyy')}</TableCell>
-                      <TableCell className="hidden sm:table-cell">{getPaymentMethodBadge(receipt.payment_method)}</TableCell>
-                      <TableCell className="font-medium">${receipt.total.toFixed(2)}</TableCell>
-                      <TableCell className="hidden sm:table-cell">
-                        <Badge variant={receipt.sent_at ? 'default' : 'secondary'}>
-                          {receipt.sent_at ? 'Sent' : 'Pending'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewReceipt(receipt); }}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewPdf(receipt); }}>
-                              <FileText className="h-4 w-4 mr-2" />
-                              View PDF
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDownloadReceipt(receipt); }}>
-                              <Download className="h-4 w-4 mr-2" />
-                              Download
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={(e) => { e.stopPropagation(); handleSendEmail(receipt); }}
-                              disabled={!receipt.client_email || sendingEmail}
-                            >
-                              <Mail className="h-4 w-4 mr-2" />
-                              {receipt.sent_at ? 'Resend Email' : 'Send Email'}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {loading ? (
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        </div>
+      ) : filteredReceipts.length === 0 ? (
+        <div className="text-center py-12">
+          <Receipt className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">No receipts found for this period</p>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-border/50 overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="text-xs font-semibold uppercase tracking-wider">Receipt #</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider">Client</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Cleaner</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider">Service Date</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Method</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider">Total</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Status</TableHead>
+                <TableHead className="w-10"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredReceipts.map((receipt) => (
+                <TableRow 
+                  key={receipt.id} 
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleViewReceipt(receipt)}
+                >
+                  <TableCell className="font-mono font-medium">{receipt.receipt_number}</TableCell>
+                  <TableCell>{receipt.client_name}</TableCell>
+                  <TableCell className="hidden md:table-cell">{receipt.cleaner_name}</TableCell>
+                  <TableCell>{format(new Date(receipt.service_date), 'MMM d, yyyy')}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{getPaymentMethodBadge(receipt.payment_method)}</TableCell>
+                  <TableCell className="font-medium">${receipt.total.toFixed(2)}</TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    <Badge variant={receipt.sent_at ? 'default' : 'secondary'}>
+                      {receipt.sent_at ? 'Sent' : 'Pending'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewReceipt(receipt); }}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewPdf(receipt); }}>
+                          <FileText className="h-4 w-4 mr-2" />
+                          View PDF
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDownloadReceipt(receipt); }}>
+                          <Download className="h-4 w-4 mr-2" />
+                          Download
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={(e) => { e.stopPropagation(); handleSendEmail(receipt); }}
+                          disabled={!receipt.client_email || sendingEmail}
+                        >
+                          <Mail className="h-4 w-4 mr-2" />
+                          {receipt.sent_at ? 'Resend Email' : 'Send Email'}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       {/* View Receipt Modal */}
       <ViewReceiptModal
