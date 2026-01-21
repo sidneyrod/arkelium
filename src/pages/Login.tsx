@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Moon, Sun } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Eye, EyeOff, Settings, ChevronDown } from 'lucide-react';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -24,8 +24,8 @@ import arkeliumSymbol from '@/assets/arkelium-symbol.png';
 type Lang = 'en' | 'fr';
 
 export default function Login() {
-  const auth = useAuth();
   const navigate = useNavigate();
+  const auth = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage } = useLanguage();
 
@@ -33,7 +33,9 @@ export default function Login() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => {
+    return localStorage.getItem('arkelium_remember_me') === 'true';
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -41,12 +43,14 @@ export default function Login() {
   const t = useMemo(() => {
     const dict = {
       en: {
+        title: 'Sign in to your account',
+        subtitle: 'Enter your credentials to access the platform',
         email: 'Email',
-        password: 'Password',
         emailPlaceholder: 'name@company.com',
+        password: 'Password',
         passwordPlaceholder: 'Enter your password',
-        remember: 'Remember me',
-        help: 'Need help accessing your account?',
+        rememberMe: 'Remember me',
+        forgotLink: 'Need help accessing your account?',
         button: 'Sign in to Arkelium',
         security: 'Protected by enterprise-grade security and audit controls',
         powered: 'Powered by Arkelium',
@@ -54,15 +58,17 @@ export default function Login() {
         tagline2: '& Financial Control',
         invalidEmail: 'Please enter a valid email address.',
         invalidPassword: 'Password is required.',
-        loginFailed: 'Invalid email or password.',
+        failed: 'Invalid email or password. Please try again.',
       },
       fr: {
+        title: 'Connectez-vous à votre compte',
+        subtitle: 'Entrez vos identifiants pour accéder à la plateforme',
         email: 'E-mail',
-        password: 'Mot de passe',
         emailPlaceholder: 'nom@entreprise.com',
+        password: 'Mot de passe',
         passwordPlaceholder: 'Entrez votre mot de passe',
-        remember: 'Se souvenir de moi',
-        help: "Besoin d'aide pour accéder à votre compte ?",
+        rememberMe: 'Se souvenir de moi',
+        forgotLink: "Besoin d'aide pour accéder à votre compte ?",
         button: 'Se connecter à Arkelium',
         security: "Protégé par une sécurité et des contrôles d'audit de niveau entreprise",
         powered: 'Propulsé par Arkelium',
@@ -70,7 +76,7 @@ export default function Login() {
         tagline2: '& Contrôle Financier',
         invalidEmail: 'Veuillez saisir une adresse e-mail valide.',
         invalidPassword: 'Le mot de passe est requis.',
-        loginFailed: 'E-mail ou mot de passe invalide.',
+        failed: 'E-mail ou mot de passe invalide. Réessayez.',
       },
     } satisfies Record<Lang, Record<string, string>>;
 
@@ -93,12 +99,12 @@ export default function Login() {
 
     setIsSubmitting(true);
     try {
-      localStorage.setItem('arkelium_remember_me', rememberMe ? 'true' : 'false');
+      localStorage.setItem('arkelium_remember_me', String(rememberMe));
       await (auth as any).login(emailTrim, password);
       navigate('/');
-    } catch (err: any) {
+    } catch (err) {
       console.error('[Login] login error:', err);
-      setErrorMsg(t.loginFailed);
+      setErrorMsg(t.failed);
     } finally {
       setIsSubmitting(false);
     }
@@ -106,16 +112,18 @@ export default function Login() {
 
   return (
     <div className={`fixed inset-0 overflow-hidden ${isDark ? 'auth-bg-dark' : 'auth-bg-light'}`}>
-      {/* Top right controls - Pill buttons */}
+      {/* Top right controls */}
       <div className="fixed top-6 right-6 z-20">
         <div className="flex items-center gap-2">
+          {/* Language selector */}
           <Select value={(language as Lang) || 'en'} onValueChange={(val: Lang) => setLanguage(val)}>
             <SelectTrigger
-              className={`w-[68px] h-9 text-[13px] font-medium rounded-lg ${
+              className={`w-[72px] h-9 text-[13px] font-medium rounded-lg gap-1 ${
                 isDark ? 'auth-pill-dark' : 'auth-pill-light'
               }`}
             >
               <SelectValue />
+              <ChevronDown className="h-3.5 w-3.5 opacity-50" />
             </SelectTrigger>
             <SelectContent
               className={isDark ? 'bg-[#1a1c22] border-white/10' : 'bg-white border-black/10'}
@@ -125,13 +133,14 @@ export default function Login() {
             </SelectContent>
           </Select>
 
+          {/* Settings/Theme toggle */}
           <Button
             variant="ghost"
             size="icon"
             onClick={toggleTheme}
             className={`h-9 w-9 rounded-lg ${isDark ? 'auth-pill-dark' : 'auth-pill-light'}`}
           >
-            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            <Settings className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -139,56 +148,74 @@ export default function Login() {
       {/* Bottom left powered by */}
       <div
         className={`fixed bottom-6 left-8 text-[11px] font-medium tracking-wider z-10 ${
-          isDark ? 'text-white/25' : 'text-black/25'
+          isDark ? 'auth-powered-dark' : 'auth-powered-light'
         }`}
       >
         {t.powered}
       </div>
 
-      {/* Main container - 40/60 grid layout */}
-      <div className="relative z-10 w-full h-full max-w-[1200px] mx-auto grid grid-cols-1 lg:grid-cols-[2fr_3fr] items-center px-6 lg:px-8">
+      {/* Main container */}
+      <div className="relative z-10 w-full h-full max-w-[1280px] mx-auto grid grid-cols-1 lg:grid-cols-[2fr_3fr] items-center px-6 lg:px-10">
         
-        {/* Left column - Branding (40%) */}
-        <div className="hidden lg:flex flex-col items-start justify-center pl-4 xl:pl-8">
+        {/* Left column - Branding */}
+        <div className="hidden lg:flex flex-col items-start justify-center pl-4 xl:pl-6">
+          {/* Logo */}
           <img
             src={arkeliumLogo}
             alt="Arkelium"
-            className="h-24 xl:h-28 w-auto mb-10 select-none"
+            className="h-20 xl:h-24 w-auto mb-10 select-none filter-gold"
           />
-          <h2 className="text-[30px] xl:text-[32px] font-medium leading-[1.3] tracking-[0.2px] text-brand-gold mb-1">
+          {/* Tagline */}
+          <h2 className="auth-tagline text-brand-gold mb-1 opacity-85">
             {t.tagline1}
           </h2>
-          <h2 className="text-[30px] xl:text-[32px] font-medium leading-[1.3] tracking-[0.2px] text-brand-gold">
+          <h2 className="auth-tagline text-brand-gold opacity-85">
             {t.tagline2}
           </h2>
         </div>
 
-        {/* Right column - Login Card (60%) */}
+        {/* Right column - Login Card */}
         <div className="flex items-center justify-center lg:justify-end lg:pr-4 xl:pr-8">
           <div
-            className={`w-full max-w-[520px] rounded-[18px] p-9 sm:p-10 ${
+            className={`w-full max-w-[480px] rounded-[20px] p-8 sm:p-10 auth-card-animate ${
               isDark ? 'auth-card-dark' : 'auth-card-light'
             }`}
           >
             {/* Card Header - Logo + ARKELIUM */}
-            <div className="flex flex-col items-center gap-3 mb-8">
+            <div className="flex flex-col items-center gap-3 mb-7">
               <img
                 src={arkeliumSymbol}
                 alt="Arkelium"
-                className="h-14 w-auto select-none"
+                className="h-12 w-auto select-none filter-gold"
               />
-              <span className="text-[15px] font-semibold tracking-[0.3em] text-brand-gold">
+              <span className="auth-brand-text text-brand-gold">
                 ARKELIUM
               </span>
+            </div>
+
+            {/* Title & Subtitle */}
+            <div className="text-center mb-7">
+              <h1
+                className={`text-lg font-semibold mb-1.5 ${
+                  isDark ? 'text-[#E7EAF0]' : 'text-[#1A1A1A]'
+                }`}
+              >
+                {t.title}
+              </h1>
+              <p
+                className={`text-[13px] leading-relaxed ${
+                  isDark ? 'text-[#9AA3AF]' : 'text-[#6B7280]'
+                }`}
+              >
+                {t.subtitle}
+              </p>
             </div>
 
             {/* Error Message */}
             {errorMsg && (
               <div
-                className={`mb-6 rounded-xl px-4 py-3 text-[13px] font-medium ${
-                  isDark
-                    ? 'bg-red-950/50 border border-red-900/50 text-red-300'
-                    : 'bg-red-50 border border-red-200 text-red-700'
+                className={`mb-5 rounded-xl px-4 py-3 text-[13px] font-medium ${
+                  isDark ? 'auth-alert-error-dark' : 'auth-alert-error-light'
                 }`}
               >
                 {errorMsg}
@@ -199,11 +226,7 @@ export default function Login() {
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email Field */}
               <div className="space-y-2">
-                <Label
-                  className={`text-[13px] font-medium ${
-                    isDark ? 'text-[#C9CDD3]' : 'text-[#4a4a4a]'
-                  }`}
-                >
+                <Label className={isDark ? 'auth-label-dark' : 'auth-label-light'}>
                   {t.email}
                 </Label>
                 <Input
@@ -212,19 +235,13 @@ export default function Login() {
                   type="email"
                   autoComplete="email"
                   placeholder={t.emailPlaceholder}
-                  className={`h-[46px] rounded-xl text-[14px] ${
-                    isDark ? 'auth-input-dark' : 'auth-input-light'
-                  }`}
+                  className={isDark ? 'auth-input-dark' : 'auth-input-light'}
                 />
               </div>
 
               {/* Password Field */}
               <div className="space-y-2">
-                <Label
-                  className={`text-[13px] font-medium ${
-                    isDark ? 'text-[#C9CDD3]' : 'text-[#4a4a4a]'
-                  }`}
-                >
+                <Label className={isDark ? 'auth-label-dark' : 'auth-label-light'}>
                   {t.password}
                 </Label>
                 <div className="relative">
@@ -234,18 +251,15 @@ export default function Login() {
                     type={showPassword ? 'text' : 'password'}
                     autoComplete="current-password"
                     placeholder={t.passwordPlaceholder}
-                    className={`h-[46px] rounded-xl text-[14px] pr-12 ${
-                      isDark ? 'auth-input-dark' : 'auth-input-light'
-                    }`}
+                    className={`pr-11 ${isDark ? 'auth-input-dark' : 'auth-input-light'}`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className={`absolute right-4 top-1/2 -translate-y-1/2 transition-colors ${
-                      isDark
-                        ? 'text-white/35 hover:text-white/60'
-                        : 'text-black/35 hover:text-black/60'
+                    className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 ${
+                      isDark ? 'auth-eye-btn-dark' : 'auth-eye-btn-light'
                     }`}
+                    tabIndex={-1}
                   >
                     {showPassword ? (
                       <EyeOff className="h-[18px] w-[18px]" />
@@ -256,37 +270,29 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* Remember Me & Help Link */}
+              {/* Remember me + Forgot link */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <Checkbox
                     id="remember"
                     checked={rememberMe}
                     onCheckedChange={(checked) => setRememberMe(checked === true)}
-                    className={`h-[18px] w-[18px] rounded-[4px] border-[1.5px] transition-colors gold-checkbox ${
-                      isDark
-                        ? 'border-white/20'
-                        : 'border-black/20'
-                    }`}
+                    className={isDark ? 'auth-checkbox-dark' : 'auth-checkbox-light'}
                   />
                   <label
                     htmlFor="remember"
-                    className={`text-[13px] cursor-pointer select-none ${
-                      isDark ? 'text-white/55' : 'text-black/55'
+                    className={`text-[13px] font-medium cursor-pointer select-none ${
+                      isDark ? 'text-[#9AA3AF]' : 'text-[#5A5A5A]'
                     }`}
                   >
-                    {t.remember}
+                    {t.rememberMe}
                   </label>
                 </div>
                 <Link
                   to="/forgot-password"
-                  className={`text-[13px] font-medium transition-all duration-150 hover:underline ${
-                    isDark
-                      ? 'text-[#C9A24D]/80 hover:text-[#C9A24D]'
-                      : 'text-[#B08A3D]/80 hover:text-[#B08A3D]'
-                  }`}
+                  className={isDark ? 'auth-help-link-dark' : 'auth-help-link-light'}
                 >
-                  {t.help}
+                  {t.forgotLink}
                 </Link>
               </div>
 
@@ -294,7 +300,7 @@ export default function Login() {
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="h-[47px] w-full rounded-xl text-[14px] font-semibold gold-btn"
+                className={`w-full ${isDark ? 'auth-btn-dark' : 'auth-btn-light'}`}
               >
                 {isSubmitting ? (
                   <div className="flex items-center gap-2">
@@ -306,14 +312,16 @@ export default function Login() {
               </Button>
 
               {/* Security Text */}
-              <div className="flex items-center justify-center gap-2 pt-3">
+              <div className="flex items-center justify-center gap-2 pt-2">
                 <span
                   className={`h-[5px] w-[5px] rounded-full ${
-                    isDark ? 'bg-white/15' : 'bg-black/15'
+                    isDark ? 'bg-white/10' : 'bg-black/10'
                   }`}
                 />
                 <span
-                  className={`text-[11px] tracking-wide ${isDark ? 'text-white/30' : 'text-black/35'}`}
+                  className={`text-[11px] tracking-wide ${
+                    isDark ? 'auth-muted-dark' : 'auth-muted-light'
+                  }`}
                 >
                   {t.security}
                 </span>
@@ -322,14 +330,14 @@ export default function Login() {
               {/* Separator */}
               <div
                 className={`border-t ${
-                  isDark ? 'border-white/[0.06]' : 'border-black/[0.06]'
+                  isDark ? 'auth-separator-dark' : 'auth-separator-light'
                 }`}
               />
 
               {/* Powered by */}
               <div
                 className={`text-center text-[13px] font-medium ${
-                  isDark ? 'text-white/35' : 'text-black/35'
+                  isDark ? 'text-white/30' : 'text-black/30'
                 }`}
               >
                 {t.powered}
