@@ -275,7 +275,7 @@ const BaseRolesTab = ({ onUpdate }: BaseRolesTabProps) => {
 
       {/* Edit/Create Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {editingRole ? 'Edit Access Level' : 'Create Access Level'}
