@@ -342,56 +342,60 @@ const CompletedServices = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      {/* Consolidated Header: KPIs inline + PeriodSelector */}
+      {/* Single-Line Header: Cards → Search → Date Filter → Select All → Generate */}
       <div className="flex items-center gap-2 flex-wrap">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <div className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-success/10 border border-success/20 min-w-0">
-            <CheckCircle className="h-4 w-4 text-success shrink-0" />
-            <span className="text-xs text-muted-foreground">Pending:</span>
-            <span className="font-semibold">{pagination.totalCount}</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 min-w-0">
-            <FileText className="h-4 w-4 text-primary shrink-0" />
-            <span className="text-xs text-muted-foreground">Selected:</span>
-            <span className="font-semibold">{selectedCount}</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-info/10 border border-info/20 min-w-0">
-            <DollarSign className="h-4 w-4 text-info shrink-0" />
-            <span className="text-xs text-muted-foreground">Est. Total:</span>
-            <span className="font-semibold">${estimatedTotal.toFixed(0)}</span>
-          </div>
-        </div>
-        <PeriodSelector value={period} onChange={setPeriod} />
-      </div>
-
-      {/* Consolidated Actions: Select All + Search + Generate Button */}
-      <div className="flex items-center gap-3 flex-wrap">
+        {/* 1. KPI Badges (Cards) */}
         <div className="flex items-center gap-2">
-          <Checkbox 
-            checked={selectedServices.length === services.length && services.length > 0}
-            onCheckedChange={handleSelectAll}
-          />
-          <span className="text-sm text-muted-foreground">Select All</span>
+          <div className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+            <CheckCircle className="h-3.5 w-3.5 text-success shrink-0" />
+            <span className="text-[10px] text-muted-foreground">Pending:</span>
+            <span className="font-semibold text-sm">{pagination.totalCount}</span>
+          </div>
+          <div className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+            <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
+            <span className="text-[10px] text-muted-foreground">Selected:</span>
+            <span className="font-semibold text-sm">{selectedCount}</span>
+          </div>
+          <div className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+            <DollarSign className="h-3.5 w-3.5 text-info shrink-0" />
+            <span className="text-[10px] text-muted-foreground">Est. Total:</span>
+            <span className="font-semibold text-sm">${estimatedTotal.toFixed(0)}</span>
+          </div>
         </div>
-        <div className="flex-1" />
+
+        {/* 2. Search Input */}
         <SearchInput 
           placeholder="Search services..."
           value={search}
           onChange={setSearch}
-          className="w-64"
+          className="w-48"
         />
+
+        {/* 3. Period Selector (Date Filter) */}
+        <PeriodSelector value={period} onChange={setPeriod} />
+
+        {/* 4. Select All */}
+        <div className="flex items-center gap-1.5">
+          <Checkbox 
+            checked={selectedServices.length === services.length && services.length > 0}
+            onCheckedChange={handleSelectAll}
+          />
+          <span className="text-xs text-muted-foreground whitespace-nowrap">Select All</span>
+        </div>
+
+        {/* 5. Generate Button */}
         {isAdmin ? (
           <Button 
             onClick={() => setShowGenerateDialog(true)}
             disabled={selectedServices.length === 0}
-            className="gap-2"
+            className="gap-1.5 h-8"
             size="sm"
           >
             <Receipt className="h-4 w-4" />
             Generate ({selectedCount})
           </Button>
         ) : (
-          <div className="text-xs text-muted-foreground bg-muted px-3 py-2 rounded-md">
+          <div className="text-xs text-muted-foreground bg-muted px-2.5 py-1.5 rounded-md whitespace-nowrap">
             Only admins can generate
           </div>
         )}
