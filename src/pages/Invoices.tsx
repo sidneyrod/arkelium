@@ -5,13 +5,13 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
 import { notifyInvoicePaid } from '@/hooks/useNotifications';
-import PageHeader from '@/components/ui/page-header';
+
 import SearchInput from '@/components/ui/search-input';
 import PaginatedDataTable, { Column } from '@/components/ui/paginated-data-table';
 import { useServerPagination } from '@/hooks/useServerPagination';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { toast } from '@/hooks/use-toast';
@@ -466,81 +466,19 @@ const Invoices = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      <PageHeader 
-        title="Invoices"
-        description="Manage invoices for completed cleaning services"
-      />
-
-      {/* Stats Cards */}
-      <div className="grid gap-2.5 md:grid-cols-4">
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Total Invoices</p>
-                <p className="text-xl font-bold">{stats.total}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
-                <CheckCircle className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Paid</p>
-                <p className="text-xl font-bold">{stats.paid}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
-                <Clock className="h-5 w-5 text-warning" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Pending</p>
-                <p className="text-xl font-bold">{stats.pending}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-emerald-500" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Revenue (Paid)</p>
-                <p className="text-xl font-bold">${stats.totalRevenue.toFixed(2)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
+      {/* Inline KPIs + Filters */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Search Input */}
         <SearchInput
           placeholder="Search invoices..."
           value={search}
           onChange={setSearch}
-          className="w-full sm:max-w-xs"
+          className="w-full sm:w-48"
         />
         
+        {/* Status Filter */}
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-[130px] h-8">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -553,7 +491,35 @@ const Invoices = () => {
           </SelectContent>
         </Select>
 
-        <PeriodSelector value={dateRange} onChange={handleDateRangeChange} />
+        {/* Inline KPIs */}
+        <div className="flex items-center gap-2 flex-1">
+          <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+            <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
+            <span className="text-[10px] text-muted-foreground">Total</span>
+            <span className="font-semibold text-sm">{stats.total}</span>
+          </div>
+          
+          <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+            <CheckCircle className="h-3.5 w-3.5 text-success shrink-0" />
+            <span className="text-[10px] text-muted-foreground">Paid</span>
+            <span className="font-semibold text-sm">{stats.paid}</span>
+          </div>
+          
+          <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+            <Clock className="h-3.5 w-3.5 text-warning shrink-0" />
+            <span className="text-[10px] text-muted-foreground">Pending</span>
+            <span className="font-semibold text-sm">{stats.pending}</span>
+          </div>
+          
+          <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+            <DollarSign className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+            <span className="text-[10px] text-muted-foreground">Revenue</span>
+            <span className="font-semibold text-sm">${stats.totalRevenue.toFixed(2)}</span>
+          </div>
+        </div>
+
+        {/* Date Filter */}
+        <PeriodSelector value={dateRange} onChange={handleDateRangeChange} className="shrink-0" />
       </div>
 
       {/* Data Table with Pagination */}
