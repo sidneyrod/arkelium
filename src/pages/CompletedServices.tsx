@@ -345,18 +345,18 @@ const CompletedServices = () => {
       {/* Single-Line Header: Cards → Search → Date Filter → Select All → Generate */}
       <div className="flex items-center gap-2 flex-wrap">
         {/* 1. KPI Badges (Cards) */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+        <div className="flex items-center gap-2 flex-1">
+          <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
             <CheckCircle className="h-3.5 w-3.5 text-success shrink-0" />
             <span className="text-[10px] text-muted-foreground">Pending:</span>
             <span className="font-semibold text-sm">{pagination.totalCount}</span>
           </div>
-          <div className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+          <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
             <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
             <span className="text-[10px] text-muted-foreground">Selected:</span>
             <span className="font-semibold text-sm">{selectedCount}</span>
           </div>
-          <div className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
+          <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
             <DollarSign className="h-3.5 w-3.5 text-info shrink-0" />
             <span className="text-[10px] text-muted-foreground">Est. Total:</span>
             <span className="font-semibold text-sm">${estimatedTotal.toFixed(0)}</span>
