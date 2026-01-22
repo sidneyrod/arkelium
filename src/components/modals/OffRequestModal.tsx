@@ -298,7 +298,7 @@ const OffRequestModal = ({ open, onOpenChange, onSubmit, employeeName }: OffRequ
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CalendarOff className="h-5 w-5 text-primary" />
@@ -306,51 +306,70 @@ const OffRequestModal = ({ open, onOpenChange, onSubmit, employeeName }: OffRequ
           </DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           {employeeName && (
-            <div className="p-3 rounded-lg bg-muted/50">
-              <p className="text-sm text-muted-foreground">
-                {isEnglish ? 'Requesting for' : 'Solicitante'}
-              </p>
-              <p className="font-medium">{employeeName}</p>
+            <div className="p-2 rounded-lg bg-muted/50">
+              <p className="text-xs text-muted-foreground">{isEnglish ? 'Requesting for' : 'Solicitante'}</p>
+              <p className="text-sm font-medium">{employeeName}</p>
             </div>
           )}
           
-          {/* Duration Type (Day Off / Multi-Day / Non-Consecutive / Full Month) */}
-          <div className="space-y-2">
-            <Label className="font-semibold">
-              {isEnglish ? 'Request Type' : 'Tipo de Solicitação'} *
-            </Label>
-            <Select value={durationType} onValueChange={(v) => handleDurationTypeChange(v as OffRequestDurationType)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(durationTypeConfig).map(([key, config]) => {
-                  const Icon = config.icon;
-                  return (
-                    <SelectItem key={key} value={key}>
-                      <div className="flex items-center gap-2">
-                        <Icon className="h-4 w-4" />
-                        <div className="flex flex-col">
+          {/* Duration Type + Reason in grid */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            {/* Duration Type */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">
+                {isEnglish ? 'Request Type' : 'Tipo de Solicitação'} *
+              </Label>
+              <Select value={durationType} onValueChange={(v) => handleDurationTypeChange(v as OffRequestDurationType)}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(durationTypeConfig).map(([key, config]) => {
+                    const Icon = config.icon;
+                    return (
+                      <SelectItem key={key} value={key}>
+                        <div className="flex items-center gap-2">
+                          <Icon className="h-4 w-4" />
                           <span>{isEnglish ? config.label : config.labelPt}</span>
                         </div>
-                      </div>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              {isEnglish 
-                ? durationTypeConfig[durationType].description 
-                : durationTypeConfig[durationType].descriptionPt}
-            </p>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Reason Type */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">
+                {isEnglish ? 'Reason' : 'Motivo'} *
+              </Label>
+              <Select value={reasonType} onValueChange={(v) => setReasonType(v as OffRequestReasonType)}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(reasonTypeConfig).map(([key, config]) => {
+                    const Icon = config.icon;
+                    return (
+                      <SelectItem key={key} value={key}>
+                        <div className="flex items-center gap-2">
+                          <Icon className="h-4 w-4" />
+                          <span>{isEnglish ? config.label : config.labelPt}</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           
           {/* Date Selection - varies by duration type */}
-          <div className="space-y-2">
-            <Label className="font-semibold">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium">
               {durationType === 'day_off' 
                 ? (isEnglish ? 'Date' : 'Data')
                 : durationType === 'full_month_block'
@@ -548,34 +567,9 @@ const OffRequestModal = ({ open, onOpenChange, onSubmit, employeeName }: OffRequ
             )}
           </div>
           
-          {/* Reason Type */}
-          <div className="space-y-2">
-            <Label className="font-semibold">
-              {isEnglish ? 'Reason' : 'Motivo'} *
-            </Label>
-            <Select value={reasonType} onValueChange={(v) => setReasonType(v as OffRequestReasonType)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(reasonTypeConfig).map(([key, config]) => {
-                  const Icon = config.icon;
-                  return (
-                    <SelectItem key={key} value={key}>
-                      <div className="flex items-center gap-2">
-                        <Icon className="h-4 w-4" />
-                        <span>{isEnglish ? config.label : config.labelPt}</span>
-                      </div>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-          
           {/* Observation (Optional) */}
-          <div className="space-y-2">
-            <Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs">
               {isEnglish ? 'Observation' : 'Observação'} 
               <span className="text-muted-foreground ml-1">
                 ({isEnglish ? 'optional' : 'opcional'})
@@ -587,14 +581,14 @@ const OffRequestModal = ({ open, onOpenChange, onSubmit, employeeName }: OffRequ
               placeholder={isEnglish 
                 ? 'Add additional details if needed...' 
                 : 'Adicione detalhes se necessário...'}
-              rows={3}
+              rows={2}
               maxLength={500}
             />
           </div>
           
-          {/* Warning Message */}
-          <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
-            <p className="text-sm text-amber-800 dark:text-amber-200">
+          {/* Warning Message - Compact */}
+          <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+            <p className="text-xs text-amber-800 dark:text-amber-200">
               ⚠️ {isEnglish 
                 ? 'Once approved, you will be blocked from all job assignments on the selected dates.' 
                 : 'Uma vez aprovado, você será bloqueado de todas as atribuições de trabalho nas datas selecionadas.'}

@@ -245,7 +245,7 @@ const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateM
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calculator className="h-5 w-5 text-primary" />
@@ -253,7 +253,7 @@ const AddEstimateModal = ({ open, onOpenChange, onSave, estimate }: AddEstimateM
           </DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4 mt-3">
+        <form onSubmit={handleSubmit} className="space-y-3">
           {/* Client Information */}
           <div className="space-y-3">
             <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t.calculator.clientInfo}</h3>

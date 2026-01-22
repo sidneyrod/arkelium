@@ -81,94 +81,90 @@ const CashHandlingModal = ({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Banknote className="h-5 w-5 text-success" />
             {t.title}
           </DialogTitle>
-          <p className="text-sm text-muted-foreground mt-1">{t.subtitle}</p>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-3">
           {/* Amount Display */}
-          <Card className="bg-success/10 border-success/30">
-            <CardContent className="py-3 px-4 flex items-center justify-between">
-              <span className="text-sm font-medium">{t.amount}</span>
-              <span className="text-xl font-bold text-success">${amount.toFixed(2)} CAD</span>
-            </CardContent>
-          </Card>
+          <div className="flex items-center justify-between p-2 rounded-lg bg-success/10 border border-success/30">
+            <span className="text-sm font-medium">{t.amount}</span>
+            <span className="text-lg font-bold text-success">${amount.toFixed(2)} CAD</span>
+          </div>
 
           {/* Cash Handling Options */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">{t.question}</Label>
+          <div className="space-y-2">
+            <Label className="text-xs font-medium">{t.question}</Label>
             
             <RadioGroup 
               value={choice} 
               onValueChange={(v) => setChoice(v as CashHandlingChoice)}
-              className="space-y-3"
+              className="grid grid-cols-2 gap-2"
             >
               {/* Option: Kept by Cleaner */}
               <div
                 className={cn(
-                  "flex items-start space-x-3 p-4 rounded-lg border-2 transition-all cursor-pointer",
+                  "flex items-center space-x-2 p-3 rounded-lg border-2 transition-all cursor-pointer",
                   choice === 'kept_by_cleaner' 
                     ? "border-warning bg-warning/10" 
-                    : "border-border hover:border-warning/50 hover:bg-muted/50"
+                    : "border-border hover:border-warning/50"
                 )}
                 onClick={() => setChoice('kept_by_cleaner')}
               >
-                <RadioGroupItem value="kept_by_cleaner" id="kept_by_cleaner" className="mt-0.5" />
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-warning" />
-                    <Label htmlFor="kept_by_cleaner" className="font-medium cursor-pointer">
+                <RadioGroupItem value="kept_by_cleaner" id="kept_by_cleaner" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <User className="h-3.5 w-3.5 text-warning" />
+                    <Label htmlFor="kept_by_cleaner" className="text-xs font-medium cursor-pointer">
                       {t.keptByCleaner}
                     </Label>
                   </div>
-                  <p className="text-xs text-muted-foreground">{t.keptByCleanerDesc}</p>
                 </div>
               </div>
 
               {/* Option: Delivered to Office */}
               <div
                 className={cn(
-                  "flex items-start space-x-3 p-4 rounded-lg border-2 transition-all cursor-pointer",
+                  "flex items-center space-x-2 p-3 rounded-lg border-2 transition-all cursor-pointer",
                   choice === 'delivered_to_office' 
                     ? "border-primary bg-primary/10" 
-                    : "border-border hover:border-primary/50 hover:bg-muted/50"
+                    : "border-border hover:border-primary/50"
                 )}
                 onClick={() => setChoice('delivered_to_office')}
               >
-                <RadioGroupItem value="delivered_to_office" id="delivered_to_office" className="mt-0.5" />
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-primary" />
-                    <Label htmlFor="delivered_to_office" className="font-medium cursor-pointer">
+                <RadioGroupItem value="delivered_to_office" id="delivered_to_office" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <Building2 className="h-3.5 w-3.5 text-primary" />
+                    <Label htmlFor="delivered_to_office" className="text-xs font-medium cursor-pointer">
                       {t.deliveredToOffice}
                     </Label>
                   </div>
-                  <p className="text-xs text-muted-foreground">{t.deliveredToOfficeDesc}</p>
                 </div>
               </div>
             </RadioGroup>
           </div>
 
           {/* Notes */}
-          <div className="space-y-2">
-            <Label className="text-sm">{t.notes}</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs">{t.notes}</Label>
             <Textarea
               placeholder={t.notesPlaceholder}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="resize-none h-20"
+              className="resize-none"
+              rows={2}
             />
           </div>
 
           {/* Warning if no selection */}
           {!choice && (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 border border-warning/30">
-              <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-warning/10 border border-warning/30">
+              <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
               <p className="text-xs text-warning">{t.warning}</p>
             </div>
           )}

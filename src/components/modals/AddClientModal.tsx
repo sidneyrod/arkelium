@@ -95,7 +95,7 @@ const AddClientModal = ({ open, onOpenChange, onSubmit, editClient }: AddClientM
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {formData.type === 'commercial' ? (
@@ -107,7 +107,7 @@ const AddClientModal = ({ open, onOpenChange, onSubmit, editClient }: AddClientM
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-3 mt-3">
+        <form onSubmit={handleSubmit} className="space-y-2">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="name" className="text-xs">{t.clients.name}</Label>
@@ -251,29 +251,30 @@ const AddClientModal = ({ open, onOpenChange, onSubmit, editClient }: AddClientM
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="notes" className="text-xs">{t.clients.notes}</Label>
-            <Textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => updateField('notes', e.target.value)}
-              placeholder="Additional notes..."
-              rows={2}
-              maxLength={1000}
-              className="text-sm placeholder:text-muted-foreground/50"
-            />
-          </div>
-
-          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-            <div className="space-y-0.5">
-              <Label htmlFor="active" className="cursor-pointer text-sm">{t.clients.activeClient}</Label>
-              <p className="text-xs text-muted-foreground">{t.clients.activeClientDescription}</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label htmlFor="notes" className="text-xs">{t.clients.notes}</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => updateField('notes', e.target.value)}
+                placeholder="Additional notes..."
+                rows={1}
+                maxLength={1000}
+                className="text-sm placeholder:text-muted-foreground/50"
+              />
             </div>
-            <Switch
-              id="active"
-              checked={formData.isActive}
-              onCheckedChange={(checked) => updateField('isActive', checked)}
-            />
+
+            <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50 h-fit self-end">
+              <div className="space-y-0">
+                <Label htmlFor="active" className="cursor-pointer text-xs">{t.clients.activeClient}</Label>
+              </div>
+              <Switch
+                id="active"
+                checked={formData.isActive}
+                onCheckedChange={(checked) => updateField('isActive', checked)}
+              />
+            </div>
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0 pt-2">
