@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
@@ -149,6 +149,9 @@ export function NewBookingModal({
     visitRoute: job?.visitRoute || '',
   });
 
+  // Track last fetched company to avoid refetching on window focus
+  const lastFetchedCompanyRef = useRef<string | null>(null);
+
   // Fetch clients and employees for the operating company
   useEffect(() => {
     const fetchData = async () => {
@@ -156,7 +159,13 @@ export function NewBookingModal({
       const companyToUse = operatingCompanyId || activeCompanyId;
       if (!companyToUse) return;
       
+      // Skip refetch if data already loaded for this company
+      if (lastFetchedCompanyRef.current === companyToUse && clients.length > 0) {
+        return;
+      }
+      
       setIsLoading(true);
+      lastFetchedCompanyRef.current = companyToUse;
       
       try {
         const [clientsRes, employeesRes, locationsRes] = await Promise.all([
