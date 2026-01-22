@@ -91,8 +91,8 @@ export default function Login() {
       <div
         className={`w-full rounded-2xl p-6 sm:p-8 ${
           isDark
-            ? 'bg-black/5 backdrop-blur-sm border border-white/[0.03] shadow-2xl'
-            : 'bg-white/5 backdrop-blur-sm border border-black/[0.02] shadow-xl'
+            ? 'bg-black/[0.02] backdrop-blur-[2px] border border-white/[0.02] shadow-2xl'
+            : 'bg-white/[0.02] backdrop-blur-[2px] border border-black/[0.01] shadow-xl'
         }`}
       >
 
