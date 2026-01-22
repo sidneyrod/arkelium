@@ -29,7 +29,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     <div className="fixed inset-0 overflow-hidden">
       {/* Full-screen Background Image */}
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-500"
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
           backgroundImage: isDark
             ? 'url(/images/auth-bg-dark.png)'
@@ -38,7 +38,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       >
         {/* Overlay for contrast and premium depth */}
         <div
-          className={`absolute inset-0 transition-colors duration-300 ${
+          className={`absolute inset-0 ${
             isDark 
               ? 'bg-gradient-to-br from-black/60 via-black/40 to-black/50' 
               : 'bg-gradient-to-br from-white/40 via-white/20 to-white/30'
