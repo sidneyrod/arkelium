@@ -422,13 +422,14 @@ export function NewBookingModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-4xl p-0">
         <div 
-          className="p-6 origin-top-left"
+          className="p-6"
           style={{ 
             transform: 'scale(0.85)', 
+            transformOrigin: 'top left',
             width: '117.65%',
-            transformOrigin: 'top left' 
+            marginBottom: '-15%'
           }}
         >
           <DialogHeader className="pb-3">
