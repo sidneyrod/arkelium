@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CalendarIcon, CalendarOff, Palmtree, Clock, UserX, Stethoscope, Calendar as CalendarMonth, X } from 'lucide-react';
 import { differenceInDays, startOfMonth, endOfMonth, addMonths, format } from 'date-fns';
@@ -413,82 +412,108 @@ const OffRequestModal = ({ open, onOpenChange, onSubmit, employeeName }: OffRequ
                 )}
               </div>
             ) : durationType === 'day_off' ? (
-              // Single date selection for day off
-              <Popover open={singleDateCalendarOpen} onOpenChange={setSingleDateCalendarOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !dateRange?.from && "text-muted-foreground",
-                      errors.date && "border-destructive"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateRange?.from 
-                      ? formatDisplayDate(dateRange.from)
-                      : <span>{isEnglish ? 'Select date' : 'Selecione a data'}</span>
-                    }
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    initialFocus
-                    mode="single"
-                    selected={dateRange?.from}
-                    onSelect={handleSingleDateSelect}
-                    disabled={(date) => date < new Date()}
-                  />
-                </PopoverContent>
-              </Popover>
+              // Single date selection for day off - centered dialog
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setSingleDateCalendarOpen(true)}
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !dateRange?.from && "text-muted-foreground",
+                    errors.date && "border-destructive"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange?.from 
+                    ? formatDisplayDate(dateRange.from)
+                    : <span>{isEnglish ? 'Select date' : 'Selecione a data'}</span>
+                  }
+                </Button>
+                <Dialog open={singleDateCalendarOpen} onOpenChange={setSingleDateCalendarOpen}>
+                  <DialogContent className="max-w-fit p-0">
+                    <DialogHeader className="px-4 pt-4 pb-2">
+                      <DialogTitle className="text-sm font-medium">
+                        {isEnglish ? 'Select Date' : 'Selecionar Data'}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="flex justify-center px-4 pb-4">
+                      <Calendar
+                        mode="single"
+                        selected={dateRange?.from}
+                        onSelect={handleSingleDateSelect}
+                        disabled={(date) => date < new Date()}
+                        className="pointer-events-auto rounded-md border"
+                      />
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </>
             ) : durationType === 'non_consecutive_days' ? (
-              // Non-consecutive days selection
+              // Non-consecutive days selection - centered dialog
               <div className="space-y-3">
-                <Popover open={nonConsecutiveCalendarOpen} onOpenChange={setNonConsecutiveCalendarOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        selectedDates.length === 0 && "text-muted-foreground",
-                        errors.date && "border-destructive"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {selectedDates.length > 0 
-                        ? `${selectedDates.length} ${isEnglish ? 'days selected' : 'dias selecionados'}`
-                        : <span>{isEnglish ? 'Click to select days' : 'Clique para selecionar dias'}</span>
-                      }
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      initialFocus
-                      mode="single"
-                      selected={undefined}
-                      onSelect={handleNonConsecutiveDateSelect}
-                      numberOfMonths={2}
-                      disabled={(date) => date < new Date()}
-                      modifiers={{
-                        selected: selectedDates,
-                      }}
-                      modifiersStyles={{
-                        selected: { 
-                          backgroundColor: 'hsl(var(--primary))', 
-                          color: 'hsl(var(--primary-foreground))',
-                          borderRadius: '50%'
-                        }
-                      }}
-                    />
-                    <div className="p-3 border-t">
-                      <p className="text-xs text-muted-foreground">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setNonConsecutiveCalendarOpen(true)}
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    selectedDates.length === 0 && "text-muted-foreground",
+                    errors.date && "border-destructive"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {selectedDates.length > 0 
+                    ? `${selectedDates.length} ${isEnglish ? 'days selected' : 'dias selecionados'}`
+                    : <span>{isEnglish ? 'Click to select days' : 'Clique para selecionar dias'}</span>
+                  }
+                </Button>
+                <Dialog open={nonConsecutiveCalendarOpen} onOpenChange={setNonConsecutiveCalendarOpen}>
+                  <DialogContent className="max-w-fit p-0">
+                    <DialogHeader className="px-4 pt-4 pb-2">
+                      <DialogTitle className="text-sm font-medium">
+                        {isEnglish ? 'Select Days' : 'Selecionar Dias'}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="flex justify-center px-4">
+                      <Calendar
+                        mode="single"
+                        selected={undefined}
+                        onSelect={handleNonConsecutiveDateSelect}
+                        numberOfMonths={2}
+                        disabled={(date) => date < new Date()}
+                        modifiers={{
+                          selected: selectedDates,
+                        }}
+                        modifiersStyles={{
+                          selected: { 
+                            backgroundColor: 'hsl(var(--primary))', 
+                            color: 'hsl(var(--primary-foreground))',
+                            borderRadius: '50%'
+                          }
+                        }}
+                        className="pointer-events-auto rounded-md border"
+                      />
+                    </div>
+                    <div className="px-4 pb-2">
+                      <p className="text-xs text-muted-foreground text-center">
                         {isEnglish 
-                          ? 'Click on dates to select/deselect. Selected days will appear below.'
-                          : 'Clique nas datas para selecionar/desmarcar. Os dias selecionados aparecerão abaixo.'}
+                          ? 'Click on dates to select/deselect'
+                          : 'Clique nas datas para selecionar/desmarcar'}
                       </p>
                     </div>
-                  </PopoverContent>
-                </Popover>
+                    <div className="flex justify-end gap-2 px-4 pb-4 border-t pt-3">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setNonConsecutiveCalendarOpen(false)}
+                      >
+                        {isEnglish ? 'Done' : 'Concluído'}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
                 
                 {/* Show selected dates */}
                 {selectedDates.length > 0 && (
@@ -515,43 +540,52 @@ const OffRequestModal = ({ open, onOpenChange, onSubmit, employeeName }: OffRequ
                 )}
               </div>
             ) : (
-              // Date range selection for multi-day
-              <Popover open={rangeDateCalendarOpen} onOpenChange={setRangeDateCalendarOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !dateRange && "text-muted-foreground",
-                      errors.date && "border-destructive"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateRange?.from ? (
-                      dateRange.to ? (
-                        <>
-                          {formatDisplayDate(dateRange.from)} - {formatDisplayDate(dateRange.to)}
-                        </>
-                      ) : (
-                        formatDisplayDate(dateRange.from)
-                      )
+              // Date range selection for multi-day - centered dialog
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setRangeDateCalendarOpen(true)}
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !dateRange && "text-muted-foreground",
+                    errors.date && "border-destructive"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      <>
+                        {formatDisplayDate(dateRange.from)} - {formatDisplayDate(dateRange.to)}
+                      </>
                     ) : (
-                      <span>{isEnglish ? 'Select dates' : 'Selecione as datas'}</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    initialFocus
-                    mode="range"
-                    defaultMonth={dateRange?.from}
-                    selected={dateRange}
-                    onSelect={handleRangeDateSelect}
-                    numberOfMonths={2}
-                    disabled={(date) => date < new Date()}
-                  />
-                </PopoverContent>
-              </Popover>
+                      formatDisplayDate(dateRange.from)
+                    )
+                  ) : (
+                    <span>{isEnglish ? 'Select dates' : 'Selecione as datas'}</span>
+                  )}
+                </Button>
+                <Dialog open={rangeDateCalendarOpen} onOpenChange={setRangeDateCalendarOpen}>
+                  <DialogContent className="max-w-fit p-0">
+                    <DialogHeader className="px-4 pt-4 pb-2">
+                      <DialogTitle className="text-sm font-medium">
+                        {isEnglish ? 'Select Date Range' : 'Selecionar Período'}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="flex justify-center px-4 pb-4">
+                      <Calendar
+                        mode="range"
+                        defaultMonth={dateRange?.from}
+                        selected={dateRange}
+                        onSelect={handleRangeDateSelect}
+                        numberOfMonths={2}
+                        disabled={(date) => date < new Date()}
+                        className="pointer-events-auto rounded-md border"
+                      />
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </>
             )}
             
             {errors.date && <p className="text-sm text-destructive">{errors.date}</p>}
