@@ -332,10 +332,17 @@ const Schedule = () => {
     }
   }, [user, fetchJobs, fetchInvoiceSettings, activeCompanyId]);
 
-  // For cleaners: only show their own jobs. For admin/manager: show all or filtered
-  const baseJobs = isCleaner 
+  // For cleaners: only show their own jobs. For admin/manager/super-admin: show all
+  // Super Admin has isAdminOrManager=true, so we check both conditions
+  const isCleanerOnly = isCleaner && !isAdminOrManager;
+  
+  console.log('[Schedule] Role check:', { isCleaner, isAdminOrManager, isCleanerOnly, jobsCount: jobs.length });
+  
+  const baseJobs = isCleanerOnly 
     ? jobs.filter(job => job.employeeId === user?.id)
     : jobs;
+  
+  console.log('[Schedule] baseJobs after role filter:', baseJobs.length);
   
   const filteredJobs = baseJobs.filter(job => {
     if (employeeFilter !== 'all' && job.employeeId !== employeeFilter) return false;
