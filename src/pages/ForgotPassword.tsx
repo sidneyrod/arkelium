@@ -77,10 +77,10 @@ export default function ForgotPassword() {
     }
   }
 
-  // Card styling - Transparent like Login
+  // Card styling - Fully Transparent like Login
   const cardClass = isDark
-    ? 'bg-black/30 backdrop-blur-md border border-white/[0.08] shadow-2xl'
-    : 'bg-white/30 backdrop-blur-md border border-black/[0.06] shadow-xl';
+    ? 'bg-transparent border border-white/[0.03] shadow-2xl'
+    : 'bg-transparent border border-black/[0.02] shadow-xl';
 
   const inputClass = isDark
     ? 'h-11 bg-[#0a0e14]/60 border-white/10 text-white placeholder:text-white/40 focus:border-white/30 focus:ring-white/10'
