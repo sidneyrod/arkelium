@@ -33,6 +33,7 @@ import Financial from "./pages/Financial";
 import Receipts from "./pages/Receipts";
 import PaymentsCollections from "./pages/PaymentsCollections";
 import AccessRoles from "./pages/AccessRoles";
+import ResetPassword from "./pages/ResetPassword";
 import PermissionRoute from "./components/auth/PermissionRoute";
 
 const queryClient = new QueryClient({
@@ -167,6 +168,7 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+      <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
       
       <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         {/* Dashboard - accessible to all authenticated users */}

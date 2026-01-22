@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { useMemo, useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Eye, EyeOff, CheckCircle } from 'lucide-react';
 
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -14,13 +14,17 @@ import { Label } from '@/components/ui/label';
 
 import arkeliumSymbol from '@/assets/arkelium-symbol.png';
 
-export default function ForgotPassword() {
+export default function ResetPassword() {
   const { theme } = useTheme();
   const { language } = useLanguage();
+  const navigate = useNavigate();
 
   const isDark = theme === 'dark';
 
-  const [email, setEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -28,55 +32,82 @@ export default function ForgotPassword() {
   const t = useMemo(() => {
     const dict: Record<Language, Record<string, string>> = {
       en: {
-        title: 'Reset Password',
-        subtitle: "Enter your email address and we'll send you a reset link",
-        email: 'Email',
-        emailPlaceholder: 'name@company.com',
-        button: 'Send Reset Link',
+        title: 'Create New Password',
+        subtitle: 'Enter your new password below',
+        newPassword: 'New Password',
+        confirmPassword: 'Confirm Password',
+        passwordPlaceholder: '••••••••',
+        button: 'Update Password',
         back: 'Back to login',
         security: 'Protected by enterprise-grade security and audit controls',
         powered: 'Powered by Arkelium',
-        sent: 'If an account exists for this email, a reset link has been sent.',
-        invalid: 'Please enter a valid email address.',
-        failed: 'Unable to send reset link. Please try again.',
+        success: 'Password updated successfully! Redirecting to login...',
+        mismatch: 'Passwords do not match.',
+        tooShort: 'Password must be at least 6 characters.',
+        failed: 'Unable to update password. Please try again.',
+        noSession: 'Invalid or expired reset link. Please request a new one.',
       },
       fr: {
-        title: 'Réinitialiser le mot de passe',
-        subtitle: 'Entrez votre adresse e-mail et nous vous enverrons un lien de réinitialisation',
-        email: 'E-mail',
-        emailPlaceholder: 'nom@entreprise.com',
-        button: 'Envoyer le lien',
+        title: 'Créer un nouveau mot de passe',
+        subtitle: 'Entrez votre nouveau mot de passe ci-dessous',
+        newPassword: 'Nouveau mot de passe',
+        confirmPassword: 'Confirmer le mot de passe',
+        passwordPlaceholder: '••••••••',
+        button: 'Mettre à jour',
         back: 'Retour à la connexion',
         security: "Protégé par une sécurité et des contrôles d'audit de niveau entreprise",
         powered: 'Propulsé par Arkelium',
-        sent: 'Si un compte existe pour cet e-mail, un lien a été envoyé.',
-        invalid: 'Veuillez saisir une adresse e-mail valide.',
-        failed: "Impossible d'envoyer le lien. Réessayez.",
+        success: 'Mot de passe mis à jour avec succès ! Redirection...',
+        mismatch: 'Les mots de passe ne correspondent pas.',
+        tooShort: 'Le mot de passe doit contenir au moins 6 caractères.',
+        failed: 'Impossible de mettre à jour le mot de passe. Réessayez.',
+        noSession: 'Lien de réinitialisation invalide ou expiré. Veuillez en demander un nouveau.',
       },
     };
 
     return dict[language] || dict.en;
   }, [language]);
 
+  // Check if user arrived via valid reset link
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setErrorMsg(t.noSession);
+      }
+    };
+    checkSession();
+  }, [t.noSession]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrorMsg(null);
     setSuccessMsg(null);
 
-    const emailTrim = email.trim();
-    if (!emailTrim || !emailTrim.includes('@')) {
-      setErrorMsg(t.invalid);
+    if (newPassword.length < 6) {
+      setErrorMsg(t.tooShort);
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setErrorMsg(t.mismatch);
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const redirectTo = `${window.location.origin}/reset-password`;
-      const { error } = await supabase.auth.resetPasswordForEmail(emailTrim, { redirectTo });
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
-      setSuccessMsg(t.sent);
+
+      setSuccessMsg(t.success);
+      
+      // Sign out and redirect to login after success
+      setTimeout(async () => {
+        await supabase.auth.signOut();
+        navigate('/login');
+      }, 2000);
     } catch (err) {
-      console.error('[ForgotPassword] resetPasswordForEmail error:', err);
+      console.error('[ResetPassword] updateUser error:', err);
       setErrorMsg(t.failed);
     } finally {
       setIsSubmitting(false);
@@ -146,35 +177,83 @@ export default function ForgotPassword() {
         {/* Success Message */}
         {successMsg && (
           <div
-            className={`mb-6 rounded-xl px-4 py-3 text-sm font-medium ${
+            className={`mb-6 rounded-xl px-4 py-3 text-sm font-medium flex items-center gap-2 ${
               isDark
                 ? 'bg-green-500/10 border border-green-500/20 text-green-400'
                 : 'bg-green-50 border border-green-100 text-green-600'
             }`}
           >
+            <CheckCircle className="h-4 w-4 shrink-0" />
             {successMsg}
           </div>
         )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Email */}
+          {/* New Password */}
           <div className="space-y-2">
-            <Label className={labelClass}>{t.email}</Label>
-            <Input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              type="email"
-              autoComplete="email"
-              placeholder={t.emailPlaceholder}
-              className={inputClass}
-            />
+            <Label className={labelClass}>{t.newPassword}</Label>
+            <div className="relative">
+              <Input
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                type={showNewPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                placeholder={t.passwordPlaceholder}
+                className={`${inputClass} pr-12`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded transition-colors ${
+                  isDark
+                    ? 'text-white/40 hover:text-white/70'
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                {showNewPassword ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Confirm Password */}
+          <div className="space-y-2">
+            <Label className={labelClass}>{t.confirmPassword}</Label>
+            <div className="relative">
+              <Input
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                type={showConfirmPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                placeholder={t.passwordPlaceholder}
+                className={`${inputClass} pr-12`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded transition-colors ${
+                  isDark
+                    ? 'text-white/40 hover:text-white/70'
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                {showConfirmPassword ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Submit Button - SYSTEM DEFAULT */}
           <Button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !!successMsg}
             className="w-full h-12 text-[15px] font-medium"
           >
             {isSubmitting ? (
