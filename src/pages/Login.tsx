@@ -13,8 +13,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 
-import arkeliumSymbol from '@/assets/arkelium-symbol.png';
-
 export default function Login() {
   const { theme } = useTheme();
   const { language } = useLanguage();
@@ -35,26 +33,24 @@ export default function Login() {
   const t = useMemo(() => {
     const dict: Record<Language, Record<string, string>> = {
       en: {
-        title: 'Sign in',
         email: 'Email',
         emailPlaceholder: 'name@company.com',
         password: 'Password',
         passwordPlaceholder: '••••••••',
         rememberMe: 'Remember me',
-        forgotLink: 'Need help?',
+        forgotLink: 'Forgot Password?',
         button: 'Sign in',
         invalid: 'Please enter a valid email address.',
         failed: 'Invalid email or password. Please try again.',
         security: 'Enterprise-grade security',
       },
       fr: {
-        title: 'Connexion',
         email: 'E-mail',
         emailPlaceholder: 'nom@entreprise.com',
         password: 'Mot de passe',
         passwordPlaceholder: '••••••••',
         rememberMe: 'Se souvenir de moi',
-        forgotLink: "Besoin d'aide ?",
+        forgotLink: 'Mot de passe oublié ?',
         button: 'Connexion',
         invalid: 'Veuillez saisir une adresse e-mail valide.',
         failed: 'E-mail ou mot de passe invalide. Réessayez.',
@@ -91,34 +87,14 @@ export default function Login() {
 
   return (
     <AuthLayout>
-      {/* Auth Card */}
+      {/* Auth Card - Transparent */}
       <div
         className={`w-full rounded-2xl p-6 sm:p-8 ${
           isDark
-            ? 'bg-[#12141a]/80 backdrop-blur-xl border border-white/[0.06] shadow-2xl'
-            : 'bg-white/90 backdrop-blur-xl border border-black/[0.04] shadow-xl'
+            ? 'bg-black/30 backdrop-blur-md border border-white/[0.08] shadow-2xl'
+            : 'bg-white/30 backdrop-blur-md border border-black/[0.06] shadow-xl'
         }`}
       >
-        {/* Gold Logo - Centered */}
-        <div className="flex justify-center mb-6">
-          <img
-            src={arkeliumSymbol}
-            alt="Arkelium"
-            className="h-11 w-auto select-none"
-            style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.2))' }}
-          />
-        </div>
-
-        {/* Title */}
-        <div className="text-center mb-6">
-          <h1
-            className={`text-xl font-semibold ${
-              isDark ? 'text-white' : 'text-gray-900'
-            }`}
-          >
-            {t.title}
-          </h1>
-        </div>
 
         {/* Error Message */}
         {errorMsg && (
