@@ -13,8 +13,7 @@ import {
 } from '@/components/ui/select';
 
 import arkeliumLogo from '@/assets/arkelium-logo.png';
-
-
+import arkeliumSymbol from '@/assets/arkelium-symbol.png';
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -90,63 +89,72 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
       {/* Main Content Grid */}
       <div className="relative z-10 min-h-screen flex flex-col lg:flex-row">
-        {/* Left Column - Brand Panel (Desktop Only) */}
-        <div className="hidden lg:flex w-[45%] xl:w-[42%] items-center justify-center px-8 xl:px-16">
-          <div className="flex flex-col items-start max-w-md">
-            {/* Large Logo - ONLY GOLD ELEMENT */}
+      {/* Left Column - Brand Panel (Desktop Only) */}
+        <div className="hidden lg:flex w-[45%] xl:w-[42%] relative items-center justify-center px-8 xl:px-16">
+          {/* Watermark "A" - very low opacity, positioned behind content */}
+          <img
+            src={arkeliumSymbol}
+            alt=""
+            aria-hidden="true"
+            className="absolute right-0 top-1/2 -translate-y-1/2 h-[70vh] w-auto opacity-[0.03] pointer-events-none select-none"
+          />
+          
+          <div className="relative z-10 flex flex-col items-start max-w-md">
+            {/* Larger Logo - ONLY GOLD ELEMENT */}
             <img
               src={arkeliumLogo}
               alt="Arkelium"
-              className="h-24 xl:h-28 2xl:h-32 w-auto mb-10 xl:mb-14 select-none filter-gold"
+              className="h-32 xl:h-36 2xl:h-40 w-auto mb-8 xl:mb-10 select-none filter-gold"
             />
 
-            {/* Enterprise Headline */}
+            {/* Enterprise Headline - NEUTRAL COLOR, not gold */}
             <h1
-              className={`text-3xl xl:text-4xl 2xl:text-[42px] font-light leading-tight mb-2 ${
-                isDark ? 'text-brand-gold/90' : 'text-brand-gold'
+              className={`font-light leading-tight mb-1 ${
+                isDark ? 'text-white/90' : 'text-gray-800'
               }`}
+              style={{ fontSize: 'clamp(28px, 3.2vw, 44px)' }}
             >
               Enterprise Operations
             </h1>
             <h1
-              className={`text-3xl xl:text-4xl 2xl:text-[42px] font-light leading-tight ${
-                isDark ? 'text-brand-gold/90' : 'text-brand-gold'
+              className={`font-light leading-tight mb-4 ${
+                isDark ? 'text-white/90' : 'text-gray-800'
               }`}
+              style={{ fontSize: 'clamp(28px, 3.2vw, 44px)' }}
             >
               & Financial Control
             </h1>
+            
+            {/* Subtitle - subtle */}
+            <p
+              className={isDark ? 'text-white/40' : 'text-gray-500'}
+              style={{ fontSize: 'clamp(13px, 1.2vw, 16px)' }}
+            >
+              Financial control. Operational clarity. Real-time insight.
+            </p>
           </div>
         </div>
 
         {/* Mobile/Tablet Brand Header */}
-        <div className="flex lg:hidden flex-col items-center pt-20 pb-6 px-6">
+        <div className="flex lg:hidden flex-col items-center pt-14 pb-4 px-6">
           <img
             src={arkeliumLogo}
             alt="Arkelium"
-            className="h-14 sm:h-16 w-auto mb-4 select-none filter-gold"
+            className="h-12 sm:h-14 w-auto mb-3 select-none filter-gold"
           />
-          <h2
-            className={`text-lg sm:text-xl font-light text-center ${
-              isDark ? 'text-brand-gold/90' : 'text-brand-gold'
+          <p
+            className={`text-sm text-center ${
+              isDark ? 'text-white/50' : 'text-gray-500'
             }`}
           >
             Enterprise Operations & Financial Control
-          </h2>
+          </p>
         </div>
 
         {/* Right Column - Auth Card */}
-        <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-12 xl:px-16 py-6 lg:py-8">
+        <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-12 xl:px-16 py-4 lg:py-6">
           {children}
         </div>
-      </div>
-
-      {/* Bottom Left - Powered by (Desktop Only) */}
-      <div
-        className={`fixed bottom-5 left-6 text-[11px] font-medium tracking-wider z-10 hidden lg:block ${
-          isDark ? 'text-white/25' : 'text-black/25'
-        }`}
-      >
-        Powered by Arkelium
       </div>
     </div>
   );
