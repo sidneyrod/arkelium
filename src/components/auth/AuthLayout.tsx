@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Language } from '@/i18n/translations';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -26,8 +26,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const isDark = theme === 'dark';
 
   return (
-    <div className="fixed inset-0 overflow-y-auto">
-      {/* Background Image Layer */}
+    <div className="fixed inset-0 overflow-hidden">
+      {/* Full-screen Background Image */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-500"
         style={{
@@ -36,23 +36,25 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             : 'url(/images/auth-bg-light.png)',
         }}
       >
-        {/* Overlay for contrast */}
+        {/* Overlay for contrast and premium depth */}
         <div
           className={`absolute inset-0 transition-colors duration-300 ${
-            isDark ? 'bg-black/50' : 'bg-white/30'
+            isDark 
+              ? 'bg-gradient-to-br from-black/60 via-black/40 to-black/50' 
+              : 'bg-gradient-to-br from-white/40 via-white/20 to-white/30'
           }`}
         />
       </div>
 
-      {/* Top Right Controls - Language + Theme ONLY */}
-      <div className="fixed top-5 right-5 z-50 flex items-center gap-2">
-        {/* Language Selector - Compact */}
+      {/* Top Right Controls - Language + Theme */}
+      <div className="fixed top-4 right-4 sm:top-5 sm:right-5 z-50 flex items-center gap-2">
+        {/* Language Selector */}
         <Select
           value={language}
           onValueChange={(val: Language) => setLanguage(val)}
         >
           <SelectTrigger
-            className={`w-[68px] h-9 text-[13px] font-medium rounded-lg border-0 ${
+            className={`w-[60px] h-8 text-xs font-medium rounded-md border-0 ${
               isDark
                 ? 'bg-white/10 text-white/80 hover:bg-white/15'
                 : 'bg-black/5 text-black/70 hover:bg-black/10'
@@ -72,12 +74,12 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           </SelectContent>
         </Select>
 
-        {/* Theme Toggle - Sun/Moon Icon */}
+        {/* Theme Toggle */}
         <Button
           variant="ghost"
           size="icon"
           onClick={toggleTheme}
-          className={`h-9 w-9 rounded-lg border-0 ${
+          className={`h-8 w-8 rounded-md border-0 ${
             isDark
               ? 'bg-white/10 text-white/80 hover:bg-white/15'
               : 'bg-black/5 text-black/70 hover:bg-black/10'
@@ -87,63 +89,64 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         </Button>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="relative z-10 min-h-screen flex flex-col lg:flex-row">
-      {/* Left Column - Brand Panel (Desktop Only) */}
-        <div className="hidden lg:flex w-[45%] xl:w-[42%] relative items-center justify-center px-8 xl:px-16">
-          {/* Watermark "A" - very low opacity, positioned behind content */}
+      {/* Main Content - Two Column Layout */}
+      <div className="relative z-10 h-screen flex flex-col lg:flex-row">
+        
+        {/* Left Brand Panel - Desktop Only (≥1024px) */}
+        <div className="hidden lg:flex lg:w-[48%] xl:w-[45%] 2xl:w-[42%] relative items-center justify-start pl-12 xl:pl-20 2xl:pl-28 pr-8">
+          
+          {/* Watermark "A" - subtle background element */}
           <img
             src={arkeliumSymbol}
             alt=""
             aria-hidden="true"
-            className="absolute right-0 top-1/2 -translate-y-1/2 h-[70vh] w-auto opacity-[0.03] pointer-events-none select-none"
+            className="absolute right-[-5%] top-1/2 -translate-y-1/2 h-[85vh] w-auto opacity-[0.04] pointer-events-none select-none"
           />
           
-          <div className="relative z-10 flex flex-col items-start max-w-md">
-            {/* Larger Logo - ONLY GOLD ELEMENT */}
+          {/* Brand Content */}
+          <div className="relative z-10 flex flex-col items-start max-w-lg">
+            {/* Logo - Gold, Large, Prominent */}
             <img
               src={arkeliumLogo}
               alt="Arkelium"
-              className="h-32 xl:h-36 2xl:h-40 w-auto mb-8 xl:mb-10 select-none filter-gold"
+              className="h-20 xl:h-24 2xl:h-28 w-auto mb-8 xl:mb-10 select-none"
+              style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }}
             />
 
-            {/* Enterprise Headline - NEUTRAL COLOR, not gold */}
+            {/* Headline - Neutral, Strong Hierarchy */}
             <h1
-              className={`font-light leading-tight mb-1 ${
-                isDark ? 'text-white/90' : 'text-gray-800'
+              className={`font-light leading-[1.15] mb-6 ${
+                isDark ? 'text-white' : 'text-gray-900'
               }`}
-              style={{ fontSize: 'clamp(28px, 3.2vw, 44px)' }}
+              style={{ 
+                fontSize: 'clamp(32px, 3.5vw, 52px)',
+                letterSpacing: '-0.02em'
+              }}
             >
               Enterprise Operations
-            </h1>
-            <h1
-              className={`font-light leading-tight mb-4 ${
-                isDark ? 'text-white/90' : 'text-gray-800'
-              }`}
-              style={{ fontSize: 'clamp(28px, 3.2vw, 44px)' }}
-            >
-              & Financial Control
+              <br />
+              <span className="font-normal">&amp; Financial Control</span>
             </h1>
             
-            {/* Subtitle - subtle */}
+            {/* Subtitle - Lower contrast */}
             <p
-              className={isDark ? 'text-white/40' : 'text-gray-500'}
-              style={{ fontSize: 'clamp(13px, 1.2vw, 16px)' }}
+              className={`max-w-md ${isDark ? 'text-white/50' : 'text-gray-500'}`}
+              style={{ fontSize: 'clamp(14px, 1.1vw, 17px)', lineHeight: 1.6 }}
             >
               Financial control. Operational clarity. Real-time insight.
             </p>
           </div>
         </div>
 
-        {/* Mobile/Tablet Brand Header */}
-        <div className="flex lg:hidden flex-col items-center pt-14 pb-4 px-6">
+        {/* Mobile/Tablet Brand Header (< 1024px) */}
+        <div className="flex lg:hidden flex-col items-center pt-16 sm:pt-20 pb-6 px-6">
           <img
             src={arkeliumLogo}
             alt="Arkelium"
-            className="h-12 sm:h-14 w-auto mb-3 select-none filter-gold"
+            className="h-10 sm:h-12 w-auto mb-3 select-none"
           />
           <p
-            className={`text-sm text-center ${
+            className={`text-xs sm:text-sm text-center max-w-[280px] ${
               isDark ? 'text-white/50' : 'text-gray-500'
             }`}
           >
@@ -151,9 +154,11 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           </p>
         </div>
 
-        {/* Right Column - Auth Card */}
-        <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-12 xl:px-16 py-4 lg:py-6">
-          {children}
+        {/* Right Panel - Login Card */}
+        <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 xl:px-12 py-6 lg:py-0">
+          <div className="w-full max-w-[420px] lg:max-w-[440px] xl:max-w-[460px]">
+            {children}
+          </div>
         </div>
       </div>
     </div>

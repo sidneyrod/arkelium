@@ -45,6 +45,7 @@ export default function Login() {
         button: 'Sign in',
         invalid: 'Please enter a valid email address.',
         failed: 'Invalid email or password. Please try again.',
+        security: 'Enterprise-grade security',
       },
       fr: {
         title: 'Connexion',
@@ -57,6 +58,7 @@ export default function Login() {
         button: 'Connexion',
         invalid: 'Veuillez saisir une adresse e-mail valide.',
         failed: 'E-mail ou mot de passe invalide. Réessayez.',
+        security: 'Sécurité de niveau entreprise',
       },
     };
 
@@ -87,36 +89,30 @@ export default function Login() {
     }
   }
 
-  // Card styling
-  const cardClass = isDark
-    ? 'bg-[#14181e]/85 backdrop-blur-xl border border-white/10 shadow-2xl'
-    : 'bg-white/85 backdrop-blur-xl border border-black/5 shadow-2xl';
-
-  const inputClass = isDark
-    ? 'h-11 bg-[#0a0e14]/60 border-white/10 text-white placeholder:text-white/40 focus:border-white/30 focus:ring-white/10'
-    : 'h-11 bg-gray-50/80 border-black/10 text-gray-900 placeholder:text-gray-400 focus:border-black/20 focus:ring-black/5';
-
-  const labelClass = isDark ? 'text-white/70' : 'text-gray-700';
-
   return (
     <AuthLayout>
-      {/* Auth Card - Compact */}
+      {/* Auth Card */}
       <div
-        className={`w-full max-w-[520px] rounded-[22px] p-6 sm:p-7 lg:p-8 ${cardClass}`}
+        className={`w-full rounded-2xl p-6 sm:p-8 ${
+          isDark
+            ? 'bg-[#12141a]/80 backdrop-blur-xl border border-white/[0.06] shadow-2xl'
+            : 'bg-white/90 backdrop-blur-xl border border-black/[0.04] shadow-xl'
+        }`}
       >
-        {/* Logo only - no text beneath */}
-        <div className="flex justify-center mb-5">
+        {/* Gold Logo - Centered */}
+        <div className="flex justify-center mb-6">
           <img
             src={arkeliumSymbol}
             alt="Arkelium"
-            className="h-10 sm:h-11 w-auto select-none filter-gold"
+            className="h-11 w-auto select-none"
+            style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.2))' }}
           />
         </div>
 
-        {/* Shorter title */}
-        <div className="text-center mb-5">
+        {/* Title */}
+        <div className="text-center mb-6">
           <h1
-            className={`text-lg font-semibold ${
+            className={`text-xl font-semibold ${
               isDark ? 'text-white' : 'text-gray-900'
             }`}
           >
@@ -127,7 +123,7 @@ export default function Login() {
         {/* Error Message */}
         {errorMsg && (
           <div
-            className={`mb-5 rounded-xl px-4 py-2.5 text-sm font-medium ${
+            className={`mb-5 rounded-lg px-4 py-3 text-sm font-medium ${
               isDark
                 ? 'bg-red-500/10 border border-red-500/20 text-red-400'
                 : 'bg-red-50 border border-red-100 text-red-600'
@@ -138,23 +134,31 @@ export default function Login() {
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {/* Email */}
           <div className="space-y-2">
-            <Label className={labelClass}>{t.email}</Label>
+            <Label className={isDark ? 'text-white/70' : 'text-gray-600'}>
+              {t.email}
+            </Label>
             <Input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               type="email"
               autoComplete="email"
               placeholder={t.emailPlaceholder}
-              className={inputClass}
+              className={`h-12 rounded-lg ${
+                isDark
+                  ? 'bg-[#0a0c10]/70 border-white/[0.08] text-white placeholder:text-white/35 focus:border-white/20 focus:ring-white/10'
+                  : 'bg-gray-50/80 border-black/[0.08] text-gray-900 placeholder:text-gray-400 focus:border-black/15 focus:ring-black/5'
+              }`}
             />
           </div>
 
           {/* Password */}
           <div className="space-y-2">
-            <Label className={labelClass}>{t.password}</Label>
+            <Label className={isDark ? 'text-white/70' : 'text-gray-600'}>
+              {t.password}
+            </Label>
             <div className="relative">
               <Input
                 value={password}
@@ -162,28 +166,32 @@ export default function Login() {
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
                 placeholder={t.passwordPlaceholder}
-                className={`${inputClass} pr-12`}
+                className={`h-12 rounded-lg pr-12 ${
+                  isDark
+                    ? 'bg-[#0a0c10]/70 border-white/[0.08] text-white placeholder:text-white/35 focus:border-white/20 focus:ring-white/10'
+                    : 'bg-gray-50/80 border-black/[0.08] text-gray-900 placeholder:text-gray-400 focus:border-black/15 focus:ring-black/5'
+                }`}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded transition-colors ${
+                className={`absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-md transition-colors ${
                   isDark
-                    ? 'text-white/40 hover:text-white/70'
-                    : 'text-gray-400 hover:text-gray-600'
+                    ? 'text-white/40 hover:text-white/70 hover:bg-white/5'
+                    : 'text-gray-400 hover:text-gray-600 hover:bg-black/5'
                 }`}
               >
                 {showPassword ? (
-                  <EyeOff className="h-5 w-5" />
+                  <EyeOff className="h-4 w-4" />
                 ) : (
-                  <Eye className="h-5 w-5" />
+                  <Eye className="h-4 w-4" />
                 )}
               </button>
             </div>
           </div>
 
           {/* Remember Me + Forgot Link */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pt-1">
             <div className="flex items-center gap-2">
               <Checkbox
                 id="remember"
@@ -212,11 +220,11 @@ export default function Login() {
             </Link>
           </div>
 
-          {/* Submit Button - SYSTEM DEFAULT, NO GOLD */}
+          {/* Submit Button - System Default */}
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="w-full h-11 text-[15px] font-medium"
+            className="w-full h-12 text-[15px] font-medium rounded-lg mt-2"
           >
             {isSubmitting ? (
               <div className="flex items-center gap-2">
@@ -228,14 +236,14 @@ export default function Login() {
           </Button>
         </form>
 
-        {/* Minimal footer */}
-        <div className="mt-4 text-center">
+        {/* Security Footer */}
+        <div className="mt-6 text-center">
           <span
-            className={`text-[10px] ${
-              isDark ? 'text-white/20' : 'text-gray-300'
+            className={`text-[11px] ${
+              isDark ? 'text-white/25' : 'text-gray-400'
             }`}
           >
-            Enterprise-grade security
+            {t.security}
           </span>
         </div>
       </div>
