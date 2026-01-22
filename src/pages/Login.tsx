@@ -87,12 +87,12 @@ export default function Login() {
 
   return (
     <AuthLayout>
-      {/* Auth Card - Extra Transparent */}
+      {/* Auth Card - Fully Transparent */}
       <div
         className={`w-full rounded-2xl p-6 sm:p-8 ${
           isDark
-            ? 'bg-black/[0.02] backdrop-blur-[2px] border border-white/[0.02] shadow-2xl'
-            : 'bg-white/[0.02] backdrop-blur-[2px] border border-black/[0.01] shadow-xl'
+            ? 'bg-transparent border border-white/[0.03] shadow-2xl'
+            : 'bg-transparent border border-black/[0.02] shadow-xl'
         }`}
       >
 
