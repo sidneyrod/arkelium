@@ -96,13 +96,6 @@ const DURATION_OPTIONS = [
   { value: '8h', label: '8 hours' },
 ];
 
-const PAYMENT_METHODS = [
-  { value: 'cash', label: 'Cash' },
-  { value: 'e_transfer', label: 'E-Transfer' },
-  { value: 'cheque', label: 'Cheque' },
-  { value: 'credit_card', label: 'Credit Card' },
-  { value: 'bank_transfer', label: 'Bank Transfer' },
-];
 
 export function NewBookingModal({ 
   open, 
@@ -154,9 +147,6 @@ export function NewBookingModal({
     status: job?.status || 'scheduled' as const,
     visitPurpose: job?.visitPurpose || '',
     visitRoute: job?.visitRoute || '',
-    // Billing fields
-    billableAmount: '',
-    paymentMethod: 'e_transfer',
   });
 
   // Fetch clients and employees for the operating company
@@ -221,8 +211,6 @@ export function NewBookingModal({
           status: job.status,
           visitPurpose: job.visitPurpose || '',
           visitRoute: job.visitRoute || '',
-          billableAmount: job.billableAmount?.toString() || '',
-          paymentMethod: 'e_transfer',
         });
       } else {
         // Reset enterprise fields for new booking
@@ -257,8 +245,6 @@ export function NewBookingModal({
           status: 'scheduled',
           visitPurpose: '',
           visitRoute: '',
-          billableAmount: '',
-          paymentMethod: 'e_transfer',
         });
       }
       setErrors({});
@@ -285,7 +271,6 @@ export function NewBookingModal({
       setFormData(prev => ({
         ...prev,
         duration,
-        billableAmount: selectedService.default_rate?.toString() || '',
         services: [selectedService.service_name],
       }));
     }
@@ -402,9 +387,6 @@ export function NewBookingModal({
       activityCode,
       operatingCompanyId: companyToUse,
       serviceCatalogId,
-      billableAmount: operationType === 'billable_service' && formData.billableAmount 
-        ? parseFloat(formData.billableAmount) 
-        : undefined,
       organizationId,
     };
     
@@ -418,7 +400,7 @@ export function NewBookingModal({
   };
 
   const requiresClient = operationType !== 'internal_work';
-  const showBillingSection = operationType === 'billable_service';
+  
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -606,39 +588,6 @@ export function NewBookingModal({
               </div>
             </div>
 
-            {/* ROW 5: Billing (only for Billable Service) - 2 columns inline */}
-            {showBillingSection && (
-              <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-muted/30 border">
-                <div className="space-y-1.5">
-                  <Label className="text-sm">Amount ($)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    value={formData.billableAmount}
-                    onChange={(e) => setFormData(prev => ({ ...prev, billableAmount: e.target.value }))}
-                    className="h-9"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-sm">Payment Method</Label>
-                  <Select 
-                    value={formData.paymentMethod} 
-                    onValueChange={(pm) => setFormData(prev => ({ ...prev, paymentMethod: pm }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover">
-                      {PAYMENT_METHODS.map(pm => (
-                        <SelectItem key={pm.value} value={pm.value}>{pm.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
 
             {/* Visit-specific fields */}
             {operationType === 'non_billable_visit' && (
