@@ -422,23 +422,31 @@ export function NewBookingModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl">
-        <DialogHeader className="pb-3">
-          <DialogTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-primary" />
-            {isEditing ? 'Edit Booking' : 'New Booking'}
-          </DialogTitle>
-          <DialogDescription>
-            Schedule a service execution (billable or non-billable)
-          </DialogDescription>
-        </DialogHeader>
-        
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-3">
+      <DialogContent className="sm:max-w-4xl p-0 overflow-hidden">
+        <div 
+          className="p-6 origin-top-left"
+          style={{ 
+            transform: 'scale(0.85)', 
+            width: '117.65%',
+            transformOrigin: 'top left' 
+          }}
+        >
+          <DialogHeader className="pb-3">
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-primary" />
+              {isEditing ? 'Edit Booking' : 'New Booking'}
+            </DialogTitle>
+            <DialogDescription>
+              Schedule a service execution (billable or non-billable)
+            </DialogDescription>
+          </DialogHeader>
+          
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-3">
             {/* ROW 1: Operation Type */}
             <OperationTypeSelector 
               value={operationType} 
@@ -666,7 +674,8 @@ export function NewBookingModal({
               </Button>
             </DialogFooter>
           </form>
-        )}
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
