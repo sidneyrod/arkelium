@@ -322,7 +322,7 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <User className="h-5 w-5 text-primary" />
@@ -330,92 +330,93 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="general" className="gap-2">
-                <User className="h-4 w-4" />
+            <TabsList className="grid w-full grid-cols-2 h-8">
+              <TabsTrigger value="general" className="gap-1.5 text-xs">
+                <User className="h-3.5 w-3.5" />
                 General
               </TabsTrigger>
-              <TabsTrigger value="payroll" className="gap-2">
-                <DollarSign className="h-4 w-4" />
+              <TabsTrigger value="payroll" className="gap-1.5 text-xs">
+                <DollarSign className="h-3.5 w-3.5" />
                 Payroll
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="general" className="space-y-4 mt-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="flex items-center gap-2">
-                  <User className="h-3.5 w-3.5 text-muted-foreground" />
-                  {t.users.name}
-                </Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => updateField('name', e.target.value)}
-                  placeholder="Full name"
-                  className={`placeholder:text-muted-foreground/50 ${errors.name ? 'border-destructive' : ''}`}
-                  maxLength={100}
-                />
-                {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
-              </div>
+            <TabsContent value="general" className="space-y-3 mt-3">
+              {/* Name, Role, Email, Phone in 2x2 grid */}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="name" className="flex items-center gap-1.5 text-xs">
+                    <User className="h-3 w-3 text-muted-foreground" />
+                    {t.users.name}
+                  </Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => updateField('name', e.target.value)}
+                    placeholder="Full name"
+                    className={`h-9 placeholder:text-muted-foreground/50 ${errors.name ? 'border-destructive' : ''}`}
+                    maxLength={100}
+                  />
+                  {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="role" className="flex items-center gap-2">
-                  <Shield className="h-3.5 w-3.5 text-muted-foreground" />
-                  {t.users.role}
-                </Label>
-                {loadingRoles ? (
-                  <div className="flex items-center gap-2 h-10 px-3 border rounded-md bg-muted/50">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-sm text-muted-foreground">Loading roles...</span>
-                  </div>
-                ) : availableRoles.length > 0 ? (
-                  <Select 
-                    value={formData.roleId || ''} 
-                    onValueChange={(value: string) => {
-                      const role = availableRoles.find(r => r.id === value);
-                      updateField('roleId', value);
-                      if (role) {
-                        setFormData(prev => ({ ...prev, role: role.baseRole, roleName: role.name, roleId: value }));
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t.users.selectRole} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableRoles.map((role) => (
-                        <SelectItem key={role.id} value={role.id}>
-                          <span className="flex items-center gap-2">
-                            {role.name}
-                            <span className="text-xs text-muted-foreground">({role.baseRole})</span>
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Select 
-                    value={formData.role} 
-                    onValueChange={(value: UserFormData['role']) => updateField('role', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t.users.selectRole} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">{t.users.admin}</SelectItem>
-                      <SelectItem value="manager">{t.users.manager}</SelectItem>
-                      <SelectItem value="cleaner">{t.users.cleaner}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="role" className="flex items-center gap-1.5 text-xs">
+                    <Shield className="h-3 w-3 text-muted-foreground" />
+                    {t.users.role}
+                  </Label>
+                  {loadingRoles ? (
+                    <div className="flex items-center gap-2 h-9 px-3 border rounded-md bg-muted/50">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-xs text-muted-foreground">Loading...</span>
+                    </div>
+                  ) : availableRoles.length > 0 ? (
+                    <Select 
+                      value={formData.roleId || ''} 
+                      onValueChange={(value: string) => {
+                        const role = availableRoles.find(r => r.id === value);
+                        updateField('roleId', value);
+                        if (role) {
+                          setFormData(prev => ({ ...prev, role: role.baseRole, roleName: role.name, roleId: value }));
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder={t.users.selectRole} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableRoles.map((role) => (
+                          <SelectItem key={role.id} value={role.id}>
+                            <span className="flex items-center gap-2">
+                              {role.name}
+                              <span className="text-xs text-muted-foreground">({role.baseRole})</span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Select 
+                      value={formData.role} 
+                      onValueChange={(value: UserFormData['role']) => updateField('role', value)}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder={t.users.selectRole} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">{t.users.admin}</SelectItem>
+                        <SelectItem value="manager">{t.users.manager}</SelectItem>
+                        <SelectItem value="cleaner">{t.users.cleaner}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="flex items-center gap-2">
-                    <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                <div className="space-y-1.5">
+                  <Label htmlFor="email" className="flex items-center gap-1.5 text-xs">
+                    <Mail className="h-3 w-3 text-muted-foreground" />
                     {t.auth.email}
                   </Label>
                   <Input
@@ -424,16 +425,16 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
                     value={formData.email}
                     onChange={(e) => updateField('email', e.target.value)}
                     placeholder="email@example.com"
-                    className={`placeholder:text-muted-foreground/50 ${errors.email ? 'border-destructive' : ''}`}
+                    className={`h-9 placeholder:text-muted-foreground/50 ${errors.email ? 'border-destructive' : ''}`}
                     maxLength={255}
                     disabled={!!editUser?.id}
                   />
                   {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="phone" className="flex items-center gap-2">
-                    <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                <div className="space-y-1.5">
+                  <Label htmlFor="phone" className="flex items-center gap-1.5 text-xs">
+                    <Phone className="h-3 w-3 text-muted-foreground" />
                     {t.users.phone}
                   </Label>
                   <Input
@@ -442,29 +443,25 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
                     value={formData.phone}
                     onChange={(e) => updateField('phone', e.target.value)}
                     placeholder="(000) 000-0000"
-                    className="placeholder:text-muted-foreground/50"
+                    className="h-9 placeholder:text-muted-foreground/50"
                     maxLength={20}
                   />
                 </div>
               </div>
 
-              {/* Temporary Password Info for new users */}
+              {/* Temporary Password Info for new users - Compact */}
               {isNewUser && (
-                <div className="p-3 rounded-lg border border-border bg-muted/30">
-                  <p className="text-sm text-muted-foreground">
+                <div className="p-2 rounded-lg border border-border bg-muted/30">
+                  <p className="text-xs text-muted-foreground">
                     <strong>{t.users.tempPasswordNote}</strong> {t.users.tempPasswordDescription}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {t.users.tempPasswordChangeRequired}
                   </p>
                 </div>
               )}
 
-
-              {/* Address Fields */}
-              <div className="space-y-3">
-                <Label className="flex items-center gap-2">
-                  <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+              {/* Address Fields - Compact */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5 text-xs">
+                  <MapPin className="h-3 w-3 text-muted-foreground" />
                   Address
                 </Label>
                 
@@ -472,50 +469,44 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
                   value={formData.address}
                   onChange={(e) => updateField('address', e.target.value)}
                   placeholder="Street address"
-                  className="placeholder:text-muted-foreground/50"
+                  className="h-9 placeholder:text-muted-foreground/50"
                   maxLength={255}
                 />
 
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-2 sm:grid-cols-4">
                   <Input
                     value={formData.city}
                     onChange={(e) => updateField('city', e.target.value)}
                     placeholder="City"
-                    className="placeholder:text-muted-foreground/50"
+                    className="h-9 placeholder:text-muted-foreground/50"
                     maxLength={100}
                   />
                   <Input
                     value={formData.province_address}
                     onChange={(e) => updateField('province_address', e.target.value)}
-                    placeholder="Province / Territory"
-                    className="placeholder:text-muted-foreground/50"
+                    placeholder="Province"
+                    className="h-9 placeholder:text-muted-foreground/50"
                     maxLength={100}
                   />
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
                   <Input
                     value={formData.country}
                     onChange={(e) => updateField('country', e.target.value)}
                     placeholder="Country"
-                    className="placeholder:text-muted-foreground/50"
+                    className="h-9 placeholder:text-muted-foreground/50"
                     maxLength={100}
                   />
                   <Input
                     value={formData.postalCode}
                     onChange={(e) => updateField('postalCode', e.target.value)}
                     placeholder="Postal code"
-                    className="placeholder:text-muted-foreground/50"
+                    className="h-9 placeholder:text-muted-foreground/50"
                     maxLength={20}
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-                <div className="space-y-0.5">
-                  <Label htmlFor="active" className="cursor-pointer">{t.users.activeUser}</Label>
-                  <p className="text-sm text-muted-foreground">{t.users.activeUserDescription}</p>
-                </div>
+              <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                <Label htmlFor="active" className="cursor-pointer text-xs">{t.users.activeUser}</Label>
                 <Switch
                   id="active"
                   checked={formData.isActive}
@@ -524,112 +515,90 @@ const AddUserModal = ({ open, onOpenChange, onSubmit, editUser }: AddUserModalPr
               </div>
             </TabsContent>
 
-            <TabsContent value="payroll" className="space-y-4 mt-4">
-              <Card className="border-border/50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <Briefcase className="h-4 w-4 text-primary" />
-                    Employment Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="employmentType">Employment Type</Label>
-                      <Select 
-                        value={formData.employmentType || 'full-time'} 
-                        onValueChange={(value: EmploymentType) => updateField('employmentType', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="full-time">Full-time</SelectItem>
-                          <SelectItem value="part-time">Part-time</SelectItem>
-                          <SelectItem value="contract">Contract</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+            <TabsContent value="payroll" className="space-y-3 mt-3">
+              {/* Employment Details + Compensation in one row */}
+              <div className="grid gap-3 sm:grid-cols-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="employmentType" className="text-xs">Employment Type</Label>
+                  <Select 
+                    value={formData.employmentType || 'full-time'} 
+                    onValueChange={(value: EmploymentType) => updateField('employmentType', value)}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="full-time">Full-time</SelectItem>
+                      <SelectItem value="part-time">Part-time</SelectItem>
+                      <SelectItem value="contract">Contract</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="province">Province (Tax)</Label>
-                      <Select 
-                        value={formData.province || 'ON'} 
-                        onValueChange={(value: CanadianProvince) => updateField('province', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(provinceNames).map(([code, name]) => (
-                            <SelectItem key={code} value={code}>{name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                <div className="space-y-1.5">
+                  <Label htmlFor="province" className="text-xs">Province (Tax)</Label>
+                  <Select 
+                    value={formData.province || 'ON'} 
+                    onValueChange={(value: CanadianProvince) => updateField('province', value)}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(provinceNames).map(([code, name]) => (
+                        <SelectItem key={code} value={code}>{name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <Card className="border-border/50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-primary" />
-                    Compensation
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {showPayrollFields ? (
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="hourlyRate">Hourly Rate ($)</Label>
-                        <Input
-                          id="hourlyRate"
-                          type="number"
-                          min="0"
-                          step="0.50"
-                          value={formData.hourlyRate || ''}
-                          onChange={(e) => updateField('hourlyRate', parseFloat(e.target.value) || 0)}
-                          placeholder="0.00"
-                          className="placeholder:text-muted-foreground/50"
-                        />
-                        <p className="text-xs text-muted-foreground">Required for cleaners and supervisors</p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="vacationPayPercent">Vacation Pay (%)</Label>
-                        <Input
-                          id="vacationPayPercent"
-                          type="number"
-                          min="0"
-                          max="10"
-                          step="0.5"
-                          value={formData.vacationPayPercent || ''}
-                          onChange={(e) => updateField('vacationPayPercent', parseFloat(e.target.value) || 0)}
-                          placeholder="4"
-                          className="placeholder:text-muted-foreground/50"
-                        />
-                        <p className="text-xs text-muted-foreground">Minimum 4% in most provinces</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <Label htmlFor="salary">Annual Salary ($)</Label>
+                {showPayrollFields ? (
+                  <>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="hourlyRate" className="text-xs">Hourly Rate ($)</Label>
                       <Input
-                        id="salary"
+                        id="hourlyRate"
                         type="number"
                         min="0"
-                        step="1000"
-                        value={formData.salary || ''}
-                        onChange={(e) => updateField('salary', parseFloat(e.target.value) || 0)}
-                        placeholder="0"
-                        className="placeholder:text-muted-foreground/50"
+                        step="0.50"
+                        value={formData.hourlyRate || ''}
+                        onChange={(e) => updateField('hourlyRate', parseFloat(e.target.value) || 0)}
+                        placeholder="0.00"
+                        className="h-9 placeholder:text-muted-foreground/50"
                       />
-                      <p className="text-xs text-muted-foreground">For managers and admins</p>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="vacationPayPercent" className="text-xs">Vacation Pay (%)</Label>
+                      <Input
+                        id="vacationPayPercent"
+                        type="number"
+                        min="0"
+                        max="10"
+                        step="0.5"
+                        value={formData.vacationPayPercent || ''}
+                        onChange={(e) => updateField('vacationPayPercent', parseFloat(e.target.value) || 0)}
+                        placeholder="4"
+                        className="h-9 placeholder:text-muted-foreground/50"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor="salary" className="text-xs">Annual Salary ($)</Label>
+                    <Input
+                      id="salary"
+                      type="number"
+                      min="0"
+                      step="1000"
+                      value={formData.salary || ''}
+                      onChange={(e) => updateField('salary', parseFloat(e.target.value) || 0)}
+                      placeholder="0"
+                      className="h-9 placeholder:text-muted-foreground/50"
+                    />
+                  </div>
+                )}
+              </div>
             </TabsContent>
           </Tabs>
 

@@ -139,7 +139,7 @@ const AddContractModal = ({ open, onOpenChange, onSubmit, editContract, clients 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
@@ -147,7 +147,7 @@ const AddContractModal = ({ open, onOpenChange, onSubmit, editContract, clients 
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-3">
+        <form onSubmit={handleSubmit} className="space-y-3">
           {/* Client & Status */}
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
@@ -360,57 +360,55 @@ const AddContractModal = ({ open, onOpenChange, onSubmit, editContract, clients 
             </div>
           </div>
 
-          {/* Cleaning Scope */}
-          <div className="space-y-1.5">
-            <Label className="text-xs">{t.contracts.cleaningScope}</Label>
-            <Textarea
-              value={formData.cleaningScope}
-              onChange={(e) => updateField('cleaningScope', e.target.value)}
-              placeholder="Describe the cleaning scope and services included..."
-              rows={2}
-              className="text-sm"
-            />
+          {/* Cleaning Scope & Notes - Side by Side */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t.contracts.cleaningScope}</Label>
+              <Textarea
+                value={formData.cleaningScope}
+                onChange={(e) => updateField('cleaningScope', e.target.value)}
+                placeholder="Describe the cleaning scope..."
+                rows={1}
+                className="text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t.contracts.specialNotes}</Label>
+              <Textarea
+                value={formData.specialNotes}
+                onChange={(e) => updateField('specialNotes', e.target.value)}
+                placeholder="Any special instructions..."
+                rows={1}
+                className="text-sm"
+              />
+            </div>
           </div>
 
-          {/* Special Notes */}
-          <div className="space-y-1.5">
-            <Label className="text-xs">{t.contracts.specialNotes}</Label>
-            <Textarea
-              value={formData.specialNotes}
-              onChange={(e) => updateField('specialNotes', e.target.value)}
-              placeholder="Any special instructions or notes..."
-              rows={2}
-              className="text-sm"
-            />
-          </div>
-
-          {/* PDF Options */}
-          <div className="space-y-2 p-3 rounded-lg bg-muted/50">
-            <h4 className="text-xs font-medium flex items-center gap-2">
+          {/* PDF Options - Inline */}
+          <div className="flex items-center gap-4 p-2 rounded-lg bg-muted/50">
+            <div className="flex items-center gap-1.5">
               <FileDown className="h-3.5 w-3.5 text-primary" />
-              {t.contracts.pdfOptions}
-            </h4>
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="generatePdf"
-                  checked={formData.generatePdfAutomatically}
-                  onCheckedChange={(checked) => updateField('generatePdfAutomatically', !!checked)}
-                />
-                <Label htmlFor="generatePdf" className="text-xs font-normal cursor-pointer">
-                  {t.contracts.generatePdfAutomatically}
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="allowDownload"
-                  checked={formData.allowPdfDownload}
-                  onCheckedChange={(checked) => updateField('allowPdfDownload', !!checked)}
-                />
-                <Label htmlFor="allowDownload" className="text-xs font-normal cursor-pointer">
-                  {t.contracts.allowPdfDownload}
-                </Label>
-              </div>
+              <span className="text-xs font-medium">{t.contracts.pdfOptions}:</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="generatePdf"
+                checked={formData.generatePdfAutomatically}
+                onCheckedChange={(checked) => updateField('generatePdfAutomatically', !!checked)}
+              />
+              <Label htmlFor="generatePdf" className="text-xs font-normal cursor-pointer">
+                {t.contracts.generatePdfAutomatically}
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="allowDownload"
+                checked={formData.allowPdfDownload}
+                onCheckedChange={(checked) => updateField('allowPdfDownload', !!checked)}
+              />
+              <Label htmlFor="allowDownload" className="text-xs font-normal cursor-pointer">
+                {t.contracts.allowPdfDownload}
+              </Label>
             </div>
           </div>
 

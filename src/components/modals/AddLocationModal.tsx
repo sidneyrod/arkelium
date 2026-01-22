@@ -92,7 +92,7 @@ const AddLocationModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MapPin className="h-5 w-5 text-primary" />
@@ -100,7 +100,7 @@ const AddLocationModal = ({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           {/* Address */}
           <div className="space-y-2">
             <Label htmlFor="address">{t.clients.address} *</Label>
@@ -144,102 +144,98 @@ const AddLocationModal = ({
             </div>
           </div>
 
-          {/* Access Instructions */}
-          <div className="space-y-2">
-            <Label htmlFor="accessInstructions">{t.clients.accessInstructions}</Label>
-            <Textarea
-              id="accessInstructions"
-              value={formData.accessInstructions}
-              onChange={(e) => setFormData({ ...formData, accessInstructions: e.target.value })}
-              placeholder="Enter through the back door, code is 1234..."
-              rows={2}
-            />
-          </div>
-
-          {/* Alarm Code */}
-          <div className="space-y-2">
-            <Label htmlFor="alarmCode">{t.clients.alarmCode}</Label>
-            <div className="relative">
-              <Input
-                id="alarmCode"
-                type={showAlarmCode ? 'text' : 'password'}
-                value={formData.alarmCode}
-                onChange={(e) => setFormData({ ...formData, alarmCode: e.target.value })}
-                placeholder="••••••"
-                className="pr-10"
+          {/* Access Instructions & Alarm Code - Side by Side */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="accessInstructions" className="text-xs">{t.clients.accessInstructions}</Label>
+              <Textarea
+                id="accessInstructions"
+                value={formData.accessInstructions}
+                onChange={(e) => setFormData({ ...formData, accessInstructions: e.target.value })}
+                placeholder="Enter through the back door..."
+                rows={1}
               />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                onClick={() => setShowAlarmCode(!showAlarmCode)}
-              >
-                {showAlarmCode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </Button>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="alarmCode" className="text-xs">{t.clients.alarmCode}</Label>
+              <div className="relative">
+                <Input
+                  id="alarmCode"
+                  type={showAlarmCode ? 'text' : 'password'}
+                  value={formData.alarmCode}
+                  onChange={(e) => setFormData({ ...formData, alarmCode: e.target.value })}
+                  placeholder="••••••"
+                  className="pr-10 h-9"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                  onClick={() => setShowAlarmCode(!showAlarmCode)}
+                >
+                  {showAlarmCode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
           </div>
 
-          {/* Parking Info */}
-          <div className="space-y-2">
-            <Label htmlFor="parkingInfo">{t.clients.parking}</Label>
-            <Input
-              id="parkingInfo"
-              value={formData.parkingInfo}
-              onChange={(e) => setFormData({ ...formData, parkingInfo: e.target.value })}
-              placeholder="Street parking available, driveway..."
-            />
-          </div>
-
-          {/* Has Pets */}
-          <div className="flex items-center justify-between rounded-lg border p-3">
-            <div className="space-y-0.5">
-              <Label htmlFor="hasPets" className="cursor-pointer">{t.clients.pets}</Label>
-              <p className="text-xs text-muted-foreground">Does this location have pets?</p>
+          {/* Parking & Pets - Side by Side */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="parkingInfo" className="text-xs">{t.clients.parking}</Label>
+              <Input
+                id="parkingInfo"
+                value={formData.parkingInfo}
+                onChange={(e) => setFormData({ ...formData, parkingInfo: e.target.value })}
+                placeholder="Street parking, driveway..."
+                className="h-9"
+              />
             </div>
-            <Switch
-              id="hasPets"
-              checked={formData.hasPets}
-              onCheckedChange={(checked) => setFormData({ ...formData, hasPets: checked })}
-            />
+            <div className="flex items-center justify-between rounded-lg border p-2 h-9">
+              <Label htmlFor="hasPets" className="cursor-pointer text-xs">{t.clients.pets}</Label>
+              <Switch
+                id="hasPets"
+                checked={formData.hasPets}
+                onCheckedChange={(checked) => setFormData({ ...formData, hasPets: checked })}
+              />
+            </div>
           </div>
 
           {/* Pet Details (conditional) */}
           {formData.hasPets && (
-            <div className="space-y-2">
-              <Label htmlFor="petDetails">{t.clients.petDetails}</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="petDetails" className="text-xs">{t.clients.petDetails}</Label>
               <Input
                 id="petDetails"
                 value={formData.petDetails}
                 onChange={(e) => setFormData({ ...formData, petDetails: e.target.value })}
                 placeholder="2 dogs, friendly..."
+                className="h-9"
               />
             </div>
           )}
 
-          {/* Is Primary */}
-          <div className="flex items-center justify-between rounded-lg border p-3">
-            <div className="space-y-0.5">
-              <Label htmlFor="isPrimary" className="cursor-pointer">{t.clients.primaryLocation}</Label>
-              <p className="text-xs text-muted-foreground">{t.clients.primaryLocationDescription}</p>
+          {/* Primary & Notes - Side by Side */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="flex items-center justify-between rounded-lg border p-2">
+              <Label htmlFor="isPrimary" className="cursor-pointer text-xs">{t.clients.primaryLocation}</Label>
+              <Switch
+                id="isPrimary"
+                checked={formData.isPrimary}
+                onCheckedChange={(checked) => setFormData({ ...formData, isPrimary: checked })}
+              />
             </div>
-            <Switch
-              id="isPrimary"
-              checked={formData.isPrimary}
-              onCheckedChange={(checked) => setFormData({ ...formData, isPrimary: checked })}
-            />
-          </div>
-
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">{t.clients.notes}</Label>
-            <Textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Additional notes about this location..."
-              rows={2}
-            />
+            <div className="space-y-1.5">
+              <Label htmlFor="notes" className="text-xs">{t.clients.notes}</Label>
+              <Input
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="Additional notes..."
+                className="h-9"
+              />
+            </div>
           </div>
 
           <DialogFooter>
