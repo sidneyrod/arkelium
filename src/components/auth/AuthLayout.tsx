@@ -93,7 +93,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       <div className="relative z-10 h-screen flex flex-col lg:flex-row">
         
         {/* Left Brand Panel - Desktop Only (≥1024px) */}
-        <div className="hidden lg:flex lg:w-[48%] xl:w-[45%] 2xl:w-[42%] relative items-center justify-start pl-12 xl:pl-20 2xl:pl-28 pr-8">
+        <div className="hidden lg:flex lg:w-[48%] xl:w-[45%] 2xl:w-[42%] relative items-center justify-center px-8">
           
           {/* Watermark "A" - subtle background element */}
           <img
@@ -103,17 +103,17 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             className="absolute right-[-5%] top-1/2 -translate-y-1/2 h-[85vh] w-auto opacity-[0.04] pointer-events-none select-none"
           />
           
-          {/* Brand Content */}
-          <div className="relative z-10 flex flex-col items-start max-w-lg">
-            {/* Logo - Gold, Large, Prominent */}
+          {/* Brand Content - Centered with Large Logo */}
+          <div className="relative z-10 flex flex-col items-center text-center max-w-xl mx-auto">
+            {/* Logo - Gold, 200% Size, Centered */}
             <img
               src={arkeliumLogo}
               alt="Arkelium"
-              className="h-20 xl:h-24 2xl:h-28 w-auto mb-8 xl:mb-10 select-none"
-              style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }}
+              className="h-40 xl:h-48 2xl:h-56 w-auto mb-10 xl:mb-12 select-none"
+              style={{ filter: 'drop-shadow(0 4px 16px rgba(0,0,0,0.4))' }}
             />
 
-            {/* Headline - Neutral, Strong Hierarchy */}
+            {/* Headline - Centered with Logo */}
             <h1
               className={`font-light leading-[1.15] mb-6 ${
                 isDark ? 'text-white' : 'text-gray-900'
