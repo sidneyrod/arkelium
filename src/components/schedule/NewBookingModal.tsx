@@ -422,8 +422,8 @@ export function NewBookingModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-3xl">
+        <DialogHeader className="pb-3">
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-primary" />
             {isEditing ? 'Edit Booking' : 'New Booking'}
@@ -438,88 +438,84 @@ export function NewBookingModal({
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4 py-4">
-            {/* SECTION A: Operation Type */}
+          <form onSubmit={handleSubmit} className="space-y-3">
+            {/* ROW 1: Operation Type */}
             <OperationTypeSelector 
               value={operationType} 
               onChange={setOperationType} 
             />
 
-            <Separator />
+            {/* ROW 2: Activity + Operating Company (2 columns) */}
+            <div className="grid grid-cols-2 gap-3">
+              <ActivitySelector
+                value={activityCode}
+                onChange={(code, label) => {
+                  setActivityCode(code);
+                  setActivityLabel(label);
+                  setServiceCatalogId(null);
+                  setServiceName('');
+                  setSelectedService(null);
+                }}
+              />
+              <OperatingCompanySelector
+                value={operatingCompanyId}
+                onChange={(id, name, orgId) => {
+                  setOperatingCompanyId(id);
+                  setOperatingCompanyName(name);
+                  setOrganizationId(orgId || null);
+                  setFormData(prev => ({ ...prev, clientId: '', clientName: '', address: '' }));
+                }}
+                activityCode={activityCode}
+              />
+            </div>
 
-            {/* SECTION B: Activity */}
-            <ActivitySelector
-              value={activityCode}
-              onChange={(code, label) => {
-                setActivityCode(code);
-                setActivityLabel(label);
-                // Reset service when activity changes
-                setServiceCatalogId(null);
-                setServiceName('');
-                setSelectedService(null);
-              }}
-            />
+            {/* ROW 3: Service Type + Client (2 columns) */}
+            <div className="grid grid-cols-2 gap-3">
+              <ServiceTypeSelector
+                value={serviceCatalogId || ''}
+                onChange={(id, name, service) => {
+                  setServiceCatalogId(id);
+                  setServiceName(name);
+                  setSelectedService(service || null);
+                }}
+                companyId={operatingCompanyId || activeCompanyId || ''}
+                activityCode={activityCode}
+              />
+              
+              {requiresClient ? (
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Client</Label>
+                  <Select value={formData.clientId} onValueChange={handleClientChange}>
+                    <SelectTrigger className={errors.clientId ? 'border-destructive' : ''}>
+                      <SelectValue placeholder="Select client..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover">
+                      {clients.length === 0 ? (
+                        <div className="py-2 px-3 text-sm text-muted-foreground">No clients found</div>
+                      ) : (
+                        clients.map(client => (
+                          <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {errors.clientId && <p className="text-xs text-destructive">{errors.clientId}</p>}
+                </div>
+              ) : (
+                <div className="p-3 rounded-md bg-muted/30 border text-sm text-muted-foreground flex items-center">
+                  Internal work — no client required
+                </div>
+              )}
+            </div>
 
-            {/* SECTION C: Operating Company */}
-            <OperatingCompanySelector
-              value={operatingCompanyId}
-              onChange={(id, name, orgId) => {
-                setOperatingCompanyId(id);
-                setOperatingCompanyName(name);
-                setOrganizationId(orgId || null);
-                // Reset client when company changes
-                setFormData(prev => ({ ...prev, clientId: '', clientName: '', address: '' }));
-              }}
-              activityCode={activityCode}
-            />
-
-            {/* SECTION D: Service Type */}
-            <ServiceTypeSelector
-              value={serviceCatalogId || ''}
-              onChange={(id, name, service) => {
-                setServiceCatalogId(id);
-                setServiceName(name);
-                setSelectedService(service || null);
-              }}
-              companyId={operatingCompanyId || activeCompanyId || ''}
-              activityCode={activityCode}
-            />
-
-            <Separator />
-
-            {/* SECTION E: Client (hidden for Internal Work) */}
-            {requiresClient ? (
-              <div className="space-y-2">
-                <Label className="text-sm">Client</Label>
-                <Select value={formData.clientId} onValueChange={handleClientChange}>
-                  <SelectTrigger className={errors.clientId ? 'border-destructive' : ''}>
-                    <SelectValue placeholder="Select client..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover">
-                    {clients.length === 0 ? (
-                      <div className="py-2 px-3 text-sm text-muted-foreground">No clients found</div>
-                    ) : (
-                      clients.map(client => (
-                        <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-                {errors.clientId && <p className="text-xs text-destructive">{errors.clientId}</p>}
-                
-                {formData.address && (
-                  <Input value={formData.address} disabled className="bg-muted text-sm" />
-                )}
-              </div>
-            ) : (
-              <div className="p-3 rounded-md bg-muted/30 border text-sm text-muted-foreground">
-                Internal work — no client required
-              </div>
+            {/* Client Address (conditional) */}
+            {requiresClient && formData.address && (
+              <Input value={formData.address} disabled className="bg-muted text-sm h-9" />
             )}
 
-            {/* SECTION F: Date / Time / Duration / Assigned To */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
+            {/* ROW 4: Date / Time / Duration / Assigned To (4 columns) */}
+            <div className="grid grid-cols-4 gap-3">
+              <div className="space-y-1.5">
                 <Label className="text-sm">Date</Label>
                 <DatePickerDialog
                   mode="single"
@@ -533,7 +529,7 @@ export function NewBookingModal({
                 />
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label className="text-sm">Start Time</Label>
                 <Select value={formData.time} onValueChange={(time) => setFormData(prev => ({ ...prev, time }))}>
                   <SelectTrigger>
@@ -546,10 +542,8 @@ export function NewBookingModal({
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label className="text-sm">Duration</Label>
                 <Select value={formData.duration} onValueChange={(duration) => setFormData(prev => ({ ...prev, duration }))}>
                   <SelectTrigger>
@@ -563,11 +557,11 @@ export function NewBookingModal({
                 </Select>
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label className="text-sm">Assigned To {operationType !== 'internal_work' && <span className="text-destructive">*</span>}</Label>
                 <Select value={formData.employeeId} onValueChange={handleEmployeeChange}>
                   <SelectTrigger className={errors.employeeId ? 'border-destructive' : ''}>
-                    <SelectValue placeholder="Select employee..." />
+                    <SelectValue placeholder="Select..." />
                   </SelectTrigger>
                   <SelectContent className="bg-popover">
                     {employees.length === 0 ? (
@@ -603,75 +597,66 @@ export function NewBookingModal({
               </div>
             </div>
 
-            {/* SECTION G: Billing (only for Billable Service) */}
+            {/* ROW 5: Billing (only for Billable Service) - 2 columns inline */}
             {showBillingSection && (
-              <>
-                <Separator />
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Billing Details</Label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Amount ($)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0.00"
-                        value={formData.billableAmount}
-                        onChange={(e) => setFormData(prev => ({ ...prev, billableAmount: e.target.value }))}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Payment Method</Label>
-                      <Select 
-                        value={formData.paymentMethod} 
-                        onValueChange={(pm) => setFormData(prev => ({ ...prev, paymentMethod: pm }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-popover">
-                          {PAYMENT_METHODS.map(pm => (
-                            <SelectItem key={pm.value} value={pm.value}>{pm.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+              <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-muted/30 border">
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Amount ($)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    value={formData.billableAmount}
+                    onChange={(e) => setFormData(prev => ({ ...prev, billableAmount: e.target.value }))}
+                    className="h-9"
+                  />
                 </div>
-              </>
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Payment Method</Label>
+                  <Select 
+                    value={formData.paymentMethod} 
+                    onValueChange={(pm) => setFormData(prev => ({ ...prev, paymentMethod: pm }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover">
+                      {PAYMENT_METHODS.map(pm => (
+                        <SelectItem key={pm.value} value={pm.value}>{pm.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             )}
 
             {/* Visit-specific fields */}
             {operationType === 'non_billable_visit' && (
-              <>
-                <Separator />
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Visit Details</Label>
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Purpose</Label>
-                    <Input
-                      placeholder="e.g., Quote, Inspection, Follow-up"
-                      value={formData.visitPurpose}
-                      onChange={(e) => setFormData(prev => ({ ...prev, visitPurpose: e.target.value }))}
-                    />
-                  </div>
-                </div>
-              </>
+              <div className="space-y-1.5">
+                <Label className="text-sm">Visit Purpose</Label>
+                <Input
+                  placeholder="e.g., Quote, Inspection, Follow-up"
+                  value={formData.visitPurpose}
+                  onChange={(e) => setFormData(prev => ({ ...prev, visitPurpose: e.target.value }))}
+                  className="h-9"
+                />
+              </div>
             )}
 
-            {/* Notes */}
-            <div className="space-y-2">
+            {/* Notes - single row */}
+            <div className="space-y-1.5">
               <Label className="text-sm">Notes</Label>
               <Textarea
                 placeholder="Additional notes or instructions..."
                 value={formData.notes}
                 onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                rows={2}
+                rows={1}
+                className="min-h-[36px] resize-none"
               />
             </div>
 
-            <DialogFooter className="pt-4">
+            <DialogFooter className="pt-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
