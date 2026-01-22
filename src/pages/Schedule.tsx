@@ -155,6 +155,7 @@ const Schedule = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [debugInfo, setDebugInfo] = useState<string>('');
   const [invoiceGenerationMode, setInvoiceGenerationMode] = useState<'automatic' | 'manual'>('manual');
   
   // Update view and date when URL params change
@@ -173,17 +174,24 @@ const Schedule = () => {
 
   // Fetch jobs from Supabase
   const fetchJobs = useCallback(async () => {
+    setIsLoading(true);
+    console.log('[Schedule] fetchJobs called', { activeCompanyId, userCompanyId: user?.profile?.company_id });
+    
     try {
       let companyId = activeCompanyId;
       if (!companyId) {
         companyId = user?.profile?.company_id || null;
+        console.log('[Schedule] Fallback to user company_id:', companyId);
       }
       if (!companyId) {
         const { data: companyIdData } = await supabase.rpc('get_user_company_id');
         companyId = companyIdData;
+        console.log('[Schedule] Fallback to RPC company_id:', companyId);
       }
       
       if (!companyId) {
+        console.log('[Schedule] No company ID found, aborting fetch');
+        setDebugInfo('No company ID available');
         setIsLoading(false);
         return;
       }
@@ -213,13 +221,16 @@ const Schedule = () => {
           organization_id,
           clients(id, name),
           profiles:cleaner_id(id, first_name, last_name),
-          client_locations(address, city)
+          client_locations:location_id(address, city)
         `)
         .eq('company_id', companyId)
         .order('scheduled_date', { ascending: true });
       
+      console.log('[Schedule] Query result:', { count: data?.length, error, companyId });
+      
       if (error) {
         console.error('Error fetching jobs:', error);
+        setDebugInfo(`Query error: ${error.message}`);
         setIsLoading(false);
         return;
       }
@@ -261,10 +272,13 @@ const Schedule = () => {
         };
       });
       
+      console.log('[Schedule] Mapped jobs:', mappedJobs.length);
+      setDebugInfo(`Loaded ${mappedJobs.length} jobs for company ${companyId}`);
       setJobs(mappedJobs);
       setIsLoading(false);
     } catch (error) {
       console.error('Error in fetchJobs:', error);
+      setDebugInfo(`Exception: ${error}`);
       setIsLoading(false);
     }
   }, [user, activeCompanyId]);
@@ -302,12 +316,21 @@ const Schedule = () => {
     }
   }, [user, activeCompanyId]);
 
+  // Reset filters when company changes
+  useEffect(() => {
+    setEmployeeFilter('all');
+    setServiceTypeFilter('all');
+    setStatusFilter('all');
+  }, [activeCompanyId]);
+
+  // Fetch jobs when user or company changes
   useEffect(() => {
     if (user) {
+      console.log('[Schedule] useEffect triggered - fetching jobs', { activeCompanyId });
       fetchJobs();
       fetchInvoiceSettings();
     }
-  }, [user, fetchJobs, fetchInvoiceSettings]);
+  }, [user, fetchJobs, fetchInvoiceSettings, activeCompanyId]);
 
   // For cleaners: only show their own jobs. For admin/manager: show all or filtered
   const baseJobs = isCleaner 
