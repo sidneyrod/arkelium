@@ -77,10 +77,10 @@ export default function ForgotPassword() {
     }
   }
 
-  // Card styling
+  // Card styling - Transparent like Login
   const cardClass = isDark
-    ? 'bg-[#14181e]/85 backdrop-blur-xl border border-white/10 shadow-2xl'
-    : 'bg-white/85 backdrop-blur-xl border border-black/5 shadow-2xl';
+    ? 'bg-black/30 backdrop-blur-md border border-white/[0.08] shadow-2xl'
+    : 'bg-white/30 backdrop-blur-md border border-black/[0.06] shadow-xl';
 
   const inputClass = isDark
     ? 'h-11 bg-[#0a0e14]/60 border-white/10 text-white placeholder:text-white/40 focus:border-white/30 focus:ring-white/10'
@@ -90,23 +90,24 @@ export default function ForgotPassword() {
 
   return (
     <AuthLayout>
-      {/* Auth Card - Compact */}
+      {/* Auth Card - Transparent */}
       <div
-        className={`w-full max-w-[520px] rounded-[22px] p-6 sm:p-7 lg:p-8 ${cardClass}`}
+        className={`w-full max-w-[520px] rounded-2xl p-6 sm:p-8 ${cardClass}`}
       >
-        {/* Logo only */}
-        <div className="flex justify-center mb-5">
+        {/* Gold Logo - Centered */}
+        <div className="flex justify-center mb-6">
           <img
             src={arkeliumSymbol}
             alt="Arkelium"
-            className="h-10 sm:h-11 w-auto select-none filter-gold"
+            className="h-11 w-auto select-none"
+            style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.2))' }}
           />
         </div>
 
         {/* Title */}
-        <div className="text-center mb-5">
+        <div className="text-center mb-6">
           <h1
-            className={`text-lg font-semibold ${
+            className={`text-xl font-semibold ${
               isDark ? 'text-white' : 'text-gray-900'
             }`}
           >
@@ -187,10 +188,10 @@ export default function ForgotPassword() {
         </form>
 
         {/* Minimal footer */}
-        <div className="mt-4 text-center">
+        <div className="mt-5 text-center">
           <span
-            className={`text-[10px] ${
-              isDark ? 'text-white/20' : 'text-gray-300'
+            className={`text-[11px] ${
+              isDark ? 'text-white/30' : 'text-gray-400'
             }`}
           >
             Enterprise-grade security
