@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useLayoutEffect, useState } from 'react';
 
 type Theme = 'dark' | 'light';
 
@@ -11,23 +11,38 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setThemeState] = useState<Theme>('dark');
-
-  useEffect(() => {
-    const stored = localStorage.getItem('theme') as Theme | null;
-    if (stored) {
-      setThemeState(stored);
+  const [theme, setThemeState] = useState<Theme>(() => {
+    try {
+      const stored = localStorage.getItem('theme') as Theme | null;
+      return stored === 'light' || stored === 'dark' ? stored : 'dark';
+    } catch {
+      return 'dark';
     }
-  }, []);
+  });
 
-  useEffect(() => {
+  // Apply theme synchronously before paint to avoid any visible delay/fade.
+  // Also temporarily disables CSS transitions during the swap.
+  useLayoutEffect(() => {
     const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
+
+    // Disable transitions globally for this frame
+    root.classList.add('disable-transitions');
+
+    if (theme === 'dark') root.classList.add('dark');
+    else root.classList.remove('dark');
+
+    try {
+      localStorage.setItem('theme', theme);
+    } catch {
+      // ignore
     }
-    localStorage.setItem('theme', theme);
+
+    // Re-enable transitions after the theme has been applied.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        root.classList.remove('disable-transitions');
+      });
+    });
   }, [theme]);
 
   const setTheme = (newTheme: Theme) => {

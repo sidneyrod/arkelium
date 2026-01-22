@@ -161,6 +161,13 @@
   }
 }
 
+/* Disable ALL CSS transitions during theme swap (added/removed by ThemeContext). */
+.disable-transitions *,
+.disable-transitions *::before,
+.disable-transitions *::after {
+  transition: none !important;
+}
+
 @layer utilities {
   /* Glass effects */
   .glass {

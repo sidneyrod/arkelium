@@ -27,6 +27,10 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
   return (
     <div className="fixed inset-0 overflow-hidden">
+      {/* Preload both theme background images to prevent any perceived delay on toggle */}
+      <img src="/images/auth-bg-dark.png" alt="" aria-hidden="true" className="hidden" />
+      <img src="/images/auth-bg-light.png" alt="" aria-hidden="true" className="hidden" />
+
       {/* Full-screen Background Image */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
