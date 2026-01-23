@@ -183,6 +183,48 @@
     @apply bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent;
   }
 
+  /* Premium Schedule-specific utilities */
+  .schedule-card {
+    @apply rounded-xl border transition-all duration-200 ease-out;
+  }
+  
+  .schedule-card-hover {
+    @apply hover:shadow-lg hover:-translate-y-0.5 hover:scale-[1.01];
+  }
+  
+  .schedule-grid-line {
+    @apply border-border/10 dark:border-border/8;
+  }
+  
+  .schedule-current-time {
+    @apply bg-destructive/60 h-[2px] absolute left-0 right-0 z-40 pointer-events-none;
+  }
+  
+  /* Premium soft shadows for schedule */
+  .shadow-soft-sm {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.02);
+  }
+  
+  .shadow-soft-md {
+    box-shadow: 0 4px 8px -2px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.03);
+  }
+  
+  .shadow-soft-lg {
+    box-shadow: 0 8px 16px -4px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+  }
+  
+  .dark .shadow-soft-sm {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.2);
+  }
+  
+  .dark .shadow-soft-md {
+    box-shadow: 0 4px 8px -2px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+  }
+  
+  .dark .shadow-soft-lg {
+    box-shadow: 0 8px 16px -4px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+  }
+
   /* Animations */
   .animate-fade-up {
     animation: fade-up 0.5s ease-out forwards;
