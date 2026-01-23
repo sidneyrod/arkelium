@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
-import { supabase } from '@/lib/supabase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,14 +9,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { DatePickerDialog } from '@/components/ui/date-picker-dialog';
-import { Separator } from '@/components/ui/separator';
 import { Loader2, AlertTriangle, CalendarOff, Calendar } from 'lucide-react';
-import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ScheduledJob } from '@/stores/scheduleStore';
-import { jobSchema, validateForm } from '@/lib/validations';
 import { useScheduleValidation } from '@/hooks/useScheduleValidation';
 import { useCleanerBlockCheck } from '@/hooks/useCleanerBlockCheck';
+import { useBookingReferenceData } from '@/hooks/useBookingReferenceData';
 import { toast } from 'sonner';
 
 // Enterprise Components
@@ -41,26 +38,6 @@ interface NewBookingModalProps {
   job?: ScheduledJob;
   preselectedDate?: Date | null;
   preselectedTime?: string | null;
-}
-
-interface Client {
-  id: string;
-  name: string;
-  email?: string;
-  phone?: string;
-}
-
-interface ClientLocation {
-  id: string;
-  client_id: string;
-  address: string;
-  city?: string;
-}
-
-interface Employee {
-  id: string;
-  first_name: string;
-  last_name: string;
 }
 
 // Generate 24-hour time slots in AM/PM format
@@ -116,10 +93,6 @@ export function NewBookingModal({
   const { validateSchedule, getAvailableCleaners, canScheduleForClient } = useScheduleValidation();
   const { getBlockedCleanersForDate, validateJobCreation } = useCleanerBlockCheck();
   
-  const [clients, setClients] = useState<Client[]>([]);
-  const [locations, setLocations] = useState<ClientLocation[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  
   // Enterprise fields
   const [operationType, setOperationType] = useState<OperationType>('billable_service');
   const [activityCode, setActivityCode] = useState('cleaning');
@@ -148,64 +121,36 @@ export function NewBookingModal({
     visitRoute: job?.visitRoute || '',
   });
 
-  // Refs to track data loading state WITHOUT causing re-renders
-  const lastFetchedCompanyRef = useRef<string | null>(null);
-  const dataLoadedRef = useRef(false);
-  const formInitializedRef = useRef(false);
+  // Track open session to prevent re-initialization on window focus
+  const openSessionIdRef = useRef<string | null>(null);
   
-  // Only show loading on TRUE initial load (first open, no data)
-  const [hasInitialData, setHasInitialData] = useState(false);
+  // Computed company for data fetching
+  const effectiveCompanyId = operatingCompanyId || activeCompanyId || '';
+  
+  // Use cached reference data - NO FLICKER on window focus
+  const { data: refData, isLoading: isLoadingRefData } = useBookingReferenceData(
+    effectiveCompanyId,
+    open
+  );
+  
+  const clients = refData?.clients || [];
+  const locations = refData?.locations || [];
+  const employees = refData?.employees || [];
 
-  // Fetch clients and employees - NEVER causes flicker
+  // Reset form when modal opens - only ONCE per open session
   useEffect(() => {
-    const fetchData = async () => {
-      // Reset tracking when modal closes
-      if (!open) {
-        formInitializedRef.current = false;
-        return;
-      }
-      
-      const companyToUse = operatingCompanyId || activeCompanyId;
-      if (!companyToUse) return;
-      
-      // Skip if already loaded for this company
-      if (lastFetchedCompanyRef.current === companyToUse && dataLoadedRef.current) {
-        return;
-      }
-      
-      lastFetchedCompanyRef.current = companyToUse;
-      
-      try {
-        const [clientsRes, employeesRes, locationsRes] = await Promise.all([
-          supabase.from('clients').select('id, name, email, phone').eq('company_id', companyToUse),
-          supabase.from('profiles').select('id, first_name, last_name').eq('company_id', companyToUse),
-          supabase.from('client_locations').select('id, client_id, address, city').eq('company_id', companyToUse),
-        ]);
-        
-        if (clientsRes.data) setClients(clientsRes.data);
-        if (employeesRes.data) setEmployees(employeesRes.data);
-        if (locationsRes.data) setLocations(locationsRes.data);
-        
-        dataLoadedRef.current = true;
-        setHasInitialData(true);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
-    
-    fetchData();
-  }, [open, operatingCompanyId, activeCompanyId]);
-
-  // Reset form when modal opens - only on FIRST initialization
-  useEffect(() => {
-    if (!open) return;
-    
-    // Prevent re-initialization when switching tabs/windows
-    if (formInitializedRef.current) {
+    if (!open) {
+      openSessionIdRef.current = null;
       return;
     }
     
-    formInitializedRef.current = true;
+    // Prevent re-initialization when switching tabs/windows
+    if (openSessionIdRef.current) {
+      return;
+    }
+    
+    // Generate unique session ID for this open
+    openSessionIdRef.current = crypto.randomUUID();
     
     if (job) {
       const [year, month, day] = job.date.split('-').map(Number);
@@ -426,14 +371,11 @@ export function NewBookingModal({
 
   const requiresClient = operationType !== 'internal_work';
 
-  // Show loading ONLY on true initial load (first open, no cached data)
-  const isInitialLoading = !hasInitialData && !dataLoadedRef.current;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="sm:max-w-4xl p-0 flex flex-col"
-        style={{ maxHeight: 'calc(100dvh - 2rem)' }}
+        className="sm:max-w-4xl p-0 flex flex-col overflow-hidden"
+        style={{ maxHeight: 'calc(100dvh - 4rem)' }}
       >
         {/* Header - fixed */}
         <DialogHeader className="px-5 pt-5 pb-3 flex-shrink-0 border-b">
@@ -443,217 +385,224 @@ export function NewBookingModal({
           </DialogTitle>
         </DialogHeader>
         
-        {isInitialLoading ? (
-          <div className="flex items-center justify-center py-12 flex-1">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-            {/* Scrollable content area */}
-            <div 
-              className="flex-1 overflow-y-auto px-5 py-4 space-y-3"
-              style={{ 
-                transform: 'scale(0.92)', 
-                transformOrigin: 'top center',
-                width: '108.7%',
-                marginLeft: '-4.35%'
-              }}
-            >
-              <OperationTypeSelector 
-                value={operationType} 
-                onChange={setOperationType} 
+        {/* Form - ALWAYS RENDERED (no conditional spinner that causes flicker) */}
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          {/* Scrollable content area */}
+          <div 
+            className="flex-1 overflow-y-auto px-5 py-4 space-y-3"
+            style={{ 
+              transform: 'scale(0.92)', 
+              transformOrigin: 'top center',
+              width: '108.7%',
+              marginLeft: '-4.35%'
+            }}
+          >
+            <OperationTypeSelector 
+              value={operationType} 
+              onChange={setOperationType} 
+            />
+
+            {/* ROW 2: Activity + Operating Company (2 columns) */}
+            <div className="grid grid-cols-2 gap-3">
+              <ActivitySelector
+                value={activityCode}
+                onChange={(code, label) => {
+                  setActivityCode(code);
+                  setActivityLabel(label);
+                  setServiceCatalogId(null);
+                  setServiceName('');
+                  setSelectedService(null);
+                }}
               />
+              <OperatingCompanySelector
+                value={operatingCompanyId}
+                onChange={(id, name, orgId) => {
+                  setOperatingCompanyId(id);
+                  setOperatingCompanyName(name);
+                  setOrganizationId(orgId || null);
+                  setFormData(prev => ({ ...prev, clientId: '', clientName: '', address: '' }));
+                }}
+                activityCode={activityCode}
+              />
+            </div>
 
-              {/* ROW 2: Activity + Operating Company (2 columns) */}
-              <div className="grid grid-cols-2 gap-3">
-                <ActivitySelector
-                  value={activityCode}
-                  onChange={(code, label) => {
-                    setActivityCode(code);
-                    setActivityLabel(label);
-                    setServiceCatalogId(null);
-                    setServiceName('');
-                    setSelectedService(null);
-                  }}
-                />
-                <OperatingCompanySelector
-                  value={operatingCompanyId}
-                  onChange={(id, name, orgId) => {
-                    setOperatingCompanyId(id);
-                    setOperatingCompanyName(name);
-                    setOrganizationId(orgId || null);
-                    setFormData(prev => ({ ...prev, clientId: '', clientName: '', address: '' }));
-                  }}
-                  activityCode={activityCode}
-                />
-              </div>
-
-              {/* ROW 3: Service Type + Client (2 columns) */}
-              <div className="grid grid-cols-2 gap-3">
-                <ServiceTypeSelector
-                  value={serviceCatalogId || ''}
-                  onChange={(id, name, service) => {
-                    setServiceCatalogId(id);
-                    setServiceName(name);
-                    setSelectedService(service || null);
-                  }}
-                  companyId={operatingCompanyId || activeCompanyId || ''}
-                  activityCode={activityCode}
-                />
-                
-                {requiresClient ? (
-                  <div className="space-y-1.5">
-                    <Label className="text-sm">Client</Label>
-                    <Select value={formData.clientId} onValueChange={handleClientChange}>
-                      <SelectTrigger className={errors.clientId ? 'border-destructive' : ''}>
-                        <SelectValue placeholder="Select client..." />
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover">
-                        {clients.length === 0 ? (
-                          <div className="py-2 px-3 text-sm text-muted-foreground">No clients found</div>
-                        ) : (
-                          clients.map(client => (
-                            <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    {errors.clientId && <p className="text-xs text-destructive">{errors.clientId}</p>}
-                  </div>
-                ) : (
-                  <div className="p-3 rounded-md bg-muted/30 border text-sm text-muted-foreground flex items-center">
-                    Internal work — no client required
-                  </div>
-                )}
-              </div>
-
-              {/* Client Address (conditional) */}
-              {requiresClient && formData.address && (
-                <Input value={formData.address} disabled className="bg-muted text-sm h-9" />
-              )}
-
-              {/* ROW 4: Date / Time / Duration / Assigned To (4 columns) */}
-              <div className="grid grid-cols-4 gap-3">
+            {/* ROW 3: Service Type + Client (2 columns) */}
+            <div className="grid grid-cols-2 gap-3">
+              <ServiceTypeSelector
+                value={serviceCatalogId || ''}
+                onChange={(id, name, service) => {
+                  setServiceCatalogId(id);
+                  setServiceName(name);
+                  setSelectedService(service || null);
+                }}
+                companyId={operatingCompanyId || activeCompanyId || ''}
+                activityCode={activityCode}
+              />
+              
+              {requiresClient ? (
                 <div className="space-y-1.5">
-                  <Label className="text-sm">Date</Label>
-                  <DatePickerDialog
-                    mode="single"
-                    selected={formData.date}
-                    onSelect={(date) => {
-                      if (date) {
-                        const safeDate = new Date((date as Date).getFullYear(), (date as Date).getMonth(), (date as Date).getDate(), 12, 0, 0);
-                        setFormData(prev => ({ ...prev, date: safeDate }));
-                      }
-                    }}
-                  />
-                </div>
-                
-                <div className="space-y-1.5">
-                  <Label className="text-sm">Start Time</Label>
-                  <Select value={formData.time} onValueChange={(time) => setFormData(prev => ({ ...prev, time }))}>
-                    <SelectTrigger>
-                      <SelectValue>{formatTimeDisplay(formData.time)}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover max-h-[200px]">
-                      {TIME_SLOTS.map(slot => (
-                        <SelectItem key={slot.value} value={slot.value}>{slot.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-sm">Duration</Label>
-                  <Select value={formData.duration} onValueChange={(duration) => setFormData(prev => ({ ...prev, duration }))}>
-                    <SelectTrigger>
-                      <SelectValue />
+                  <Label className="text-sm">Client</Label>
+                  <Select 
+                    value={formData.clientId} 
+                    onValueChange={handleClientChange}
+                    disabled={isLoadingRefData}
+                  >
+                    <SelectTrigger className={errors.clientId ? 'border-destructive' : ''}>
+                      <SelectValue placeholder={isLoadingRefData ? "Loading..." : "Select client..."} />
                     </SelectTrigger>
                     <SelectContent className="bg-popover">
-                      {DURATION_OPTIONS.map(opt => (
-                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-1.5">
-                  <Label className="text-sm">Assigned To {operationType !== 'internal_work' && <span className="text-destructive">*</span>}</Label>
-                  <Select value={formData.employeeId} onValueChange={handleEmployeeChange}>
-                    <SelectTrigger className={errors.employeeId ? 'border-destructive' : ''}>
-                      <SelectValue placeholder="Select..." />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover">
-                      {employees.length === 0 ? (
-                        <div className="py-2 px-3 text-sm text-muted-foreground">No employees found</div>
+                      {clients.length === 0 ? (
+                        <div className="py-2 px-3 text-sm text-muted-foreground">
+                          {isLoadingRefData ? 'Loading clients...' : 'No clients found'}
+                        </div>
                       ) : (
-                        employees.map(emp => {
-                          const isUnavailable = unavailableCleaners.includes(emp.id);
-                          const isBlocked = blockedCleaners.includes(emp.id);
-                          const name = `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || 'Unknown';
-                          
-                          return (
-                            <SelectItem 
-                              key={emp.id} 
-                              value={emp.id}
-                              disabled={isBlocked}
-                              className={cn(
-                                isBlocked && "text-destructive line-through",
-                                isUnavailable && "text-amber-600"
-                              )}
-                            >
-                              <div className="flex items-center gap-2">
-                                <span>{name}</span>
-                                {isBlocked && <CalendarOff className="h-3 w-3" />}
-                                {isUnavailable && !isBlocked && <AlertTriangle className="h-3 w-3" />}
-                              </div>
-                            </SelectItem>
-                          );
-                        })
+                        clients.map(client => (
+                          <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                        ))
                       )}
                     </SelectContent>
                   </Select>
-                  {errors.employeeId && <p className="text-xs text-destructive">{errors.employeeId}</p>}
+                  {errors.clientId && <p className="text-xs text-destructive">{errors.clientId}</p>}
                 </div>
-              </div>
-
-              {/* Visit-specific fields */}
-              {operationType === 'non_billable_visit' && (
-                <div className="space-y-1.5">
-                  <Label className="text-sm">Visit Purpose</Label>
-                  <Input
-                    placeholder="e.g., Quote, Inspection, Follow-up"
-                    value={formData.visitPurpose}
-                    onChange={(e) => setFormData(prev => ({ ...prev, visitPurpose: e.target.value }))}
-                    className="h-9"
-                  />
+              ) : (
+                <div className="p-3 rounded-md bg-muted/30 border text-sm text-muted-foreground flex items-center">
+                  Internal work — no client required
                 </div>
               )}
+            </div>
 
-              {/* Notes - single row */}
+            {/* Client Address (conditional) */}
+            {requiresClient && formData.address && (
+              <Input value={formData.address} disabled className="bg-muted text-sm h-9" />
+            )}
+
+            {/* ROW 4: Date / Time / Duration / Assigned To (4 columns) */}
+            <div className="grid grid-cols-4 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-sm">Notes</Label>
-                <Textarea
-                  placeholder="Additional notes or instructions..."
-                  value={formData.notes}
-                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                  rows={1}
-                  className="min-h-[36px] resize-none"
+                <Label className="text-sm">Date</Label>
+                <DatePickerDialog
+                  mode="single"
+                  selected={formData.date}
+                  onSelect={(date) => {
+                    if (date) {
+                      const safeDate = new Date((date as Date).getFullYear(), (date as Date).getMonth(), (date as Date).getDate(), 12, 0, 0);
+                      setFormData(prev => ({ ...prev, date: safeDate }));
+                    }
+                  }}
                 />
               </div>
+              
+              <div className="space-y-1.5">
+                <Label className="text-sm">Start Time</Label>
+                <Select value={formData.time} onValueChange={(time) => setFormData(prev => ({ ...prev, time }))}>
+                  <SelectTrigger>
+                    <SelectValue>{formatTimeDisplay(formData.time)}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover max-h-[200px]">
+                    {TIME_SLOTS.map(slot => (
+                      <SelectItem key={slot.value} value={slot.value}>{slot.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-sm">Duration</Label>
+                <Select value={formData.duration} onValueChange={(duration) => setFormData(prev => ({ ...prev, duration }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover">
+                    {DURATION_OPTIONS.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-1.5">
+                <Label className="text-sm">Assigned To {operationType !== 'internal_work' && <span className="text-destructive">*</span>}</Label>
+                <Select 
+                  value={formData.employeeId} 
+                  onValueChange={handleEmployeeChange}
+                  disabled={isLoadingRefData}
+                >
+                  <SelectTrigger className={errors.employeeId ? 'border-destructive' : ''}>
+                    <SelectValue placeholder={isLoadingRefData ? "Loading..." : "Select..."} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover">
+                    {employees.length === 0 ? (
+                      <div className="py-2 px-3 text-sm text-muted-foreground">
+                        {isLoadingRefData ? 'Loading employees...' : 'No employees found'}
+                      </div>
+                    ) : (
+                      employees.map(emp => {
+                        const isUnavailable = unavailableCleaners.includes(emp.id);
+                        const isBlocked = blockedCleaners.includes(emp.id);
+                        const name = `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || 'Unknown';
+                        
+                        return (
+                          <SelectItem 
+                            key={emp.id} 
+                            value={emp.id}
+                            disabled={isBlocked}
+                            className={cn(
+                              isBlocked && "text-destructive line-through",
+                              isUnavailable && "text-amber-600"
+                            )}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span>{name}</span>
+                              {isBlocked && <CalendarOff className="h-3 w-3" />}
+                              {isUnavailable && !isBlocked && <AlertTriangle className="h-3 w-3" />}
+                            </div>
+                          </SelectItem>
+                        );
+                      })
+                    )}
+                  </SelectContent>
+                </Select>
+                {errors.employeeId && <p className="text-xs text-destructive">{errors.employeeId}</p>}
+              </div>
             </div>
-            
-            {/* Footer - fixed at bottom */}
-            <DialogFooter className="px-5 py-4 border-t flex-shrink-0 bg-background">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isValidating}>
-                {isValidating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                {isEditing ? 'Update Booking' : 'Schedule Booking'}
-              </Button>
-            </DialogFooter>
-          </form>
-        )}
+
+            {/* Visit-specific fields */}
+            {operationType === 'non_billable_visit' && (
+              <div className="space-y-1.5">
+                <Label className="text-sm">Visit Purpose</Label>
+                <Input
+                  placeholder="e.g., Quote, Inspection, Follow-up"
+                  value={formData.visitPurpose}
+                  onChange={(e) => setFormData(prev => ({ ...prev, visitPurpose: e.target.value }))}
+                  className="h-9"
+                />
+              </div>
+            )}
+
+            {/* Notes - single row */}
+            <div className="space-y-1.5">
+              <Label className="text-sm">Notes</Label>
+              <Textarea
+                placeholder="Additional notes or instructions..."
+                value={formData.notes}
+                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                rows={1}
+                className="min-h-[36px] resize-none"
+              />
+            </div>
+          </div>
+          
+          {/* Footer - fixed at bottom */}
+          <DialogFooter className="px-5 py-4 border-t flex-shrink-0 bg-background">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isValidating}>
+              {isValidating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {isEditing ? 'Update Booking' : 'Schedule Booking'}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
