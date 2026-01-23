@@ -2,7 +2,6 @@ import { useMemo, useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Eye, EyeOff, CheckCircle } from 'lucide-react';
 
-import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import { Language } from '@/i18n/translations';
@@ -15,11 +14,8 @@ import { Label } from '@/components/ui/label';
 import arkeliumSymbol from '@/assets/arkelium-symbol.png';
 
 export default function ResetPassword() {
-  const { theme } = useTheme();
   const { language } = useLanguage();
   const navigate = useNavigate();
-
-  const isDark = theme === 'dark';
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -108,23 +104,15 @@ export default function ResetPassword() {
     }
   }
 
-  // Card styling
-  const cardClass = isDark
-    ? 'bg-[#14181e]/85 backdrop-blur-xl border border-white/10 shadow-2xl'
-    : 'bg-white/85 backdrop-blur-xl border border-black/5 shadow-2xl';
-
-  const inputClass = isDark
-    ? 'h-11 bg-[#0a0e14]/60 border-white/10 text-white placeholder:text-white/40 focus:border-white/30 focus:ring-white/10'
-    : 'h-11 bg-gray-50/80 border-black/10 text-gray-900 placeholder:text-gray-400 focus:border-black/20 focus:ring-black/5';
-
-  const labelClass = isDark ? 'text-white/70' : 'text-gray-700';
+  // Dark-only styles
+  const cardClass = 'bg-[#14181e]/85 backdrop-blur-xl border border-white/10 shadow-2xl';
+  const inputClass = 'h-11 bg-[#0a0e14]/60 border-white/10 text-white placeholder:text-white/40 focus:border-white/30 focus:ring-white/10';
+  const labelClass = 'text-white/70';
 
   return (
     <AuthLayout>
       {/* Auth Card - Compact */}
-      <div
-        className={`w-full max-w-[520px] rounded-[22px] p-6 sm:p-7 lg:p-8 ${cardClass}`}
-      >
+      <div className={`w-full max-w-[520px] rounded-[22px] p-6 sm:p-7 lg:p-8 ${cardClass}`}>
         {/* Logo only */}
         <div className="flex justify-center mb-5">
           <img
@@ -136,37 +124,21 @@ export default function ResetPassword() {
 
         {/* Title */}
         <div className="text-center mb-5">
-          <h1
-            className={`text-lg font-semibold ${
-              isDark ? 'text-white' : 'text-gray-900'
-            }`}
-          >
+          <h1 className="text-lg font-semibold text-white">
             {t.title}
           </h1>
         </div>
 
         {/* Error Message */}
         {errorMsg && (
-          <div
-            className={`mb-5 rounded-xl px-4 py-2.5 text-sm font-medium ${
-              isDark
-                ? 'bg-red-500/10 border border-red-500/20 text-red-400'
-                : 'bg-red-50 border border-red-100 text-red-600'
-            }`}
-          >
+          <div className="mb-5 rounded-xl px-4 py-2.5 text-sm font-medium bg-red-500/10 border border-red-500/20 text-red-400">
             {errorMsg}
           </div>
         )}
 
         {/* Success Message */}
         {successMsg && (
-          <div
-            className={`mb-5 rounded-xl px-4 py-2.5 text-sm font-medium flex items-center gap-2 ${
-              isDark
-                ? 'bg-green-500/10 border border-green-500/20 text-green-400'
-                : 'bg-green-50 border border-green-100 text-green-600'
-            }`}
-          >
+          <div className="mb-5 rounded-xl px-4 py-2.5 text-sm font-medium flex items-center gap-2 bg-green-500/10 border border-green-500/20 text-green-400">
             <CheckCircle className="h-4 w-4 shrink-0" />
             {successMsg}
           </div>
@@ -189,11 +161,7 @@ export default function ResetPassword() {
               <button
                 type="button"
                 onClick={() => setShowNewPassword(!showNewPassword)}
-                className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded transition-colors ${
-                  isDark
-                    ? 'text-white/40 hover:text-white/70'
-                    : 'text-gray-400 hover:text-gray-600'
-                }`}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded transition-colors text-white/40 hover:text-white/70"
               >
                 {showNewPassword ? (
                   <EyeOff className="h-5 w-5" />
@@ -219,11 +187,7 @@ export default function ResetPassword() {
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded transition-colors ${
-                  isDark
-                    ? 'text-white/40 hover:text-white/70'
-                    : 'text-gray-400 hover:text-gray-600'
-                }`}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded transition-colors text-white/40 hover:text-white/70"
               >
                 {showConfirmPassword ? (
                   <EyeOff className="h-5 w-5" />
@@ -253,11 +217,7 @@ export default function ResetPassword() {
           <div className="flex items-center justify-center pt-1">
             <Link
               to="/login"
-              className={`flex items-center gap-2 text-sm font-medium transition-colors ${
-                isDark
-                  ? 'text-white/50 hover:text-white/80'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
+              className="flex items-center gap-2 text-sm font-medium transition-colors text-white/50 hover:text-white/80"
             >
               <ArrowLeft className="h-4 w-4" />
               {t.back}
@@ -267,11 +227,7 @@ export default function ResetPassword() {
 
         {/* Minimal footer */}
         <div className="mt-4 text-center">
-          <span
-            className={`text-[10px] ${
-              isDark ? 'text-white/20' : 'text-gray-300'
-            }`}
-          >
+          <span className="text-[10px] text-white/20">
             Enterprise-grade security
           </span>
         </div>
