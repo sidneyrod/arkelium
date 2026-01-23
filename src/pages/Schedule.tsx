@@ -32,7 +32,8 @@ import {
   Eye,
   Filter,
   Calculator,
-  FileText
+  FileText,
+  ArrowRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -1403,6 +1404,21 @@ const Schedule = () => {
     return job.time === timeSlot;
   };
 
+  // Get current time position for the "now" indicator (returns pixel offset from top)
+  const getCurrentTimePosition = (): number => {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const slotIndex = hours * 2 + Math.floor(minutes / 30);
+    const offsetWithinSlot = (minutes % 30) / 30 * 56; // 56px per slot
+    return slotIndex * 56 + offsetWithinSlot;
+  };
+
+  // Check if a date is today for the current time indicator
+  const isTodayForIndicator = (date: Date): boolean => {
+    return isToday(date);
+  };
+
   if (isLoading) {
     return (
       <div className="p-2 lg:p-3 flex items-center justify-center min-h-[400px]">
@@ -1571,9 +1587,9 @@ const Schedule = () => {
                       key={idx}
                       onClick={() => handleDayClick(day)}
                       className={cn(
-                        "min-h-[90px] p-1.5 border-r border-b border-border/25 last:border-r-0 cursor-pointer transition-all duration-150",
-                        "hover:bg-muted/30",
-                        !isCurrentMonth && "bg-muted/10 text-muted-foreground/60",
+                        "min-h-[90px] p-1.5 border-r border-b schedule-grid-line last:border-r-0 cursor-pointer transition-all duration-150",
+                        "hover:bg-primary/5",
+                        !isCurrentMonth && "bg-muted/5 text-muted-foreground/60",
                         isTodayCell && "bg-primary/5 ring-1 ring-inset ring-primary/20"
                       )}
                     >
@@ -1583,7 +1599,7 @@ const Schedule = () => {
                       )}>
                         {format(day, 'd')}
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-0.5">
                         <TooltipProvider delayDuration={300}>
                           {dayJobs.slice(0, 2).map((job) => {
                             const crossesMidnight = !job._isContinuation && doesJobCrossMidnight(job._originalTime || job.time, job._originalDuration || job.duration);
@@ -1594,48 +1610,61 @@ const Schedule = () => {
                                   <div
                                     onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
                                     className={cn(
-                                      "text-[10px] px-1.5 py-1 rounded-md truncate cursor-pointer flex flex-col gap-0.5 border transition-all duration-150",
-                                      "hover:shadow-soft-sm hover:scale-[1.02]",
+                                      "text-[10px] px-1.5 py-1 rounded-lg truncate cursor-pointer flex flex-col gap-0.5 border relative overflow-hidden",
+                                      "transition-all duration-200 ease-out shadow-soft-sm",
+                                      "hover:shadow-soft-md hover:scale-[1.02] hover:-translate-y-0.5",
                                       job.jobType === 'visit' 
                                         ? "bg-purple-500/10 border-purple-500/20 text-purple-700 dark:text-purple-300" 
                                         : statusConfig[job.status].bgColor,
-                                      job._isContinuation && "border-dashed opacity-90"
+                                      job._isContinuation && "border-dashed border-l-2 border-l-muted-foreground/30 opacity-95"
                                     )}
                                   >
+                                    {/* Continuation visual indicator (left gradient) */}
+                                    {job._isContinuation && (
+                                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-r from-muted-foreground/15 to-transparent" />
+                                    )}
+                                    
                                     <div className="flex items-center gap-1">
-                                      {job._isContinuation && (
-                                        <span className="text-[7px] text-muted-foreground">↳</span>
-                                      )}
                                       {job.jobType === 'visit' ? (
                                         <Eye className="h-2.5 w-2.5 flex-shrink-0" />
                                       ) : (
-                                        <Sparkles className="h-2.5 w-2.5 flex-shrink-0" />
+                                        <Sparkles className="h-2.5 w-2.5 flex-shrink-0 text-primary/70" />
                                       )}
-                                      <span className="truncate font-medium">{job.clientName}</span>
-                                      {crossesMidnight && (
-                                        <span className="text-[7px] text-warning">→</span>
-                                      )}
+                                      <span className="truncate font-semibold">{job.clientName}</span>
+                                      {/* Status pill */}
+                                      <span className={cn(
+                                        "ml-auto text-[7px] font-medium uppercase px-1 py-0.5 rounded-full flex-shrink-0",
+                                        statusConfig[job.status].bgColor,
+                                        statusConfig[job.status].color
+                                      )}>
+                                        {statusConfig[job.status].label.charAt(0)}
+                                      </span>
                                     </div>
                                     <div className="flex items-center justify-between">
                                       <span className="text-[8px] text-muted-foreground flex items-center gap-0.5">
                                         <Clock className="h-2 w-2" />
-                                        {job.duration}
-                                      </span>
-                                      <span className={cn(
-                                        "text-[8px] font-medium uppercase",
-                                        statusConfig[job.status].color
-                                      )}>
-                                        {statusConfig[job.status].label}
+                                        {formatTimeDisplay(job.time).replace(' AM', 'a').replace(' PM', 'p')}
                                       </span>
                                     </div>
+                                    
+                                    {/* Crosses midnight visual indicator (right gradient + arrow) */}
+                                    {crossesMidnight && (
+                                      <>
+                                        <div className="absolute right-0 top-0 bottom-0 w-2 bg-gradient-to-l from-warning/20 to-transparent" />
+                                        <ArrowRight className="absolute right-0.5 top-1/2 -translate-y-1/2 h-2 w-2 text-warning/70" />
+                                      </>
+                                    )}
                                   </div>
                                 </TooltipTrigger>
-                                <TooltipContent side="right" className="max-w-[220px] p-3">
+                                <TooltipContent side="right" className="max-w-[220px] p-3 shadow-soft-lg">
                                   <div className="space-y-1.5">
                                     {job._isContinuation && (
-                                      <p className="text-[9px] text-muted-foreground italic">↳ Continues from previous day</p>
+                                      <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
+                                        <div className="w-1 h-3 rounded-full bg-muted-foreground/30" />
+                                        <span className="italic">Continues from previous day</span>
+                                      </div>
                                     )}
-                                    <p className="font-medium text-xs">{job.clientName}</p>
+                                    <p className="font-semibold text-xs">{job.clientName}</p>
                                     <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                                       <MapPin className="h-3 w-3" />
                                       {job.address}
@@ -1649,7 +1678,10 @@ const Schedule = () => {
                                       <span>{job.employeeName}</span>
                                     </div>
                                     {crossesMidnight && (
-                                      <p className="text-[9px] text-warning italic">→ Continues to next day</p>
+                                      <div className="flex items-center gap-1 text-[9px] text-warning">
+                                        <ArrowRight className="h-2.5 w-2.5" />
+                                        <span className="italic">Continues to next day</span>
+                                      </div>
                                     )}
                                   </div>
                                 </TooltipContent>
@@ -1658,7 +1690,7 @@ const Schedule = () => {
                           })}
                         </TooltipProvider>
                         {dayJobs.length > 2 && (
-                          <div className="text-[10px] text-muted-foreground/70 px-1 font-medium">
+                          <div className="text-[9px] text-muted-foreground/70 px-1 font-medium">
                             +{dayJobs.length - 2} more
                           </div>
                         )}
@@ -1705,9 +1737,19 @@ const Schedule = () => {
               </div>
               
               <div className="max-h-[calc(100vh-320px)] min-h-[400px] overflow-y-auto relative">
+                {/* Current Time Indicator */}
+                {getWeekDays().some(day => isTodayForIndicator(day)) && (
+                  <div 
+                    className="schedule-current-time"
+                    style={{ top: getCurrentTimePosition() }}
+                  >
+                    <div className="absolute left-14 -top-1 w-2.5 h-2.5 rounded-full bg-destructive/80 border-2 border-background shadow-sm" />
+                  </div>
+                )}
+                
                 {TIME_SLOTS.map((slot, slotIndex) => (
-                  <div key={slot.value} className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border/15 last:border-b-0">
-                    <div className="p-2 text-xs text-muted-foreground border-r border-border/25 bg-muted/10 flex items-start justify-center h-14">
+                  <div key={slot.value} className="grid grid-cols-[60px_repeat(7,1fr)] border-b schedule-grid-line last:border-b-0">
+                    <div className="p-2 text-xs text-muted-foreground border-r border-border/20 bg-muted/5 flex items-start justify-center h-14">
                       {slot.label}
                     </div>
                     {getWeekDays().map((day) => {
@@ -1716,14 +1758,16 @@ const Schedule = () => {
                       // Get jobs that SPAN this slot but started earlier
                       const spanningJobs = getJobsForTimeSlot(day, slot.value).filter(j => !isJobStartingAt(j, slot.value));
                       const hasSpanningJob = spanningJobs.length > 0;
+                      const isTodayCell = isToday(day);
                       
                       return (
                         <div 
                           key={`${day.toISOString()}-${slot.value}`} 
                           className={cn(
-                            "border-r border-border/15 last:border-r-0 h-14 transition-colors relative",
-                            isAdminOrManager && !hasSpanningJob && "hover:bg-muted/30 cursor-pointer",
-                            hasSpanningJob && "bg-transparent pointer-events-none"
+                            "border-r schedule-grid-line last:border-r-0 h-14 transition-colors relative",
+                            isAdminOrManager && !hasSpanningJob && "hover:bg-primary/5 cursor-pointer",
+                            hasSpanningJob && "bg-transparent pointer-events-none",
+                            isTodayCell && "bg-primary/[0.02]"
                           )}
                           onClick={() => isAdminOrManager && !hasSpanningJob && handleTimeSlotClick(day, slot.value)}
                         >
@@ -1743,57 +1787,62 @@ const Schedule = () => {
                               <div 
                                 key={job.id + (job._isContinuation ? '-cont' : '')}
                                 className={cn(
-                                  "absolute left-0.5 right-0.5 mx-0.5 p-2 rounded-lg border text-xs cursor-pointer z-10",
-                                  "transition-all duration-200 ease-out",
-                                  "hover:shadow-soft-md hover:-translate-y-0.5 hover:z-20",
+                                  "absolute left-1 right-1 p-2 rounded-xl border text-xs cursor-pointer z-10 overflow-hidden",
+                                  "transition-all duration-200 ease-out shadow-soft-sm",
+                                  "hover:shadow-soft-md hover:-translate-y-0.5 hover:scale-[1.01] hover:z-20",
+                                  "active:scale-[0.99] active:shadow-soft-sm",
                                   job.jobType === 'visit' 
-                                    ? "bg-purple-500/10 border-purple-500/25" 
+                                    ? "bg-purple-500/10 border-purple-500/20" 
                                     : statusConfig[job.status].bgColor,
-                                  job._isContinuation && "border-dashed opacity-90"
+                                  job._isContinuation && "border-dashed border-l-4 border-l-muted-foreground/30 opacity-95"
                                 )}
                                 style={{ height: `${clampedHeightPx - 6}px`, top: 2 }}
                                 onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
                               >
-                                {/* Continuation indicator */}
+                                {/* Continuation visual indicator (top gradient) */}
                                 {job._isContinuation && (
-                                  <div className="text-[7px] text-muted-foreground/80 italic mb-0.5 truncate">
-                                    ↳ Continues from previous day
-                                  </div>
+                                  <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-b from-muted-foreground/10 to-transparent rounded-t-xl" />
                                 )}
-                                <div className="flex items-center gap-1 mb-0.5">
-                                  {job.jobType === 'visit' ? (
-                                    <Eye className="h-3 w-3 text-purple-500" />
-                                  ) : (
-                                    <Sparkles className="h-3 w-3 text-primary" />
-                                  )}
-                                  <p className="font-medium truncate text-[11px]">{job.clientName}</p>
-                                </div>
-                                <p className="text-muted-foreground text-[10px] truncate">
-                                  {job.employeeName}
-                                </p>
-                                <p className="text-[9px] font-medium text-primary/80">
-                                  {formatTimeDisplay(job.time)} - {crossesMidnight ? '12:00 AM →' : formatTimeDisplay(endTime)}
-                                </p>
-                                <div className="flex items-center justify-between mt-0.5">
-                                  <span className={cn(
-                                    "text-[8px] font-medium",
-                                    job.jobType === 'visit' ? "text-purple-600 dark:text-purple-400" : "text-primary"
-                                  )}>
-                                    {job.jobType === 'visit' ? 'Visit' : 'Service'}
-                                  </span>
-                                  <span className={cn(
-                                    "text-[8px] font-medium uppercase px-1 py-0.5 rounded",
-                                    statusConfig[job.status].bgColor,
-                                    statusConfig[job.status].color
-                                  )}>
-                                    {statusConfig[job.status].label}
-                                  </span>
-                                </div>
-                                {/* Crosses midnight indicator */}
-                                {crossesMidnight && (
-                                  <div className="text-[7px] text-warning/80 italic mt-0.5 truncate">
-                                    → Continues to next day
+                                
+                                {/* Card content with hierarchy */}
+                                <div className="flex flex-col h-full">
+                                  {/* Primary: Client name */}
+                                  <div className="flex items-center gap-1 mb-0.5">
+                                    {job.jobType === 'visit' ? (
+                                      <Eye className="h-3 w-3 text-purple-500 flex-shrink-0" />
+                                    ) : (
+                                      <Sparkles className="h-3 w-3 text-primary/70 flex-shrink-0" />
+                                    )}
+                                    <span className="font-semibold truncate text-[11px]">{job.clientName}</span>
+                                    {/* Status pill */}
+                                    <span className={cn(
+                                      "ml-auto text-[8px] font-medium uppercase px-1.5 py-0.5 rounded-full flex-shrink-0",
+                                      statusConfig[job.status].bgColor,
+                                      statusConfig[job.status].color
+                                    )}>
+                                      {statusConfig[job.status].label}
+                                    </span>
                                   </div>
+                                  
+                                  {/* Secondary: Time range */}
+                                  <p className="text-[10px] font-medium text-foreground/75">
+                                    {formatTimeDisplay(job.time)} – {crossesMidnight ? '12:00 AM' : formatTimeDisplay(endTime)}
+                                  </p>
+                                  
+                                  {/* Tertiary: Employee */}
+                                  <p className="text-[9px] text-muted-foreground truncate mt-auto">
+                                    {job.employeeName}
+                                  </p>
+                                </div>
+                                
+                                {/* Crosses midnight visual indicator (bottom gradient + arrow) */}
+                                {crossesMidnight && (
+                                  <>
+                                    <div className="absolute bottom-0 inset-x-0 h-3 bg-gradient-to-t from-warning/15 to-transparent rounded-b-xl" />
+                                    <div className="absolute bottom-1 right-1.5">
+                                      <ArrowRight className="h-3 w-3 text-warning/70" />
+                                    </div>
+                                  </>
                                 )}
                               </div>
                             );
@@ -1824,6 +1873,16 @@ const Schedule = () => {
             </div>
             <CardContent className="p-0">
               <div className="relative pb-16">
+                {/* Current Time Indicator */}
+                {isTodayForIndicator(currentDate) && (
+                  <div 
+                    className="schedule-current-time"
+                    style={{ top: getCurrentTimePosition() }}
+                  >
+                    <div className="absolute left-16 -top-1 w-2.5 h-2.5 rounded-full bg-destructive/80 border-2 border-background shadow-sm" />
+                  </div>
+                )}
+                
                 {/* Time slots grid as background */}
                 {TIME_SLOTS.map((slot, slotIndex) => {
                   // Get jobs that SPAN this slot but started earlier
@@ -1836,12 +1895,12 @@ const Schedule = () => {
                     <div 
                       key={slot.value}
                       className={cn(
-                        "flex gap-3 border-b border-border/15 last:border-b-0 h-14",
-                        isAdminOrManager && !isOccupied && "hover:bg-muted/30 cursor-pointer transition-colors"
+                        "flex gap-3 border-b schedule-grid-line last:border-b-0 h-14",
+                        isAdminOrManager && !isOccupied && "hover:bg-primary/5 cursor-pointer transition-colors"
                       )}
                       onClick={() => isAdminOrManager && !isOccupied && handleTimeSlotClick(currentDate, slot.value)}
                     >
-                      <div className="w-20 text-sm text-muted-foreground shrink-0 flex items-start justify-center pt-2 bg-muted/10 border-r border-border/25">
+                      <div className="w-20 text-sm text-muted-foreground shrink-0 flex items-start justify-center pt-2 bg-muted/5 border-r border-border/20">
                         {slot.label}
                       </div>
                       <div className="flex-1 relative" />
@@ -1874,62 +1933,76 @@ const Schedule = () => {
                     >
                       <div 
                         className={cn(
-                          "h-full p-3 rounded-lg border cursor-pointer overflow-hidden",
+                          "h-full p-3 rounded-xl border cursor-pointer overflow-hidden shadow-soft-sm",
                           "transition-all duration-200 ease-out",
-                          "hover:shadow-soft-md hover:-translate-y-0.5",
+                          "hover:shadow-soft-md hover:-translate-y-0.5 hover:scale-[1.005]",
+                          "active:scale-[0.995] active:shadow-soft-sm",
                           job.jobType === 'visit' 
-                            ? "bg-purple-500/10 border-purple-500/25" 
+                            ? "bg-purple-500/10 border-purple-500/20" 
                             : statusConfig[job.status].bgColor,
-                          job._isContinuation && "border-dashed opacity-90"
+                          job._isContinuation && "border-dashed border-l-4 border-l-muted-foreground/30 opacity-95"
                         )}
                         onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
                       >
-                        {/* Continuation indicator */}
+                        {/* Continuation visual indicator (top gradient) */}
                         {job._isContinuation && (
-                          <div className="text-[9px] text-muted-foreground/80 italic mb-1">
-                            ↳ Continues from previous day
-                          </div>
+                          <div className="absolute top-0 inset-x-0 h-2.5 bg-gradient-to-b from-muted-foreground/10 to-transparent rounded-t-xl" />
                         )}
-                        <div className="flex items-center gap-2 mb-1">
-                          {job.jobType === 'visit' ? (
-                            <Eye className="h-4 w-4 text-purple-500 flex-shrink-0" />
-                          ) : (
-                            <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
-                          )}
-                          <p className="font-medium text-sm truncate">{job.clientName}</p>
-                          <span className="text-xs font-medium text-primary/80 whitespace-nowrap">
-                            {formatTimeDisplay(job.time)} - {crossesMidnight ? '12:00 AM →' : formatTimeDisplay(endTime)}
-                          </span>
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">({job.duration})</span>
-                          <Badge 
-                            variant="outline" 
-                            className={cn(
-                              "text-[10px] px-1.5 py-0 flex-shrink-0",
-                              job.jobType === 'visit' 
-                                ? "border-purple-500/30 text-purple-600 dark:text-purple-400" 
-                                : "border-primary/30 text-primary"
+                        
+                        {/* Content with hierarchy */}
+                        <div className="flex flex-col h-full relative">
+                          {/* Primary row: Icon + Client + Status */}
+                          <div className="flex items-center gap-2 mb-1">
+                            {job.jobType === 'visit' ? (
+                              <Eye className="h-4 w-4 text-purple-500 flex-shrink-0" />
+                            ) : (
+                              <Sparkles className="h-4 w-4 text-primary/70 flex-shrink-0" />
                             )}
-                          >
-                            {job.jobType === 'visit' ? 'Visit' : 'Service'}
-                          </Badge>
-                          <Badge 
-                            variant="outline" 
-                            className={cn(
-                              "text-[10px] px-1.5 py-0 ml-auto flex-shrink-0",
-                              statusConfig[job.status].bgColor,
-                              statusConfig[job.status].color
-                            )}
-                          >
-                            {statusConfig[job.status].label}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground truncate">{job.address}</p>
-                        <p className="text-xs text-muted-foreground truncate">{job.employeeName}</p>
-                        {/* Crosses midnight indicator */}
-                        {crossesMidnight && (
-                          <div className="text-[9px] text-warning/80 italic mt-1">
-                            → Continues to next day
+                            <span className="font-semibold text-sm truncate">{job.clientName}</span>
+                            <Badge 
+                              variant="outline" 
+                              className={cn(
+                                "text-[9px] px-1.5 py-0 flex-shrink-0 ml-auto",
+                                statusConfig[job.status].bgColor,
+                                statusConfig[job.status].color
+                              )}
+                            >
+                              {statusConfig[job.status].label}
+                            </Badge>
                           </div>
+                          
+                          {/* Secondary: Time range */}
+                          <div className="flex items-center gap-2 text-xs font-medium text-foreground/75 mb-1">
+                            <span>
+                              {formatTimeDisplay(job.time)} – {crossesMidnight ? '12:00 AM' : formatTimeDisplay(endTime)}
+                            </span>
+                            <span className="text-muted-foreground font-normal">({job.duration})</span>
+                            <Badge 
+                              variant="outline" 
+                              className={cn(
+                                "text-[9px] px-1.5 py-0",
+                                job.jobType === 'visit' 
+                                  ? "border-purple-500/30 text-purple-600 dark:text-purple-400" 
+                                  : "border-primary/30 text-primary"
+                              )}
+                            >
+                              {job.jobType === 'visit' ? 'Visit' : 'Service'}
+                            </Badge>
+                          </div>
+                          
+                          {/* Tertiary: Address + Employee */}
+                          <p className="text-xs text-muted-foreground truncate">{job.address}</p>
+                          <p className="text-xs text-muted-foreground truncate">{job.employeeName}</p>
+                        </div>
+                        
+                        {/* Crosses midnight visual indicator (bottom gradient + arrow) */}
+                        {crossesMidnight && (
+                          <>
+                            <div className="absolute bottom-0 inset-x-0 h-4 bg-gradient-to-t from-warning/15 to-transparent rounded-b-xl" />
+                            <div className="absolute bottom-1.5 right-2">
+                              <ArrowRight className="h-3.5 w-3.5 text-warning/70" />
+                            </div>
+                          </>
                         )}
                       </div>
                     </div>
@@ -1942,7 +2015,7 @@ const Schedule = () => {
 
         {/* Timeline View */}
         {view === 'timeline' && (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {filteredJobs.length === 0 ? (
               <Card className="border-border/40 shadow-soft-sm">
                 <CardContent className="py-12 text-center text-muted-foreground">
@@ -1953,13 +2026,16 @@ const Schedule = () => {
             ) : (
               filteredJobs.map((job) => {
                 const config = statusConfig[job.status];
+                const crossesMidnight = doesJobCrossMidnight(job.time, job.duration);
+                
                 return (
                   <Card 
                     key={job.id} 
                     className={cn(
-                      "border-l-4 cursor-pointer overflow-hidden",
+                      "border-l-4 cursor-pointer overflow-hidden shadow-soft-sm",
                       "transition-all duration-200 ease-out",
-                      "hover:shadow-soft-md hover:-translate-y-0.5",
+                      "hover:shadow-soft-md hover:-translate-y-0.5 hover:scale-[1.002]",
+                      "active:scale-[0.998] active:shadow-soft-sm",
                       job.jobType === 'visit' 
                         ? "border-l-purple-500"
                         : job.status === 'scheduled' ? "border-l-info"
@@ -1969,46 +2045,58 @@ const Schedule = () => {
                     )}
                     onClick={() => setSelectedJob(job)}
                   >
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="text-center min-w-[60px]">
-                            <p className="text-lg font-semibold">{formatTimeDisplay(job.time)}</p>
-                            <p className="text-xs text-muted-foreground">{job.duration}</p>
+                    <CardContent className="p-3.5">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 min-w-0">
+                          {/* Time block */}
+                          <div className="text-center min-w-[55px] flex-shrink-0">
+                            <p className="text-base font-semibold leading-tight">{formatTimeDisplay(job.time)}</p>
+                            <p className="text-[10px] text-muted-foreground">{job.duration}</p>
                           </div>
-                          <div className="h-10 w-px bg-border/50" />
-                          <div>
+                          
+                          <div className="h-9 w-px bg-border/40 flex-shrink-0" />
+                          
+                          {/* Main content */}
+                          <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
                               {job.jobType === 'visit' ? (
-                                <Eye className="h-4 w-4 text-purple-500" />
+                                <Eye className="h-3.5 w-3.5 text-purple-500 flex-shrink-0" />
                               ) : (
-                                <Sparkles className="h-4 w-4 text-primary" />
+                                <Sparkles className="h-3.5 w-3.5 text-primary/70 flex-shrink-0" />
                               )}
-                              <p className="font-medium text-sm">{job.clientName}</p>
+                              <span className="font-semibold text-sm truncate">{job.clientName}</span>
                               <Badge 
                                 variant="outline" 
                                 className={cn(
-                                  "text-[10px] px-1.5 py-0",
+                                  "text-[9px] px-1.5 py-0 flex-shrink-0",
                                   job.jobType === 'visit' 
                                     ? "border-purple-500/30 bg-purple-500/10 text-purple-600 dark:text-purple-400" 
-                                    : "border-primary/30 bg-primary/10 text-primary"
+                                    : "border-primary/30 bg-primary/5 text-primary"
                                 )}
                               >
                                 {job.jobType === 'visit' ? 'Visit' : 'Service'}
                               </Badge>
+                              {crossesMidnight && (
+                                <div className="flex items-center gap-0.5 text-[9px] text-warning">
+                                  <ArrowRight className="h-2.5 w-2.5" />
+                                  <span>Next day</span>
+                                </div>
+                              )}
                             </div>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                              <MapPin className="h-3 w-3" />
+                            <p className="text-xs text-muted-foreground truncate mt-0.5 flex items-center gap-1">
+                              <MapPin className="h-3 w-3 flex-shrink-0" />
                               {job.address}
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        
+                        {/* Right side: Employee + Status */}
+                        <div className="flex items-center gap-2.5 flex-shrink-0">
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <User className="h-3.5 w-3.5" />
-                            {job.employeeName}
+                            <span className="max-w-[80px] truncate">{job.employeeName}</span>
                           </div>
-                          <Badge className={cn("border text-xs", config.bgColor, config.color)}>
+                          <Badge className={cn("text-[9px] px-2 py-0.5", config.bgColor, config.color)}>
                             {config.label}
                           </Badge>
                         </div>
