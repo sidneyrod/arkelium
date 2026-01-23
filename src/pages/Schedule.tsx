@@ -1758,7 +1758,7 @@ const Schedule = () => {
                                 {/* Continuation indicator */}
                                 {job._isContinuation && (
                                   <div className="text-[7px] text-muted-foreground/80 italic mb-0.5 truncate">
-                                    ↳ Continues from {format(subDays(new Date(), 0), 'prev day')}
+                                    ↳ Continues from previous day
                                   </div>
                                 )}
                                 <div className="flex items-center gap-1 mb-0.5">
