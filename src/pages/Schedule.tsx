@@ -1704,7 +1704,7 @@ const Schedule = () => {
                 })}
               </div>
               
-              <div className="max-h-[420px] overflow-y-auto relative">
+              <div className="max-h-[calc(100vh-320px)] min-h-[400px] overflow-y-auto relative">
                 {TIME_SLOTS.map((slot, slotIndex) => (
                   <div key={slot.value} className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border/15 last:border-b-0">
                     <div className="p-2 text-xs text-muted-foreground border-r border-border/25 bg-muted/10 flex items-start justify-center h-14">
@@ -1729,9 +1729,15 @@ const Schedule = () => {
                         >
                           {startingJobs.map((job) => {
                             const rowSpan = getJobRowSpan(job);
-                            const heightPx = rowSpan * 56; // 56px per slot (h-14)
+                            const slotHeight = 56; // 56px per slot (h-14)
+                            const heightPx = rowSpan * slotHeight;
                             const endTime = calculateEndTime(job.time, job.duration);
                             const crossesMidnight = !job._isContinuation && doesJobCrossMidnight(job._originalTime || job.time, job._originalDuration || job.duration);
+                            
+                            // Clamp height to available slots remaining in the grid
+                            const remainingSlots = TIME_SLOTS.length - slotIndex;
+                            const maxHeightPx = remainingSlots * slotHeight;
+                            const clampedHeightPx = Math.min(heightPx, maxHeightPx);
                             
                             return (
                               <div 
@@ -1745,7 +1751,7 @@ const Schedule = () => {
                                     : statusConfig[job.status].bgColor,
                                   job._isContinuation && "border-dashed opacity-90"
                                 )}
-                                style={{ height: `${heightPx - 6}px`, top: 2 }}
+                                style={{ height: `${clampedHeightPx - 6}px`, top: 2 }}
                                 onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
                               >
                                 {/* Continuation indicator */}
@@ -1817,7 +1823,7 @@ const Schedule = () => {
               </h3>
             </div>
             <CardContent className="p-0">
-              <div className="relative">
+              <div className="relative pb-16">
                 {/* Time slots grid as background */}
                 {TIME_SLOTS.map((slot, slotIndex) => {
                   // Get jobs that SPAN this slot but started earlier
@@ -1855,11 +1861,16 @@ const Schedule = () => {
                   const endTime = calculateEndTime(job.time, job.duration);
                   const crossesMidnight = !job._isContinuation && doesJobCrossMidnight(job._originalTime || job.time, job._originalDuration || job.duration);
                   
+                  // Clamp height to available slots remaining in the grid
+                  const remainingSlots = TIME_SLOTS.length - startSlotIndex;
+                  const maxCardHeight = remainingSlots * slotHeight;
+                  const clampedCardHeight = Math.min(cardHeight, maxCardHeight);
+                  
                   return (
                     <div
                       key={job.id + (job._isContinuation ? '-cont' : '')}
                       className="absolute left-20 right-0 px-3"
-                      style={{ top: topPosition + 4, height: cardHeight - 8 }}
+                      style={{ top: topPosition + 4, height: clampedCardHeight - 8 }}
                     >
                       <div 
                         className={cn(
