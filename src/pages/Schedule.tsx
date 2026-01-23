@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   CalendarPlus, 
   ChevronLeft, 
@@ -71,9 +72,8 @@ interface ScheduledJob {
   jobType?: 'cleaning' | 'visit';
   visitPurpose?: string;
   visitRoute?: string;
-  paymentMethod?: string; // Track payment method for invoice vs receipt rules
+  paymentMethod?: string;
   serviceDate?: string;
-  // Enterprise Multi-Company Fields
   operationType?: 'billable_service' | 'non_billable_visit' | 'internal_work';
   activityCode?: string;
   operatingCompanyId?: string;
@@ -84,12 +84,32 @@ interface ScheduledJob {
   organizationId?: string | null;
 }
 
-
+// Premium status configuration with refined colors for enterprise clarity
 const statusConfig: Record<JobStatus, { color: string; bgColor: string; label: string }> = {
-  scheduled: { color: 'text-info', bgColor: 'bg-info/10 border-info/20', label: 'Scheduled' },
-  'in-progress': { color: 'text-warning', bgColor: 'bg-warning/10 border-warning/20', label: 'In Progress' },
-  completed: { color: 'text-success', bgColor: 'bg-success/10 border-success/20', label: 'Completed' },
-  cancelled: { color: 'text-muted-foreground', bgColor: 'bg-muted border-border', label: 'Cancelled' },
+  // Scheduled: anticipatory, subtle blue
+  scheduled: { 
+    color: 'text-info', 
+    bgColor: 'bg-info/8 border-info/15 dark:bg-info/10 dark:border-info/20', 
+    label: 'Scheduled' 
+  },
+  // In Progress: warm, active attention
+  'in-progress': { 
+    color: 'text-warning', 
+    bgColor: 'bg-warning/10 border-warning/25 dark:bg-warning/12 dark:border-warning/30', 
+    label: 'In Progress' 
+  },
+  // Completed: calm, subdued success
+  completed: { 
+    color: 'text-success/80', 
+    bgColor: 'bg-success/6 border-success/12 dark:bg-success/8 dark:border-success/15', 
+    label: 'Completed' 
+  },
+  // Cancelled: visually quiet, de-emphasized
+  cancelled: { 
+    color: 'text-muted-foreground/70', 
+    bgColor: 'bg-muted/50 border-border/50', 
+    label: 'Cancelled' 
+  },
 };
 
 // Generate 24-hour time slots with 30-minute increments (matching AddJobModal)
@@ -350,6 +370,23 @@ const Schedule = () => {
     if (statusFilter !== 'all' && job.status !== statusFilter) return false;
     return true;
   });
+
+  // Calculate summary stats for contextual header
+  const summaryStats = useMemo(() => {
+    const today = new Date();
+    const todayJobs = filteredJobs.filter(job => isSameDay(toSafeLocalDate(job.date), today));
+    const completedCount = filteredJobs.filter(job => job.status === 'completed').length;
+    const inProgressCount = filteredJobs.filter(job => job.status === 'in-progress').length;
+    const scheduledCount = filteredJobs.filter(job => job.status === 'scheduled').length;
+    
+    return {
+      total: filteredJobs.length,
+      completed: completedCount,
+      inProgress: inProgressCount,
+      scheduled: scheduledCount,
+      todayCount: todayJobs.length,
+    };
+  }, [filteredJobs]);
 
   const uniqueEmployees = Array.from(new Set(jobs.map(j => ({ id: j.employeeId, name: j.employeeName }))))
     .filter((emp, index, self) => self.findIndex(e => e.id === emp.id) === index);
@@ -1315,23 +1352,23 @@ const Schedule = () => {
   }
 
   return (
-    <div className="p-2 lg:p-3 space-y-2">
+    <div className="p-2 lg:p-3 space-y-3">
       {/* Overdue Job Alert - For Admin/Manager and Cleaners */}
       <OverdueJobAlert />
       
       {/* Controls - Compact header with calendar navigation */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={goToPrevious}>
+          <Button variant="outline" size="icon" onClick={goToPrevious} className="h-9 w-9">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <div className="px-4 py-2 rounded-lg bg-card border border-border/50 min-w-[140px] text-center">
+          <div className="px-4 py-2 rounded-lg bg-card border border-border/50 min-w-[160px] text-center">
             <span className="font-medium">{format(currentDate, view === 'month' ? 'MMMM yyyy' : 'MMM d, yyyy')}</span>
           </div>
-          <Button variant="outline" size="icon" onClick={goToNext}>
+          <Button variant="outline" size="icon" onClick={goToNext} className="h-9 w-9">
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="sm" className="ml-2" onClick={goToToday}>
+          <Button variant="outline" size="sm" className="ml-2 h-9" onClick={goToToday}>
             {t.schedule.today}
           </Button>
         </div>
@@ -1388,12 +1425,12 @@ const Schedule = () => {
             </SelectContent>
           </Select>
 
-          <div className="flex items-center rounded-lg border border-border/50 p-0.5">
+          <div className="flex items-center rounded-lg border border-border/50 p-0.5 bg-muted/30">
             <Button 
               variant={view === 'day' ? 'secondary' : 'ghost'} 
               size="sm"
               onClick={() => setView('day')}
-              className="h-7 px-2"
+              className="h-7 px-2.5 transition-all"
             >
               {t.schedule.day}
             </Button>
@@ -1401,7 +1438,7 @@ const Schedule = () => {
               variant={view === 'week' ? 'secondary' : 'ghost'} 
               size="sm"
               onClick={() => setView('week')}
-              className="h-7 px-2"
+              className="h-7 px-2.5 transition-all"
             >
               {t.schedule.week}
             </Button>
@@ -1409,7 +1446,7 @@ const Schedule = () => {
               variant={view === 'month' ? 'secondary' : 'ghost'} 
               size="sm"
               onClick={() => setView('month')}
-              className="h-7 px-2"
+              className="h-7 px-2.5 transition-all"
             >
               {t.schedule.month}
             </Button>
@@ -1417,14 +1454,14 @@ const Schedule = () => {
               variant={view === 'timeline' ? 'secondary' : 'ghost'} 
               size="sm"
               onClick={() => setView('timeline')}
-              className="h-7 px-2"
+              className="h-7 px-2.5 transition-all"
             >
               <List className="h-4 w-4" />
             </Button>
           </div>
 
           {isAdminOrManager && (
-            <Button onClick={() => setShowAddJob(true)} className="gap-2">
+            <Button onClick={() => setShowAddJob(true)} className="gap-2 h-9">
               <CalendarPlus className="h-4 w-4" />
               {t.schedule.addJob}
             </Button>
@@ -1432,391 +1469,463 @@ const Schedule = () => {
         </div>
       </div>
 
-          {/* Month View */}
-          {view === 'month' && (
-            <Card className="border-border/50">
-              <CardContent className="p-0">
-                <div className="grid grid-cols-7 border-b border-border/50">
-                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
-                    <div key={day} className="p-2 text-center text-xs font-medium text-muted-foreground border-r border-border/50 last:border-r-0">
-                      {day}
-                    </div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-7">
-                  {getMonthDays().map((day, idx) => {
-                    const dayJobs = getJobsForDate(day);
-                    const isCurrentMonth = isSameMonth(day, currentDate);
-                    return (
-                      <div
-                        key={idx}
-                        onClick={() => handleDayClick(day)}
-                        className={cn(
-                          "min-h-[80px] p-1 border-r border-b border-border/30 last:border-r-0 cursor-pointer hover:bg-muted/30 transition-colors",
-                          !isCurrentMonth && "bg-muted/20 text-muted-foreground",
-                          isToday(day) && "bg-primary/5"
-                        )}
-                      >
-                        <div className={cn(
-                          "text-xs font-medium mb-1 h-5 w-5 flex items-center justify-center rounded-full",
-                          isToday(day) && "bg-primary text-primary-foreground"
-                        )}>
-                          {format(day, 'd')}
-                        </div>
-                        <div className="space-y-0.5">
-                          {dayJobs.slice(0, 2).map((job) => (
-                            <div
-                              key={job.id}
-                              onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
-                              className={cn(
-                                "text-[10px] px-1 py-0.5 rounded truncate cursor-pointer flex flex-col gap-0.5 border",
-                                job.jobType === 'visit' 
-                                  ? "bg-purple-500/10 border-purple-500/20 text-purple-700 dark:text-purple-300" 
-                                  : statusConfig[job.status].bgColor
-                              )}
-                            >
-                              <div className="flex items-center gap-1">
-                                {job.jobType === 'visit' ? (
-                                  <Eye className="h-2.5 w-2.5 flex-shrink-0" />
-                                ) : (
-                                  <Sparkles className="h-2.5 w-2.5 flex-shrink-0" />
-                                )}
-                                <span className="truncate">{job.clientName}</span>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-[8px] text-muted-foreground">{job.duration}</span>
-                                <span className={cn(
-                                  "text-[8px] font-medium uppercase",
-                                  statusConfig[job.status].color
-                                )}>
-                                  {statusConfig[job.status].label}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                          {dayJobs.length > 2 && (
-                            <div className="text-[10px] text-muted-foreground px-1">
-                              +{dayJobs.length - 2} more
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+      {/* Contextual Summary Header - Premium */}
+      <div className="flex items-center gap-3 text-xs text-muted-foreground px-1">
+        <span className="font-medium text-foreground/80">
+          {format(currentDate, 'MMMM yyyy')}
+        </span>
+        <span className="text-border/60">·</span>
+        <span>{summaryStats.total} jobs</span>
+        <span className="text-border/60">·</span>
+        <span className="text-success/80">{summaryStats.completed} completed</span>
+        <span className="text-border/60">·</span>
+        <span className="text-warning">{summaryStats.inProgress} in progress</span>
+        {summaryStats.todayCount > 0 && (
+          <>
+            <span className="text-border/60">·</span>
+            <span className="text-primary font-medium">{summaryStats.todayCount} today</span>
+          </>
+        )}
+      </div>
 
-          {/* Week View */}
-          {view === 'week' && (
-            <Card className="border-border/50 overflow-hidden">
-              <CardContent className="p-0">
-                <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border/50">
-                  <div className="p-2 text-center text-sm text-muted-foreground border-r border-border/50 flex items-center justify-center">
-                    <Clock className="h-4 w-4" />
+      {/* Calendar Views with smooth transitions */}
+      <div className="animate-fade-in" key={view}>
+        {/* Month View */}
+        {view === 'month' && (
+          <Card className="border-border/40 shadow-soft-sm overflow-hidden">
+            <CardContent className="p-0">
+              <div className="grid grid-cols-7 border-b border-border/40 bg-muted/20">
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
+                  <div key={day} className="p-2.5 text-center text-xs font-medium text-muted-foreground border-r border-border/30 last:border-r-0">
+                    {day}
                   </div>
-                  {getWeekDays().map((day) => (
-                    <div 
-                      key={day.toISOString()} 
-                      className={cn(
-                        "p-2 text-center border-r border-border/30 last:border-r-0 cursor-pointer hover:bg-muted/30",
-                        isToday(day) && "bg-primary/5"
-                      )}
+                ))}
+              </div>
+              <div className="grid grid-cols-7">
+                {getMonthDays().map((day, idx) => {
+                  const dayJobs = getJobsForDate(day);
+                  const isCurrentMonth = isSameMonth(day, currentDate);
+                  const isTodayCell = isToday(day);
+                  return (
+                    <div
+                      key={idx}
                       onClick={() => handleDayClick(day)}
+                      className={cn(
+                        "min-h-[90px] p-1.5 border-r border-b border-border/25 last:border-r-0 cursor-pointer transition-all duration-150",
+                        "hover:bg-muted/30",
+                        !isCurrentMonth && "bg-muted/10 text-muted-foreground/60",
+                        isTodayCell && "bg-primary/5 ring-1 ring-inset ring-primary/20"
+                      )}
                     >
-                      <p className="text-xs font-medium">{format(day, 'EEE')}</p>
-                      <p className={cn(
-                        "text-lg font-semibold mt-0.5",
-                        isToday(day) && "text-primary"
-                      )}>{format(day, 'd')}</p>
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="max-h-[400px] overflow-y-auto relative">
-                  {TIME_SLOTS.map((slot, slotIndex) => (
-                    <div key={slot.value} className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border/20 last:border-b-0">
-                      <div className="p-2 text-xs text-muted-foreground border-r border-border/30 bg-muted/20 flex items-start justify-center h-12">
-                        {slot.label}
+                      <div className={cn(
+                        "text-xs font-medium mb-1.5 h-5 w-5 flex items-center justify-center rounded-full transition-all",
+                        isTodayCell && "bg-primary text-primary-foreground shadow-sm"
+                      )}>
+                        {format(day, 'd')}
                       </div>
-                      {getWeekDays().map((day) => {
-                        // Get jobs that START at this time slot
-                        const startingJobs = getJobsForDate(day).filter(j => isJobStartingAt(j, slot.value));
-                        // Get jobs that SPAN this slot but started earlier
-                        const spanningJobs = getJobsForTimeSlot(day, slot.value).filter(j => !isJobStartingAt(j, slot.value));
-                        const hasSpanningJob = spanningJobs.length > 0;
-                        
-                        return (
-                          <div 
-                            key={`${day.toISOString()}-${slot.value}`} 
-                            className={cn(
-                              "border-r border-border/20 last:border-r-0 h-12 transition-colors relative",
-                              isAdminOrManager && !hasSpanningJob && "hover:bg-muted/30 cursor-pointer",
-                              hasSpanningJob && "bg-transparent pointer-events-none"
-                            )}
-                            onClick={() => isAdminOrManager && !hasSpanningJob && handleTimeSlotClick(day, slot.value)}
-                          >
-                            {startingJobs.map((job) => {
-                              const rowSpan = getJobRowSpan(job);
-                              const heightPx = rowSpan * 48; // 48px per slot (h-12)
-                              const endTime = calculateEndTime(job.time, job.duration);
-                              
-                              return (
-                                <div 
-                                  key={job.id}
+                      <div className="space-y-1">
+                        <TooltipProvider delayDuration={300}>
+                          {dayJobs.slice(0, 2).map((job) => (
+                            <Tooltip key={job.id}>
+                              <TooltipTrigger asChild>
+                                <div
+                                  onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
                                   className={cn(
-                                    "absolute left-0 right-0 mx-1 p-1.5 rounded border text-xs cursor-pointer transition-all hover:shadow-md z-10",
+                                    "text-[10px] px-1.5 py-1 rounded-md truncate cursor-pointer flex flex-col gap-0.5 border transition-all duration-150",
+                                    "hover:shadow-soft-sm hover:scale-[1.02]",
                                     job.jobType === 'visit' 
-                                      ? "bg-purple-500/10 border-purple-500/30" 
+                                      ? "bg-purple-500/10 border-purple-500/20 text-purple-700 dark:text-purple-300" 
                                       : statusConfig[job.status].bgColor
                                   )}
-                                  style={{ height: `${heightPx - 4}px`, top: 0 }}
-                                  onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
                                 >
-                                  <div className="flex items-center gap-1 mb-0.5">
+                                  <div className="flex items-center gap-1">
                                     {job.jobType === 'visit' ? (
-                                      <Eye className="h-3 w-3 text-purple-500" />
+                                      <Eye className="h-2.5 w-2.5 flex-shrink-0" />
                                     ) : (
-                                      <Sparkles className="h-3 w-3 text-primary" />
+                                      <Sparkles className="h-2.5 w-2.5 flex-shrink-0" />
                                     )}
-                                    <p className="font-medium truncate text-[11px]">{job.clientName}</p>
+                                    <span className="truncate font-medium">{job.clientName}</span>
                                   </div>
-                                  <p className="text-muted-foreground text-[10px] truncate">
-                                    {job.employeeName}
-                                  </p>
-                                  <p className="text-[9px] font-medium text-primary">
-                                    {formatTimeDisplay(job.time)} - {formatTimeDisplay(endTime)} ({job.duration})
-                                  </p>
-                                  <div className="flex items-center justify-between mt-0.5">
-                                    <span className={cn(
-                                      "text-[8px] font-medium",
-                                      job.jobType === 'visit' ? "text-purple-600 dark:text-purple-400" : "text-primary"
-                                    )}>
-                                      {job.jobType === 'visit' ? 'Visit' : 'Service'}
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[8px] text-muted-foreground flex items-center gap-0.5">
+                                      <Clock className="h-2 w-2" />
+                                      {job.duration}
                                     </span>
                                     <span className={cn(
-                                      "text-[8px] font-medium uppercase px-1 py-0.5 rounded",
-                                      statusConfig[job.status].bgColor,
+                                      "text-[8px] font-medium uppercase",
                                       statusConfig[job.status].color
                                     )}>
                                       {statusConfig[job.status].label}
                                     </span>
                                   </div>
                                 </div>
-                              );
-                            })}
+                              </TooltipTrigger>
+                              <TooltipContent side="right" className="max-w-[220px] p-3">
+                                <div className="space-y-1.5">
+                                  <p className="font-medium text-xs">{job.clientName}</p>
+                                  <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                    <MapPin className="h-3 w-3" />
+                                    {job.address}
+                                  </p>
+                                  <div className="flex items-center gap-2 text-[10px]">
+                                    <Clock className="h-3 w-3 text-muted-foreground" />
+                                    <span>{formatTimeDisplay(job.time)} · {job.duration}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-[10px]">
+                                    <User className="h-3 w-3 text-muted-foreground" />
+                                    <span>{job.employeeName}</span>
+                                  </div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </TooltipProvider>
+                        {dayJobs.length > 2 && (
+                          <div className="text-[10px] text-muted-foreground/70 px-1 font-medium">
+                            +{dayJobs.length - 2} more
                           </div>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Day View */}
-          {view === 'day' && (
-            <Card className="border-border/50">
-              <div className="p-4 border-b border-border/50">
-                <h3 className="text-base font-medium">{format(currentDate, 'EEEE, MMMM d, yyyy')}</h3>
-              </div>
-              <CardContent className="p-0">
-                <div className="relative">
-                  {/* Time slots grid as background */}
-                  {TIME_SLOTS.map((slot, slotIndex) => {
-                    // Get jobs that SPAN this slot but started earlier
-                    const spanningJobs = getJobsForTimeSlot(currentDate, slot.value).filter(j => !isJobStartingAt(j, slot.value));
-                    const hasSpanningJob = spanningJobs.length > 0;
-                    const startingJobs = getJobsForDate(currentDate).filter(j => isJobStartingAt(j, slot.value));
-                    const isOccupied = hasSpanningJob || startingJobs.length > 0;
-                    
-                    return (
-                      <div 
-                        key={slot.value}
-                        className={cn(
-                          "flex gap-3 border-b border-border/20 last:border-b-0 h-12",
-                          isAdminOrManager && !isOccupied && "hover:bg-muted/30 cursor-pointer"
                         )}
-                        onClick={() => isAdminOrManager && !isOccupied && handleTimeSlotClick(currentDate, slot.value)}
-                      >
-                        <div className="w-20 text-sm text-muted-foreground shrink-0 flex items-start justify-center pt-2 bg-muted/10 border-r border-border/30">
-                          {slot.label}
-                        </div>
-                        <div className="flex-1 relative" />
                       </div>
-                    );
-                  })}
-                  
-                  {/* Overlay jobs with absolute positioning */}
-                  {getJobsForDate(currentDate).map((job) => {
-                    const startSlotIndex = TIME_SLOTS.findIndex(s => s.value === job.time);
-                    if (startSlotIndex === -1) return null;
-                    
-                    const rowSpan = getJobRowSpan(job);
-                    const slotHeight = 48; // h-12 = 48px
-                    const topPosition = startSlotIndex * slotHeight;
-                    const cardHeight = rowSpan * slotHeight;
-                    const endTime = calculateEndTime(job.time, job.duration);
-                    
-                    return (
-                      <div
-                        key={job.id}
-                        className="absolute left-20 right-0 px-2"
-                        style={{ top: topPosition + 4, height: cardHeight - 8 }}
-                      >
-                        <div 
-                          className={cn(
-                            "h-full p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md overflow-hidden",
-                            job.jobType === 'visit' 
-                              ? "bg-purple-500/10 border-purple-500/30" 
-                              : statusConfig[job.status].bgColor
-                          )}
-                          onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
-                        >
-                          <div className="flex items-center gap-2 mb-1">
-                            {job.jobType === 'visit' ? (
-                              <Eye className="h-4 w-4 text-purple-500 flex-shrink-0" />
-                            ) : (
-                              <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
-                            )}
-                            <p className="font-medium text-sm truncate">{job.clientName}</p>
-                            <span className="text-xs font-medium text-primary whitespace-nowrap">
-                              {formatTimeDisplay(job.time)} - {formatTimeDisplay(endTime)}
-                            </span>
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">({job.duration})</span>
-                            <Badge 
-                              variant="outline" 
-                              className={cn(
-                                "text-[10px] px-1 py-0 flex-shrink-0",
-                                job.jobType === 'visit' 
-                                  ? "border-purple-500/30 text-purple-600 dark:text-purple-400" 
-                                  : "border-primary/30 text-primary"
-                              )}
-                            >
-                              {job.jobType === 'visit' ? 'Visit' : 'Service'}
-                            </Badge>
-                            <Badge 
-                              variant="outline" 
-                              className={cn(
-                                "text-[10px] px-1 py-0 ml-auto flex-shrink-0",
-                                statusConfig[job.status].bgColor,
-                                statusConfig[job.status].color
-                              )}
-                            >
-                              {statusConfig[job.status].label}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground truncate">{job.address}</p>
-                          <p className="text-xs text-muted-foreground truncate">{job.employeeName}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Timeline View */}
-          {view === 'timeline' && (
-            <div className="space-y-2">
-              {filteredJobs.length === 0 ? (
-                <Card className="border-border/50">
-                  <CardContent className="py-8 text-center text-muted-foreground">
-                    No jobs scheduled
-                  </CardContent>
-                </Card>
-              ) : (
-                filteredJobs.map((job) => {
-                  const config = statusConfig[job.status];
-                  return (
-                    <Card 
-                      key={job.id} 
-                      className={cn(
-                        "border-l-4 cursor-pointer transition-all hover:shadow-md",
-                        job.jobType === 'visit' 
-                          ? "border-l-purple-500"
-                          : job.status === 'scheduled' ? "border-l-info"
-                          : job.status === 'in-progress' ? "border-l-warning"
-                          : job.status === 'completed' ? "border-l-success"
-                          : "border-l-muted-foreground"
-                      )}
-                      onClick={() => setSelectedJob(job)}
-                    >
-                      <CardContent className="p-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="text-center">
-                              <p className="text-lg font-semibold">{formatTimeDisplay(job.time)}</p>
-                              <p className="text-xs text-muted-foreground">{job.duration}</p>
-                            </div>
-                            <div className="h-10 w-px bg-border" />
-                            <div>
-                              <div className="flex items-center gap-2">
-                                {job.jobType === 'visit' ? (
-                                  <Eye className="h-4 w-4 text-purple-500" />
-                                ) : (
-                                  <Sparkles className="h-4 w-4 text-primary" />
-                                )}
-                                <p className="font-medium text-sm">{job.clientName}</p>
-                                <Badge 
-                                  variant="outline" 
-                                  className={cn(
-                                    "text-[10px] px-1.5 py-0",
-                                    job.jobType === 'visit' 
-                                      ? "border-purple-500/30 bg-purple-500/10 text-purple-600 dark:text-purple-400" 
-                                      : "border-primary/30 bg-primary/10 text-primary"
-                                  )}
-                                >
-                                  {job.jobType === 'visit' ? 'Visit' : 'Service'}
-                                </Badge>
-                              </div>
-                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                                <MapPin className="h-3 w-3" />
-                                {job.address}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <User className="h-3.5 w-3.5" />
-                              {job.employeeName}
-                            </div>
-                            <Badge className={cn("border text-xs", config.bgColor, config.color)}>
-                              {config.label}
-                            </Badge>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    </div>
                   );
-                })
-              )}
-            </div>
-          )}
-
-          {/* Status Legend */}
-          <div className="flex flex-wrap items-center gap-4 text-xs">
-            {/* Type Legend */}
-            <div className="flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
-              <span className="text-muted-foreground">Service</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Eye className="h-3.5 w-3.5 text-purple-500" />
-              <span className="text-muted-foreground">Visit</span>
-            </div>
-            <div className="h-4 w-px bg-border mx-1" />
-            {/* Status Legend */}
-            {Object.entries(statusConfig).map(([status, config]) => (
-              <div key={status} className="flex items-center gap-1.5">
-                <div className={cn("h-2.5 w-2.5 rounded-full", config.bgColor.split(' ')[0])} />
-                <span className="text-muted-foreground">{config.label}</span>
+                })}
               </div>
-            ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Week View */}
+        {view === 'week' && (
+          <Card className="border-border/40 shadow-soft-sm overflow-hidden">
+            <CardContent className="p-0">
+              <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border/40 bg-muted/20">
+                <div className="p-2 text-center text-sm text-muted-foreground border-r border-border/30 flex items-center justify-center">
+                  <Clock className="h-4 w-4" />
+                </div>
+                {getWeekDays().map((day) => {
+                  const isTodayCell = isToday(day);
+                  return (
+                    <div 
+                      key={day.toISOString()} 
+                      className={cn(
+                        "p-2.5 text-center border-r border-border/25 last:border-r-0 cursor-pointer transition-all duration-150",
+                        "hover:bg-muted/30",
+                        isTodayCell && "bg-primary/5 relative"
+                      )}
+                      onClick={() => handleDayClick(day)}
+                    >
+                      <p className="text-xs font-medium text-muted-foreground">{format(day, 'EEE')}</p>
+                      <p className={cn(
+                        "text-lg font-semibold mt-0.5 transition-colors",
+                        isTodayCell && "text-primary"
+                      )}>{format(day, 'd')}</p>
+                      {isTodayCell && (
+                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary/50 rounded-full" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              
+              <div className="max-h-[420px] overflow-y-auto relative">
+                {TIME_SLOTS.map((slot, slotIndex) => (
+                  <div key={slot.value} className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border/15 last:border-b-0">
+                    <div className="p-2 text-xs text-muted-foreground border-r border-border/25 bg-muted/10 flex items-start justify-center h-14">
+                      {slot.label}
+                    </div>
+                    {getWeekDays().map((day) => {
+                      // Get jobs that START at this time slot
+                      const startingJobs = getJobsForDate(day).filter(j => isJobStartingAt(j, slot.value));
+                      // Get jobs that SPAN this slot but started earlier
+                      const spanningJobs = getJobsForTimeSlot(day, slot.value).filter(j => !isJobStartingAt(j, slot.value));
+                      const hasSpanningJob = spanningJobs.length > 0;
+                      
+                      return (
+                        <div 
+                          key={`${day.toISOString()}-${slot.value}`} 
+                          className={cn(
+                            "border-r border-border/15 last:border-r-0 h-14 transition-colors relative",
+                            isAdminOrManager && !hasSpanningJob && "hover:bg-muted/30 cursor-pointer",
+                            hasSpanningJob && "bg-transparent pointer-events-none"
+                          )}
+                          onClick={() => isAdminOrManager && !hasSpanningJob && handleTimeSlotClick(day, slot.value)}
+                        >
+                          {startingJobs.map((job) => {
+                            const rowSpan = getJobRowSpan(job);
+                            const heightPx = rowSpan * 56; // 56px per slot (h-14)
+                            const endTime = calculateEndTime(job.time, job.duration);
+                            
+                            return (
+                              <div 
+                                key={job.id}
+                                className={cn(
+                                  "absolute left-0.5 right-0.5 mx-0.5 p-2 rounded-lg border text-xs cursor-pointer z-10",
+                                  "transition-all duration-200 ease-out",
+                                  "hover:shadow-soft-md hover:-translate-y-0.5 hover:z-20",
+                                  job.jobType === 'visit' 
+                                    ? "bg-purple-500/10 border-purple-500/25" 
+                                    : statusConfig[job.status].bgColor
+                                )}
+                                style={{ height: `${heightPx - 6}px`, top: 2 }}
+                                onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
+                              >
+                                <div className="flex items-center gap-1 mb-0.5">
+                                  {job.jobType === 'visit' ? (
+                                    <Eye className="h-3 w-3 text-purple-500" />
+                                  ) : (
+                                    <Sparkles className="h-3 w-3 text-primary" />
+                                  )}
+                                  <p className="font-medium truncate text-[11px]">{job.clientName}</p>
+                                </div>
+                                <p className="text-muted-foreground text-[10px] truncate">
+                                  {job.employeeName}
+                                </p>
+                                <p className="text-[9px] font-medium text-primary/80">
+                                  {formatTimeDisplay(job.time)} - {formatTimeDisplay(endTime)}
+                                </p>
+                                <div className="flex items-center justify-between mt-0.5">
+                                  <span className={cn(
+                                    "text-[8px] font-medium",
+                                    job.jobType === 'visit' ? "text-purple-600 dark:text-purple-400" : "text-primary"
+                                  )}>
+                                    {job.jobType === 'visit' ? 'Visit' : 'Service'}
+                                  </span>
+                                  <span className={cn(
+                                    "text-[8px] font-medium uppercase px-1 py-0.5 rounded",
+                                    statusConfig[job.status].bgColor,
+                                    statusConfig[job.status].color
+                                  )}>
+                                    {statusConfig[job.status].label}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Day View */}
+        {view === 'day' && (
+          <Card className="border-border/40 shadow-soft-sm">
+            <div className="p-4 border-b border-border/40 bg-muted/10">
+              <h3 className={cn(
+                "text-base font-medium",
+                isToday(currentDate) && "text-primary"
+              )}>
+                {format(currentDate, 'EEEE, MMMM d, yyyy')}
+                {isToday(currentDate) && (
+                  <span className="ml-2 text-xs font-normal text-primary/70">(Today)</span>
+                )}
+              </h3>
+            </div>
+            <CardContent className="p-0">
+              <div className="relative">
+                {/* Time slots grid as background */}
+                {TIME_SLOTS.map((slot, slotIndex) => {
+                  // Get jobs that SPAN this slot but started earlier
+                  const spanningJobs = getJobsForTimeSlot(currentDate, slot.value).filter(j => !isJobStartingAt(j, slot.value));
+                  const hasSpanningJob = spanningJobs.length > 0;
+                  const startingJobs = getJobsForDate(currentDate).filter(j => isJobStartingAt(j, slot.value));
+                  const isOccupied = hasSpanningJob || startingJobs.length > 0;
+                  
+                  return (
+                    <div 
+                      key={slot.value}
+                      className={cn(
+                        "flex gap-3 border-b border-border/15 last:border-b-0 h-14",
+                        isAdminOrManager && !isOccupied && "hover:bg-muted/30 cursor-pointer transition-colors"
+                      )}
+                      onClick={() => isAdminOrManager && !isOccupied && handleTimeSlotClick(currentDate, slot.value)}
+                    >
+                      <div className="w-20 text-sm text-muted-foreground shrink-0 flex items-start justify-center pt-2 bg-muted/10 border-r border-border/25">
+                        {slot.label}
+                      </div>
+                      <div className="flex-1 relative" />
+                    </div>
+                  );
+                })}
+                
+                {/* Overlay jobs with absolute positioning */}
+                {getJobsForDate(currentDate).map((job) => {
+                  const startSlotIndex = TIME_SLOTS.findIndex(s => s.value === job.time);
+                  if (startSlotIndex === -1) return null;
+                  
+                  const rowSpan = getJobRowSpan(job);
+                  const slotHeight = 56; // h-14 = 56px
+                  const topPosition = startSlotIndex * slotHeight;
+                  const cardHeight = rowSpan * slotHeight;
+                  const endTime = calculateEndTime(job.time, job.duration);
+                  
+                  return (
+                    <div
+                      key={job.id}
+                      className="absolute left-20 right-0 px-3"
+                      style={{ top: topPosition + 4, height: cardHeight - 8 }}
+                    >
+                      <div 
+                        className={cn(
+                          "h-full p-3 rounded-lg border cursor-pointer overflow-hidden",
+                          "transition-all duration-200 ease-out",
+                          "hover:shadow-soft-md hover:-translate-y-0.5",
+                          job.jobType === 'visit' 
+                            ? "bg-purple-500/10 border-purple-500/25" 
+                            : statusConfig[job.status].bgColor
+                        )}
+                        onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          {job.jobType === 'visit' ? (
+                            <Eye className="h-4 w-4 text-purple-500 flex-shrink-0" />
+                          ) : (
+                            <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
+                          )}
+                          <p className="font-medium text-sm truncate">{job.clientName}</p>
+                          <span className="text-xs font-medium text-primary/80 whitespace-nowrap">
+                            {formatTimeDisplay(job.time)} - {formatTimeDisplay(endTime)}
+                          </span>
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">({job.duration})</span>
+                          <Badge 
+                            variant="outline" 
+                            className={cn(
+                              "text-[10px] px-1.5 py-0 flex-shrink-0",
+                              job.jobType === 'visit' 
+                                ? "border-purple-500/30 text-purple-600 dark:text-purple-400" 
+                                : "border-primary/30 text-primary"
+                            )}
+                          >
+                            {job.jobType === 'visit' ? 'Visit' : 'Service'}
+                          </Badge>
+                          <Badge 
+                            variant="outline" 
+                            className={cn(
+                              "text-[10px] px-1.5 py-0 ml-auto flex-shrink-0",
+                              statusConfig[job.status].bgColor,
+                              statusConfig[job.status].color
+                            )}
+                          >
+                            {statusConfig[job.status].label}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">{job.address}</p>
+                        <p className="text-xs text-muted-foreground truncate">{job.employeeName}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Timeline View */}
+        {view === 'timeline' && (
+          <div className="space-y-2">
+            {filteredJobs.length === 0 ? (
+              <Card className="border-border/40 shadow-soft-sm">
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  <CalendarIcon className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                  <p>No jobs scheduled</p>
+                </CardContent>
+              </Card>
+            ) : (
+              filteredJobs.map((job) => {
+                const config = statusConfig[job.status];
+                return (
+                  <Card 
+                    key={job.id} 
+                    className={cn(
+                      "border-l-4 cursor-pointer overflow-hidden",
+                      "transition-all duration-200 ease-out",
+                      "hover:shadow-soft-md hover:-translate-y-0.5",
+                      job.jobType === 'visit' 
+                        ? "border-l-purple-500"
+                        : job.status === 'scheduled' ? "border-l-info"
+                        : job.status === 'in-progress' ? "border-l-warning"
+                        : job.status === 'completed' ? "border-l-success"
+                        : "border-l-muted-foreground"
+                    )}
+                    onClick={() => setSelectedJob(job)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="text-center min-w-[60px]">
+                            <p className="text-lg font-semibold">{formatTimeDisplay(job.time)}</p>
+                            <p className="text-xs text-muted-foreground">{job.duration}</p>
+                          </div>
+                          <div className="h-10 w-px bg-border/50" />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              {job.jobType === 'visit' ? (
+                                <Eye className="h-4 w-4 text-purple-500" />
+                              ) : (
+                                <Sparkles className="h-4 w-4 text-primary" />
+                              )}
+                              <p className="font-medium text-sm">{job.clientName}</p>
+                              <Badge 
+                                variant="outline" 
+                                className={cn(
+                                  "text-[10px] px-1.5 py-0",
+                                  job.jobType === 'visit' 
+                                    ? "border-purple-500/30 bg-purple-500/10 text-purple-600 dark:text-purple-400" 
+                                    : "border-primary/30 bg-primary/10 text-primary"
+                                )}
+                              >
+                                {job.jobType === 'visit' ? 'Visit' : 'Service'}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                              <MapPin className="h-3 w-3" />
+                              {job.address}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <User className="h-3.5 w-3.5" />
+                            {job.employeeName}
+                          </div>
+                          <Badge className={cn("border text-xs", config.bgColor, config.color)}>
+                            {config.label}
+                          </Badge>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
           </div>
+        )}
+      </div>
+
+      {/* Status Legend - Refined */}
+      <div className="flex flex-wrap items-center gap-4 text-[11px] text-muted-foreground/70 pt-2 border-t border-border/20 mt-1">
+        {/* Type Legend */}
+        <div className="flex items-center gap-1.5 opacity-80 hover:opacity-100 transition-opacity">
+          <Sparkles className="h-3 w-3 text-primary/70" />
+          <span>Service</span>
+        </div>
+        <div className="flex items-center gap-1.5 opacity-80 hover:opacity-100 transition-opacity">
+          <Eye className="h-3 w-3 text-purple-500/70" />
+          <span>Visit</span>
+        </div>
+        <div className="h-3 w-px bg-border/40 mx-1" />
+        {/* Status Legend */}
+        {Object.entries(statusConfig).map(([status, config]) => (
+          <div key={status} className="flex items-center gap-1.5 opacity-80 hover:opacity-100 transition-opacity">
+            <div className={cn("h-2 w-2 rounded-full", config.bgColor.split(' ')[0])} />
+            <span>{config.label}</span>
+          </div>
+        ))}
+      </div>
 
       {/* Job Details Dialog */}
       <Dialog open={!!selectedJob && !showCompletion} onOpenChange={() => setSelectedJob(null)}>
