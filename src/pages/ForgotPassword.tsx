@@ -11,8 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-import arkeliumSymbol from '@/assets/arkelium-symbol.png';
-
 export default function ForgotPassword() {
   const { language } = useLanguage();
 
@@ -82,18 +80,9 @@ export default function ForgotPassword() {
     <AuthLayout>
       {/* Auth Card - Transparent */}
       <div
-        className={`relative overflow-hidden w-full max-w-[520px] rounded-2xl p-6 sm:p-8 ${cardClass}`}
+        className={`w-full max-w-[520px] rounded-2xl p-6 sm:p-8 ${cardClass}`}
       >
-        {/* Watermark */}
-        <img
-          src={arkeliumSymbol}
-          alt=""
-          aria-hidden="true"
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[72%] w-auto opacity-[0.07] pointer-events-none select-none"
-        />
-
-        <div className="relative z-10">
-          {/* Title */}
+        {/* Title */}
           <div className="text-center mb-6">
             <h1 className="text-xl font-semibold text-white">
               {t.title}
@@ -156,12 +145,11 @@ export default function ForgotPassword() {
             </div>
           </form>
 
-          {/* Minimal footer */}
-          <div className="mt-5 text-center">
-            <span className="text-[11px] text-white/30">
-              Enterprise-grade security
-            </span>
-          </div>
+        {/* Minimal footer */}
+        <div className="mt-5 text-center">
+          <span className="text-[11px] text-white/30">
+            Enterprise-grade security
+          </span>
         </div>
       </div>
     </AuthLayout>

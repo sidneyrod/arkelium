@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/select';
 
 import arkeliumLogo from '@/assets/arkelium-logo.png';
-import arkeliumSymbol from '@/assets/arkelium-symbol.png';
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -58,14 +57,6 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         
         {/* Left Brand Panel - Desktop Only (≥1024px) */}
         <div className="hidden lg:flex lg:w-[48%] xl:w-[45%] 2xl:w-[42%] relative items-center justify-center px-8">
-          
-          {/* Watermark "A" - subtle background element */}
-          <img
-            src={arkeliumSymbol}
-            alt=""
-            aria-hidden="true"
-            className="absolute right-[-5%] top-1/2 -translate-y-1/2 h-[85vh] w-auto opacity-[0.04] pointer-events-none select-none"
-          />
           
           {/* Brand Content - Centered with Large Logo */}
           <div className="relative z-10 flex flex-col items-center text-center max-w-xl mx-auto">
