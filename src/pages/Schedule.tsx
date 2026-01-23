@@ -82,6 +82,11 @@ interface ScheduledJob {
   billableAmount?: number | null;
   isBillable?: boolean;
   organizationId?: string | null;
+  // Midnight-crossing job properties (for rendering only)
+  _isContinuation?: boolean;
+  _originalDate?: string;
+  _originalTime?: string;
+  _originalDuration?: string;
 }
 
 // Premium status configuration with refined colors for enterprise clarity
@@ -1288,12 +1293,60 @@ const Schedule = () => {
     }
   };
 
+  // ================= MIDNIGHT-CROSSING JOB HELPERS =================
+  
+  // Check if a job crosses midnight (ends after 24:00)
+  const doesJobCrossMidnight = (startTime: string, duration: string): boolean => {
+    const [hours, minutes] = startTime.split(':').map(Number);
+    const durationHours = parseFloat(duration.replace(/[^0-9.]/g, '')) || 2;
+    const totalMinutes = hours * 60 + minutes + (durationHours * 60);
+    return totalMinutes >= 24 * 60; // Crosses midnight if >= 1440 minutes
+  };
+
+  // Calculate how many hours of a job belong to the next day
+  const getNextDayDuration = (startTime: string, duration: string): number => {
+    const [hours, minutes] = startTime.split(':').map(Number);
+    const durationHours = parseFloat(duration.replace(/[^0-9.]/g, '')) || 2;
+    const totalMinutes = hours * 60 + minutes + (durationHours * 60);
+    const minutesPastMidnight = totalMinutes - (24 * 60);
+    return minutesPastMidnight > 0 ? minutesPastMidnight / 60 : 0;
+  };
+
+  // Calculate remaining duration until midnight (for first day of a midnight-crossing job)
+  const getDurationUntilMidnight = (startTime: string): number => {
+    const [hours, minutes] = startTime.split(':').map(Number);
+    const minutesToMidnight = (24 * 60) - (hours * 60 + minutes);
+    return minutesToMidnight / 60;
+  };
+
+  // Get jobs for a specific date, including continuations from previous day
   const getJobsForDate = (date: Date) => {
-    return filteredJobs.filter(job => {
-      // Use safe date parsing helper to prevent timezone shift
+    // Jobs that start on this day
+    const jobsStartingToday = filteredJobs.filter(job => {
       const jobDate = toSafeLocalDate(job.date);
       return isSameDay(jobDate, date);
     });
+    
+    // Jobs that started yesterday but continue into today
+    const yesterday = subDays(date, 1);
+    const jobsContinuingFromYesterday = filteredJobs
+      .filter(job => {
+        const jobDate = toSafeLocalDate(job.date);
+        return isSameDay(jobDate, yesterday) && doesJobCrossMidnight(job.time, job.duration);
+      })
+      .map(job => ({
+        ...job,
+        // Mark as continuation for special rendering
+        _isContinuation: true,
+        _originalDate: job.date,
+        _originalTime: job.time,
+        _originalDuration: job.duration,
+        // Override time and duration for rendering on continuation day
+        time: '00:00',
+        duration: `${getNextDayDuration(job.time, job.duration).toFixed(1)}h`,
+      }));
+    
+    return [...jobsStartingToday, ...jobsContinuingFromYesterday];
   };
 
   // Format time for display (AM/PM)
@@ -1325,9 +1378,16 @@ const Schedule = () => {
     
     return dayJobs.filter(job => {
       const jobStartMinutes = timeToMinutes(job.time);
+      
+      // For continuation jobs, calculate end time normally
       const endTime = calculateEndTime(job.time, job.duration);
-      const jobEndMinutes = timeToMinutes(endTime);
-      // A job overlaps with a time slot if the job starts before or at slot start and ends after slot start
+      let jobEndMinutes = timeToMinutes(endTime);
+      
+      // For non-continuation jobs that cross midnight, cap at 24:00
+      if (!job._isContinuation && doesJobCrossMidnight(job.time, job.duration)) {
+        jobEndMinutes = 24 * 60;
+      }
+      
       return jobStartMinutes <= slotMinutes && jobEndMinutes > slotMinutes;
     });
   };
@@ -1335,6 +1395,13 @@ const Schedule = () => {
   // Get the row span for a job (how many 30-min slots it covers)
   const getJobRowSpan = (job: ScheduledJob): number => {
     const durationHours = parseFloat(job.duration.replace(/[^0-9.]/g, '')) || 2;
+    
+    // For midnight-crossing jobs on their START day, limit to time until midnight
+    if (!job._isContinuation && doesJobCrossMidnight(job.time, job.duration)) {
+      const hoursUntilMidnight = getDurationUntilMidnight(job.time);
+      return Math.ceil(hoursUntilMidnight * 2);
+    }
+    
     return Math.ceil(durationHours * 2); // Each slot is 30 minutes, so 2 slots per hour
   };
 
@@ -1525,60 +1592,77 @@ const Schedule = () => {
                       </div>
                       <div className="space-y-1">
                         <TooltipProvider delayDuration={300}>
-                          {dayJobs.slice(0, 2).map((job) => (
-                            <Tooltip key={job.id}>
-                              <TooltipTrigger asChild>
-                                <div
-                                  onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
-                                  className={cn(
-                                    "text-[10px] px-1.5 py-1 rounded-md truncate cursor-pointer flex flex-col gap-0.5 border transition-all duration-150",
-                                    "hover:shadow-soft-sm hover:scale-[1.02]",
-                                    job.jobType === 'visit' 
-                                      ? "bg-purple-500/10 border-purple-500/20 text-purple-700 dark:text-purple-300" 
-                                      : statusConfig[job.status].bgColor
-                                  )}
-                                >
-                                  <div className="flex items-center gap-1">
-                                    {job.jobType === 'visit' ? (
-                                      <Eye className="h-2.5 w-2.5 flex-shrink-0" />
-                                    ) : (
-                                      <Sparkles className="h-2.5 w-2.5 flex-shrink-0" />
+                          {dayJobs.slice(0, 2).map((job) => {
+                            const crossesMidnight = !job._isContinuation && doesJobCrossMidnight(job._originalTime || job.time, job._originalDuration || job.duration);
+                            
+                            return (
+                              <Tooltip key={job.id + (job._isContinuation ? '-cont' : '')}>
+                                <TooltipTrigger asChild>
+                                  <div
+                                    onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
+                                    className={cn(
+                                      "text-[10px] px-1.5 py-1 rounded-md truncate cursor-pointer flex flex-col gap-0.5 border transition-all duration-150",
+                                      "hover:shadow-soft-sm hover:scale-[1.02]",
+                                      job.jobType === 'visit' 
+                                        ? "bg-purple-500/10 border-purple-500/20 text-purple-700 dark:text-purple-300" 
+                                        : statusConfig[job.status].bgColor,
+                                      job._isContinuation && "border-dashed opacity-90"
                                     )}
-                                    <span className="truncate font-medium">{job.clientName}</span>
+                                  >
+                                    <div className="flex items-center gap-1">
+                                      {job._isContinuation && (
+                                        <span className="text-[7px] text-muted-foreground">↳</span>
+                                      )}
+                                      {job.jobType === 'visit' ? (
+                                        <Eye className="h-2.5 w-2.5 flex-shrink-0" />
+                                      ) : (
+                                        <Sparkles className="h-2.5 w-2.5 flex-shrink-0" />
+                                      )}
+                                      <span className="truncate font-medium">{job.clientName}</span>
+                                      {crossesMidnight && (
+                                        <span className="text-[7px] text-warning">→</span>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[8px] text-muted-foreground flex items-center gap-0.5">
+                                        <Clock className="h-2 w-2" />
+                                        {job.duration}
+                                      </span>
+                                      <span className={cn(
+                                        "text-[8px] font-medium uppercase",
+                                        statusConfig[job.status].color
+                                      )}>
+                                        {statusConfig[job.status].label}
+                                      </span>
+                                    </div>
                                   </div>
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-[8px] text-muted-foreground flex items-center gap-0.5">
-                                      <Clock className="h-2 w-2" />
-                                      {job.duration}
-                                    </span>
-                                    <span className={cn(
-                                      "text-[8px] font-medium uppercase",
-                                      statusConfig[job.status].color
-                                    )}>
-                                      {statusConfig[job.status].label}
-                                    </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="right" className="max-w-[220px] p-3">
+                                  <div className="space-y-1.5">
+                                    {job._isContinuation && (
+                                      <p className="text-[9px] text-muted-foreground italic">↳ Continues from previous day</p>
+                                    )}
+                                    <p className="font-medium text-xs">{job.clientName}</p>
+                                    <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                      <MapPin className="h-3 w-3" />
+                                      {job.address}
+                                    </p>
+                                    <div className="flex items-center gap-2 text-[10px]">
+                                      <Clock className="h-3 w-3 text-muted-foreground" />
+                                      <span>{formatTimeDisplay(job.time)} · {job.duration}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-[10px]">
+                                      <User className="h-3 w-3 text-muted-foreground" />
+                                      <span>{job.employeeName}</span>
+                                    </div>
+                                    {crossesMidnight && (
+                                      <p className="text-[9px] text-warning italic">→ Continues to next day</p>
+                                    )}
                                   </div>
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent side="right" className="max-w-[220px] p-3">
-                                <div className="space-y-1.5">
-                                  <p className="font-medium text-xs">{job.clientName}</p>
-                                  <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                    <MapPin className="h-3 w-3" />
-                                    {job.address}
-                                  </p>
-                                  <div className="flex items-center gap-2 text-[10px]">
-                                    <Clock className="h-3 w-3 text-muted-foreground" />
-                                    <span>{formatTimeDisplay(job.time)} · {job.duration}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-[10px]">
-                                    <User className="h-3 w-3 text-muted-foreground" />
-                                    <span>{job.employeeName}</span>
-                                  </div>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          ))}
+                                </TooltipContent>
+                              </Tooltip>
+                            );
+                          })}
                         </TooltipProvider>
                         {dayJobs.length > 2 && (
                           <div className="text-[10px] text-muted-foreground/70 px-1 font-medium">
@@ -1654,21 +1738,29 @@ const Schedule = () => {
                             const rowSpan = getJobRowSpan(job);
                             const heightPx = rowSpan * 56; // 56px per slot (h-14)
                             const endTime = calculateEndTime(job.time, job.duration);
+                            const crossesMidnight = !job._isContinuation && doesJobCrossMidnight(job._originalTime || job.time, job._originalDuration || job.duration);
                             
                             return (
                               <div 
-                                key={job.id}
+                                key={job.id + (job._isContinuation ? '-cont' : '')}
                                 className={cn(
                                   "absolute left-0.5 right-0.5 mx-0.5 p-2 rounded-lg border text-xs cursor-pointer z-10",
                                   "transition-all duration-200 ease-out",
                                   "hover:shadow-soft-md hover:-translate-y-0.5 hover:z-20",
                                   job.jobType === 'visit' 
                                     ? "bg-purple-500/10 border-purple-500/25" 
-                                    : statusConfig[job.status].bgColor
+                                    : statusConfig[job.status].bgColor,
+                                  job._isContinuation && "border-dashed opacity-90"
                                 )}
                                 style={{ height: `${heightPx - 6}px`, top: 2 }}
                                 onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
                               >
+                                {/* Continuation indicator */}
+                                {job._isContinuation && (
+                                  <div className="text-[7px] text-muted-foreground/80 italic mb-0.5 truncate">
+                                    ↳ Continues from {format(subDays(new Date(), 0), 'prev day')}
+                                  </div>
+                                )}
                                 <div className="flex items-center gap-1 mb-0.5">
                                   {job.jobType === 'visit' ? (
                                     <Eye className="h-3 w-3 text-purple-500" />
@@ -1681,7 +1773,7 @@ const Schedule = () => {
                                   {job.employeeName}
                                 </p>
                                 <p className="text-[9px] font-medium text-primary/80">
-                                  {formatTimeDisplay(job.time)} - {formatTimeDisplay(endTime)}
+                                  {formatTimeDisplay(job.time)} - {crossesMidnight ? '12:00 AM →' : formatTimeDisplay(endTime)}
                                 </p>
                                 <div className="flex items-center justify-between mt-0.5">
                                   <span className={cn(
@@ -1698,6 +1790,12 @@ const Schedule = () => {
                                     {statusConfig[job.status].label}
                                   </span>
                                 </div>
+                                {/* Crosses midnight indicator */}
+                                {crossesMidnight && (
+                                  <div className="text-[7px] text-warning/80 italic mt-0.5 truncate">
+                                    → Continues to next day
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
@@ -1762,10 +1860,11 @@ const Schedule = () => {
                   const topPosition = startSlotIndex * slotHeight;
                   const cardHeight = rowSpan * slotHeight;
                   const endTime = calculateEndTime(job.time, job.duration);
+                  const crossesMidnight = !job._isContinuation && doesJobCrossMidnight(job._originalTime || job.time, job._originalDuration || job.duration);
                   
                   return (
                     <div
-                      key={job.id}
+                      key={job.id + (job._isContinuation ? '-cont' : '')}
                       className="absolute left-20 right-0 px-3"
                       style={{ top: topPosition + 4, height: cardHeight - 8 }}
                     >
@@ -1776,10 +1875,17 @@ const Schedule = () => {
                           "hover:shadow-soft-md hover:-translate-y-0.5",
                           job.jobType === 'visit' 
                             ? "bg-purple-500/10 border-purple-500/25" 
-                            : statusConfig[job.status].bgColor
+                            : statusConfig[job.status].bgColor,
+                          job._isContinuation && "border-dashed opacity-90"
                         )}
                         onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
                       >
+                        {/* Continuation indicator */}
+                        {job._isContinuation && (
+                          <div className="text-[9px] text-muted-foreground/80 italic mb-1">
+                            ↳ Continues from previous day
+                          </div>
+                        )}
                         <div className="flex items-center gap-2 mb-1">
                           {job.jobType === 'visit' ? (
                             <Eye className="h-4 w-4 text-purple-500 flex-shrink-0" />
@@ -1788,7 +1894,7 @@ const Schedule = () => {
                           )}
                           <p className="font-medium text-sm truncate">{job.clientName}</p>
                           <span className="text-xs font-medium text-primary/80 whitespace-nowrap">
-                            {formatTimeDisplay(job.time)} - {formatTimeDisplay(endTime)}
+                            {formatTimeDisplay(job.time)} - {crossesMidnight ? '12:00 AM →' : formatTimeDisplay(endTime)}
                           </span>
                           <span className="text-xs text-muted-foreground whitespace-nowrap">({job.duration})</span>
                           <Badge 
@@ -1815,6 +1921,12 @@ const Schedule = () => {
                         </div>
                         <p className="text-xs text-muted-foreground truncate">{job.address}</p>
                         <p className="text-xs text-muted-foreground truncate">{job.employeeName}</p>
+                        {/* Crosses midnight indicator */}
+                        {crossesMidnight && (
+                          <div className="text-[9px] text-warning/80 italic mt-1">
+                            → Continues to next day
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -1936,6 +2048,13 @@ const Schedule = () => {
           
           {selectedJob && (
             <div className="space-y-4 mt-2">
+              {/* Continuation notice */}
+              {selectedJob._isContinuation && (
+                <div className="text-xs text-muted-foreground bg-muted/50 px-3 py-2 rounded-md border border-dashed border-border/50">
+                  ↳ This is the continuation of a job that started on the previous day
+                </div>
+              )}
+              
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="font-semibold">{selectedJob.clientName}</h3>
@@ -1954,7 +2073,14 @@ const Schedule = () => {
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="text-xs text-muted-foreground">{t.job.time}</p>
-                    <p className="text-sm font-medium">{formatTimeDisplay(selectedJob.time)} ({selectedJob.duration})</p>
+                    <p className="text-sm font-medium">
+                      {formatTimeDisplay(selectedJob._originalTime || selectedJob.time)} ({selectedJob._originalDuration || selectedJob.duration})
+                    </p>
+                    {selectedJob._isContinuation && (
+                      <p className="text-[10px] text-muted-foreground italic">
+                        Showing on this day: {formatTimeDisplay(selectedJob.time)} ({selectedJob.duration})
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
