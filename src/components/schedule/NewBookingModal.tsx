@@ -3,7 +3,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
 import { supabase } from '@/lib/supabase';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -411,34 +411,34 @@ export function NewBookingModal({
   const requiresClient = operationType !== 'internal_work';
   
 
+  // Only show full loading state on initial load (no data yet)
+  const isInitialLoading = isLoading && clients.length === 0 && employees.length === 0;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl p-0">
+      <DialogContent className="sm:max-w-4xl p-0 max-h-[calc(100dvh-1rem)] sm:overflow-y-hidden">
         <div 
-          className="p-6"
+          className="p-5"
           style={{ 
             transform: 'scale(0.85)', 
             transformOrigin: 'top left',
             width: '117.65%',
-            marginBottom: '-15%'
+            marginBottom: '-18%'
           }}
         >
-          <DialogHeader className="pb-3">
+          <DialogHeader className="pb-2">
             <DialogTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-primary" />
               {isEditing ? 'Edit Booking' : 'New Booking'}
             </DialogTitle>
-            <DialogDescription>
-              Schedule a service execution (billable or non-billable)
-            </DialogDescription>
           </DialogHeader>
           
-          {isLoading ? (
+          {isInitialLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-3">
+            <form onSubmit={handleSubmit} className="space-y-2.5">
             {/* ROW 1: Operation Type */}
             <OperationTypeSelector 
               value={operationType} 
@@ -623,7 +623,7 @@ export function NewBookingModal({
               />
             </div>
 
-            <DialogFooter className="pt-2">
+            <DialogFooter className="pt-1">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>

@@ -18,19 +18,19 @@ const operationTypes: {
   {
     value: 'billable_service',
     label: 'Billable Service',
-    description: 'Creates financial records (receipt/invoice) based on payment rules.',
+    description: '',
     icon: DollarSign,
   },
   {
     value: 'non_billable_visit',
     label: 'Non-Billable Visit',
-    description: 'Operational record only. No invoice/receipt.',
+    description: '',
     icon: ClipboardCheck,
   },
   {
     value: 'internal_work',
     label: 'Internal Work',
-    description: 'Internal tracking only. No client billing.',
+    description: '',
     icon: Wrench,
   },
 ];
@@ -67,11 +67,6 @@ export function OperationTypeSelector({ value, onChange, disabled }: OperationTy
           );
         })}
       </div>
-      {selectedType && (
-        <p className="text-xs text-muted-foreground italic">
-          {selectedType.description}
-        </p>
-      )}
     </div>
   );
 }
