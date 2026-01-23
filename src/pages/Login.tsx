@@ -166,7 +166,7 @@ export default function Login() {
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="w-full h-12 text-[15px] font-medium rounded-lg mt-2"
+            className="w-full h-12 text-[15px] font-medium rounded-lg mt-2 bg-white text-gray-900 hover:bg-white/90"
           >
             {isSubmitting ? (
               <div className="flex items-center gap-2">
