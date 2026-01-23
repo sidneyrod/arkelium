@@ -133,7 +133,7 @@ export default function ForgotPassword() {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full h-11 text-[15px] font-medium"
+              className="w-full h-11 text-[15px] font-medium bg-white text-gray-900 hover:bg-white/90"
             >
               {isSubmitting ? (
                 <div className="flex items-center gap-2">
