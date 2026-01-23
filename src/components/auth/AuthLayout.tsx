@@ -1,9 +1,6 @@
-import { ReactNode, useEffect } from 'react';
-import { useTheme } from '@/contexts/ThemeContext';
+import { ReactNode } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Language } from '@/i18n/translations';
-import { Sun, Moon, ChevronDown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -19,41 +16,25 @@ interface AuthLayoutProps {
   children: ReactNode;
 }
 
-// Preload background images immediately on module load
-const preloadImages = ['/images/auth-bg-dark.png', '/images/auth-bg-light.png'];
-preloadImages.forEach((src) => {
-  const img = new Image();
-  img.src = src;
-});
+// Preload dark background image
+const preloadImage = new Image();
+preloadImage.src = '/images/auth-bg-dark.png';
 
 export default function AuthLayout({ children }: AuthLayoutProps) {
-  const { theme, toggleTheme } = useTheme();
   const { language, setLanguage } = useLanguage();
-
-  const isDark = theme === 'dark';
 
   return (
     <div className="fixed inset-0 overflow-hidden">
-      {/* Full-screen Background Image */}
+      {/* Full-screen Background Image - Dark Only */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: isDark
-            ? 'url(/images/auth-bg-dark.png)'
-            : 'url(/images/auth-bg-light.png)',
-        }}
+        style={{ backgroundImage: 'url(/images/auth-bg-dark.png)' }}
       >
         {/* Overlay for contrast and premium depth */}
-        <div
-          className={`absolute inset-0 ${
-            isDark 
-              ? 'bg-gradient-to-br from-black/60 via-black/40 to-black/50' 
-              : 'bg-gradient-to-br from-white/40 via-white/20 to-white/30'
-          }`}
-        />
+        <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/40 to-black/50" />
       </div>
 
-      {/* Top Right Controls - Language + Theme */}
+      {/* Top Right Controls - Language Only */}
       <div className="fixed top-4 right-4 sm:top-5 sm:right-5 z-50 flex items-center gap-2">
         {/* Language Selector */}
         <Select
@@ -61,39 +42,15 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           onValueChange={(val: Language) => setLanguage(val)}
         >
           <SelectTrigger
-            className={`w-[60px] h-8 text-xs font-medium rounded-md border-0 ${
-              isDark
-                ? 'bg-white/10 text-white/80 hover:bg-white/15'
-                : 'bg-black/5 text-black/70 hover:bg-black/10'
-            }`}
+            className="w-[60px] h-8 text-xs font-medium rounded-md border-0 bg-white/10 text-white/80 hover:bg-white/15"
           >
             <SelectValue />
           </SelectTrigger>
-          <SelectContent
-            className={
-              isDark
-                ? 'bg-[#1a1c22] border-white/10'
-                : 'bg-white border-black/10'
-            }
-          >
+          <SelectContent className="bg-[#1a1c22] border-white/10">
             <SelectItem value="en">EN</SelectItem>
             <SelectItem value="fr">FR</SelectItem>
           </SelectContent>
         </Select>
-
-        {/* Theme Toggle */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleTheme}
-          className={`h-8 w-8 rounded-md border-0 ${
-            isDark
-              ? 'bg-white/10 text-white/80 hover:bg-white/15'
-              : 'bg-black/5 text-black/70 hover:bg-black/10'
-          }`}
-        >
-          {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-        </Button>
       </div>
 
       {/* Main Content - Two Column Layout */}
@@ -122,9 +79,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
             {/* Headline - Centered with Logo */}
             <h1
-              className={`font-light leading-[1.15] mb-6 ${
-                isDark ? 'text-white' : 'text-gray-900'
-              }`}
+              className="font-light leading-[1.15] mb-6 text-white"
               style={{ 
                 fontSize: 'clamp(32px, 3.5vw, 52px)',
                 letterSpacing: '-0.02em'
@@ -137,7 +92,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             
             {/* Subtitle - Lower contrast */}
             <p
-              className={`max-w-md ${isDark ? 'text-white/50' : 'text-gray-500'}`}
+              className="max-w-md text-white/50"
               style={{ fontSize: 'clamp(14px, 1.1vw, 17px)', lineHeight: 1.6 }}
             >
               Financial control. Operational clarity. Real-time insight.
@@ -152,11 +107,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             alt="Arkelium"
             className="h-10 sm:h-12 w-auto mb-3 select-none"
           />
-          <p
-            className={`text-xs sm:text-sm text-center max-w-[280px] ${
-              isDark ? 'text-white/50' : 'text-gray-500'
-            }`}
-          >
+          <p className="text-xs sm:text-sm text-center max-w-[280px] text-white/50">
             Enterprise Operations & Financial Control
           </p>
         </div>

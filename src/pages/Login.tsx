@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 
-import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Language } from '@/i18n/translations';
@@ -14,12 +13,9 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 
 export default function Login() {
-  const { theme } = useTheme();
   const { language } = useLanguage();
   const auth = useAuth();
   const navigate = useNavigate();
-
-  const isDark = theme === 'dark';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -87,24 +83,12 @@ export default function Login() {
 
   return (
     <AuthLayout>
-      {/* Auth Card - Fully Transparent */}
-      <div
-        className={`w-full rounded-2xl p-6 sm:p-8 ${
-          isDark
-            ? 'bg-transparent border border-white/[0.03] shadow-2xl'
-            : 'bg-transparent border border-black/[0.02] shadow-xl'
-        }`}
-      >
+      {/* Auth Card - Fully Transparent, Dark Only */}
+      <div className="w-full rounded-2xl p-6 sm:p-8 bg-transparent border border-white/[0.03] shadow-2xl">
 
         {/* Error Message */}
         {errorMsg && (
-          <div
-            className={`mb-5 rounded-lg px-4 py-3 text-sm font-medium ${
-              isDark
-                ? 'bg-red-500/10 border border-red-500/20 text-red-400'
-                : 'bg-red-50 border border-red-100 text-red-600'
-            }`}
-          >
+          <div className="mb-5 rounded-lg px-4 py-3 text-sm font-medium bg-red-500/10 border border-red-500/20 text-red-400">
             {errorMsg}
           </div>
         )}
@@ -113,7 +97,7 @@ export default function Login() {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Email */}
           <div className="space-y-2">
-            <Label className={isDark ? 'text-white/70' : 'text-gray-600'}>
+            <Label className="text-white/70">
               {t.email}
             </Label>
             <Input
@@ -122,17 +106,13 @@ export default function Login() {
               type="email"
               autoComplete="email"
               placeholder={t.emailPlaceholder}
-              className={`h-12 rounded-lg ${
-                isDark
-                  ? 'bg-[#0a0c10]/70 border-white/[0.08] text-white placeholder:text-white/35 focus:border-white/20 focus:ring-white/10'
-                  : 'bg-gray-50/80 border-black/[0.08] text-gray-900 placeholder:text-gray-400 focus:border-black/15 focus:ring-black/5'
-              }`}
+              className="h-12 rounded-lg bg-[#0a0c10]/70 border-white/[0.08] text-white placeholder:text-white/35 focus:border-white/20 focus:ring-white/10"
             />
           </div>
 
           {/* Password */}
           <div className="space-y-2">
-            <Label className={isDark ? 'text-white/70' : 'text-gray-600'}>
+            <Label className="text-white/70">
               {t.password}
             </Label>
             <div className="relative">
@@ -142,20 +122,12 @@ export default function Login() {
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
                 placeholder={t.passwordPlaceholder}
-                className={`h-12 rounded-lg pr-12 ${
-                  isDark
-                    ? 'bg-[#0a0c10]/70 border-white/[0.08] text-white placeholder:text-white/35 focus:border-white/20 focus:ring-white/10'
-                    : 'bg-gray-50/80 border-black/[0.08] text-gray-900 placeholder:text-gray-400 focus:border-black/15 focus:ring-black/5'
-                }`}
+                className="h-12 rounded-lg pr-12 bg-[#0a0c10]/70 border-white/[0.08] text-white placeholder:text-white/35 focus:border-white/20 focus:ring-white/10"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className={`absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-md transition-colors ${
-                  isDark
-                    ? 'text-white/40 hover:text-white/70 hover:bg-white/5'
-                    : 'text-gray-400 hover:text-gray-600 hover:bg-black/5'
-                }`}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-md transition-colors text-white/40 hover:text-white/70 hover:bg-white/5"
               >
                 {showPassword ? (
                   <EyeOff className="h-4 w-4" />
@@ -173,30 +145,24 @@ export default function Login() {
                 id="remember"
                 checked={rememberMe}
                 onCheckedChange={(checked) => setRememberMe(checked === true)}
-                className={isDark ? 'border-white/20' : 'border-gray-300'}
+                className="border-white/20"
               />
               <label
                 htmlFor="remember"
-                className={`text-sm cursor-pointer ${
-                  isDark ? 'text-white/60' : 'text-gray-600'
-                }`}
+                className="text-sm cursor-pointer text-white/60"
               >
                 {t.rememberMe}
               </label>
             </div>
             <Link
               to="/forgot-password"
-              className={`text-sm transition-colors ${
-                isDark
-                  ? 'text-white/50 hover:text-white/80'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
+              className="text-sm transition-colors text-white/50 hover:text-white/80"
             >
               {t.forgotLink}
             </Link>
           </div>
 
-          {/* Submit Button - System Default */}
+          {/* Submit Button */}
           <Button
             type="submit"
             disabled={isSubmitting}
@@ -214,11 +180,7 @@ export default function Login() {
 
         {/* Security Footer */}
         <div className="mt-6 text-center">
-          <span
-            className={`text-[11px] ${
-              isDark ? 'text-white/25' : 'text-gray-400'
-            }`}
-          >
+          <span className="text-[11px] text-white/25">
             {t.security}
           </span>
         </div>
