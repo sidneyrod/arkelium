@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -152,8 +153,6 @@ const Schedule = () => {
   const urlDate = searchParams.get('date');
   
   const [view, setView] = useState<ViewType>(urlView || 'week');
-  const [jobs, setJobs] = useState<ScheduledJob[]>([]);
-  
   const [selectedJob, setSelectedJob] = useState<ScheduledJob | null>(null);
   const [currentDate, setCurrentDate] = useState(() => {
     if (urlDate) {
@@ -179,35 +178,23 @@ const Schedule = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | JobStatus>('all');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [debugInfo, setDebugInfo] = useState<string>('');
-  const [invoiceGenerationMode, setInvoiceGenerationMode] = useState<'automatic' | 'manual'>('manual');
   
-  // Update view and date when URL params change
-  useEffect(() => {
-    if (urlView && ['day', 'week', 'month', 'timeline'].includes(urlView)) {
-      setView(urlView);
-    }
-    if (urlDate) {
-      try {
-        setCurrentDate(parseISO(urlDate));
-      } catch {
-        // Invalid date, ignore
-      }
-    }
-  }, [urlView, urlDate]);
+  // QueryClient for cache invalidation
+  const queryClient = useQueryClient();
+  
+  // Compute effective company ID with stable primitives (not object references)
+  const userCompanyId = user?.profile?.company_id || null;
+  const userId = user?.id || null;
+  const effectiveCompanyId = activeCompanyId || userCompanyId;
 
-  // Fetch jobs from Supabase
-  const fetchJobs = useCallback(async () => {
-    setIsLoading(true);
-    console.log('[Schedule] fetchJobs called', { activeCompanyId, userCompanyId: user?.profile?.company_id });
-    
-    try {
-      let companyId = activeCompanyId;
-      if (!companyId) {
-        companyId = user?.profile?.company_id || null;
-        console.log('[Schedule] Fallback to user company_id:', companyId);
-      }
+  // React Query hook for fetching jobs - stable cache, no window focus refetch
+  const { data: jobs = [], isLoading } = useQuery({
+    queryKey: ['schedule-jobs', effectiveCompanyId],
+    queryFn: async () => {
+      console.log('[Schedule] React Query fetching jobs', { effectiveCompanyId });
+      
+      let companyId = effectiveCompanyId;
       if (!companyId) {
         const { data: companyIdData } = await supabase.rpc('get_user_company_id');
         companyId = companyIdData;
@@ -215,10 +202,9 @@ const Schedule = () => {
       }
       
       if (!companyId) {
-        console.log('[Schedule] No company ID found, aborting fetch');
+        console.log('[Schedule] No company ID found, returning empty');
         setDebugInfo('No company ID available');
-        setIsLoading(false);
-        return;
+        return [];
       }
       
       const { data, error } = await supabase
@@ -256,12 +242,10 @@ const Schedule = () => {
       if (error) {
         console.error('Error fetching jobs:', error);
         setDebugInfo(`Query error: ${error.message}`);
-        setIsLoading(false);
-        return;
+        throw error;
       }
       
       const mappedJobs: ScheduledJob[] = (data || []).map((job: any) => {
-        // Determine if this is a visit or cleaning job
         const isVisit = job.job_type === 'visit' || job.operation_type === 'non_billable_visit';
         
         return {
@@ -287,7 +271,6 @@ const Schedule = () => {
           visitRoute: job.visit_route,
           paymentMethod: job.payment_method || undefined,
           serviceDate: job.scheduled_date,
-          // Enterprise fields
           operationType: job.operation_type || 'billable_service',
           activityCode: job.activity_code || 'cleaning',
           serviceCatalogId: job.service_catalog_id,
@@ -299,30 +282,27 @@ const Schedule = () => {
       
       console.log('[Schedule] Mapped jobs:', mappedJobs.length);
       setDebugInfo(`Loaded ${mappedJobs.length} jobs for company ${companyId}`);
-      setJobs(mappedJobs);
-      setIsLoading(false);
-    } catch (error) {
-      console.error('Error in fetchJobs:', error);
-      setDebugInfo(`Exception: ${error}`);
-      setIsLoading(false);
-    }
-  }, [user, activeCompanyId]);
+      return mappedJobs;
+    },
+    enabled: !!userId && !!effectiveCompanyId,
+    staleTime: 5 * 60 * 1000, // 5 minutes - data stays fresh
+    gcTime: 30 * 60 * 1000,   // 30 minutes in cache
+    refetchOnWindowFocus: false, // CRITICAL: prevents refresh on tab switch
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+  });
 
-  const [autoSendCashReceipt, setAutoSendCashReceipt] = useState(false);
-  
-  // Fetch invoice generation mode setting
-  const fetchInvoiceSettings = useCallback(async () => {
-    try {
-      let companyId = activeCompanyId;
-      if (!companyId) {
-        companyId = user?.profile?.company_id || null;
-      }
+  // React Query hook for invoice settings - stable cache
+  const { data: invoiceSettings } = useQuery({
+    queryKey: ['schedule-invoice-settings', effectiveCompanyId],
+    queryFn: async () => {
+      let companyId = effectiveCompanyId;
       if (!companyId) {
         const { data: companyIdData } = await supabase.rpc('get_user_company_id');
         companyId = companyIdData;
       }
       
-      if (!companyId) return;
+      if (!companyId) return { mode: 'manual' as const, autoSend: false };
       
       const { data } = await supabase
         .from('company_estimate_config')
@@ -330,16 +310,38 @@ const Schedule = () => {
         .eq('company_id', companyId)
         .maybeSingle();
       
-      if (data?.invoice_generation_mode) {
-        setInvoiceGenerationMode(data.invoice_generation_mode as 'automatic' | 'manual');
-      }
-      if (data?.auto_send_cash_receipt !== undefined) {
-        setAutoSendCashReceipt(data.auto_send_cash_receipt);
-      }
-    } catch (error) {
-      console.error('Error fetching invoice settings:', error);
+      return {
+        mode: (data?.invoice_generation_mode || 'manual') as 'automatic' | 'manual',
+        autoSend: data?.auto_send_cash_receipt || false,
+      };
+    },
+    enabled: !!userId && !!effectiveCompanyId,
+    staleTime: 30 * 60 * 1000, // 30 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+
+  const invoiceGenerationMode = invoiceSettings?.mode || 'manual';
+  const autoSendCashReceipt = invoiceSettings?.autoSend || false;
+
+  // Helper to invalidate jobs cache after mutations
+  const refetchJobs = () => {
+    queryClient.invalidateQueries({ queryKey: ['schedule-jobs', effectiveCompanyId] });
+  };
+  
+  // Update view and date when URL params change
+  useEffect(() => {
+    if (urlView && ['day', 'week', 'month', 'timeline'].includes(urlView)) {
+      setView(urlView);
     }
-  }, [user, activeCompanyId]);
+    if (urlDate) {
+      try {
+        setCurrentDate(parseISO(urlDate));
+      } catch {
+        // Invalid date, ignore
+      }
+    }
+  }, [urlView, urlDate]);
 
   // Reset filters when company changes
   useEffect(() => {
@@ -347,15 +349,6 @@ const Schedule = () => {
     setServiceTypeFilter('all');
     setStatusFilter('all');
   }, [activeCompanyId]);
-
-  // Fetch jobs when user or company changes
-  useEffect(() => {
-    if (user) {
-      console.log('[Schedule] useEffect triggered - fetching jobs', { activeCompanyId });
-      fetchJobs();
-      fetchInvoiceSettings();
-    }
-  }, [user, fetchJobs, fetchInvoiceSettings, activeCompanyId]);
 
   // For cleaners: only show their own jobs. For admin/manager/super-admin: show all
   // Super Admin has isAdminOrManager=true, so we check both conditions
@@ -675,7 +668,7 @@ const Schedule = () => {
       }
       
       // Refresh jobs list
-      await fetchJobs();
+      refetchJobs();
       
       setSelectedDate(null);
       setSelectedTime(null);
@@ -749,7 +742,7 @@ const Schedule = () => {
         );
       }
       
-      await fetchJobs();
+      refetchJobs();
       setEditingJob(null);
     } catch (error) {
       console.error('Error in handleUpdateJob:', error);
@@ -765,8 +758,8 @@ const Schedule = () => {
   };
 
   // Callback when job is cancelled successfully
-  const handleJobCancelled = async () => {
-    await fetchJobs();
+  const handleJobCancelled = () => {
+    refetchJobs();
     setJobToCancel(null);
     setShowCancelModal(false);
   };
@@ -804,7 +797,7 @@ const Schedule = () => {
       logActivity('job_started', `Job started for ${job?.clientName || 'Unknown'}`, jobId, job?.clientName || '');
       toast.success('Job started successfully');
       
-      await fetchJobs();
+      refetchJobs();
       setJobToStart(null);
     } catch (error) {
       console.error('Error in handleStartJob:', error);
@@ -1111,14 +1104,14 @@ const Schedule = () => {
           }
           
           // Skip invoice generation for payments that generated receipts
-          await fetchJobs();
+          refetchJobs();
           return;
         }
         
         // Skip invoice generation for Visit type jobs
         if (job.jobType === 'visit') {
           toast.success('Visit completed successfully');
-          await fetchJobs();
+          refetchJobs();
           return;
         }
         
@@ -1211,7 +1204,7 @@ const Schedule = () => {
       }
       
       toast.success(t.job.jobCompleted);
-      await fetchJobs();
+      refetchJobs();
     } catch (error) {
       console.error('Error in handleCompleteJob:', error);
       toast.error('Failed to complete job');
@@ -1258,7 +1251,7 @@ const Schedule = () => {
       toast.success('Visit completed successfully');
       setShowVisitCompletion(false);
       setSelectedJob(null);
-      await fetchJobs();
+      refetchJobs();
     } catch (error) {
       console.error('Error in handleCompleteVisit:', error);
       toast.error('Failed to complete visit');
