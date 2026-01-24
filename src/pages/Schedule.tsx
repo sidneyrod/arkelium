@@ -1748,10 +1748,10 @@ const Schedule = () => {
                                       "text-[10px] px-2 py-1.5 rounded-lg truncate cursor-pointer flex items-center gap-1.5 relative overflow-hidden",
                                       "transition-all duration-200 ease-out",
                                       "hover:scale-[1.02] hover:-translate-y-0.5",
-                                      // Premium type-based styling with left accent border + status-based card bg
+                                      // Full card color fill - no white backgrounds
                                       isVisit 
-                                        ? "border-l-[3px] border-l-purple-500 bg-purple-500/12 hover:bg-purple-500/18 dark:bg-purple-500/14 dark:hover:bg-purple-500/20" 
-                                        : cn("border-l-[3px]", statusConfig[job.status].cardBorderClass, statusConfig[job.status].cardBgClass),
+                                        ? "bg-purple-500/25 hover:bg-purple-500/35 border border-purple-500/40 dark:bg-purple-500/30 dark:hover:bg-purple-500/40" 
+                                        : "bg-emerald-500/25 hover:bg-emerald-500/35 border border-emerald-500/40 dark:bg-emerald-500/30 dark:hover:bg-emerald-500/40",
                                       job._isContinuation && "opacity-90"
                                     )}
                                   >
