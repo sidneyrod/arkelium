@@ -261,74 +261,76 @@
   
   /* ===== Premium Schedule Card System ===== */
   
-  /* SERVICE cards - Solid, prominent, professional */
+  /* SERVICE cards - Elegant transparent glassmorphism */
   .schedule-card-service {
     @apply relative rounded-xl border;
-    background: linear-gradient(135deg, hsl(var(--schedule-service-bg) / 0.10) 0%, hsl(var(--schedule-service-bg) / 0.05) 100%);
-    border-color: hsl(var(--schedule-service-border) / 0.25);
+    background: linear-gradient(135deg, hsl(var(--schedule-service-bg) / 0.06) 0%, hsl(var(--schedule-service-bg) / 0.02) 100%);
+    border-color: hsl(var(--schedule-service-border) / 0.18);
     box-shadow: 
-      0 1px 3px rgba(0, 0, 0, 0.06),
-      0 0 0 1px hsl(var(--schedule-service-bg) / 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 0 0 1px hsl(var(--schedule-service-bg) / 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
   
   .schedule-card-service:hover {
-    border-color: hsl(var(--schedule-service-border) / 0.40);
+    background: linear-gradient(135deg, hsl(var(--schedule-service-bg) / 0.12) 0%, hsl(var(--schedule-service-bg) / 0.05) 100%);
+    border-color: hsl(var(--schedule-service-border) / 0.30);
     box-shadow: 
       var(--schedule-service-glow),
-      0 4px 12px rgba(0, 0, 0, 0.10);
+      0 4px 12px rgba(0, 0, 0, 0.08);
     transform: translateY(-1px) scale(1.005);
   }
   
   .dark .schedule-card-service {
-    background: linear-gradient(135deg, hsl(var(--schedule-service-bg) / 0.12) 0%, hsl(var(--schedule-service-bg) / 0.06) 100%);
-    border-color: hsl(var(--schedule-service-border) / 0.30);
+    background: linear-gradient(135deg, hsl(var(--schedule-service-bg) / 0.08) 0%, hsl(var(--schedule-service-bg) / 0.03) 100%);
+    border-color: hsl(var(--schedule-service-border) / 0.22);
     box-shadow: 
-      0 2px 4px rgba(0, 0, 0, 0.25),
-      0 0 0 1px hsl(var(--schedule-service-bg) / 0.15),
-      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      0 2px 4px rgba(0, 0, 0, 0.20),
+      0 0 0 1px hsl(var(--schedule-service-bg) / 0.10),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
   }
   
   .dark .schedule-card-service:hover {
+    background: linear-gradient(135deg, hsl(var(--schedule-service-bg) / 0.14) 0%, hsl(var(--schedule-service-bg) / 0.06) 100%);
     box-shadow: 
       var(--schedule-service-glow),
-      0 6px 16px rgba(0, 0, 0, 0.35);
+      0 6px 16px rgba(0, 0, 0, 0.30);
   }
   
-  /* VISIT cards - SOLID filled format (same as Service, purple accent) */
+  /* VISIT cards - Elegant transparent glassmorphism (purple accent) */
   .schedule-card-visit {
     @apply relative rounded-xl border;
-    background: linear-gradient(135deg, hsl(270 60% 60% / 0.10) 0%, hsl(270 60% 60% / 0.04) 100%);
-    border-color: hsl(270 60% 60% / 0.25);
+    background: linear-gradient(135deg, hsl(270 60% 60% / 0.06) 0%, hsl(270 60% 60% / 0.02) 100%);
+    border-color: hsl(270 60% 60% / 0.18);
     box-shadow: 
-      0 2px 4px rgba(168, 85, 247, 0.06),
-      0 0 0 1px hsl(270 60% 60% / 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      0 1px 2px rgba(168, 85, 247, 0.04),
+      0 0 0 1px hsl(270 60% 60% / 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
   }
   
   .schedule-card-visit:hover {
-    border-color: hsl(270 60% 60% / 0.40);
-    background: linear-gradient(135deg, hsl(270 60% 60% / 0.14) 0%, hsl(270 60% 60% / 0.06) 100%);
+    border-color: hsl(270 60% 60% / 0.30);
+    background: linear-gradient(135deg, hsl(270 60% 60% / 0.12) 0%, hsl(270 60% 60% / 0.05) 100%);
     box-shadow: 
       var(--schedule-visit-glow),
-      0 4px 12px rgba(168, 85, 247, 0.10);
+      0 4px 12px rgba(168, 85, 247, 0.08);
     transform: translateY(-1px) scale(1.005);
   }
   
   .dark .schedule-card-visit {
-    background: linear-gradient(135deg, hsl(270 60% 60% / 0.12) 0%, hsl(270 60% 60% / 0.05) 100%);
-    border-color: hsl(270 60% 60% / 0.30);
+    background: linear-gradient(135deg, hsl(270 60% 60% / 0.08) 0%, hsl(270 60% 60% / 0.03) 100%);
+    border-color: hsl(270 60% 60% / 0.22);
     box-shadow: 
-      0 2px 4px rgba(0, 0, 0, 0.25),
-      0 0 0 1px hsl(270 60% 60% / 0.15),
-      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      0 2px 4px rgba(0, 0, 0, 0.20),
+      0 0 0 1px hsl(270 60% 60% / 0.10),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
   }
   
   .dark .schedule-card-visit:hover {
-    background: linear-gradient(135deg, hsl(270 60% 60% / 0.18) 0%, hsl(270 60% 60% / 0.08) 100%);
+    background: linear-gradient(135deg, hsl(270 60% 60% / 0.14) 0%, hsl(270 60% 60% / 0.06) 100%);
     box-shadow: 
       var(--schedule-visit-glow),
-      0 6px 16px rgba(0, 0, 0, 0.35);
+      0 6px 16px rgba(0, 0, 0, 0.30);
   }
   
   /* Status indicator stripe - Left edge accent */

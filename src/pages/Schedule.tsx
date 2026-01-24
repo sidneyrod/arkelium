@@ -115,7 +115,7 @@ const statusConfig: Record<JobStatus, {
     badgeClass: 'schedule-badge-scheduled',
     indicatorClass: 'schedule-status-indicator-scheduled',
     dotClass: 'bg-info',
-    cardBgClass: 'bg-info/10 hover:bg-info/16 dark:bg-info/12 dark:hover:bg-info/18',
+    cardBgClass: 'bg-info/6 hover:bg-info/12 dark:bg-info/8 dark:hover:bg-info/14',
     cardBorderClass: 'border-l-info',
   },
   // In Progress: warm, active attention with pulse - YELLOW/AMBER
@@ -126,7 +126,7 @@ const statusConfig: Record<JobStatus, {
     badgeClass: 'schedule-badge-inprogress',
     indicatorClass: 'schedule-status-indicator-inprogress',
     dotClass: 'bg-warning animate-pulse',
-    cardBgClass: 'bg-warning/12 hover:bg-warning/18 dark:bg-warning/14 dark:hover:bg-warning/20',
+    cardBgClass: 'bg-warning/8 hover:bg-warning/14 dark:bg-warning/10 dark:hover:bg-warning/16',
     cardBorderClass: 'border-l-warning',
   },
   // Completed: calm, subdued success - GREEN
@@ -137,7 +137,7 @@ const statusConfig: Record<JobStatus, {
     badgeClass: 'schedule-badge-completed',
     indicatorClass: 'schedule-status-indicator-completed',
     dotClass: 'bg-success/70',
-    cardBgClass: 'bg-success/12 hover:bg-success/18 dark:bg-success/14 dark:hover:bg-success/20',
+    cardBgClass: 'bg-success/8 hover:bg-success/14 dark:bg-success/10 dark:hover:bg-success/16',
     cardBorderClass: 'border-l-success',
   },
   // Cancelled: visually quiet, de-emphasized
@@ -148,7 +148,7 @@ const statusConfig: Record<JobStatus, {
     badgeClass: 'schedule-badge-cancelled',
     indicatorClass: 'schedule-status-indicator-cancelled',
     dotClass: 'bg-muted-foreground/50',
-    cardBgClass: 'bg-muted/10 hover:bg-muted/16 dark:bg-muted/12 dark:hover:bg-muted/18',
+    cardBgClass: 'bg-muted/6 hover:bg-muted/12 dark:bg-muted/8 dark:hover:bg-muted/14',
     cardBorderClass: 'border-l-muted-foreground',
   },
 };
@@ -1703,10 +1703,10 @@ const Schedule = () => {
                                       "text-[10px] px-2 py-1.5 rounded-lg truncate cursor-pointer flex items-center gap-1.5 relative overflow-hidden",
                                       "transition-all duration-200 ease-out",
                                       "hover:scale-[1.02] hover:-translate-y-0.5",
-                                      // Full card color fill - no white backgrounds
+                                      // Full card color fill - elegant transparent style
                                       isVisit 
-                                        ? "bg-purple-500/25 hover:bg-purple-500/35 border border-purple-500/40 dark:bg-purple-500/30 dark:hover:bg-purple-500/40" 
-                                        : "bg-emerald-500/25 hover:bg-emerald-500/35 border border-emerald-500/40 dark:bg-emerald-500/30 dark:hover:bg-emerald-500/40",
+                                        ? "bg-purple-500/10 hover:bg-purple-500/18 border border-purple-500/25 dark:bg-purple-500/12 dark:hover:bg-purple-500/22" 
+                                        : "bg-emerald-500/10 hover:bg-emerald-500/18 border border-emerald-500/25 dark:bg-emerald-500/12 dark:hover:bg-emerald-500/22",
                                       job._isContinuation && "opacity-90"
                                     )}
                                   >
