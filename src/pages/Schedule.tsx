@@ -93,31 +93,71 @@ interface ScheduledJob {
 }
 
 // Premium status configuration with refined colors for enterprise clarity
-const statusConfig: Record<JobStatus, { color: string; bgColor: string; label: string }> = {
-  // Scheduled: anticipatory, subtle blue
+const statusConfig: Record<JobStatus, { 
+  color: string; 
+  bgColor: string; 
+  label: string;
+  badgeClass: string;
+  indicatorClass: string;
+  dotClass: string;
+}> = {
+  // Scheduled: anticipatory, professional blue
   scheduled: { 
     color: 'text-info', 
-    bgColor: 'bg-info/8 border-info/15 dark:bg-info/10 dark:border-info/20', 
-    label: 'Scheduled' 
+    bgColor: 'schedule-badge-scheduled border', 
+    label: 'Scheduled',
+    badgeClass: 'schedule-badge-scheduled',
+    indicatorClass: 'schedule-status-indicator-scheduled',
+    dotClass: 'bg-info',
   },
-  // In Progress: warm, active attention
+  // In Progress: warm, active attention with pulse
   'in-progress': { 
     color: 'text-warning', 
-    bgColor: 'bg-warning/10 border-warning/25 dark:bg-warning/12 dark:border-warning/30', 
-    label: 'In Progress' 
+    bgColor: 'schedule-badge-inprogress border', 
+    label: 'In Progress',
+    badgeClass: 'schedule-badge-inprogress',
+    indicatorClass: 'schedule-status-indicator-inprogress',
+    dotClass: 'bg-warning animate-pulse',
   },
   // Completed: calm, subdued success
   completed: { 
-    color: 'text-success/80', 
-    bgColor: 'bg-success/6 border-success/12 dark:bg-success/8 dark:border-success/15', 
-    label: 'Completed' 
+    color: 'text-success/85', 
+    bgColor: 'schedule-badge-completed border', 
+    label: 'Completed',
+    badgeClass: 'schedule-badge-completed',
+    indicatorClass: 'schedule-status-indicator-completed',
+    dotClass: 'bg-success/70',
   },
   // Cancelled: visually quiet, de-emphasized
   cancelled: { 
     color: 'text-muted-foreground/70', 
-    bgColor: 'bg-muted/50 border-border/50', 
-    label: 'Cancelled' 
+    bgColor: 'schedule-badge-cancelled border', 
+    label: 'Cancelled',
+    badgeClass: 'schedule-badge-cancelled',
+    indicatorClass: 'schedule-status-indicator-cancelled',
+    dotClass: 'bg-muted-foreground/50',
   },
+};
+
+// Helper to get card class based on job type (Service vs Visit)
+const getScheduleCardClass = (job: ScheduledJob) => {
+  const isVisit = job.jobType === 'visit';
+  return isVisit ? 'schedule-card-visit' : 'schedule-card-service';
+};
+
+// Helper to get type badge class
+const getTypeBadgeClass = (job: ScheduledJob, filled = false) => {
+  const isVisit = job.jobType === 'visit';
+  if (filled) {
+    return isVisit ? 'schedule-type-badge-visit-filled' : 'schedule-type-badge-service-filled';
+  }
+  return isVisit ? 'schedule-type-badge-visit' : 'schedule-type-badge-service';
+};
+
+// Helper to get hover card header class
+const getHoverCardHeaderClass = (job: ScheduledJob) => {
+  const isVisit = job.jobType === 'visit';
+  return isVisit ? 'schedule-hovercard-header-visit' : 'schedule-hovercard-header-service';
 };
 
 // Generate 24-hour time slots with 30-minute increments (matching AddJobModal)
@@ -1633,6 +1673,7 @@ const Schedule = () => {
                         <TooltipProvider delayDuration={300}>
                           {dayJobs.slice(0, 2).map((job) => {
                             const crossesMidnight = !job._isContinuation && doesJobCrossMidnight(job._originalTime || job.time, job._originalDuration || job.duration);
+                            const isVisit = job.jobType === 'visit';
                             
                             return (
                               <Tooltip key={job.id + (job._isContinuation ? '-cont' : '')}>
@@ -1640,54 +1681,53 @@ const Schedule = () => {
                                   <div
                                     onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
                                     className={cn(
-                                      "text-[10px] px-1.5 py-1 rounded-lg truncate cursor-pointer flex flex-col gap-0.5 border relative overflow-hidden",
-                                      "transition-all duration-200 ease-out shadow-soft-sm",
-                                      "hover:shadow-soft-md hover:scale-[1.02] hover:-translate-y-0.5",
-                                      job.jobType === 'visit' 
-                                        ? "bg-purple-500/10 border-purple-500/20 text-purple-700 dark:text-purple-300" 
-                                        : statusConfig[job.status].bgColor,
-                                      job._isContinuation && "border-dashed border-l-2 border-l-muted-foreground/30 opacity-95"
+                                      "text-[10px] px-2 py-1.5 rounded-lg truncate cursor-pointer flex items-center gap-1.5 relative overflow-hidden",
+                                      "transition-all duration-200 ease-out",
+                                      "hover:scale-[1.02] hover:-translate-y-0.5",
+                                      // Premium type-based styling with left accent border
+                                      isVisit 
+                                        ? "border-l-[3px] border-l-purple-500 bg-purple-500/6 hover:bg-purple-500/12 dark:bg-purple-500/8 dark:hover:bg-purple-500/14" 
+                                        : cn("border-l-[3px] border-l-info", statusConfig[job.status].badgeClass),
+                                      job._isContinuation && "opacity-90"
                                     )}
                                   >
-                                    {/* Continuation visual indicator (left gradient) */}
-                                    {job._isContinuation && (
-                                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-r from-muted-foreground/15 to-transparent" />
+                                    {/* Type icon */}
+                                    {isVisit ? (
+                                      <Eye className="h-2.5 w-2.5 flex-shrink-0 text-purple-600 dark:text-purple-400" />
+                                    ) : (
+                                      <Sparkles className="h-2.5 w-2.5 flex-shrink-0 text-info" />
                                     )}
                                     
-                                    <div className="flex items-center gap-1">
-                                      {job.jobType === 'visit' ? (
-                                        <Eye className="h-2.5 w-2.5 flex-shrink-0" />
-                                      ) : (
-                                        <Sparkles className="h-2.5 w-2.5 flex-shrink-0 text-primary/70" />
-                                      )}
-                                      <span className="truncate font-semibold">{job.clientName}</span>
-                                      {/* Status pill */}
-                                      <span className={cn(
-                                        "ml-auto text-[7px] font-medium uppercase px-1 py-0.5 rounded-full flex-shrink-0",
-                                        statusConfig[job.status].bgColor,
-                                        statusConfig[job.status].color
-                                      )}>
-                                        {statusConfig[job.status].label.charAt(0)}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-[8px] text-muted-foreground flex items-center gap-0.5">
-                                        <Clock className="h-2 w-2" />
-                                        {formatTimeDisplay(job.time).replace(' AM', 'a').replace(' PM', 'p')}
-                                      </span>
-                                    </div>
+                                    {/* Client name */}
+                                    <span className={cn(
+                                      "truncate font-semibold flex-1",
+                                      isVisit ? "text-purple-700 dark:text-purple-300" : ""
+                                    )}>
+                                      {job.clientName}
+                                    </span>
                                     
-                                    {/* Crosses midnight visual indicator (right gradient + arrow) */}
+                                    {/* Status dot indicator */}
+                                    <span className={cn(
+                                      "w-2 h-2 rounded-full flex-shrink-0",
+                                      statusConfig[job.status].dotClass
+                                    )} />
+                                    
+                                    {/* Crosses midnight visual indicator */}
                                     {crossesMidnight && (
-                                      <>
-                                        <div className="absolute right-0 top-0 bottom-0 w-2 bg-gradient-to-l from-warning/20 to-transparent" />
-                                        <ArrowRight className="absolute right-0.5 top-1/2 -translate-y-1/2 h-2 w-2 text-warning/70" />
-                                      </>
+                                      <ArrowRight className="h-2.5 w-2.5 text-warning/70 flex-shrink-0" />
                                     )}
                                   </div>
                                 </TooltipTrigger>
-                                <TooltipContent side="right" className="max-w-[220px] p-3 shadow-soft-lg">
-                                  <div className="space-y-1.5">
+                                <TooltipContent side="right" className="max-w-[240px] p-0 shadow-xl border-0 overflow-hidden">
+                                  {/* Premium tooltip header */}
+                                  <div className={cn("p-2.5", getHoverCardHeaderClass(job))}>
+                                    <Badge className={cn("text-[9px] px-2 py-0.5", getTypeBadgeClass(job, true))}>
+                                      {isVisit ? 'VISIT' : 'SERVICE'}
+                                    </Badge>
+                                  </div>
+                                  
+                                  {/* Content */}
+                                  <div className="p-3 space-y-1.5">
                                     {job._isContinuation && (
                                       <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
                                         <div className="w-1 h-3 rounded-full bg-muted-foreground/30" />
@@ -1707,6 +1747,10 @@ const Schedule = () => {
                                       <User className="h-3 w-3 text-muted-foreground" />
                                       <span>{job.employeeName}</span>
                                     </div>
+                                    {/* Status badge */}
+                                    <Badge className={cn("text-[9px] mt-1", statusConfig[job.status].badgeClass)}>
+                                      {statusConfig[job.status].label}
+                                    </Badge>
                                     {crossesMidnight && (
                                       <div className="flex items-center gap-1 text-[9px] text-warning">
                                         <ArrowRight className="h-2.5 w-2.5" />
@@ -1856,17 +1900,19 @@ const Schedule = () => {
                                 >
                                   <div 
                                     className={cn(
-                                      "h-full p-2 rounded-xl border text-xs cursor-pointer z-10",
-                                      "transition-all duration-200 ease-out shadow-[var(--schedule-card-shadow)]",
-                                      "hover:shadow-soft-md hover:-translate-y-0.5 hover:scale-[1.01] hover:z-20",
-                                      "active:scale-[0.99] active:shadow-soft-sm",
-                                      job.jobType === 'visit' 
-                                        ? "bg-purple-500/10 border-purple-500/20" 
-                                        : statusConfig[job.status].bgColor,
-                                      job._isContinuation && "border-dashed border-l-4 border-l-muted-foreground/30 opacity-95"
+                                      "h-full p-2 text-xs cursor-pointer z-10 relative pl-3",
+                                      "transition-all duration-200 ease-out",
+                                      getScheduleCardClass(job),
+                                      job._isContinuation && "opacity-90"
                                     )}
                                     onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
                                   >
+                                    {/* Status indicator stripe on left edge */}
+                                    <div className={cn(
+                                      "schedule-status-indicator",
+                                      statusConfig[job.status].indicatorClass
+                                    )} />
+                                    
                                     {/* Continuation visual indicator (top gradient) */}
                                     {job._isContinuation && (
                                       <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-b from-muted-foreground/10 to-transparent rounded-t-xl" />
@@ -1876,28 +1922,40 @@ const Schedule = () => {
                                     {(() => {
                                       const isCompact = clampedCardHeight < 55;
                                       const isMedium = !isCompact && clampedCardHeight < 80;
+                                      const isVisit = job.jobType === 'visit';
                                       
                                       return (
                                         <div className="flex flex-col h-full overflow-hidden">
-                                          {/* Row 1: Client + Status (always show) */}
-                                          <div className="flex items-center gap-1 mb-0.5">
+                                          {/* Row 1: Type Badge + Client (always show) */}
+                                          <div className="flex items-center gap-1.5 mb-0.5">
+                                            {!isCompact && (
+                                              <Badge 
+                                                variant="outline" 
+                                                className={cn(
+                                                  "text-[7px] px-1.5 py-0 h-3.5 flex-shrink-0",
+                                                  getTypeBadgeClass(job)
+                                                )}
+                                              >
+                                                {isVisit ? 'VISIT' : 'SVC'}
+                                              </Badge>
+                                            )}
                                             <span className={cn(
                                               "font-semibold truncate flex-1",
-                                              isCompact ? "text-[9px]" : "text-[11px]"
+                                              isCompact ? "text-[9px]" : "text-[11px]",
+                                              isVisit && "text-purple-700 dark:text-purple-300"
                                             )}>
                                               {job.clientName}
                                             </span>
-                                            <span className={cn(
-                                              "font-semibold uppercase rounded-full flex-shrink-0",
-                                              isCompact ? "text-[6px] px-1 py-0" : "text-[7px] px-1.5 py-0.5",
-                                              statusConfig[job.status].bgColor,
-                                              statusConfig[job.status].color
-                                            )}>
-                                              {isCompact ? statusConfig[job.status].label.charAt(0) : statusConfig[job.status].label}
-                                            </span>
+                                            {/* Status dot for compact mode */}
+                                            {isCompact && (
+                                              <span className={cn(
+                                                "w-2 h-2 rounded-full flex-shrink-0",
+                                                statusConfig[job.status].dotClass
+                                              )} />
+                                            )}
                                           </div>
                                           
-                                          {/* Row 2: Time (always show, but shortened in compact) */}
+                                          {/* Row 2: Time range (always show) */}
                                           <p className={cn(
                                             "font-medium text-foreground/75",
                                             isCompact ? "text-[8px]" : "text-[10px]"
@@ -1905,18 +1963,16 @@ const Schedule = () => {
                                             {formatTimeDisplay(job.time)}{!isCompact && ` – ${crossesMidnight ? '12:00 AM' : formatTimeDisplay(endTime)}`}
                                           </p>
                                           
-                                          {/* Row 3: Type badge (only in standard mode) */}
+                                          {/* Row 3: Status badge (only in standard mode) */}
                                           {!isMedium && !isCompact && (
                                             <Badge 
                                               variant="outline" 
                                               className={cn(
-                                                "text-[6px] px-1 py-0 h-3 font-semibold w-fit mt-0.5",
-                                                job.jobType === 'visit' 
-                                                  ? "border-purple-400/40 bg-purple-500/10 text-purple-600 dark:text-purple-400" 
-                                                  : "border-primary/30 bg-primary/5 text-primary"
+                                                "text-[7px] px-1.5 py-0 h-3.5 w-fit mt-0.5",
+                                                statusConfig[job.status].badgeClass
                                               )}
                                             >
-                                              {job.jobType === 'visit' ? 'Visit' : 'Service'}
+                                              {statusConfig[job.status].label}
                                             </Badge>
                                           )}
                                           
@@ -1947,28 +2003,30 @@ const Schedule = () => {
                                 align="start"
                                 sideOffset={8}
                                 collisionPadding={16}
-                                className="w-72 p-0 shadow-xl border-border/50 overflow-hidden"
+                                className="w-80 p-0 shadow-2xl border-0 overflow-hidden"
                               >
-                                {/* Header with Type + Status */}
-                                <div className="flex items-center justify-between p-3 bg-muted/30 border-b border-border/30">
-                                  <Badge 
-                                    variant="outline" 
-                                    className={cn(
-                                      "text-[10px] px-2 py-0.5 font-semibold",
-                                      job.jobType === 'visit' 
-                                        ? "border-purple-400/50 bg-purple-500/15 text-purple-600 dark:text-purple-400" 
-                                        : "border-primary/40 bg-primary/10 text-primary"
-                                    )}
-                                  >
-                                    {job.jobType === 'visit' ? 'Visit' : 'Service'}
-                                  </Badge>
-                                  <Badge className={cn("text-[10px]", statusConfig[job.status].bgColor, statusConfig[job.status].color)}>
-                                    {statusConfig[job.status].label}
+                                {/* Premium Header with prominent type badge */}
+                                <div className={cn("p-4", getHoverCardHeaderClass(job))}>
+                                  <Badge className={cn("text-sm px-4 py-1.5 shadow-md", getTypeBadgeClass(job, true))}>
+                                    {job.jobType === 'visit' ? 'VISIT' : 'SERVICE'}
                                   </Badge>
                                 </div>
                                 
+                                {/* Status banner */}
+                                <div className={cn(
+                                  "px-4 py-2 flex items-center gap-2 border-b border-border/30",
+                                  statusConfig[job.status].badgeClass
+                                )}>
+                                  <span className={cn(
+                                    "w-2 h-2 rounded-full flex-shrink-0",
+                                    statusConfig[job.status].dotClass
+                                  )} />
+                                  <span className="font-semibold text-sm">{statusConfig[job.status].label}</span>
+                                  {job.status === 'in-progress' && <span className="animate-pulse">●</span>}
+                                </div>
+                                
                                 {/* Content */}
-                                <div className="p-3 space-y-3">
+                                <div className="p-4 space-y-3">
                                   {/* Continuation notice */}
                                   {job._isContinuation && (
                                     <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground bg-muted/40 px-2 py-1 rounded">
@@ -1977,14 +2035,14 @@ const Schedule = () => {
                                     </div>
                                   )}
                                   
-                                  {/* Client Name */}
-                                  <p className="font-semibold text-sm">{job.clientName}</p>
+                                  {/* Client Name - Hero element */}
+                                  <h4 className="font-bold text-lg">{job.clientName}</h4>
                                   
                                   {/* Details Grid */}
-                                  <div className="space-y-2 text-xs">
+                                  <div className="space-y-2 text-sm">
                                     {/* Date + Time */}
-                                    <div className="flex items-start gap-2">
-                                      <Clock className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                                    <div className="flex items-start gap-3">
+                                      <Clock className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                                       <div>
                                         <p className="font-medium">{format(toSafeLocalDate(job.date), 'EEE, MMM d')}</p>
                                         <p className="text-muted-foreground">
@@ -1994,8 +2052,8 @@ const Schedule = () => {
                                     </div>
                                     
                                     {/* Address */}
-                                    <div className="flex items-start gap-2">
-                                      <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                                    <div className="flex items-start gap-3">
+                                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                                       <p className={cn(
                                         job.address === 'No address' && "text-muted-foreground/60 italic"
                                       )}>
@@ -2004,32 +2062,30 @@ const Schedule = () => {
                                     </div>
                                     
                                     {/* Assigned */}
-                                    <div className="flex items-center gap-2">
-                                      <User className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                                      <p>{job.employeeName}</p>
+                                    <div className="flex items-center gap-3">
+                                      <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                      <p className="font-medium">{job.employeeName}</p>
                                     </div>
                                   </div>
                                 </div>
                                 
                                 {/* Quick Actions Footer */}
-                                <div className="flex items-center gap-2 p-3 bg-muted/20 border-t border-border/30">
+                                <div className="flex items-center gap-2 p-3 bg-muted/30 border-t">
                                   <Button 
-                                    variant="outline" 
                                     size="sm" 
-                                    className="flex-1 h-7 text-xs"
+                                    className="flex-1 h-8"
                                     onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
                                   >
-                                    <Eye className="h-3 w-3 mr-1.5" />
                                     Open Details
                                   </Button>
                                   {isAdminOrManager && job.status === 'scheduled' && (
                                     <Button 
-                                      variant="ghost" 
+                                      variant="outline" 
                                       size="sm" 
-                                      className="h-7 text-xs"
+                                      className="h-8"
                                       onClick={(e) => { e.stopPropagation(); handleEditJob(job); }}
                                     >
-                                      <Pencil className="h-3 w-3 mr-1" />
+                                      <Pencil className="h-3.5 w-3.5 mr-1" />
                                       Edit
                                     </Button>
                                   )}
@@ -2140,17 +2196,19 @@ const Schedule = () => {
                         >
                           <div 
                             className={cn(
-                              "h-full p-3 rounded-xl border cursor-pointer shadow-[var(--schedule-card-shadow)]",
+                              "h-full p-4 cursor-pointer relative pl-5",
                               "transition-all duration-200 ease-out",
-                              "hover:shadow-soft-md hover:-translate-y-0.5 hover:scale-[1.005]",
-                              "active:scale-[0.995] active:shadow-soft-sm",
-                              job.jobType === 'visit' 
-                                ? "bg-purple-500/10 border-purple-500/20" 
-                                : statusConfig[job.status].bgColor,
-                              job._isContinuation && "border-dashed border-l-4 border-l-muted-foreground/30 opacity-95"
+                              getScheduleCardClass(job),
+                              job._isContinuation && "opacity-90"
                             )}
                             onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
                           >
+                            {/* Status indicator stripe on left edge */}
+                            <div className={cn(
+                              "schedule-status-indicator",
+                              statusConfig[job.status].indicatorClass
+                            )} />
+                            
                             {/* Continuation visual indicator (top gradient) */}
                             {job._isContinuation && (
                               <div className="absolute top-0 inset-x-0 h-2.5 bg-gradient-to-b from-muted-foreground/10 to-transparent rounded-t-xl" />
@@ -2160,48 +2218,48 @@ const Schedule = () => {
                             {(() => {
                               const isCompact = clampedCardHeight < 60;
                               const isMedium = !isCompact && clampedCardHeight < 90;
+                              const isVisit = job.jobType === 'visit';
                               
                               return (
                                 <div className="flex flex-col h-full relative overflow-hidden">
-                                  {/* Row 1: Always show - Client + Status (adaptive) */}
-                                  <div className="flex items-center gap-2 mb-0.5">
+                                  {/* Row 1: Type Badge + Client + Status */}
+                                  <div className="flex items-center gap-2 mb-1">
                                     {!isCompact && (
                                       <Badge 
                                         variant="outline" 
                                         className={cn(
-                                          "text-[9px] px-1.5 py-0 h-4 font-semibold flex-shrink-0",
-                                          job.jobType === 'visit' 
-                                            ? "border-purple-400/40 bg-purple-500/10 text-purple-600 dark:text-purple-400" 
-                                            : "border-primary/30 bg-primary/5 text-primary"
+                                          "text-[10px] px-2 py-0.5 h-5 flex-shrink-0",
+                                          getTypeBadgeClass(job)
                                         )}
                                       >
-                                        {job.jobType === 'visit' ? 'Visit' : 'Svc'}
+                                        {isVisit ? 'VISIT' : 'SERVICE'}
                                       </Badge>
                                     )}
                                     <span className={cn(
                                       "font-semibold truncate flex-1",
-                                      isCompact ? "text-xs" : "text-sm"
+                                      isCompact ? "text-xs" : "text-base",
+                                      isVisit && "text-purple-700 dark:text-purple-300"
                                     )}>
                                       {job.clientName}
                                     </span>
                                     <Badge 
                                       variant="outline" 
                                       className={cn(
-                                        "px-1 py-0 flex-shrink-0",
-                                        isCompact ? "text-[7px]" : "text-[9px] px-1.5",
-                                        statusConfig[job.status].bgColor,
-                                        statusConfig[job.status].color
+                                        "flex-shrink-0",
+                                        isCompact ? "text-[7px] px-1 py-0" : "text-[10px] px-2 py-0.5",
+                                        statusConfig[job.status].badgeClass
                                       )}
                                     >
                                       {isCompact ? statusConfig[job.status].label.charAt(0) : statusConfig[job.status].label}
                                     </Badge>
                                   </div>
                                   
-                                  {/* Row 2: Time - Always show but smaller in compact mode */}
+                                  {/* Row 2: Time range with duration */}
                                   <div className={cn(
-                                    "flex items-center gap-1 font-medium text-foreground/75",
-                                    isCompact ? "text-[10px]" : "text-xs"
+                                    "flex items-center gap-2 font-medium text-foreground/75",
+                                    isCompact ? "text-[10px]" : "text-sm"
                                   )}>
+                                    <Clock className={cn("flex-shrink-0", isCompact ? "h-3 w-3" : "h-4 w-4")} />
                                     <span>
                                       {formatTimeDisplay(job.time)}{!isCompact && ` – ${crossesMidnight ? '12:00 AM' : formatTimeDisplay(endTime)}`}
                                     </span>
@@ -2210,15 +2268,24 @@ const Schedule = () => {
                                   
                                   {/* Row 3+: Address + Employee - Only in standard mode */}
                                   {!isMedium && !isCompact && (
-                                    <>
-                                      <p className="text-xs text-muted-foreground truncate mt-0.5">{job.address}</p>
-                                      <p className="text-xs text-muted-foreground truncate">{job.employeeName}</p>
-                                    </>
+                                    <div className="grid grid-cols-2 gap-2 mt-2 text-sm text-muted-foreground">
+                                      <div className="flex items-center gap-2">
+                                        <MapPin className="h-4 w-4 flex-shrink-0" />
+                                        <span className="truncate">{job.address}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <User className="h-4 w-4 flex-shrink-0" />
+                                        <span className="truncate font-medium">{job.employeeName}</span>
+                                      </div>
+                                    </div>
                                   )}
                                   
                                   {/* Medium mode: Only show employee */}
                                   {isMedium && !isCompact && (
-                                    <p className="text-[10px] text-muted-foreground truncate mt-0.5">{job.employeeName}</p>
+                                    <p className="text-xs text-muted-foreground truncate mt-1 flex items-center gap-1">
+                                      <User className="h-3 w-3" />
+                                      {job.employeeName}
+                                    </p>
                                   )}
                                 </div>
                               );
@@ -2228,8 +2295,8 @@ const Schedule = () => {
                             {crossesMidnight && (
                               <>
                                 <div className="absolute bottom-0 inset-x-0 h-4 bg-gradient-to-t from-warning/15 to-transparent rounded-b-xl" />
-                                <div className="absolute bottom-1.5 right-2">
-                                  <ArrowRight className="h-3.5 w-3.5 text-warning/70" />
+                                <div className="absolute bottom-2 right-3">
+                                  <ArrowRight className="h-4 w-4 text-warning/70" />
                                 </div>
                               </>
                             )}
@@ -2241,29 +2308,30 @@ const Schedule = () => {
                         align="center"
                         sideOffset={12}
                         collisionPadding={24}
-                        className="w-72 p-0 shadow-xl border-border/50 overflow-visible z-[100]"
+                        className="w-80 p-0 shadow-2xl border-0 overflow-visible z-[100]"
                       >
-                        {/* Header with Type + Status */}
-                        <div className="flex items-center justify-between p-3 bg-muted/30 border-b border-border/30">
-                          <Badge 
-                            variant="outline" 
-                            className={cn(
-                              "text-[10px] px-2 py-0.5 font-semibold",
-                              job.jobType === 'visit' 
-                                ? "border-purple-400/50 bg-purple-500/15 text-purple-600 dark:text-purple-400" 
-                                : "border-primary/40 bg-primary/10 text-primary"
-                            )}
-                          >
-                            {job.jobType === 'visit' ? 'Visit' : 'Service'}
-                          </Badge>
-                          <Badge className={cn("text-[10px]", statusConfig[job.status].bgColor, statusConfig[job.status].color)}>
-                            {statusConfig[job.status].label}
+                        {/* Premium Header with prominent type badge */}
+                        <div className={cn("p-4", getHoverCardHeaderClass(job))}>
+                          <Badge className={cn("text-sm px-4 py-1.5 shadow-md", getTypeBadgeClass(job, true))}>
+                            {job.jobType === 'visit' ? 'VISIT' : 'SERVICE'}
                           </Badge>
                         </div>
                         
+                        {/* Status banner */}
+                        <div className={cn(
+                          "px-4 py-2 flex items-center gap-2 border-b border-border/30",
+                          statusConfig[job.status].badgeClass
+                        )}>
+                          <span className={cn(
+                            "w-2 h-2 rounded-full flex-shrink-0",
+                            statusConfig[job.status].dotClass
+                          )} />
+                          <span className="font-semibold text-sm">{statusConfig[job.status].label}</span>
+                          {job.status === 'in-progress' && <span className="animate-pulse">●</span>}
+                        </div>
+                        
                         {/* Content */}
-                        <div className="p-3 space-y-3">
-                          {/* Continuation notice */}
+                        <div className="p-4 space-y-3">
                           {job._isContinuation && (
                             <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground bg-muted/40 px-2 py-1 rounded">
                               <div className="w-1 h-3 rounded-full bg-muted-foreground/30" />
@@ -2271,14 +2339,11 @@ const Schedule = () => {
                             </div>
                           )}
                           
-                          {/* Client Name */}
-                          <p className="font-semibold text-sm">{job.clientName}</p>
+                          <h4 className="font-bold text-lg">{job.clientName}</h4>
                           
-                          {/* Details Grid */}
-                          <div className="space-y-2 text-xs">
-                            {/* Date + Time */}
-                            <div className="flex items-start gap-2">
-                              <Clock className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                          <div className="space-y-2 text-sm">
+                            <div className="flex items-start gap-3">
+                              <Clock className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                               <div>
                                 <p className="font-medium">{format(toSafeLocalDate(job.date), 'EEE, MMM d')}</p>
                                 <p className="text-muted-foreground">
@@ -2286,44 +2351,26 @@ const Schedule = () => {
                                 </p>
                               </div>
                             </div>
-                            
-                            {/* Address */}
-                            <div className="flex items-start gap-2">
-                              <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
-                              <p className={cn(
-                                job.address === 'No address' && "text-muted-foreground/60 italic"
-                              )}>
+                            <div className="flex items-start gap-3">
+                              <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                              <p className={cn(job.address === 'No address' && "text-muted-foreground/60 italic")}>
                                 {job.address}
                               </p>
                             </div>
-                            
-                            {/* Assigned */}
-                            <div className="flex items-center gap-2">
-                              <User className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                              <p>{job.employeeName}</p>
+                            <div className="flex items-center gap-3">
+                              <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <p className="font-medium">{job.employeeName}</p>
                             </div>
                           </div>
                         </div>
                         
-                        {/* Quick Actions Footer */}
-                        <div className="flex items-center gap-2 p-3 bg-muted/20 border-t border-border/30">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="flex-1 h-7 text-xs"
-                            onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
-                          >
-                            <Eye className="h-3 w-3 mr-1.5" />
+                        <div className="flex items-center gap-2 p-3 bg-muted/30 border-t">
+                          <Button size="sm" className="flex-1 h-8" onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}>
                             Open Details
                           </Button>
                           {isAdminOrManager && job.status === 'scheduled' && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-7 text-xs"
-                              onClick={(e) => { e.stopPropagation(); handleEditJob(job); }}
-                            >
-                              <Pencil className="h-3 w-3 mr-1" />
+                            <Button variant="outline" size="sm" className="h-8" onClick={(e) => { e.stopPropagation(); handleEditJob(job); }}>
+                              <Pencil className="h-3.5 w-3.5 mr-1" />
                               Edit
                             </Button>
                           )}
