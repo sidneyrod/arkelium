@@ -86,6 +86,21 @@
     --schedule-grid-bg: 220 14% 97%;
     --schedule-cell-hover: 220 14% 94%;
     --schedule-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    
+    /* Premium Service vs Visit distinction - Light mode */
+    --schedule-service-bg: 217 91% 60%;
+    --schedule-service-border: 217 91% 55%;
+    --schedule-service-glow: 0 0 12px rgba(59, 130, 246, 0.12);
+    
+    --schedule-visit-bg: 270 60% 60%;
+    --schedule-visit-border: 270 55% 55%;
+    --schedule-visit-glow: 0 0 12px rgba(168, 85, 247, 0.10);
+    
+    /* Premium status indicator colors */
+    --status-scheduled-indicator: 217 91% 60%;
+    --status-inprogress-indicator: 38 92% 50%;
+    --status-completed-indicator: 160 84% 39%;
+    --status-cancelled-indicator: 220 10% 50%;
   }
 
   .dark {
@@ -152,6 +167,21 @@
     --schedule-grid-bg: 220 14% 8%;
     --schedule-cell-hover: 220 14% 12%;
     --schedule-card-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+    
+    /* Premium Service vs Visit distinction - Dark mode enhanced glow */
+    --schedule-service-bg: 217 91% 60%;
+    --schedule-service-border: 217 91% 55%;
+    --schedule-service-glow: 0 0 16px rgba(59, 130, 246, 0.25);
+    
+    --schedule-visit-bg: 270 60% 60%;
+    --schedule-visit-border: 270 55% 55%;
+    --schedule-visit-glow: 0 0 16px rgba(168, 85, 247, 0.20);
+    
+    /* Premium status indicator colors - Dark mode */
+    --status-scheduled-indicator: 217 91% 65%;
+    --status-inprogress-indicator: 38 92% 55%;
+    --status-completed-indicator: 160 60% 50%;
+    --status-cancelled-indicator: 220 10% 55%;
   }
 }
 
@@ -228,6 +258,173 @@
   .schedule-current-time {
     @apply bg-destructive/60 h-[2px] absolute left-0 right-0 z-40 pointer-events-none;
   }
+  
+  /* ===== Premium Schedule Card System ===== */
+  
+  /* SERVICE cards - Solid, prominent, professional */
+  .schedule-card-service {
+    @apply relative rounded-xl border;
+    background: linear-gradient(135deg, hsl(var(--schedule-service-bg) / 0.10) 0%, hsl(var(--schedule-service-bg) / 0.05) 100%);
+    border-color: hsl(var(--schedule-service-border) / 0.25);
+    box-shadow: 
+      0 1px 3px rgba(0, 0, 0, 0.06),
+      0 0 0 1px hsl(var(--schedule-service-bg) / 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+  
+  .schedule-card-service:hover {
+    border-color: hsl(var(--schedule-service-border) / 0.40);
+    box-shadow: 
+      var(--schedule-service-glow),
+      0 4px 12px rgba(0, 0, 0, 0.10);
+    transform: translateY(-1px) scale(1.005);
+  }
+  
+  .dark .schedule-card-service {
+    background: linear-gradient(135deg, hsl(var(--schedule-service-bg) / 0.12) 0%, hsl(var(--schedule-service-bg) / 0.06) 100%);
+    border-color: hsl(var(--schedule-service-border) / 0.30);
+    box-shadow: 
+      0 2px 4px rgba(0, 0, 0, 0.25),
+      0 0 0 1px hsl(var(--schedule-service-bg) / 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+  
+  .dark .schedule-card-service:hover {
+    box-shadow: 
+      var(--schedule-service-glow),
+      0 6px 16px rgba(0, 0, 0, 0.35);
+  }
+  
+  /* VISIT cards - Outlined, lighter, glass-like with purple accent */
+  .schedule-card-visit {
+    @apply relative rounded-xl;
+    background: linear-gradient(135deg, hsl(var(--schedule-visit-bg) / 0.06) 0%, transparent 100%);
+    border: 2px dashed hsl(var(--schedule-visit-border) / 0.35);
+    box-shadow: inset 0 1px 0 hsl(var(--schedule-visit-bg) / 0.08);
+  }
+  
+  .schedule-card-visit:hover {
+    border-color: hsl(var(--schedule-visit-border) / 0.55);
+    background: linear-gradient(135deg, hsl(var(--schedule-visit-bg) / 0.10) 0%, hsl(var(--schedule-visit-bg) / 0.03) 100%);
+    box-shadow: 
+      var(--schedule-visit-glow),
+      0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px) scale(1.005);
+  }
+  
+  .dark .schedule-card-visit {
+    background: linear-gradient(135deg, hsl(var(--schedule-visit-bg) / 0.08) 0%, transparent 100%);
+    border-color: hsl(var(--schedule-visit-border) / 0.40);
+  }
+  
+  .dark .schedule-card-visit:hover {
+    background: linear-gradient(135deg, hsl(var(--schedule-visit-bg) / 0.14) 0%, hsl(var(--schedule-visit-bg) / 0.05) 100%);
+    box-shadow: 
+      var(--schedule-visit-glow),
+      0 6px 16px rgba(0, 0, 0, 0.30);
+  }
+  
+  /* Status indicator stripe - Left edge accent */
+  .schedule-status-indicator {
+    @apply absolute left-0 top-2 bottom-2 w-1 rounded-full;
+  }
+  
+  .schedule-status-indicator-scheduled {
+    background-color: hsl(var(--status-scheduled-indicator));
+  }
+  
+  .schedule-status-indicator-inprogress {
+    background-color: hsl(var(--status-inprogress-indicator));
+    animation: status-pulse 2s ease-in-out infinite;
+  }
+  
+  .schedule-status-indicator-completed {
+    background-color: hsl(var(--status-completed-indicator) / 0.70);
+  }
+  
+  .schedule-status-indicator-cancelled {
+    background-color: hsl(var(--status-cancelled-indicator) / 0.50);
+  }
+  
+  @keyframes status-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  
+  /* Type indicator borders */
+  .type-indicator-service {
+    @apply border-l-4;
+    border-left-color: hsl(var(--schedule-service-bg));
+  }
+  
+  .type-indicator-visit {
+    @apply border-l-4;
+    border-left-color: hsl(var(--schedule-visit-bg));
+  }
+  
+  /* Premium hover card styling */
+  .schedule-hovercard-header-service {
+    background: linear-gradient(135deg, hsl(var(--schedule-service-bg) / 0.15) 0%, hsl(var(--schedule-service-bg) / 0.05) 100%);
+  }
+  
+  .schedule-hovercard-header-visit {
+    background: linear-gradient(135deg, hsl(var(--schedule-visit-bg) / 0.15) 0%, hsl(var(--schedule-visit-bg) / 0.05) 100%);
+  }
+  
+  /* Status badge refinements */
+  .schedule-badge-scheduled {
+    background-color: hsl(var(--info) / 0.12);
+    color: hsl(var(--info));
+    border-color: hsl(var(--info) / 0.25);
+  }
+  
+  .schedule-badge-inprogress {
+    background-color: hsl(var(--warning) / 0.15);
+    color: hsl(var(--warning));
+    border-color: hsl(var(--warning) / 0.30);
+  }
+  
+  .schedule-badge-completed {
+    background-color: hsl(var(--success) / 0.10);
+    color: hsl(var(--success) / 0.85);
+    border-color: hsl(var(--success) / 0.20);
+  }
+  
+  .schedule-badge-cancelled {
+    background-color: hsl(var(--muted) / 0.60);
+    color: hsl(var(--muted-foreground) / 0.65);
+    border-color: hsl(var(--border) / 0.40);
+  }
+  
+  /* Type badge styling */
+  .schedule-type-badge-service {
+    background-color: hsl(var(--info) / 0.12);
+    color: hsl(var(--info));
+    border-color: hsl(var(--info) / 0.30);
+    @apply font-bold tracking-wide;
+  }
+  
+  .schedule-type-badge-visit {
+    background-color: hsl(var(--schedule-visit-bg) / 0.12);
+    color: hsl(270 60% 50%);
+    border-color: hsl(var(--schedule-visit-border) / 0.30);
+    @apply font-bold tracking-wide;
+  }
+  
+  .dark .schedule-type-badge-visit {
+    color: hsl(270 60% 70%);
+  }
+  
+  /* Premium type badge - filled version for hover cards */
+  .schedule-type-badge-service-filled {
+    @apply bg-info text-white shadow-md font-bold tracking-wide;
+  }
+  
+  .schedule-type-badge-visit-filled {
+    background-color: hsl(var(--schedule-visit-bg));
+    @apply text-white shadow-md font-bold tracking-wide;
+  }
+  
   
   /* Premium soft shadows for schedule */
   .shadow-soft-sm {
