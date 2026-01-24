@@ -295,33 +295,40 @@
       0 6px 16px rgba(0, 0, 0, 0.35);
   }
   
-  /* VISIT cards - Outlined, lighter, glass-like with purple accent */
+  /* VISIT cards - SOLID filled format (same as Service, purple accent) */
   .schedule-card-visit {
-    @apply relative rounded-xl;
-    background: linear-gradient(135deg, hsl(var(--schedule-visit-bg) / 0.06) 0%, transparent 100%);
-    border: 2px dashed hsl(var(--schedule-visit-border) / 0.35);
-    box-shadow: inset 0 1px 0 hsl(var(--schedule-visit-bg) / 0.08);
+    @apply relative rounded-xl border;
+    background: linear-gradient(135deg, hsl(270 60% 60% / 0.10) 0%, hsl(270 60% 60% / 0.04) 100%);
+    border-color: hsl(270 60% 60% / 0.25);
+    box-shadow: 
+      0 2px 4px rgba(168, 85, 247, 0.06),
+      0 0 0 1px hsl(270 60% 60% / 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
   
   .schedule-card-visit:hover {
-    border-color: hsl(var(--schedule-visit-border) / 0.55);
-    background: linear-gradient(135deg, hsl(var(--schedule-visit-bg) / 0.10) 0%, hsl(var(--schedule-visit-bg) / 0.03) 100%);
+    border-color: hsl(270 60% 60% / 0.40);
+    background: linear-gradient(135deg, hsl(270 60% 60% / 0.14) 0%, hsl(270 60% 60% / 0.06) 100%);
     box-shadow: 
       var(--schedule-visit-glow),
-      0 4px 12px rgba(0, 0, 0, 0.08);
+      0 4px 12px rgba(168, 85, 247, 0.10);
     transform: translateY(-1px) scale(1.005);
   }
   
   .dark .schedule-card-visit {
-    background: linear-gradient(135deg, hsl(var(--schedule-visit-bg) / 0.08) 0%, transparent 100%);
-    border-color: hsl(var(--schedule-visit-border) / 0.40);
+    background: linear-gradient(135deg, hsl(270 60% 60% / 0.12) 0%, hsl(270 60% 60% / 0.05) 100%);
+    border-color: hsl(270 60% 60% / 0.30);
+    box-shadow: 
+      0 2px 4px rgba(0, 0, 0, 0.25),
+      0 0 0 1px hsl(270 60% 60% / 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
   
   .dark .schedule-card-visit:hover {
-    background: linear-gradient(135deg, hsl(var(--schedule-visit-bg) / 0.14) 0%, hsl(var(--schedule-visit-bg) / 0.05) 100%);
+    background: linear-gradient(135deg, hsl(270 60% 60% / 0.18) 0%, hsl(270 60% 60% / 0.08) 100%);
     box-shadow: 
       var(--schedule-visit-glow),
-      0 6px 16px rgba(0, 0, 0, 0.30);
+      0 6px 16px rgba(0, 0, 0, 0.35);
   }
   
   /* Status indicator stripe - Left edge accent */
@@ -425,51 +432,49 @@
     @apply text-white shadow-md font-bold tracking-wide;
   }
   
-  /* ===== Executive KPI Dashboard Pills ===== */
-  .schedule-kpi-pill {
-    @apply px-4 py-2 rounded-xl flex flex-col items-center justify-center;
+  /* ===== Executive KPI Dashboard Pills - Inline Compact Version ===== */
+  .schedule-kpi-pill-inline {
+    @apply px-3 py-1.5 rounded-lg flex flex-row items-center gap-2;
     @apply border border-border/30 bg-card/80;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.06);
-    min-width: 90px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
   }
   
-  .schedule-kpi-pill-value {
-    @apply text-lg font-bold leading-none;
+  .schedule-kpi-pill-inline .schedule-kpi-pill-value {
+    @apply text-sm font-bold leading-none;
   }
   
-  .schedule-kpi-pill-label {
-    @apply text-[10px] font-medium text-muted-foreground mt-0.5 uppercase tracking-wider;
+  .schedule-kpi-pill-inline .schedule-kpi-pill-label {
+    @apply text-[9px] font-medium text-muted-foreground uppercase tracking-wider;
   }
   
-  .schedule-kpi-pill-jobs {
+  .schedule-kpi-pill-inline.schedule-kpi-pill-jobs {
     @apply bg-muted/40;
   }
   
-  .schedule-kpi-pill-completed {
-    background-color: hsl(var(--success) / 0.08);
-    border-color: hsl(var(--success) / 0.20);
+  .schedule-kpi-pill-inline.schedule-kpi-pill-completed {
+    background-color: hsl(var(--success) / 0.12);
+    border-color: hsl(var(--success) / 0.25);
   }
   
-  .schedule-kpi-pill-completed .schedule-kpi-pill-value {
-    color: hsl(var(--success) / 0.80);
+  .schedule-kpi-pill-inline.schedule-kpi-pill-completed .schedule-kpi-pill-value {
+    color: hsl(var(--success));
   }
   
-  .schedule-kpi-pill-inprogress {
-    background-color: hsl(var(--warning) / 0.10);
-    border-color: hsl(var(--warning) / 0.25);
+  .schedule-kpi-pill-inline.schedule-kpi-pill-inprogress {
+    background-color: hsl(var(--warning) / 0.12);
+    border-color: hsl(var(--warning) / 0.30);
   }
   
-  .schedule-kpi-pill-inprogress .schedule-kpi-pill-value {
+  .schedule-kpi-pill-inline.schedule-kpi-pill-inprogress .schedule-kpi-pill-value {
     color: hsl(var(--warning));
   }
   
-  .schedule-kpi-pill-today {
+  .schedule-kpi-pill-inline.schedule-kpi-pill-today {
     background: hsl(var(--primary) / 0.08);
     border-color: hsl(var(--primary) / 0.20);
-    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.15);
   }
   
-  .schedule-kpi-pill-today .schedule-kpi-pill-value {
+  .schedule-kpi-pill-inline.schedule-kpi-pill-today .schedule-kpi-pill-value {
     @apply text-primary;
   }
   
