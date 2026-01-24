@@ -1721,7 +1721,7 @@ const Schedule = () => {
                       key={idx}
                       onClick={() => handleDayClick(day)}
                       className={cn(
-                        "min-h-[90px] p-1.5 border-r border-b schedule-grid-line last:border-r-0 cursor-pointer transition-all duration-150",
+                        "min-h-[75px] p-1.5 border-r border-b schedule-grid-line last:border-r-0 cursor-pointer transition-all duration-150",
                         "hover:bg-primary/5",
                         !isCurrentMonth && "bg-muted/5 text-muted-foreground/60",
                         isTodayCell && "bg-primary/5 ring-1 ring-inset ring-primary/20"
@@ -1874,7 +1874,7 @@ const Schedule = () => {
                 })}
               </div>
               
-              <div className="max-h-[calc(100vh-320px)] min-h-[400px] overflow-y-auto overflow-x-hidden relative">
+              <div className="max-h-[calc(100vh-200px)] overflow-y-auto overflow-x-hidden relative">
                 {/* Current Time Indicator - Enhanced with floating label */}
                 {getWeekDays().some(day => isTodayForIndicator(day)) && (
                   <div 
@@ -2185,7 +2185,7 @@ const Schedule = () => {
               </h3>
             </div>
             <CardContent className="p-0 overflow-hidden">
-              <div className="relative pb-4 overflow-y-auto overflow-x-hidden" style={{ maxHeight: 'calc(100vh - 280px)', minHeight: '500px' }}>
+              <div className="relative pb-4 overflow-y-auto overflow-x-hidden" style={{ maxHeight: 'calc(100vh - 200px)' }}>
                 {/* Current Time Indicator - Enhanced with floating label */}
                 {isTodayForIndicator(currentDate) && (
                   <div 
