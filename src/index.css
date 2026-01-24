@@ -193,7 +193,11 @@
   }
   
   .schedule-grid-line {
-    @apply border-border/10 dark:border-border/8;
+    @apply border-border/10;
+  }
+  
+  .dark .schedule-grid-line {
+    border-color: hsl(var(--border) / 0.08);
   }
   
   .schedule-current-time {
