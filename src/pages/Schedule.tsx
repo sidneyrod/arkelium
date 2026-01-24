@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -8,6 +8,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -34,7 +35,9 @@ import {
   Filter,
   Calculator,
   FileText,
-  ArrowRight
+  ArrowRight,
+  Expand,
+  Minimize2
 } from 'lucide-react';
 import { cn, parseDurationToMinutes } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -43,6 +46,7 @@ import { useInvoiceStore } from '@/stores/invoiceStore';
 import { useCompanyStore } from '@/stores/companyStore';
 import useRoleAccess from '@/hooks/useRoleAccess';
 import { useCompanyPreferences } from '@/hooks/useCompanyPreferences';
+import { useTimezone } from '@/hooks/useTimezone';
 import AddJobDrawer from '@/components/schedule/AddJobDrawer';
 import { NewBookingModal } from '@/components/schedule/NewBookingModal';
 import JobCompletionModal, { PaymentData } from '@/components/modals/JobCompletionModal';
@@ -221,6 +225,11 @@ const Schedule = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<string>('');
+  const [focusMode, setFocusMode] = useState(false);
+  const [currentTimeLabel, setCurrentTimeLabel] = useState<string>('');
+  
+  // Timezone hook for accurate current time display
+  const { formatLocal, timezone } = useTimezone();
   
   // QueryClient for cache invalidation
   const queryClient = useQueryClient();
@@ -427,6 +436,20 @@ const Schedule = () => {
       todayCount: todayJobs.length,
     };
   }, [filteredJobs]);
+
+  // Update current time label every minute for the time indicator
+  useEffect(() => {
+    const updateTimeLabel = () => {
+      try {
+        setCurrentTimeLabel(formatLocal(new Date(), 'h:mm a'));
+      } catch {
+        setCurrentTimeLabel(format(new Date(), 'h:mm a'));
+      }
+    };
+    updateTimeLabel();
+    const interval = setInterval(updateTimeLabel, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, [formatLocal]);
 
   const uniqueEmployees = Array.from(new Set(jobs.map(j => ({ id: j.employeeId, name: j.employeeName }))))
     .filter((emp, index, self) => self.findIndex(e => e.id === emp.id) === index);
@@ -1498,140 +1521,179 @@ const Schedule = () => {
   }
 
   return (
-    <div className="p-2 lg:p-3 space-y-3">
+    <div className={cn(
+      "p-2 lg:p-3 space-y-3",
+      focusMode && "schedule-focus-mode"
+    )}>
       {/* Overdue Job Alert - For Admin/Manager and Cleaners */}
       <OverdueJobAlert />
       
-      {/* Controls - Compact header with calendar navigation */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={goToPrevious} className="h-9 w-9">
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <div className="px-4 py-2 rounded-lg bg-card border border-border/50 min-w-[160px] text-center">
-            <span className="font-medium">{format(currentDate, view === 'month' ? 'MMMM yyyy' : 'MMM d, yyyy')}</span>
-          </div>
-          <Button variant="outline" size="icon" onClick={goToNext} className="h-9 w-9">
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="sm" className="ml-2 h-9" onClick={goToToday}>
-            {t.schedule.today}
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Service Type Filter */}
-          <Select value={serviceTypeFilter} onValueChange={(v) => setServiceTypeFilter(v as 'all' | 'cleaning' | 'visit')}>
-            <SelectTrigger className="w-[130px] h-9">
-              <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-              <SelectValue placeholder="Type" />
-            </SelectTrigger>
-            <SelectContent className="bg-popover">
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="cleaning">
-                <span className="flex items-center gap-2">
-                  <Sparkles className="h-3.5 w-3.5 text-primary" />
-                  Cleaning
-                </span>
-              </SelectItem>
-              <SelectItem value="visit">
-                <span className="flex items-center gap-2">
-                  <Eye className="h-3.5 w-3.5 text-purple-500" />
-                  Visit
-                </span>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Employee Filter */}
-          <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
-            <SelectTrigger className="w-[150px] h-9">
-              <User className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-              <SelectValue placeholder={t.schedule.filterByEmployee} />
-            </SelectTrigger>
-            <SelectContent className="bg-popover">
-              <SelectItem value="all">{t.schedule.allEmployees}</SelectItem>
-              {uniqueEmployees.map(emp => (
-                <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* Status Filter */}
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as 'all' | JobStatus)}>
-            <SelectTrigger className="w-[130px] h-9">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent className="bg-popover">
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="scheduled">Scheduled</SelectItem>
-              <SelectItem value="in-progress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <div className="flex items-center rounded-lg border border-border/50 p-0.5 bg-muted/30">
-            <Button 
-              variant={view === 'day' ? 'secondary' : 'ghost'} 
-              size="sm"
-              onClick={() => setView('day')}
-              className="h-7 px-2.5 transition-all"
-            >
-              {t.schedule.day}
+      {/* Executive Header: Calendar Nav + KPI Dashboard Strip */}
+      <div className="flex flex-col gap-3">
+        {/* Row 1: Calendar Navigation + View Toggles + Actions */}
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={goToPrevious} className="h-9 w-9">
+              <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button 
-              variant={view === 'week' ? 'secondary' : 'ghost'} 
-              size="sm"
-              onClick={() => setView('week')}
-              className="h-7 px-2.5 transition-all"
-            >
-              {t.schedule.week}
+            <div className="px-4 py-2 rounded-lg bg-card border border-border/50 min-w-[160px] text-center">
+              <span className="font-medium">{format(currentDate, view === 'month' ? 'MMMM yyyy' : 'MMM d, yyyy')}</span>
+            </div>
+            <Button variant="outline" size="icon" onClick={goToNext} className="h-9 w-9">
+              <ChevronRight className="h-4 w-4" />
             </Button>
-            <Button 
-              variant={view === 'month' ? 'secondary' : 'ghost'} 
-              size="sm"
-              onClick={() => setView('month')}
-              className="h-7 px-2.5 transition-all"
-            >
-              {t.schedule.month}
-            </Button>
-            <Button 
-              variant={view === 'timeline' ? 'secondary' : 'ghost'} 
-              size="sm"
-              onClick={() => setView('timeline')}
-              className="h-7 px-2.5 transition-all"
-            >
-              <List className="h-4 w-4" />
+            <Button variant="outline" size="sm" className="ml-2 h-9" onClick={goToToday}>
+              {t.schedule.today}
             </Button>
           </div>
 
-          {isAdminOrManager && (
-            <Button onClick={() => setShowAddJob(true)} className="gap-2 h-9">
-              <CalendarPlus className="h-4 w-4" />
-              {t.schedule.addJob}
-            </Button>
-          )}
-        </div>
-      </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Service Type Filter */}
+            <Select value={serviceTypeFilter} onValueChange={(v) => setServiceTypeFilter(v as 'all' | 'cleaning' | 'visit')}>
+              <SelectTrigger className="w-[130px] h-9">
+                <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover">
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="cleaning">
+                  <span className="flex items-center gap-2">
+                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    Cleaning
+                  </span>
+                </SelectItem>
+                <SelectItem value="visit">
+                  <span className="flex items-center gap-2">
+                    <Eye className="h-3.5 w-3.5 text-purple-500" />
+                    Visit
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
 
-      {/* Contextual Summary Header - Premium */}
-      <div className="flex items-center gap-3 text-xs text-muted-foreground px-1">
-        <span className="font-medium text-foreground/80">
-          {format(currentDate, 'MMMM yyyy')}
-        </span>
-        <span className="text-border/60">·</span>
-        <span>{summaryStats.total} jobs</span>
-        <span className="text-border/60">·</span>
-        <span className="text-success/80">{summaryStats.completed} completed</span>
-        <span className="text-border/60">·</span>
-        <span className="text-warning">{summaryStats.inProgress} in progress</span>
-        {summaryStats.todayCount > 0 && (
-          <>
-            <span className="text-border/60">·</span>
-            <span className="text-primary font-medium">{summaryStats.todayCount} today</span>
-          </>
-        )}
+            {/* Employee Filter */}
+            <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+              <SelectTrigger className="w-[150px] h-9">
+                <User className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                <SelectValue placeholder={t.schedule.filterByEmployee} />
+              </SelectTrigger>
+              <SelectContent className="bg-popover">
+                <SelectItem value="all">{t.schedule.allEmployees}</SelectItem>
+                {uniqueEmployees.map(emp => (
+                  <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Status Filter */}
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as 'all' | JobStatus)}>
+              <SelectTrigger className="w-[130px] h-9">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover">
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="scheduled">Scheduled</SelectItem>
+                <SelectItem value="in-progress">In Progress</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="flex items-center rounded-lg border border-border/50 p-0.5 bg-muted/30">
+              <Button 
+                variant={view === 'day' ? 'secondary' : 'ghost'} 
+                size="sm"
+                onClick={() => setView('day')}
+                className="h-7 px-2.5 transition-all"
+              >
+                {t.schedule.day}
+              </Button>
+              <Button 
+                variant={view === 'week' ? 'secondary' : 'ghost'} 
+                size="sm"
+                onClick={() => setView('week')}
+                className="h-7 px-2.5 transition-all"
+              >
+                {t.schedule.week}
+              </Button>
+              <Button 
+                variant={view === 'month' ? 'secondary' : 'ghost'} 
+                size="sm"
+                onClick={() => setView('month')}
+                className="h-7 px-2.5 transition-all"
+              >
+                {t.schedule.month}
+              </Button>
+              <Button 
+                variant={view === 'timeline' ? 'secondary' : 'ghost'} 
+                size="sm"
+                onClick={() => setView('timeline')}
+                className="h-7 px-2.5 transition-all"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            {/* Focus Mode Toggle */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={() => setFocusMode(!focusMode)}
+                    className={cn(
+                      "h-9 w-9 transition-colors",
+                      focusMode && "bg-primary/10 text-primary"
+                    )}
+                  >
+                    {focusMode ? <Minimize2 className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {focusMode ? 'Exit Focus Mode' : 'Focus Mode'}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            {isAdminOrManager && (
+              <Button onClick={() => setShowAddJob(true)} className="gap-2 h-9">
+                <CalendarPlus className="h-4 w-4" />
+                {t.schedule.addJob}
+              </Button>
+            )}
+          </div>
+        </div>
+        
+        {/* Row 2: Executive KPI Dashboard Strip */}
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Total Jobs Pill */}
+          <div className="schedule-kpi-pill schedule-kpi-pill-jobs">
+            <span className="schedule-kpi-pill-value">{summaryStats.total}</span>
+            <span className="schedule-kpi-pill-label">Jobs</span>
+          </div>
+          
+          {/* Completed Pill */}
+          <div className="schedule-kpi-pill schedule-kpi-pill-completed">
+            <span className="schedule-kpi-pill-value">{summaryStats.completed}</span>
+            <span className="schedule-kpi-pill-label">Completed</span>
+          </div>
+          
+          {/* In Progress Pill */}
+          <div className={cn(
+            "schedule-kpi-pill",
+            summaryStats.inProgress > 0 ? "schedule-kpi-pill-inprogress" : "schedule-kpi-pill-jobs"
+          )}>
+            <span className="schedule-kpi-pill-value">{summaryStats.inProgress}</span>
+            <span className="schedule-kpi-pill-label">In Progress</span>
+          </div>
+          
+          {/* Today Pill - Emphasized */}
+          <div className="schedule-kpi-pill schedule-kpi-pill-today">
+            <span className="schedule-kpi-pill-value">{summaryStats.todayCount}</span>
+            <span className="schedule-kpi-pill-label">Today</span>
+          </div>
+        </div>
       </div>
 
       {/* Calendar Views with smooth transitions */}
@@ -1811,13 +1873,13 @@ const Schedule = () => {
               </div>
               
               <div className="max-h-[calc(100vh-320px)] min-h-[400px] overflow-y-auto overflow-x-hidden relative">
-                {/* Current Time Indicator */}
+                {/* Current Time Indicator - Enhanced with floating label */}
                 {getWeekDays().some(day => isTodayForIndicator(day)) && (
                   <div 
-                    className="schedule-current-time"
+                    className="schedule-current-time-line"
                     style={{ top: getCurrentTimePosition() }}
                   >
-                    <div className="absolute left-14 -top-1 w-2.5 h-2.5 rounded-full bg-destructive/80 border-2 border-background shadow-sm" />
+                    <div className="schedule-current-time-dot" />
                   </div>
                 )}
                 
@@ -2119,13 +2181,16 @@ const Schedule = () => {
             </div>
             <CardContent className="p-0 overflow-hidden">
               <div className="relative pb-4 overflow-y-auto overflow-x-hidden" style={{ maxHeight: 'calc(100vh - 280px)', minHeight: '500px' }}>
-                {/* Current Time Indicator */}
+                {/* Current Time Indicator - Enhanced with floating label */}
                 {isTodayForIndicator(currentDate) && (
                   <div 
-                    className="schedule-current-time"
+                    className="schedule-current-time-line"
                     style={{ top: getCurrentTimePosition() }}
                   >
-                    <div className="absolute left-16 -top-1 w-2.5 h-2.5 rounded-full bg-destructive/80 border-2 border-background shadow-sm" />
+                    <div className="schedule-current-time-dot" />
+                    <div className="schedule-current-time-label">
+                      Now · {currentTimeLabel}
+                    </div>
                   </div>
                 )}
                 
@@ -2558,163 +2623,174 @@ const Schedule = () => {
         ))}
       </div>
 
-      {/* Job Details Dialog */}
-      <Dialog open={!!selectedJob && !showCompletion} onOpenChange={() => setSelectedJob(null)}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-lg">{t.job.details}</DialogTitle>
-          </DialogHeader>
-          
+      {/* Job Details Sheet - Right-side drawer for premium UX */}
+      <Sheet open={!!selectedJob && !showCompletion} onOpenChange={() => setSelectedJob(null)}>
+        <SheetContent side="right" className="w-[400px] p-0 overflow-hidden" allowCloseOnOutsideClick>
           {selectedJob && (
-            <div className="space-y-4 mt-2">
-              {/* Continuation notice */}
-              {selectedJob._isContinuation && (
-                <div className="text-xs text-muted-foreground bg-muted/50 px-3 py-2 rounded-md border border-dashed border-border/50">
-                  ↳ This is the continuation of a job that started on the previous day
-                </div>
-              )}
+            <>
+              {/* Premium Header with Type Badge */}
+              <div className={cn("p-5", getHoverCardHeaderClass(selectedJob))}>
+                <Badge className={cn("text-sm px-4 py-1.5 shadow-md", getTypeBadgeClass(selectedJob, true))}>
+                  {selectedJob.jobType === 'visit' ? 'VISIT' : 'SERVICE'}
+                </Badge>
+              </div>
               
-              <div className="flex items-start justify-between">
+              {/* Status Banner */}
+              <div className={cn(
+                "px-5 py-3 flex items-center gap-2.5 border-b border-border/30",
+                statusConfig[selectedJob.status].badgeClass
+              )}>
+                <span className={cn(
+                  "w-2.5 h-2.5 rounded-full flex-shrink-0",
+                  statusConfig[selectedJob.status].dotClass
+                )} />
+                <span className="font-semibold">{statusConfig[selectedJob.status].label}</span>
+                {selectedJob.status === 'in-progress' && <span className="animate-pulse ml-auto">●</span>}
+              </div>
+              
+              {/* Content */}
+              <div className="p-5 space-y-5 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 250px)' }}>
+                {/* Continuation notice */}
+                {selectedJob._isContinuation && (
+                  <div className="text-xs text-muted-foreground bg-muted/50 px-3 py-2 rounded-md border border-dashed border-border/50">
+                    ↳ This is the continuation of a job that started on the previous day
+                  </div>
+                )}
+                
+                {/* Client Name - Hero Element */}
                 <div>
-                  <h3 className="font-semibold">{selectedJob.clientName}</h3>
-                  <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
-                    <MapPin className="h-3.5 w-3.5" />
+                  <h3 className="text-xl font-bold">{selectedJob.clientName}</h3>
+                  <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
+                    <MapPin className="h-4 w-4 flex-shrink-0" />
                     {selectedJob.address}
                   </p>
                 </div>
-                <Badge className={cn("border", statusConfig[selectedJob.status].bgColor, statusConfig[selectedJob.status].color)}>
-                  {statusConfig[selectedJob.status].label}
-                </Badge>
-              </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">{t.job.time}</p>
-                    <p className="text-sm font-medium">
-                      {formatTimeDisplay(selectedJob._originalTime || selectedJob.time)} ({selectedJob._originalDuration || selectedJob.duration})
-                    </p>
-                    {selectedJob._isContinuation && (
-                      <p className="text-[10px] text-muted-foreground italic">
-                        Showing on this day: {formatTimeDisplay(selectedJob.time)} ({selectedJob.duration})
+                {/* Details Grid */}
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
+                    <Clock className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">{t.job.time}</p>
+                      <p className="text-sm font-medium">
+                        {formatTimeDisplay(selectedJob._originalTime || selectedJob.time)} ({selectedJob._originalDuration || selectedJob.duration})
                       </p>
-                    )}
+                      {selectedJob._isContinuation && (
+                        <p className="text-[10px] text-muted-foreground italic mt-0.5">
+                          Showing on this day: {formatTimeDisplay(selectedJob.time)} ({selectedJob.duration})
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">{t.job.assignedEmployee}</p>
-                    <p className="text-sm font-medium">{selectedJob.employeeName}</p>
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
+                    <User className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">{t.job.assignedEmployee}</p>
+                      <p className="text-sm font-medium">{selectedJob.employeeName}</p>
+                    </div>
                   </div>
                 </div>
               </div>
+              
+              {/* Actions Footer */}
+              <div className="absolute bottom-0 left-0 right-0 p-4 bg-muted/20 border-t border-border/30">
+                <div className="flex flex-wrap gap-2">
+                  {/* Start button: Cleaners can start their scheduled cleaning jobs */}
+                  {selectedJob.status === 'scheduled' && selectedJob.jobType !== 'visit' && 
+                    isCleaner && selectedJob.employeeId === user?.id && (
+                      <Button 
+                        className="flex-1 gap-2"
+                        variant="outline"
+                        onClick={() => handleOpenStartService(selectedJob)}
+                      >
+                        <Clock className="h-4 w-4" />
+                        Start Service
+                      </Button>
+                  )}
 
-              <div className="flex flex-wrap gap-2 pt-2">
-              {/* Start button: Cleaners can start their scheduled cleaning jobs */}
-              {selectedJob.status === 'scheduled' && selectedJob.jobType !== 'visit' && 
-                isCleaner && selectedJob.employeeId === user?.id && (
-                  <Button 
-                    className="flex-1 gap-2"
-                    variant="outline"
-                    onClick={() => handleOpenStartService(selectedJob)}
-                  >
-                    <Clock className="h-4 w-4" />
-                    Start Service
-                  </Button>
-              )}
+                  {/* Complete button */}
+                  {selectedJob.status === 'in-progress' && selectedJob.jobType !== 'visit' &&
+                    isCleaner && selectedJob.employeeId === user?.id && (
+                      <Button 
+                        className="flex-1 gap-2" 
+                        onClick={() => setShowCompletion(true)}
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                        {t.job.completeJob}
+                      </Button>
+                  )}
 
-              {/* Complete button: 
-                  - For CLEANING jobs: Only the assigned cleaner can complete (must be in-progress)
-                  - For VISIT jobs: Admin/Manager can complete (from scheduled status)
-              */}
-              {selectedJob.status === 'in-progress' && selectedJob.jobType !== 'visit' &&
-                isCleaner && selectedJob.employeeId === user?.id && (
-                  <Button 
-                    className="flex-1 gap-2" 
-                    onClick={() => setShowCompletion(true)}
-                  >
-                    <CheckCircle className="h-4 w-4" />
-                    {t.job.completeJob}
-                  </Button>
-              )}
-
-              {selectedJob.status === 'scheduled' && selectedJob.jobType === 'visit' &&
-                isAdminOrManager && (
-                  <Button 
-                    className="flex-1 gap-2" 
-                    onClick={() => setShowVisitCompletion(true)}
-                  >
-                    <CheckCircle className="h-4 w-4" />
-                    Complete Visit
-                  </Button>
-              )}
-                
-                {selectedJob.status === 'completed' && isAdminOrManager && (
-                  <>
-                    {selectedJob.jobType !== 'visit' ? (
-                      <>
-                        {/* Invoice buttons - HIDDEN for cash payments per business rule */}
-                        {selectedJob.paymentMethod !== 'cash' ? (
-                          <>
-                            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => handleViewInvoice(selectedJob)}>
-                              <Receipt className="h-4 w-4" />
-                              View Invoice
-                            </Button>
-                            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => handleSendInvoiceEmail(selectedJob)}>
-                              <Mail className="h-4 w-4" />
-                              Email
-                            </Button>
-                            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => handleSendInvoiceSms(selectedJob)}>
-                              <MessageSquare className="h-4 w-4" />
-                              SMS
-                            </Button>
-                          </>
-                        ) : (
-                          <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-muted/50 text-xs text-muted-foreground">
-                            <Receipt className="h-3.5 w-3.5" />
-                            <span>Cash payment - Receipt generated (no invoice)</span>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate(`/calculator?clientId=${selectedJob.clientId}`)}>
-                          <Calculator className="h-4 w-4" />
-                          Create Estimate
-                        </Button>
-                        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate(`/contracts?clientId=${selectedJob.clientId}`)}>
-                          <FileText className="h-4 w-4" />
-                          Create Contract
-                        </Button>
-                      </>
-                    )}
-                  </>
-                )}
-                
-                {/* Edit/Delete only for Admin/Manager */}
-                {isAdminOrManager && (
-                  <>
-                    <Button variant="outline" size="icon" onClick={() => handleEditJob(selectedJob)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => handleOpenCancelJob(selectedJob)}
-                      title="Cancel Job"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </>
-                )}
+                  {selectedJob.status === 'scheduled' && selectedJob.jobType === 'visit' &&
+                    isAdminOrManager && (
+                      <Button 
+                        className="flex-1 gap-2" 
+                        onClick={() => setShowVisitCompletion(true)}
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                        Complete Visit
+                      </Button>
+                  )}
+                    
+                  {selectedJob.status === 'completed' && isAdminOrManager && (
+                    <>
+                      {selectedJob.jobType !== 'visit' ? (
+                        <>
+                          {selectedJob.paymentMethod !== 'cash' ? (
+                            <>
+                              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => handleViewInvoice(selectedJob)}>
+                                <Receipt className="h-4 w-4" />
+                                Invoice
+                              </Button>
+                              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => handleSendInvoiceEmail(selectedJob)}>
+                                <Mail className="h-4 w-4" />
+                                Email
+                              </Button>
+                            </>
+                          ) : (
+                            <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-muted/50 text-xs text-muted-foreground">
+                              <Receipt className="h-3.5 w-3.5" />
+                              <span>Cash payment - Receipt generated</span>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate(`/calculator?clientId=${selectedJob.clientId}`)}>
+                            <Calculator className="h-4 w-4" />
+                            Estimate
+                          </Button>
+                          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate(`/contracts?clientId=${selectedJob.clientId}`)}>
+                            <FileText className="h-4 w-4" />
+                            Contract
+                          </Button>
+                        </>
+                      )}
+                    </>
+                  )}
+                    
+                  {/* Edit/Delete only for Admin/Manager */}
+                  {isAdminOrManager && (
+                    <>
+                      <Button variant="outline" size="icon" onClick={() => handleEditJob(selectedJob)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => handleOpenCancelJob(selectedJob)}
+                        title="Cancel Job"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
+            </>
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
       {/* Add/Edit Job Modal (Enterprise) */}
       <NewBookingModal
