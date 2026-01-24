@@ -425,6 +425,95 @@
     @apply text-white shadow-md font-bold tracking-wide;
   }
   
+  /* ===== Executive KPI Dashboard Pills ===== */
+  .schedule-kpi-pill {
+    @apply px-4 py-2 rounded-xl flex flex-col items-center justify-center;
+    @apply border border-border/30 bg-card/80;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.06);
+    min-width: 90px;
+  }
+  
+  .schedule-kpi-pill-value {
+    @apply text-lg font-bold leading-none;
+  }
+  
+  .schedule-kpi-pill-label {
+    @apply text-[10px] font-medium text-muted-foreground mt-0.5 uppercase tracking-wider;
+  }
+  
+  .schedule-kpi-pill-jobs {
+    @apply bg-muted/40;
+  }
+  
+  .schedule-kpi-pill-completed {
+    background-color: hsl(var(--success) / 0.08);
+    border-color: hsl(var(--success) / 0.20);
+  }
+  
+  .schedule-kpi-pill-completed .schedule-kpi-pill-value {
+    color: hsl(var(--success) / 0.80);
+  }
+  
+  .schedule-kpi-pill-inprogress {
+    background-color: hsl(var(--warning) / 0.10);
+    border-color: hsl(var(--warning) / 0.25);
+  }
+  
+  .schedule-kpi-pill-inprogress .schedule-kpi-pill-value {
+    color: hsl(var(--warning));
+  }
+  
+  .schedule-kpi-pill-today {
+    @apply bg-primary/8 border-primary/20 ring-1 ring-primary/15;
+  }
+  
+  .schedule-kpi-pill-today .schedule-kpi-pill-value {
+    @apply text-primary;
+  }
+  
+  /* ===== Enhanced Current Time Indicator ===== */
+  .schedule-current-time-line {
+    @apply absolute left-0 right-0 h-[2px] z-40 pointer-events-none;
+    background: linear-gradient(90deg, 
+      hsl(0 72% 51% / 0.85) 0%, 
+      hsl(0 72% 51% / 0.60) 40%,
+      hsl(0 72% 51% / 0.25) 100%);
+  }
+  
+  .schedule-current-time-dot {
+    @apply absolute -top-[5px] w-3 h-3 rounded-full;
+    left: 60px;
+    background: hsl(0 72% 51%);
+    box-shadow: 0 0 0 3px hsl(0 72% 51% / 0.20);
+    animation: time-indicator-pulse 3s ease-in-out infinite;
+  }
+  
+  .schedule-current-time-label {
+    @apply absolute -top-[10px] text-[10px] font-semibold whitespace-nowrap;
+    left: 80px;
+    @apply px-2.5 py-1 rounded-full;
+    @apply bg-destructive text-white;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.20);
+  }
+  
+  @keyframes time-indicator-pulse {
+    0%, 100% { box-shadow: 0 0 0 3px hsl(0 72% 51% / 0.25); }
+    50% { box-shadow: 0 0 0 5px hsl(0 72% 51% / 0.10); }
+  }
+  
+  /* ===== Focus Mode ===== */
+  .schedule-focus-mode {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 50 !important;
+    background: hsl(var(--background)) !important;
+    padding: 1rem !important;
+    overflow-y: auto !important;
+  }
+  
+  .schedule-focus-mode-backdrop {
+    @apply fixed inset-0 bg-background z-40;
+  }
   
   /* Premium soft shadows for schedule */
   .shadow-soft-sm {
