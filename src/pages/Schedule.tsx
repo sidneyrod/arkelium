@@ -430,25 +430,20 @@ const Schedule = () => {
     return true;
   });
 
-  // Calculate summary stats for contextual header - Split by Service vs Visit
+  // Calculate summary stats for contextual header
   const summaryStats = useMemo(() => {
     const today = new Date();
-    const serviceJobs = filteredJobs.filter(job => job.jobType !== 'visit');
-    const visitJobs = filteredJobs.filter(job => job.jobType === 'visit');
+    const todayJobs = filteredJobs.filter(job => isSameDay(toSafeLocalDate(job.date), today));
+    const completedCount = filteredJobs.filter(job => job.status === 'completed').length;
+    const inProgressCount = filteredJobs.filter(job => job.status === 'in-progress').length;
+    const scheduledCount = filteredJobs.filter(job => job.status === 'scheduled').length;
     
     return {
       total: filteredJobs.length,
-      totalServices: serviceJobs.length,
-      totalVisits: visitJobs.length,
-      completed: filteredJobs.filter(job => job.status === 'completed').length,
-      completedServices: serviceJobs.filter(job => job.status === 'completed').length,
-      completedVisits: visitJobs.filter(job => job.status === 'completed').length,
-      inProgress: filteredJobs.filter(job => job.status === 'in-progress').length,
-      inProgressServices: serviceJobs.filter(job => job.status === 'in-progress').length,
-      inProgressVisits: visitJobs.filter(job => job.status === 'in-progress').length,
-      todayCount: filteredJobs.filter(job => isSameDay(toSafeLocalDate(job.date), today)).length,
-      todayServices: serviceJobs.filter(job => isSameDay(toSafeLocalDate(job.date), today)).length,
-      todayVisits: visitJobs.filter(job => isSameDay(toSafeLocalDate(job.date), today)).length,
+      completed: completedCount,
+      inProgress: inProgressCount,
+      scheduled: scheduledCount,
+      todayCount: todayJobs.length,
     };
   }, [filteredJobs]);
 
@@ -1561,64 +1556,25 @@ const Schedule = () => {
           </Button>
         </div>
 
-        {/* KPI Pills - Split by Service (blue/green) vs Visit (purple) */}
+        {/* KPI Pills (center, inline compact) */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Jobs KPI */}
-          <div className="schedule-kpi-pill-inline schedule-kpi-pill-jobs flex items-center gap-1.5">
-            <div className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-info" />
-              <span className="schedule-kpi-pill-value text-info">{summaryStats.totalServices}</span>
-            </div>
-            <span className="text-muted-foreground/40">|</span>
-            <div className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-purple-500" />
-              <span className="schedule-kpi-pill-value text-purple-600 dark:text-purple-400">{summaryStats.totalVisits}</span>
-            </div>
+          <div className="schedule-kpi-pill-inline schedule-kpi-pill-jobs">
+            <span className="schedule-kpi-pill-value">{summaryStats.total}</span>
             <span className="schedule-kpi-pill-label">Jobs</span>
           </div>
-          
-          {/* Completed KPI */}
-          <div className="schedule-kpi-pill-inline schedule-kpi-pill-completed flex items-center gap-1.5">
-            <div className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-success" />
-              <span className="schedule-kpi-pill-value text-success">{summaryStats.completedServices}</span>
-            </div>
-            <span className="text-muted-foreground/40">|</span>
-            <div className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-purple-500" />
-              <span className="schedule-kpi-pill-value text-purple-600 dark:text-purple-400">{summaryStats.completedVisits}</span>
-            </div>
+          <div className="schedule-kpi-pill-inline schedule-kpi-pill-completed">
+            <span className="schedule-kpi-pill-value">{summaryStats.completed}</span>
             <span className="schedule-kpi-pill-label">Completed</span>
           </div>
-          
-          {/* In Progress KPI */}
           <div className={cn(
-            "schedule-kpi-pill-inline flex items-center gap-1.5",
+            "schedule-kpi-pill-inline",
             summaryStats.inProgress > 0 ? "schedule-kpi-pill-inprogress" : "schedule-kpi-pill-jobs"
           )}>
-            <div className="flex items-center gap-1">
-              <span className={cn("w-2 h-2 rounded-full", summaryStats.inProgressServices > 0 ? "bg-warning animate-pulse" : "bg-muted-foreground/30")} />
-              <span className={cn("schedule-kpi-pill-value", summaryStats.inProgressServices > 0 ? "text-warning" : "text-muted-foreground")}>{summaryStats.inProgressServices}</span>
-            </div>
-            <span className="text-muted-foreground/40">|</span>
-            <div className="flex items-center gap-1">
-              <span className={cn("w-2 h-2 rounded-full", summaryStats.inProgressVisits > 0 ? "bg-purple-500 animate-pulse" : "bg-muted-foreground/30")} />
-              <span className={cn("schedule-kpi-pill-value", summaryStats.inProgressVisits > 0 ? "text-purple-600 dark:text-purple-400" : "text-muted-foreground")}>{summaryStats.inProgressVisits}</span>
-            </div>
+            <span className="schedule-kpi-pill-value">{summaryStats.inProgress}</span>
             <span className="schedule-kpi-pill-label">In Progress</span>
           </div>
-          
-          {/* Today KPI */}
-          <div className="schedule-kpi-pill-inline schedule-kpi-pill-today flex items-center gap-1.5">
-            <div className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-primary" />
-              <span className="schedule-kpi-pill-value text-primary">{summaryStats.todayServices}</span>
-            </div>
-            <span className="text-muted-foreground/40">|</span>
-            <div className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-purple-500" />
-              <span className="schedule-kpi-pill-value text-purple-600 dark:text-purple-400">{summaryStats.todayVisits}</span>
-            </div>
+          <div className="schedule-kpi-pill-inline schedule-kpi-pill-today">
+            <span className="schedule-kpi-pill-value">{summaryStats.todayCount}</span>
             <span className="schedule-kpi-pill-label">Today</span>
           </div>
         </div>
@@ -1765,7 +1721,7 @@ const Schedule = () => {
                       key={idx}
                       onClick={() => handleDayClick(day)}
                       className={cn(
-                        "min-h-[80px] p-1.5 border-r border-b schedule-grid-line last:border-r-0 cursor-pointer transition-all duration-150",
+                        "min-h-[90px] p-1.5 border-r border-b schedule-grid-line last:border-r-0 cursor-pointer transition-all duration-150",
                         "hover:bg-primary/5",
                         !isCurrentMonth && "bg-muted/5 text-muted-foreground/60",
                         isTodayCell && "bg-primary/5 ring-1 ring-inset ring-primary/20"
@@ -1792,16 +1748,10 @@ const Schedule = () => {
                                       "text-[10px] px-2 py-1.5 rounded-lg truncate cursor-pointer flex items-center gap-1.5 relative overflow-hidden",
                                       "transition-all duration-200 ease-out",
                                       "hover:scale-[1.02] hover:-translate-y-0.5",
-                                      // Full solid fill - NO WHITE BACKGROUNDS
+                                      // Premium type-based styling with left accent border + status-based card bg
                                       isVisit 
-                                        ? "bg-purple-500/22 hover:bg-purple-500/30 border border-purple-500/35 dark:bg-purple-500/25 dark:hover:bg-purple-500/35" 
-                                        : cn(
-                                            "border",
-                                            job.status === 'completed' && "bg-success/22 hover:bg-success/30 border-success/35 dark:bg-success/25",
-                                            job.status === 'in-progress' && "bg-warning/22 hover:bg-warning/30 border-warning/35 dark:bg-warning/25",
-                                            job.status === 'scheduled' && "bg-info/20 hover:bg-info/28 border-info/30 dark:bg-info/22",
-                                            job.status === 'cancelled' && "bg-muted/28 hover:bg-muted/38 border-muted-foreground/30"
-                                          ),
+                                        ? "border-l-[3px] border-l-purple-500 bg-purple-500/12 hover:bg-purple-500/18 dark:bg-purple-500/14 dark:hover:bg-purple-500/20" 
+                                        : cn("border-l-[3px]", statusConfig[job.status].cardBorderClass, statusConfig[job.status].cardBgClass),
                                       job._isContinuation && "opacity-90"
                                     )}
                                   >
@@ -1924,7 +1874,7 @@ const Schedule = () => {
                 })}
               </div>
               
-              <div className="max-h-[calc(100vh-240px)] min-h-[300px] overflow-y-auto overflow-x-hidden relative">
+              <div className="max-h-[calc(100vh-320px)] min-h-[400px] overflow-y-auto overflow-x-hidden relative">
                 {/* Current Time Indicator - Enhanced with floating label */}
                 {getWeekDays().some(day => isTodayForIndicator(day)) && (
                   <div 
@@ -2016,16 +1966,10 @@ const Schedule = () => {
                                     className={cn(
                                       "h-full p-2 text-xs cursor-pointer z-10 relative pl-3",
                                       "transition-all duration-200 ease-out",
-                                      // Full solid fill - NO WHITE BACKGROUNDS
+                                      // For Visit: use CSS class; For Service: apply status-based colors
                                       job.jobType === 'visit' 
-                                        ? cn('rounded-xl bg-purple-500/22 hover:bg-purple-500/30 border border-purple-500/35 dark:bg-purple-500/25') 
-                                        : cn(
-                                            'rounded-xl border',
-                                            job.status === 'completed' && "bg-success/22 hover:bg-success/30 border-success/35 dark:bg-success/25",
-                                            job.status === 'in-progress' && "bg-warning/22 hover:bg-warning/30 border-warning/35 dark:bg-warning/25",
-                                            job.status === 'scheduled' && "bg-info/20 hover:bg-info/28 border-info/30 dark:bg-info/22",
-                                            job.status === 'cancelled' && "bg-muted/28 hover:bg-muted/38 border-muted-foreground/30"
-                                          ),
+                                        ? 'schedule-card-visit' 
+                                        : cn('schedule-card-service', statusConfig[job.status].cardBgClass),
                                       job._isContinuation && "opacity-90"
                                     )}
                                     onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
@@ -2201,9 +2145,9 @@ const Schedule = () => {
                                   >
                                     Open Details
                                   </Button>
-                                  {isAdminOrManager && (job.status === 'scheduled' || job.status === 'in-progress') && (
+                                  {isAdminOrManager && job.status === 'scheduled' && (
                                     <Button 
-                                      variant="outline"
+                                      variant="outline" 
                                       size="sm" 
                                       className="h-8"
                                       onClick={(e) => { e.stopPropagation(); handleEditJob(job); }}
@@ -2241,7 +2185,7 @@ const Schedule = () => {
               </h3>
             </div>
             <CardContent className="p-0 overflow-hidden">
-              <div className="relative pb-2 overflow-y-auto overflow-x-hidden" style={{ maxHeight: 'calc(100vh - 200px)', minHeight: 'auto' }}>
+              <div className="relative pb-4 overflow-y-auto overflow-x-hidden" style={{ maxHeight: 'calc(100vh - 280px)', minHeight: '500px' }}>
                 {/* Current Time Indicator - Enhanced with floating label */}
                 {isTodayForIndicator(currentDate) && (
                   <div 
@@ -2324,18 +2268,12 @@ const Schedule = () => {
                         >
                           <div 
                             className={cn(
-                              "h-full p-3 cursor-pointer relative pl-5 rounded-xl",
+                              "h-full p-3 cursor-pointer relative pl-5",
                               "transition-all duration-200 ease-out",
-                              // Full solid fill - NO WHITE BACKGROUNDS
+                              // For Visit: use CSS class; For Service: apply status-based colors
                               job.jobType === 'visit' 
-                                ? 'bg-purple-500/22 hover:bg-purple-500/30 border border-purple-500/35 dark:bg-purple-500/25' 
-                                : cn(
-                                    'border',
-                                    job.status === 'completed' && "bg-success/22 hover:bg-success/30 border-success/35 dark:bg-success/25",
-                                    job.status === 'in-progress' && "bg-warning/22 hover:bg-warning/30 border-warning/35 dark:bg-warning/25",
-                                    job.status === 'scheduled' && "bg-info/20 hover:bg-info/28 border-info/30 dark:bg-info/22",
-                                    job.status === 'cancelled' && "bg-muted/28 hover:bg-muted/38 border-muted-foreground/30"
-                                  ),
+                                ? 'schedule-card-visit' 
+                                : cn('schedule-card-service', statusConfig[job.status].cardBgClass),
                               job._isContinuation && "opacity-90"
                             )}
                             onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
@@ -2807,8 +2745,8 @@ const Schedule = () => {
                     </>
                   )}
                     
-                  {/* Edit/Delete only for Admin/Manager AND only for scheduled/in-progress jobs */}
-                  {isAdminOrManager && (selectedJob.status === 'scheduled' || selectedJob.status === 'in-progress') && (
+                  {/* Edit/Delete only for Admin/Manager */}
+                  {isAdminOrManager && (
                     <>
                       <Button variant="outline" size="icon" onClick={() => handleEditJob(selectedJob)}>
                         <Pencil className="h-4 w-4" />
