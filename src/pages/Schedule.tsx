@@ -1977,8 +1977,8 @@ const Schedule = () => {
                 )}
               </h3>
             </div>
-            <CardContent className="p-0">
-              <div className="relative pb-16 overflow-hidden">
+            <CardContent className="p-0 overflow-hidden">
+              <div className="relative pb-32 overflow-y-auto overflow-x-hidden" style={{ maxHeight: 'calc(100vh - 280px)', minHeight: '500px' }}>
                 {/* Current Time Indicator */}
                 {isTodayForIndicator(currentDate) && (
                   <div 
@@ -2110,11 +2110,11 @@ const Schedule = () => {
                         </div>
                       </HoverCardTrigger>
                       <HoverCardContent 
-                        side="right" 
-                        align="start"
-                        sideOffset={8}
-                        collisionPadding={16}
-                        className="w-72 p-0 shadow-xl border-border/50 overflow-hidden"
+                        side="top" 
+                        align="center"
+                        sideOffset={12}
+                        collisionPadding={24}
+                        className="w-72 p-0 shadow-xl border-border/50 overflow-visible z-[100]"
                       >
                         {/* Header with Type + Status */}
                         <div className="flex items-center justify-between p-3 bg-muted/30 border-b border-border/30">
