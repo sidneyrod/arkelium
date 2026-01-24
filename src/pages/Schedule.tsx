@@ -104,6 +104,8 @@ const statusConfig: Record<JobStatus, {
   badgeClass: string;
   indicatorClass: string;
   dotClass: string;
+  cardBgClass: string;
+  cardBorderClass: string;
 }> = {
   // Scheduled: anticipatory, professional blue
   scheduled: { 
@@ -113,8 +115,10 @@ const statusConfig: Record<JobStatus, {
     badgeClass: 'schedule-badge-scheduled',
     indicatorClass: 'schedule-status-indicator-scheduled',
     dotClass: 'bg-info',
+    cardBgClass: 'bg-info/10 hover:bg-info/16 dark:bg-info/12 dark:hover:bg-info/18',
+    cardBorderClass: 'border-l-info',
   },
-  // In Progress: warm, active attention with pulse
+  // In Progress: warm, active attention with pulse - YELLOW/AMBER
   'in-progress': { 
     color: 'text-warning', 
     bgColor: 'schedule-badge-inprogress border', 
@@ -122,8 +126,10 @@ const statusConfig: Record<JobStatus, {
     badgeClass: 'schedule-badge-inprogress',
     indicatorClass: 'schedule-status-indicator-inprogress',
     dotClass: 'bg-warning animate-pulse',
+    cardBgClass: 'bg-warning/12 hover:bg-warning/18 dark:bg-warning/14 dark:hover:bg-warning/20',
+    cardBorderClass: 'border-l-warning',
   },
-  // Completed: calm, subdued success
+  // Completed: calm, subdued success - GREEN
   completed: { 
     color: 'text-success/85', 
     bgColor: 'schedule-badge-completed border', 
@@ -131,6 +137,8 @@ const statusConfig: Record<JobStatus, {
     badgeClass: 'schedule-badge-completed',
     indicatorClass: 'schedule-status-indicator-completed',
     dotClass: 'bg-success/70',
+    cardBgClass: 'bg-success/12 hover:bg-success/18 dark:bg-success/14 dark:hover:bg-success/20',
+    cardBorderClass: 'border-l-success',
   },
   // Cancelled: visually quiet, de-emphasized
   cancelled: { 
@@ -140,6 +148,8 @@ const statusConfig: Record<JobStatus, {
     badgeClass: 'schedule-badge-cancelled',
     indicatorClass: 'schedule-status-indicator-cancelled',
     dotClass: 'bg-muted-foreground/50',
+    cardBgClass: 'bg-muted/10 hover:bg-muted/16 dark:bg-muted/12 dark:hover:bg-muted/18',
+    cardBorderClass: 'border-l-muted-foreground',
   },
 };
 
@@ -1529,13 +1539,13 @@ const Schedule = () => {
       <OverdueJobAlert />
       
       {/* Single-Line Executive Header: Calendar Nav + KPI Pills + Filters + Actions */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0">
         {/* Calendar Navigation (left) */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <Button variant="outline" size="icon" onClick={goToPrevious} className="h-9 w-9">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <div className="px-4 py-2 rounded-lg bg-card border border-border/50 min-w-[140px] text-center">
+          <div className="px-3 py-2 rounded-lg bg-card border border-border/50 min-w-[120px] text-center">
             <span className="font-medium text-sm">{format(currentDate, view === 'month' ? 'MMMM yyyy' : 'MMM d, yyyy')}</span>
           </div>
           <Button variant="outline" size="icon" onClick={goToNext} className="h-9 w-9">
@@ -1547,7 +1557,7 @@ const Schedule = () => {
         </div>
 
         {/* KPI Pills (center, inline compact) */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <div className="schedule-kpi-pill-inline schedule-kpi-pill-jobs">
             <span className="schedule-kpi-pill-value">{summaryStats.total}</span>
             <span className="schedule-kpi-pill-label">Jobs</span>
@@ -1570,10 +1580,10 @@ const Schedule = () => {
         </div>
 
         {/* Filters + Actions (right) */}
-        <div className="flex items-center gap-2 ml-auto flex-wrap">
+        <div className="flex items-center gap-2 ml-auto flex-shrink-0">
           {/* Service Type Filter */}
           <Select value={serviceTypeFilter} onValueChange={(v) => setServiceTypeFilter(v as 'all' | 'cleaning' | 'visit')}>
-            <SelectTrigger className="w-[120px] h-9">
+            <SelectTrigger className="w-[100px] h-9">
               <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
               <SelectValue placeholder="Type" />
             </SelectTrigger>
@@ -1596,7 +1606,7 @@ const Schedule = () => {
 
           {/* Employee Filter */}
           <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
-            <SelectTrigger className="w-[140px] h-9">
+            <SelectTrigger className="w-[120px] h-9">
               <User className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
               <SelectValue placeholder={t.schedule.filterByEmployee} />
             </SelectTrigger>
@@ -1610,7 +1620,7 @@ const Schedule = () => {
 
           {/* Status Filter */}
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as 'all' | JobStatus)}>
-            <SelectTrigger className="w-[120px] h-9">
+            <SelectTrigger className="w-[100px] h-9">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent className="bg-popover">
@@ -1738,10 +1748,10 @@ const Schedule = () => {
                                       "text-[10px] px-2 py-1.5 rounded-lg truncate cursor-pointer flex items-center gap-1.5 relative overflow-hidden",
                                       "transition-all duration-200 ease-out",
                                       "hover:scale-[1.02] hover:-translate-y-0.5",
-                                      // Premium type-based styling with left accent border
+                                      // Premium type-based styling with left accent border + status-based card bg
                                       isVisit 
-                                        ? "border-l-[3px] border-l-purple-500 bg-purple-500/6 hover:bg-purple-500/12 dark:bg-purple-500/8 dark:hover:bg-purple-500/14" 
-                                        : cn("border-l-[3px] border-l-info", statusConfig[job.status].badgeClass),
+                                        ? "border-l-[3px] border-l-purple-500 bg-purple-500/12 hover:bg-purple-500/18 dark:bg-purple-500/14 dark:hover:bg-purple-500/20" 
+                                        : cn("border-l-[3px]", statusConfig[job.status].cardBorderClass, statusConfig[job.status].cardBgClass),
                                       job._isContinuation && "opacity-90"
                                     )}
                                   >
@@ -1956,7 +1966,10 @@ const Schedule = () => {
                                     className={cn(
                                       "h-full p-2 text-xs cursor-pointer z-10 relative pl-3",
                                       "transition-all duration-200 ease-out",
-                                      getScheduleCardClass(job),
+                                      // For Visit: use CSS class; For Service: apply status-based colors
+                                      job.jobType === 'visit' 
+                                        ? 'schedule-card-visit' 
+                                        : cn('schedule-card-service', statusConfig[job.status].cardBgClass),
                                       job._isContinuation && "opacity-90"
                                     )}
                                     onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
@@ -2257,7 +2270,10 @@ const Schedule = () => {
                             className={cn(
                               "h-full p-3 cursor-pointer relative pl-5",
                               "transition-all duration-200 ease-out",
-                              getScheduleCardClass(job),
+                              // For Visit: use CSS class; For Service: apply status-based colors
+                              job.jobType === 'visit' 
+                                ? 'schedule-card-visit' 
+                                : cn('schedule-card-service', statusConfig[job.status].cardBgClass),
                               job._isContinuation && "opacity-90"
                             )}
                             onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
@@ -2489,11 +2505,8 @@ const Schedule = () => {
                               "hover:shadow-soft-md hover:-translate-y-0.5 hover:scale-[1.002]",
                               "active:scale-[0.998] active:shadow-soft-sm",
                               job.jobType === 'visit' 
-                                ? "border-l-purple-500"
-                                : job.status === 'scheduled' ? "border-l-info"
-                                : job.status === 'in-progress' ? "border-l-warning"
-                                : job.status === 'completed' ? "border-l-success"
-                                : "border-l-muted-foreground"
+                                ? "border-l-purple-500 bg-purple-500/12"
+                                : cn(statusConfig[job.status].cardBorderClass, statusConfig[job.status].cardBgClass)
                             )}
                             onClick={() => setSelectedJob(job)}
                           >
@@ -2522,7 +2535,7 @@ const Schedule = () => {
                                         className={cn(
                                           "text-[9px] px-1.5 py-0 flex-shrink-0",
                                           job.jobType === 'visit' 
-                                            ? "border-purple-500/30 bg-purple-500/10 text-purple-600 dark:text-purple-400" 
+                                            ? "border-purple-500/30 bg-purple-500/12 text-purple-600 dark:text-purple-400" 
                                             : "border-primary/30 bg-primary/5 text-primary"
                                         )}
                                       >
