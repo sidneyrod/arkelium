@@ -177,15 +177,48 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     set({ loading: true });
     
     try {
-      const { data, error } = await supabase
+      // Fetch notifications
+      const { data: notificationsData, error: notificationsError } = await supabase
         .from('notifications')
         .select('*')
         .or(`recipient_user_id.eq.${userId},recipient_user_id.is.null`)
         .order('created_at', { ascending: false })
         .limit(limit);
       
-      if (error) throw error;
-      set({ notifications: (data || []) as unknown as Notification[] });
+      if (notificationsError) throw notificationsError;
+      
+      // Fetch read status for broadcast notifications (per-user tracking)
+      const { data: readStatusData, error: readStatusError } = await supabase
+        .from('notification_read_status')
+        .select('notification_id')
+        .eq('user_id', userId);
+      
+      if (readStatusError) {
+        console.error('Error fetching read status:', readStatusError);
+      }
+      
+      // Create a Set of notification IDs the user has marked as read
+      const readNotificationIds = new Set(
+        (readStatusData || []).map(r => r.notification_id)
+      );
+      
+      // Merge read status: a notification is "read" if:
+      // - It's a direct notification with is_read=true, OR
+      // - It's a broadcast notification and exists in notification_read_status for this user
+      const notificationsWithReadStatus = (notificationsData || []).map(n => {
+        const isBroadcast = n.recipient_user_id === null;
+        const isReadByUser = isBroadcast 
+          ? readNotificationIds.has(n.id)
+          : n.is_read;
+        
+        return {
+          ...n,
+          is_read: isReadByUser,
+          read_at: isReadByUser ? (n.read_at || new Date().toISOString()) : null
+        };
+      }) as unknown as Notification[];
+      
+      set({ notifications: notificationsWithReadStatus });
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
@@ -198,14 +231,50 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     if (!userId) return;
 
     try {
-      const { count, error } = await supabase
+      // Count unread direct notifications
+      const { count: directCount, error: directError } = await supabase
         .from('notifications')
         .select('*', { count: 'exact', head: true })
         .eq('is_read', false)
-        .or(`recipient_user_id.eq.${userId},recipient_user_id.is.null`);
+        .eq('recipient_user_id', userId);
       
-      if (error) throw error;
-      set({ unreadCount: count || 0 });
+      if (directError) throw directError;
+      
+      // Get user's role for broadcast filtering
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .limit(1)
+        .single();
+      
+      const userRole = roleData?.role || '';
+      
+      // Count broadcast notifications not in read_status for this user
+      // We need to fetch and count manually since Supabase doesn't support NOT EXISTS easily
+      const { data: broadcastNotifications, error: broadcastError } = await supabase
+        .from('notifications')
+        .select('id')
+        .is('recipient_user_id', null)
+        .or(`role_target.eq.all,role_target.eq.${userRole}`);
+      
+      if (broadcastError) throw broadcastError;
+      
+      const broadcastIds = (broadcastNotifications || []).map(n => n.id);
+      
+      // Get which broadcast notifications the user has read
+      const { data: readBroadcasts, error: readError } = await supabase
+        .from('notification_read_status')
+        .select('notification_id')
+        .eq('user_id', userId)
+        .in('notification_id', broadcastIds.length > 0 ? broadcastIds : ['00000000-0000-0000-0000-000000000000']);
+      
+      if (readError) throw readError;
+      
+      const readBroadcastIds = new Set((readBroadcasts || []).map(r => r.notification_id));
+      const unreadBroadcastCount = broadcastIds.filter(id => !readBroadcastIds.has(id)).length;
+      
+      set({ unreadCount: (directCount || 0) + unreadBroadcastCount });
     } catch (error) {
       console.error('Error fetching unread count:', error);
     }
