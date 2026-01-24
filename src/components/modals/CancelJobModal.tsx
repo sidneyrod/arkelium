@@ -59,7 +59,7 @@ const CancelJobModal = ({ open, onOpenChange, job, onSuccess }: CancelJobModalPr
           job.employeeId,
           job.clientName,
           job.date,
-          reason.trim()
+          job.id
         );
       }
 
