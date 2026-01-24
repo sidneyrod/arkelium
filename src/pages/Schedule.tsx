@@ -1978,7 +1978,7 @@ const Schedule = () => {
               </h3>
             </div>
             <CardContent className="p-0 overflow-hidden">
-              <div className="relative pb-32 overflow-y-auto overflow-x-hidden" style={{ maxHeight: 'calc(100vh - 280px)', minHeight: '500px' }}>
+              <div className="relative pb-4 overflow-y-auto overflow-x-hidden" style={{ maxHeight: 'calc(100vh - 280px)', minHeight: '500px' }}>
                 {/* Current Time Indicator */}
                 {isTodayForIndicator(currentDate) && (
                   <div 
