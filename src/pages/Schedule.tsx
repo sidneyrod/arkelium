@@ -1544,16 +1544,70 @@ const Schedule = () => {
 
   return (
     <div className={cn(
-      "p-1 space-y-1 h-[calc(100vh/0.80-60px)] flex flex-col",
+      "p-1 space-y-1 h-[calc(100vh/0.75-40px)] flex flex-col",
       focusMode && "schedule-focus-mode"
     )}>
       {/* Overdue Job Alert - For Admin/Manager and Cleaners */}
       <OverdueJobAlert />
       
-      {/* Single-Line Executive Header: Calendar Nav + KPI Pills + Filters + Actions */}
-      <div className="flex items-center gap-2 min-w-0">
-        {/* Calendar Navigation (left) */}
+      {/* Single-Line Header: Search → Mode → KPIs → Date Nav → Add Job → Expand */}
+      <div className="flex items-center gap-2 w-full">
+        {/* 1. Search Bar (flex-1 to fill available space) */}
+        <div className="relative flex-1 min-w-[120px] max-w-[280px]">
+          <input
+            type="search"
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-8 w-full pl-7 pr-2 text-xs rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
+          />
+          <Filter className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+        </div>
+
+        {/* 2. View Mode Dropdown */}
+        <Select value={view} onValueChange={(v) => setView(v as ViewType)}>
+          <SelectTrigger className="w-[90px] h-8 text-xs flex-shrink-0">
+            <CalendarIcon className="h-3 w-3 mr-1 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-popover">
+            <SelectItem value="day">{t.schedule.day}</SelectItem>
+            <SelectItem value="week">{t.schedule.week}</SelectItem>
+            <SelectItem value="month">{t.schedule.month}</SelectItem>
+            <SelectItem value="timeline">
+              <span className="flex items-center gap-2">
+                <List className="h-3 w-3" />
+                Timeline
+              </span>
+            </SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* 3. KPI Pills (Jobs, Done, In Progress, Today) */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
+          <div className="schedule-kpi-pill-inline schedule-kpi-pill-jobs">
+            <span className="schedule-kpi-pill-value">{summaryStats.total}</span>
+            <span className="schedule-kpi-pill-label">Jobs</span>
+          </div>
+          <div className="schedule-kpi-pill-inline schedule-kpi-pill-completed">
+            <span className="schedule-kpi-pill-value">{summaryStats.completed}</span>
+            <span className="schedule-kpi-pill-label">Done</span>
+          </div>
+          <div className={cn(
+            "schedule-kpi-pill-inline",
+            summaryStats.inProgress > 0 ? "schedule-kpi-pill-inprogress" : "schedule-kpi-pill-jobs"
+          )}>
+            <span className="schedule-kpi-pill-value">{summaryStats.inProgress}</span>
+            <span className="schedule-kpi-pill-label">In Progress</span>
+          </div>
+          <div className="schedule-kpi-pill-inline schedule-kpi-pill-today">
+            <span className="schedule-kpi-pill-value">{summaryStats.todayCount}</span>
+            <span className="schedule-kpi-pill-label">Today</span>
+          </div>
+        </div>
+
+        {/* 4. Date Navigation + Today Button */}
+        <div className="flex items-center gap-1 flex-shrink-0">
           <Button variant="outline" size="icon" onClick={goToPrevious} className="h-8 w-8">
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -1568,91 +1622,35 @@ const Schedule = () => {
           </Button>
         </div>
 
-        {/* KPI Pills (center, flex-1 to absorb space) */}
-        <div className="flex items-center gap-1.5 flex-1 justify-center">
-          <div className="schedule-kpi-pill-inline schedule-kpi-pill-jobs">
-            <span className="schedule-kpi-pill-value">{summaryStats.total}</span>
-            <span className="schedule-kpi-pill-label">Jobs</span>
-          </div>
-          <div className="schedule-kpi-pill-inline schedule-kpi-pill-completed">
-            <span className="schedule-kpi-pill-value">{summaryStats.completed}</span>
-            <span className="schedule-kpi-pill-label">Done</span>
-          </div>
-          <div className={cn(
-            "schedule-kpi-pill-inline",
-            summaryStats.inProgress > 0 ? "schedule-kpi-pill-inprogress" : "schedule-kpi-pill-jobs"
-          )}>
-            <span className="schedule-kpi-pill-value">{summaryStats.inProgress}</span>
-            <span className="schedule-kpi-pill-label">Active</span>
-          </div>
-          <div className="schedule-kpi-pill-inline schedule-kpi-pill-today">
-            <span className="schedule-kpi-pill-value">{summaryStats.todayCount}</span>
-            <span className="schedule-kpi-pill-label">Today</span>
-          </div>
-        </div>
+        {/* 5. Add Job Button */}
+        {isAdminOrManager && (
+          <Button onClick={() => setShowAddJob(true)} className="gap-1.5 h-8 text-xs px-3 flex-shrink-0">
+            <CalendarPlus className="h-3.5 w-3.5" />
+            {t.schedule.addJob}
+          </Button>
+        )}
 
-        {/* Search + View + Actions (right) */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          {/* Unified Search Bar */}
-          <div className="relative">
-            <input
-              type="search"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-8 w-[160px] pl-7 pr-2 text-xs rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
-            />
-            <Filter className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-          </div>
-
-          {/* View Mode Dropdown */}
-          <Select value={view} onValueChange={(v) => setView(v as ViewType)}>
-            <SelectTrigger className="w-[90px] h-8 text-xs">
-              <CalendarIcon className="h-3 w-3 mr-1 text-muted-foreground" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-popover">
-              <SelectItem value="day">{t.schedule.day}</SelectItem>
-              <SelectItem value="week">{t.schedule.week}</SelectItem>
-              <SelectItem value="month">{t.schedule.month}</SelectItem>
-              <SelectItem value="timeline">
-                <span className="flex items-center gap-2">
-                  <List className="h-3 w-3" />
-                  Timeline
-                </span>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-          
-          {/* Focus Mode Toggle */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => setFocusMode(!focusMode)}
-                  className={cn(
-                    "h-8 w-8 transition-colors",
-                    focusMode && "bg-primary/10 text-primary"
-                  )}
-                >
-                  {focusMode ? <Minimize2 className="h-3.5 w-3.5" /> : <Expand className="h-3.5 w-3.5" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {focusMode ? 'Exit Focus Mode' : 'Focus Mode'}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          {isAdminOrManager && (
-            <Button onClick={() => setShowAddJob(true)} className="gap-1.5 h-8 text-xs px-3">
-              <CalendarPlus className="h-3.5 w-3.5" />
-              {t.schedule.addJob}
-            </Button>
-          )}
-        </div>
+        {/* 6. Focus Mode Toggle (last) */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => setFocusMode(!focusMode)}
+                className={cn(
+                  "h-8 w-8 transition-colors flex-shrink-0",
+                  focusMode && "bg-primary/10 text-primary"
+                )}
+              >
+                {focusMode ? <Minimize2 className="h-3.5 w-3.5" /> : <Expand className="h-3.5 w-3.5" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {focusMode ? 'Exit Focus Mode' : 'Focus Mode'}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {/* Calendar Views with smooth transitions */}
