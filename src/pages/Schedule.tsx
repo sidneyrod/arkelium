@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { 
   CalendarPlus, 
   ChevronLeft, 
@@ -1707,7 +1708,7 @@ const Schedule = () => {
         {view === 'week' && (
           <Card className="border-border/40 shadow-soft-sm overflow-hidden min-w-0">
             <CardContent className="p-0">
-              <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border/40 bg-muted/20">
+              <div className="grid grid-cols-[60px_repeat(7,minmax(0,1fr))] border-b border-border/40 bg-muted/20">
                 <div className="p-2 text-center text-sm text-muted-foreground border-r border-border/30 flex items-center justify-center">
                   <Clock className="h-4 w-4" />
                 </div>
@@ -1748,7 +1749,7 @@ const Schedule = () => {
                 )}
                 
                 {TIME_SLOTS.map((slot, slotIndex) => (
-                  <div key={slot.value} className="grid grid-cols-[60px_repeat(7,1fr)] border-b schedule-grid-line last:border-b-0">
+                  <div key={slot.value} className="grid grid-cols-[60px_repeat(7,minmax(0,1fr))] border-b schedule-grid-line last:border-b-0">
                     <div className="p-2 text-xs text-muted-foreground border-r border-border/20 bg-muted/5 flex items-start justify-center h-14">
                       {slot.label}
                     </div>
@@ -1784,67 +1785,172 @@ const Schedule = () => {
                             const clampedHeightPx = Math.min(heightPx, maxHeightPx);
                             
                             return (
-                              <div 
-                                key={job.id + (job._isContinuation ? '-cont' : '')}
-                                className={cn(
-                                  "absolute left-1 right-1 p-2 rounded-xl border text-xs cursor-pointer z-10 overflow-hidden box-border max-w-full",
-                                  "transition-all duration-200 ease-out shadow-soft-sm",
-                                  "hover:shadow-soft-md hover:-translate-y-0.5 hover:scale-[1.01] hover:z-20",
-                                  "active:scale-[0.99] active:shadow-soft-sm",
-                                  job.jobType === 'visit' 
-                                    ? "bg-purple-500/10 border-purple-500/20" 
-                                    : statusConfig[job.status].bgColor,
-                                  job._isContinuation && "border-dashed border-l-4 border-l-muted-foreground/30 opacity-95"
-                                )}
-                                style={{ height: `${clampedHeightPx - 6}px`, top: 2 }}
-                                onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
-                              >
-                                {/* Continuation visual indicator (top gradient) */}
-                                {job._isContinuation && (
-                                  <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-b from-muted-foreground/10 to-transparent rounded-t-xl" />
-                                )}
-                                
-                                {/* Card content with hierarchy */}
-                                <div className="flex flex-col h-full">
-                                  {/* Primary: Client name */}
-                                  <div className="flex items-center gap-1 mb-0.5">
-                                    {job.jobType === 'visit' ? (
-                                      <Eye className="h-3 w-3 text-purple-500 flex-shrink-0" />
-                                    ) : (
-                                      <Sparkles className="h-3 w-3 text-primary/70 flex-shrink-0" />
+                              <HoverCard key={job.id + (job._isContinuation ? '-cont' : '')} openDelay={300} closeDelay={100}>
+                                <HoverCardTrigger asChild>
+                                  <div 
+                                    className={cn(
+                                      "schedule-event left-1 right-1 p-2 rounded-xl border text-xs cursor-pointer z-10",
+                                      "transition-all duration-200 ease-out shadow-[var(--schedule-card-shadow)]",
+                                      "hover:shadow-soft-md hover:-translate-y-0.5 hover:scale-[1.01] hover:z-20",
+                                      "active:scale-[0.99] active:shadow-soft-sm",
+                                      job.jobType === 'visit' 
+                                        ? "bg-purple-500/10 border-purple-500/20" 
+                                        : statusConfig[job.status].bgColor,
+                                      job._isContinuation && "border-dashed border-l-4 border-l-muted-foreground/30 opacity-95"
                                     )}
-                                    <span className="font-semibold truncate text-[11px]">{job.clientName}</span>
-                                    {/* Status pill */}
-                                    <span className={cn(
-                                      "ml-auto text-[8px] font-medium uppercase px-1.5 py-0.5 rounded-full flex-shrink-0",
-                                      statusConfig[job.status].bgColor,
-                                      statusConfig[job.status].color
-                                    )}>
+                                    style={{ height: `${clampedHeightPx - 6}px`, top: 2 }}
+                                    onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
+                                  >
+                                    {/* Continuation visual indicator (top gradient) */}
+                                    {job._isContinuation && (
+                                      <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-b from-muted-foreground/10 to-transparent rounded-t-xl" />
+                                    )}
+                                    
+                                    {/* Card content with hierarchy */}
+                                    <div className="flex flex-col h-full">
+                                      {/* Row 1: Type chip + Status */}
+                                      <div className="flex items-center gap-1 mb-0.5">
+                                        <Badge 
+                                          variant="outline" 
+                                          className={cn(
+                                            "text-[7px] px-1 py-0 h-3.5 font-semibold",
+                                            job.jobType === 'visit' 
+                                              ? "border-purple-400/40 bg-purple-500/10 text-purple-600 dark:text-purple-400" 
+                                              : "border-primary/30 bg-primary/5 text-primary"
+                                          )}
+                                        >
+                                          {job.jobType === 'visit' ? 'Visit' : 'Service'}
+                                        </Badge>
+                                        <span className={cn(
+                                          "ml-auto text-[7px] font-semibold uppercase px-1.5 py-0.5 rounded-full flex-shrink-0",
+                                          statusConfig[job.status].bgColor,
+                                          statusConfig[job.status].color
+                                        )}>
+                                          {statusConfig[job.status].label}
+                                        </span>
+                                      </div>
+                                      
+                                      {/* Primary: Client name */}
+                                      <span className="font-semibold truncate text-[11px] leading-tight">{job.clientName}</span>
+                                      
+                                      {/* Secondary: Time range */}
+                                      <p className="text-[10px] font-medium text-foreground/75 mt-0.5">
+                                        {formatTimeDisplay(job.time)} – {crossesMidnight ? '12:00 AM' : formatTimeDisplay(endTime)}
+                                      </p>
+                                      
+                                      {/* Tertiary: Employee (only if enough height) */}
+                                      {rowSpan >= 2 && (
+                                        <p className="text-[9px] text-muted-foreground truncate mt-auto">
+                                          {job.employeeName}
+                                        </p>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Crosses midnight visual indicator (bottom gradient + arrow) */}
+                                    {crossesMidnight && (
+                                      <>
+                                        <div className="absolute bottom-0 inset-x-0 h-3 bg-gradient-to-t from-warning/15 to-transparent rounded-b-xl" />
+                                        <div className="absolute bottom-1 right-1.5">
+                                          <ArrowRight className="h-3 w-3 text-warning/70" />
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                </HoverCardTrigger>
+                                <HoverCardContent 
+                                  side="right" 
+                                  align="start"
+                                  sideOffset={8}
+                                  collisionPadding={16}
+                                  className="w-72 p-0 shadow-xl border-border/50 overflow-hidden"
+                                >
+                                  {/* Header with Type + Status */}
+                                  <div className="flex items-center justify-between p-3 bg-muted/30 border-b border-border/30">
+                                    <Badge 
+                                      variant="outline" 
+                                      className={cn(
+                                        "text-[10px] px-2 py-0.5 font-semibold",
+                                        job.jobType === 'visit' 
+                                          ? "border-purple-400/50 bg-purple-500/15 text-purple-600 dark:text-purple-400" 
+                                          : "border-primary/40 bg-primary/10 text-primary"
+                                      )}
+                                    >
+                                      {job.jobType === 'visit' ? 'Visit' : 'Service'}
+                                    </Badge>
+                                    <Badge className={cn("text-[10px]", statusConfig[job.status].bgColor, statusConfig[job.status].color)}>
                                       {statusConfig[job.status].label}
-                                    </span>
+                                    </Badge>
                                   </div>
                                   
-                                  {/* Secondary: Time range */}
-                                  <p className="text-[10px] font-medium text-foreground/75">
-                                    {formatTimeDisplay(job.time)} – {crossesMidnight ? '12:00 AM' : formatTimeDisplay(endTime)}
-                                  </p>
-                                  
-                                  {/* Tertiary: Employee */}
-                                  <p className="text-[9px] text-muted-foreground truncate mt-auto">
-                                    {job.employeeName}
-                                  </p>
-                                </div>
-                                
-                                {/* Crosses midnight visual indicator (bottom gradient + arrow) */}
-                                {crossesMidnight && (
-                                  <>
-                                    <div className="absolute bottom-0 inset-x-0 h-3 bg-gradient-to-t from-warning/15 to-transparent rounded-b-xl" />
-                                    <div className="absolute bottom-1 right-1.5">
-                                      <ArrowRight className="h-3 w-3 text-warning/70" />
+                                  {/* Content */}
+                                  <div className="p-3 space-y-3">
+                                    {/* Continuation notice */}
+                                    {job._isContinuation && (
+                                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground bg-muted/40 px-2 py-1 rounded">
+                                        <div className="w-1 h-3 rounded-full bg-muted-foreground/30" />
+                                        <span className="italic">Continues from previous day</span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* Client Name */}
+                                    <p className="font-semibold text-sm">{job.clientName}</p>
+                                    
+                                    {/* Details Grid */}
+                                    <div className="space-y-2 text-xs">
+                                      {/* Date + Time */}
+                                      <div className="flex items-start gap-2">
+                                        <Clock className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                                        <div>
+                                          <p className="font-medium">{format(toSafeLocalDate(job.date), 'EEE, MMM d')}</p>
+                                          <p className="text-muted-foreground">
+                                            {formatTimeDisplay(job.time)} – {crossesMidnight ? '12:00 AM (next day)' : formatTimeDisplay(endTime)} ({job.duration})
+                                          </p>
+                                        </div>
+                                      </div>
+                                      
+                                      {/* Address */}
+                                      <div className="flex items-start gap-2">
+                                        <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                                        <p className={cn(
+                                          job.address === 'No address' && "text-muted-foreground/60 italic"
+                                        )}>
+                                          {job.address}
+                                        </p>
+                                      </div>
+                                      
+                                      {/* Assigned */}
+                                      <div className="flex items-center gap-2">
+                                        <User className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                        <p>{job.employeeName}</p>
+                                      </div>
                                     </div>
-                                  </>
-                                )}
-                              </div>
+                                  </div>
+                                  
+                                  {/* Quick Actions Footer */}
+                                  <div className="flex items-center gap-2 p-3 bg-muted/20 border-t border-border/30">
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm" 
+                                      className="flex-1 h-7 text-xs"
+                                      onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
+                                    >
+                                      <Eye className="h-3 w-3 mr-1.5" />
+                                      Open Details
+                                    </Button>
+                                    {isAdminOrManager && job.status === 'scheduled' && (
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-7 text-xs"
+                                        onClick={(e) => { e.stopPropagation(); handleEditJob(job); }}
+                                      >
+                                        <Pencil className="h-3 w-3 mr-1" />
+                                        Edit
+                                      </Button>
+                                    )}
+                                  </div>
+                                </HoverCardContent>
+                              </HoverCard>
                             );
                           })}
                         </div>
@@ -1908,7 +2014,7 @@ const Schedule = () => {
                   );
                 })}
                 
-                {/* Overlay jobs with absolute positioning */}
+                {/* Overlay jobs with absolute positioning - Premium HoverCard */}
                 {getJobsForDate(currentDate).map((job) => {
                   const startSlotIndex = TIME_SLOTS.findIndex(s => s.value === job.time);
                   if (startSlotIndex === -1) return null;
@@ -1926,86 +2032,177 @@ const Schedule = () => {
                   const clampedCardHeight = Math.min(cardHeight, maxCardHeight);
                   
                   return (
-                    <div
-                      key={job.id + (job._isContinuation ? '-cont' : '')}
-                      className="absolute left-20 right-3 overflow-hidden"
-                      style={{ top: topPosition + 4, height: clampedCardHeight - 8 }}
-                    >
-                      <div 
-                        className={cn(
-                          "h-full p-3 rounded-xl border cursor-pointer overflow-hidden shadow-soft-sm",
-                          "transition-all duration-200 ease-out",
-                          "hover:shadow-soft-md hover:-translate-y-0.5 hover:scale-[1.005]",
-                          "active:scale-[0.995] active:shadow-soft-sm",
-                          job.jobType === 'visit' 
-                            ? "bg-purple-500/10 border-purple-500/20" 
-                            : statusConfig[job.status].bgColor,
-                          job._isContinuation && "border-dashed border-l-4 border-l-muted-foreground/30 opacity-95"
-                        )}
-                        onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
-                      >
-                        {/* Continuation visual indicator (top gradient) */}
-                        {job._isContinuation && (
-                          <div className="absolute top-0 inset-x-0 h-2.5 bg-gradient-to-b from-muted-foreground/10 to-transparent rounded-t-xl" />
-                        )}
-                        
-                        {/* Content with hierarchy */}
-                        <div className="flex flex-col h-full relative">
-                          {/* Primary row: Icon + Client + Status */}
-                          <div className="flex items-center gap-2 mb-1">
-                            {job.jobType === 'visit' ? (
-                              <Eye className="h-4 w-4 text-purple-500 flex-shrink-0" />
-                            ) : (
-                              <Sparkles className="h-4 w-4 text-primary/70 flex-shrink-0" />
+                    <HoverCard key={job.id + (job._isContinuation ? '-cont' : '')} openDelay={300} closeDelay={100}>
+                      <HoverCardTrigger asChild>
+                        <div
+                          className="schedule-event left-20 right-3"
+                          style={{ top: topPosition + 4, height: clampedCardHeight - 8 }}
+                        >
+                          <div 
+                            className={cn(
+                              "h-full p-3 rounded-xl border cursor-pointer shadow-[var(--schedule-card-shadow)]",
+                              "transition-all duration-200 ease-out",
+                              "hover:shadow-soft-md hover:-translate-y-0.5 hover:scale-[1.005]",
+                              "active:scale-[0.995] active:shadow-soft-sm",
+                              job.jobType === 'visit' 
+                                ? "bg-purple-500/10 border-purple-500/20" 
+                                : statusConfig[job.status].bgColor,
+                              job._isContinuation && "border-dashed border-l-4 border-l-muted-foreground/30 opacity-95"
                             )}
-                            <span className="font-semibold text-sm truncate">{job.clientName}</span>
-                            <Badge 
-                              variant="outline" 
-                              className={cn(
-                                "text-[9px] px-1.5 py-0 flex-shrink-0 ml-auto",
-                                statusConfig[job.status].bgColor,
-                                statusConfig[job.status].color
-                              )}
-                            >
-                              {statusConfig[job.status].label}
-                            </Badge>
+                            onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
+                          >
+                            {/* Continuation visual indicator (top gradient) */}
+                            {job._isContinuation && (
+                              <div className="absolute top-0 inset-x-0 h-2.5 bg-gradient-to-b from-muted-foreground/10 to-transparent rounded-t-xl" />
+                            )}
+                            
+                            {/* Content with hierarchy */}
+                            <div className="flex flex-col h-full relative">
+                              {/* Row 1: Type chip + Client + Status */}
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge 
+                                  variant="outline" 
+                                  className={cn(
+                                    "text-[9px] px-1.5 py-0 h-4 font-semibold",
+                                    job.jobType === 'visit' 
+                                      ? "border-purple-400/40 bg-purple-500/10 text-purple-600 dark:text-purple-400" 
+                                      : "border-primary/30 bg-primary/5 text-primary"
+                                  )}
+                                >
+                                  {job.jobType === 'visit' ? 'Visit' : 'Service'}
+                                </Badge>
+                                <span className="font-semibold text-sm truncate flex-1">{job.clientName}</span>
+                                <Badge 
+                                  variant="outline" 
+                                  className={cn(
+                                    "text-[9px] px-1.5 py-0 flex-shrink-0",
+                                    statusConfig[job.status].bgColor,
+                                    statusConfig[job.status].color
+                                  )}
+                                >
+                                  {statusConfig[job.status].label}
+                                </Badge>
+                              </div>
+                              
+                              {/* Secondary: Time range */}
+                              <div className="flex items-center gap-2 text-xs font-medium text-foreground/75 mb-1">
+                                <span>
+                                  {formatTimeDisplay(job.time)} – {crossesMidnight ? '12:00 AM' : formatTimeDisplay(endTime)}
+                                </span>
+                                <span className="text-muted-foreground font-normal">({job.duration})</span>
+                              </div>
+                              
+                              {/* Tertiary: Address + Employee */}
+                              <p className="text-xs text-muted-foreground truncate">{job.address}</p>
+                              <p className="text-xs text-muted-foreground truncate">{job.employeeName}</p>
+                            </div>
+                            
+                            {/* Crosses midnight visual indicator (bottom gradient + arrow) */}
+                            {crossesMidnight && (
+                              <>
+                                <div className="absolute bottom-0 inset-x-0 h-4 bg-gradient-to-t from-warning/15 to-transparent rounded-b-xl" />
+                                <div className="absolute bottom-1.5 right-2">
+                                  <ArrowRight className="h-3.5 w-3.5 text-warning/70" />
+                                </div>
+                              </>
+                            )}
                           </div>
-                          
-                          {/* Secondary: Time range */}
-                          <div className="flex items-center gap-2 text-xs font-medium text-foreground/75 mb-1">
-                            <span>
-                              {formatTimeDisplay(job.time)} – {crossesMidnight ? '12:00 AM' : formatTimeDisplay(endTime)}
-                            </span>
-                            <span className="text-muted-foreground font-normal">({job.duration})</span>
-                            <Badge 
-                              variant="outline" 
-                              className={cn(
-                                "text-[9px] px-1.5 py-0",
-                                job.jobType === 'visit' 
-                                  ? "border-purple-500/30 text-purple-600 dark:text-purple-400" 
-                                  : "border-primary/30 text-primary"
-                              )}
-                            >
-                              {job.jobType === 'visit' ? 'Visit' : 'Service'}
-                            </Badge>
-                          </div>
-                          
-                          {/* Tertiary: Address + Employee */}
-                          <p className="text-xs text-muted-foreground truncate">{job.address}</p>
-                          <p className="text-xs text-muted-foreground truncate">{job.employeeName}</p>
+                        </div>
+                      </HoverCardTrigger>
+                      <HoverCardContent 
+                        side="right" 
+                        align="start"
+                        sideOffset={8}
+                        collisionPadding={16}
+                        className="w-72 p-0 shadow-xl border-border/50 overflow-hidden"
+                      >
+                        {/* Header with Type + Status */}
+                        <div className="flex items-center justify-between p-3 bg-muted/30 border-b border-border/30">
+                          <Badge 
+                            variant="outline" 
+                            className={cn(
+                              "text-[10px] px-2 py-0.5 font-semibold",
+                              job.jobType === 'visit' 
+                                ? "border-purple-400/50 bg-purple-500/15 text-purple-600 dark:text-purple-400" 
+                                : "border-primary/40 bg-primary/10 text-primary"
+                            )}
+                          >
+                            {job.jobType === 'visit' ? 'Visit' : 'Service'}
+                          </Badge>
+                          <Badge className={cn("text-[10px]", statusConfig[job.status].bgColor, statusConfig[job.status].color)}>
+                            {statusConfig[job.status].label}
+                          </Badge>
                         </div>
                         
-                        {/* Crosses midnight visual indicator (bottom gradient + arrow) */}
-                        {crossesMidnight && (
-                          <>
-                            <div className="absolute bottom-0 inset-x-0 h-4 bg-gradient-to-t from-warning/15 to-transparent rounded-b-xl" />
-                            <div className="absolute bottom-1.5 right-2">
-                              <ArrowRight className="h-3.5 w-3.5 text-warning/70" />
+                        {/* Content */}
+                        <div className="p-3 space-y-3">
+                          {/* Continuation notice */}
+                          {job._isContinuation && (
+                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground bg-muted/40 px-2 py-1 rounded">
+                              <div className="w-1 h-3 rounded-full bg-muted-foreground/30" />
+                              <span className="italic">Continues from previous day</span>
                             </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
+                          )}
+                          
+                          {/* Client Name */}
+                          <p className="font-semibold text-sm">{job.clientName}</p>
+                          
+                          {/* Details Grid */}
+                          <div className="space-y-2 text-xs">
+                            {/* Date + Time */}
+                            <div className="flex items-start gap-2">
+                              <Clock className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                              <div>
+                                <p className="font-medium">{format(toSafeLocalDate(job.date), 'EEE, MMM d')}</p>
+                                <p className="text-muted-foreground">
+                                  {formatTimeDisplay(job.time)} – {crossesMidnight ? '12:00 AM (next day)' : formatTimeDisplay(endTime)} ({job.duration})
+                                </p>
+                              </div>
+                            </div>
+                            
+                            {/* Address */}
+                            <div className="flex items-start gap-2">
+                              <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                              <p className={cn(
+                                job.address === 'No address' && "text-muted-foreground/60 italic"
+                              )}>
+                                {job.address}
+                              </p>
+                            </div>
+                            
+                            {/* Assigned */}
+                            <div className="flex items-center gap-2">
+                              <User className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              <p>{job.employeeName}</p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Quick Actions Footer */}
+                        <div className="flex items-center gap-2 p-3 bg-muted/20 border-t border-border/30">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex-1 h-7 text-xs"
+                            onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
+                          >
+                            <Eye className="h-3 w-3 mr-1.5" />
+                            Open Details
+                          </Button>
+                          {isAdminOrManager && job.status === 'scheduled' && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-7 text-xs"
+                              onClick={(e) => { e.stopPropagation(); handleEditJob(job); }}
+                            >
+                              <Pencil className="h-3 w-3 mr-1" />
+                              Edit
+                            </Button>
+                          )}
+                        </div>
+                      </HoverCardContent>
+                    </HoverCard>
                   );
                 })}
               </div>

@@ -81,6 +81,11 @@
     --chart-3: 160 84% 39%;
     --chart-4: 217 91% 60%;
     --chart-5: 38 92% 50%;
+
+    /* Schedule surface layers - Light theme polish */
+    --schedule-grid-bg: 220 14% 97%;
+    --schedule-cell-hover: 220 14% 94%;
+    --schedule-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
   }
 
   .dark {
@@ -142,6 +147,11 @@
     --chart-3: 160 60% 50%;
     --chart-4: 217 91% 65%;
     --chart-5: 38 92% 55%;
+
+    /* Schedule surface layers - Dark theme */
+    --schedule-grid-bg: 220 14% 8%;
+    --schedule-cell-hover: 220 14% 12%;
+    --schedule-card-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
   }
 }
 
@@ -190,6 +200,21 @@
   
   .schedule-card-hover {
     @apply hover:shadow-lg hover:-translate-y-0.5 hover:scale-[1.01];
+  }
+  
+  /* Schedule containment utilities for layout stability */
+  .schedule-container {
+    @apply overflow-hidden min-w-0;
+  }
+  
+  .schedule-day-cell {
+    @apply relative overflow-hidden min-w-0;
+  }
+  
+  .schedule-event {
+    @apply absolute box-border overflow-hidden;
+    max-width: calc(100% - 8px);
+    text-overflow: ellipsis;
   }
   
   .schedule-grid-line {
