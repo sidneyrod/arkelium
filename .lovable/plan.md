@@ -1,66 +1,43 @@
 
 
-# Plano: Remover Espaço Vazio na Base do Schedule
+# Plano: Ajustar Zoom Global para 80%
 
-## Problema Identificado
-O calendário em todos os modos tem valores de `min-height` e offsets de `max-height` excessivos, criando espaço vazio desperdiçado na base.
+## Alteração Única
+
+**Arquivo:** `src/components/layout/AppLayout.tsx`
+
+**Linha 127 - Alterar zoom de 0.85 para 0.80:**
+
+```tsx
+// De:
+<div className="min-h-[calc(100vh/0.85)] bg-background flex w-full" style={{ zoom: 0.85 }}>
+
+// Para:
+<div className="min-h-[calc(100vh/0.80)] bg-background flex w-full" style={{ zoom: 0.80 }}>
+```
 
 ---
 
-## Correções Necessárias
+## Ajuste Complementar no Sidebar
 
-### 1. Week View (Linha 1877)
-**Antes:**
-```tsx
-<div className="max-h-[calc(100vh-320px)] min-h-[400px] overflow-y-auto ...">
-```
+**Arquivo:** `src/components/layout/Sidebar.tsx`
 
-**Depois:**
+**Linha 240 - Atualizar cálculo de altura:**
+
 ```tsx
-<div className="max-h-[calc(100vh-200px)] overflow-y-auto ...">
+// De:
+style={{ height: 'calc(100vh / 0.85)' }}
+
+// Para:
+style={{ height: 'calc(100vh / 0.80)' }}
 ```
-- Remover `min-h-[400px]` completamente
-- Reduzir offset de `320px` para `200px`
 
 ---
 
-### 2. Day View (Linha 2188)
-**Antes:**
-```tsx
-style={{ maxHeight: 'calc(100vh - 280px)', minHeight: '500px' }}
-```
+## Resultado
 
-**Depois:**
-```tsx
-style={{ maxHeight: 'calc(100vh - 200px)' }}
-```
-- Remover `minHeight: '500px'` completamente
-- Reduzir offset de `280px` para `200px`
-
----
-
-### 3. Month View (Linha 1724)
-**Antes:**
-```tsx
-"min-h-[90px] p-1.5 border-r border-b ..."
-```
-
-**Depois:**
-```tsx
-"min-h-[75px] p-1.5 border-r border-b ..."
-```
-- Reduzir altura mínima das células de `90px` para `75px`
-
----
-
-## Arquivo a Modificar
-`src/pages/Schedule.tsx`
-
----
-
-## Resultado Esperado
-- O calendário preenche todo o espaço vertical disponível
-- Sem espaço branco desperdiçado na base
-- A legenda (Service/Visit/Scheduled/etc.) fica colada na parte inferior do calendário
-- Comportamento consistente em Day, Week e Month views
+- Todos os botões do Schedule (Add Job, Focus Mode, filtros) ficarão visíveis
+- A mudança é automática para todos os usuários
+- Layout consistente em todas as resoluções de tela
+- Mantém a estética de alta densidade enterprise
 
