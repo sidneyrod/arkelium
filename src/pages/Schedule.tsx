@@ -1544,46 +1544,46 @@ const Schedule = () => {
 
   return (
     <div className={cn(
-      "p-2 lg:p-3 space-y-3",
+      "p-1 lg:p-1.5 space-y-1.5",
       focusMode && "schedule-focus-mode"
     )}>
       {/* Overdue Job Alert - For Admin/Manager and Cleaners */}
       <OverdueJobAlert />
       
       {/* Single-Line Executive Header: Calendar Nav + KPI Pills + Filters + Actions */}
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center gap-2 min-w-0">
         {/* Calendar Navigation (left) */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <Button variant="outline" size="icon" onClick={goToPrevious} className="h-9 w-9">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <Button variant="outline" size="icon" onClick={goToPrevious} className="h-8 w-8">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <div className="px-3 py-2 rounded-lg bg-card border border-border/50 min-w-[120px] text-center">
-            <span className="font-medium text-sm">{format(currentDate, view === 'month' ? 'MMMM yyyy' : 'MMM d, yyyy')}</span>
+          <div className="px-2.5 py-1.5 rounded-md bg-card border border-border/50 min-w-[110px] text-center">
+            <span className="font-medium text-xs">{format(currentDate, view === 'month' ? 'MMMM yyyy' : 'MMM d, yyyy')}</span>
           </div>
-          <Button variant="outline" size="icon" onClick={goToNext} className="h-9 w-9">
+          <Button variant="outline" size="icon" onClick={goToNext} className="h-8 w-8">
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="sm" className="h-9" onClick={goToToday}>
+          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={goToToday}>
             {t.schedule.today}
           </Button>
         </div>
 
         {/* KPI Pills (center, inline compact) */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           <div className="schedule-kpi-pill-inline schedule-kpi-pill-jobs">
             <span className="schedule-kpi-pill-value">{summaryStats.total}</span>
             <span className="schedule-kpi-pill-label">Jobs</span>
           </div>
           <div className="schedule-kpi-pill-inline schedule-kpi-pill-completed">
             <span className="schedule-kpi-pill-value">{summaryStats.completed}</span>
-            <span className="schedule-kpi-pill-label">Completed</span>
+            <span className="schedule-kpi-pill-label">Done</span>
           </div>
           <div className={cn(
             "schedule-kpi-pill-inline",
             summaryStats.inProgress > 0 ? "schedule-kpi-pill-inprogress" : "schedule-kpi-pill-jobs"
           )}>
             <span className="schedule-kpi-pill-value">{summaryStats.inProgress}</span>
-            <span className="schedule-kpi-pill-label">In Progress</span>
+            <span className="schedule-kpi-pill-label">Active</span>
           </div>
           <div className="schedule-kpi-pill-inline schedule-kpi-pill-today">
             <span className="schedule-kpi-pill-value">{summaryStats.todayCount}</span>
@@ -1592,23 +1592,23 @@ const Schedule = () => {
         </div>
 
         {/* Search + View + Actions (right) */}
-        <div className="flex items-center gap-2 ml-auto flex-shrink-0">
+        <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
           {/* Unified Search Bar */}
           <div className="relative">
             <input
               type="search"
-              placeholder="Search client, user, status..."
+              placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-9 w-[200px] pl-8 pr-3 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              className="h-8 w-[160px] pl-7 pr-2 text-xs rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
             />
-            <Filter className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Filter className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
           </div>
 
           {/* View Mode Dropdown */}
           <Select value={view} onValueChange={(v) => setView(v as ViewType)}>
-            <SelectTrigger className="w-[100px] h-9">
-              <CalendarIcon className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+            <SelectTrigger className="w-[90px] h-8 text-xs">
+              <CalendarIcon className="h-3 w-3 mr-1 text-muted-foreground" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-popover">
@@ -1617,7 +1617,7 @@ const Schedule = () => {
               <SelectItem value="month">{t.schedule.month}</SelectItem>
               <SelectItem value="timeline">
                 <span className="flex items-center gap-2">
-                  <List className="h-3.5 w-3.5" />
+                  <List className="h-3 w-3" />
                   Timeline
                 </span>
               </SelectItem>
@@ -1633,11 +1633,11 @@ const Schedule = () => {
                   size="icon"
                   onClick={() => setFocusMode(!focusMode)}
                   className={cn(
-                    "h-9 w-9 transition-colors",
+                    "h-8 w-8 transition-colors",
                     focusMode && "bg-primary/10 text-primary"
                   )}
                 >
-                  {focusMode ? <Minimize2 className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
+                  {focusMode ? <Minimize2 className="h-3.5 w-3.5" /> : <Expand className="h-3.5 w-3.5" />}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -1647,8 +1647,8 @@ const Schedule = () => {
           </TooltipProvider>
 
           {isAdminOrManager && (
-            <Button onClick={() => setShowAddJob(true)} className="gap-2 h-9">
-              <CalendarPlus className="h-4 w-4" />
+            <Button onClick={() => setShowAddJob(true)} className="gap-1.5 h-8 text-xs px-3">
+              <CalendarPlus className="h-3.5 w-3.5" />
               {t.schedule.addJob}
             </Button>
           )}
@@ -1678,7 +1678,7 @@ const Schedule = () => {
                       key={idx}
                       onClick={() => handleDayClick(day)}
                       className={cn(
-                        cn(focusMode ? "min-h-[95px]" : "min-h-[75px]", "p-1.5 border-r border-b schedule-grid-line last:border-r-0 cursor-pointer transition-all duration-150"),
+                        cn(focusMode ? "min-h-[100px]" : "min-h-[85px]", "p-1 border-r border-b schedule-grid-line last:border-r-0 cursor-pointer transition-all duration-150"),
                         "hover:bg-primary/5",
                         !isCurrentMonth && "bg-muted/5 text-muted-foreground/60",
                         isTodayCell && "bg-primary/5 ring-1 ring-inset ring-primary/20"
@@ -1831,7 +1831,7 @@ const Schedule = () => {
                 })}
               </div>
               
-              <div className={cn("overflow-y-auto overflow-x-hidden relative", focusMode ? "max-h-[calc(100vh-120px)]" : "max-h-[calc(100vh-200px)]")}>
+              <div className={cn("overflow-y-auto overflow-x-hidden relative", focusMode ? "max-h-[calc(100vh-80px)]" : "max-h-[calc(100vh-140px)]")}>
                 {/* Current Time Indicator - Enhanced with floating label */}
                 {getWeekDays().some(day => isTodayForIndicator(day)) && (
                   <div 
@@ -2142,7 +2142,7 @@ const Schedule = () => {
               </h3>
             </div>
             <CardContent className="p-0 overflow-hidden">
-              <div className="relative pb-4 overflow-y-auto overflow-x-hidden" style={{ maxHeight: focusMode ? 'calc(100vh - 120px)' : 'calc(100vh - 200px)' }}>
+              <div className="relative pb-2 overflow-y-auto overflow-x-hidden" style={{ maxHeight: focusMode ? 'calc(100vh - 80px)' : 'calc(100vh - 140px)' }}>
                 {/* Current Time Indicator - Enhanced with floating label */}
                 {isTodayForIndicator(currentDate) && (
                   <div 
