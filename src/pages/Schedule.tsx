@@ -1366,6 +1366,35 @@ const Schedule = () => {
     return hours * 60 + minutes;
   };
 
+  // Calculate max height for a job card to avoid overlapping the next job
+  const getMaxHeightBeforeNextJob = (currentJob: ScheduledJob, allJobsOnDay: ScheduledJob[], slotHeight: number): number | null => {
+    const currentStartMinutes = timeToMinutes(currentJob.time);
+    
+    // Find jobs that start after this job's start time on the same day
+    const subsequentJobs = allJobsOnDay.filter(j => {
+      if (j.id === currentJob.id) return false;
+      if (j._isContinuation && currentJob._isContinuation) return false; // Don't compare continuations
+      const jobStartMinutes = timeToMinutes(j.time);
+      return jobStartMinutes > currentStartMinutes;
+    });
+    
+    if (subsequentJobs.length === 0) return null;
+    
+    // Find the earliest start time among subsequent jobs
+    const earliestNextStart = subsequentJobs.reduce((min, j) => {
+      const start = timeToMinutes(j.time);
+      return start < min ? start : min;
+    }, Infinity);
+    
+    if (earliestNextStart === Infinity) return null;
+    
+    // Calculate the height in pixels from current job start to next job start
+    const slotsUntilNextJob = (earliestNextStart - currentStartMinutes) / 30; // Each slot is 30 minutes
+    const heightUntilNextJob = slotsUntilNextJob * slotHeight;
+    
+    return heightUntilNextJob;
+  };
+
   // Check if a job overlaps with a specific time slot
   const getJobsForTimeSlot = (date: Date, timeSlot: string): ScheduledJob[] => {
     const dayJobs = getJobsForDate(date);
@@ -1799,10 +1828,20 @@ const Schedule = () => {
                           const endTime = calculateEndTime(job.time, job.duration);
                           const crossesMidnight = !job._isContinuation && doesJobCrossMidnight(job._originalTime || job.time, job._originalDuration || job.duration);
                           
-                          // Clamp height to available slots remaining + ensure min legibility height
+                          // Calculate maximum height before the next job starts (to prevent overlap)
+                          const maxBeforeNextJob = getMaxHeightBeforeNextJob(job, dayJobs, slotHeight);
+                          
+                          // Clamp height to available slots remaining
                           const remainingSlots = TIME_SLOTS.length - startSlotIndex;
-                          const maxCardHeight = remainingSlots * slotHeight;
-                          const minCardHeight = 80; // Minimum height for legibility
+                          let maxCardHeight = remainingSlots * slotHeight;
+                          
+                          // If there's a job after this one, cap the height to avoid overlap (with small gap)
+                          if (maxBeforeNextJob !== null) {
+                            maxCardHeight = Math.min(maxCardHeight, maxBeforeNextJob - 4);
+                          }
+                          
+                          // Minimum height for legibility (at least one slot minus padding)
+                          const minCardHeight = slotHeight - 8;
                           const clampedCardHeight = Math.max(
                             Math.min(cardHeight, maxCardHeight),
                             minCardHeight
@@ -2042,26 +2081,37 @@ const Schedule = () => {
                 })}
                 
                 {/* Overlay jobs with absolute positioning - Premium HoverCard */}
-                {getJobsForDate(currentDate).map((job) => {
-                  const startSlotIndex = TIME_SLOTS.findIndex(s => s.value === job.time);
-                  if (startSlotIndex === -1) return null;
-                  
-                  const rowSpan = getJobRowSpan(job);
-                  const slotHeight = 56; // h-14 = 56px
-                  const topPosition = startSlotIndex * slotHeight;
-                  const cardHeight = rowSpan * slotHeight;
-                  const endTime = calculateEndTime(job.time, job.duration);
-                  const crossesMidnight = !job._isContinuation && doesJobCrossMidnight(job._originalTime || job.time, job._originalDuration || job.duration);
-                  
-                  // Clamp height to available slots remaining in the grid
-                  // but ensure minimum height for legibility (Type chip, Client, Time, Address)
-                  const remainingSlots = TIME_SLOTS.length - startSlotIndex;
-                  const maxCardHeight = remainingSlots * slotHeight;
-                  const minCardHeight = 100; // Minimum height to show all essential info
-                  const clampedCardHeight = Math.max(
-                    Math.min(cardHeight, maxCardHeight),
-                    minCardHeight
-                  );
+                {(() => {
+                  const dayJobs = getJobsForDate(currentDate);
+                  return dayJobs.map((job) => {
+                    const startSlotIndex = TIME_SLOTS.findIndex(s => s.value === job.time);
+                    if (startSlotIndex === -1) return null;
+                    
+                    const rowSpan = getJobRowSpan(job);
+                    const slotHeight = 56; // h-14 = 56px
+                    const topPosition = startSlotIndex * slotHeight;
+                    const cardHeight = rowSpan * slotHeight;
+                    const endTime = calculateEndTime(job.time, job.duration);
+                    const crossesMidnight = !job._isContinuation && doesJobCrossMidnight(job._originalTime || job.time, job._originalDuration || job.duration);
+                    
+                    // Calculate maximum height before the next job starts (to prevent overlap)
+                    const maxBeforeNextJob = getMaxHeightBeforeNextJob(job, dayJobs, slotHeight);
+                    
+                    // Clamp height to available slots remaining in the grid
+                    const remainingSlots = TIME_SLOTS.length - startSlotIndex;
+                    let maxCardHeight = remainingSlots * slotHeight;
+                    
+                    // If there's a job after this one, cap the height to avoid overlap (with small gap)
+                    if (maxBeforeNextJob !== null) {
+                      maxCardHeight = Math.min(maxCardHeight, maxBeforeNextJob - 4);
+                    }
+                    
+                    // Minimum height for legibility (at least one slot minus padding)
+                    const minCardHeight = slotHeight - 8;
+                    const clampedCardHeight = Math.max(
+                      Math.min(cardHeight, maxCardHeight),
+                      minCardHeight
+                    );
                   
                   return (
                     <HoverCard key={job.id + (job._isContinuation ? '-cont' : '')} openDelay={300} closeDelay={100}>
@@ -2236,7 +2286,8 @@ const Schedule = () => {
                       </HoverCardContent>
                     </HoverCard>
                   );
-                })}
+                });
+                })()}
               </div>
             </CardContent>
           </Card>
