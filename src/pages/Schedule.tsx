@@ -1705,7 +1705,7 @@ const Schedule = () => {
 
         {/* Week View */}
         {view === 'week' && (
-          <Card className="border-border/40 shadow-soft-sm overflow-hidden">
+          <Card className="border-border/40 shadow-soft-sm overflow-hidden min-w-0">
             <CardContent className="p-0">
               <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border/40 bg-muted/20">
                 <div className="p-2 text-center text-sm text-muted-foreground border-r border-border/30 flex items-center justify-center">
@@ -1736,7 +1736,7 @@ const Schedule = () => {
                 })}
               </div>
               
-              <div className="max-h-[calc(100vh-320px)] min-h-[400px] overflow-y-auto relative">
+              <div className="max-h-[calc(100vh-320px)] min-h-[400px] overflow-y-auto overflow-x-hidden relative">
                 {/* Current Time Indicator */}
                 {getWeekDays().some(day => isTodayForIndicator(day)) && (
                   <div 
@@ -1764,7 +1764,7 @@ const Schedule = () => {
                         <div 
                           key={`${day.toISOString()}-${slot.value}`} 
                           className={cn(
-                            "border-r schedule-grid-line last:border-r-0 h-14 transition-colors relative",
+                            "border-r schedule-grid-line last:border-r-0 h-14 transition-colors relative overflow-hidden min-w-0",
                             isAdminOrManager && !hasSpanningJob && "hover:bg-primary/5 cursor-pointer",
                             hasSpanningJob && "bg-transparent pointer-events-none",
                             isTodayCell && "bg-primary/[0.02]"
@@ -1787,7 +1787,7 @@ const Schedule = () => {
                               <div 
                                 key={job.id + (job._isContinuation ? '-cont' : '')}
                                 className={cn(
-                                  "absolute left-1 right-1 p-2 rounded-xl border text-xs cursor-pointer z-10 overflow-hidden",
+                                  "absolute left-1 right-1 p-2 rounded-xl border text-xs cursor-pointer z-10 overflow-hidden box-border max-w-full",
                                   "transition-all duration-200 ease-out shadow-soft-sm",
                                   "hover:shadow-soft-md hover:-translate-y-0.5 hover:scale-[1.01] hover:z-20",
                                   "active:scale-[0.99] active:shadow-soft-sm",
@@ -1872,7 +1872,7 @@ const Schedule = () => {
               </h3>
             </div>
             <CardContent className="p-0">
-              <div className="relative pb-16">
+              <div className="relative pb-16 overflow-hidden">
                 {/* Current Time Indicator */}
                 {isTodayForIndicator(currentDate) && (
                   <div 
@@ -1895,7 +1895,7 @@ const Schedule = () => {
                     <div 
                       key={slot.value}
                       className={cn(
-                        "flex gap-3 border-b schedule-grid-line last:border-b-0 h-14",
+                        "flex gap-3 border-b schedule-grid-line last:border-b-0 h-14 min-w-0",
                         isAdminOrManager && !isOccupied && "hover:bg-primary/5 cursor-pointer transition-colors"
                       )}
                       onClick={() => isAdminOrManager && !isOccupied && handleTimeSlotClick(currentDate, slot.value)}
@@ -1903,7 +1903,7 @@ const Schedule = () => {
                       <div className="w-20 text-sm text-muted-foreground shrink-0 flex items-start justify-center pt-2 bg-muted/5 border-r border-border/20">
                         {slot.label}
                       </div>
-                      <div className="flex-1 relative" />
+                      <div className="flex-1 relative min-w-0 overflow-hidden" />
                     </div>
                   );
                 })}
@@ -1928,7 +1928,7 @@ const Schedule = () => {
                   return (
                     <div
                       key={job.id + (job._isContinuation ? '-cont' : '')}
-                      className="absolute left-20 right-0 px-3"
+                      className="absolute left-20 right-3 overflow-hidden"
                       style={{ top: topPosition + 4, height: clampedCardHeight - 8 }}
                     >
                       <div 
