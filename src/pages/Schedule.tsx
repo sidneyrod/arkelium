@@ -1737,7 +1737,7 @@ const Schedule = () => {
                                     )}
                                   </div>
                                 </TooltipTrigger>
-                                <TooltipContent side="right" className="max-w-[240px] p-0 shadow-xl border-0 overflow-hidden">
+                                <TooltipContent side="top" align="center" collisionPadding={40} className="max-w-[240px] p-0 shadow-xl border-0 overflow-hidden z-[100]">
                                   {/* Premium tooltip header */}
                                   <div className={cn("p-2.5", getHoverCardHeaderClass(job))}>
                                     <Badge className={cn("text-[9px] px-2 py-0.5", getTypeBadgeClass(job, true))}>
@@ -2021,11 +2021,11 @@ const Schedule = () => {
                                 </div>
                               </HoverCardTrigger>
                               <HoverCardContent 
-                                side="right" 
-                                align="start"
-                                sideOffset={8}
-                                collisionPadding={16}
-                                className="w-80 p-0 shadow-2xl border-0 overflow-hidden"
+                                side="top" 
+                                align="center"
+                                sideOffset={12}
+                                collisionPadding={40}
+                                className="w-80 p-0 shadow-2xl border-0 overflow-hidden z-[100]"
                               >
                                 {/* Premium Header with prominent type badge */}
                                 <div className={cn("p-4", getHoverCardHeaderClass(job))}>
@@ -2307,8 +2307,8 @@ const Schedule = () => {
                         side="top" 
                         align="center"
                         sideOffset={12}
-                        collisionPadding={24}
-                        className="w-80 p-0 shadow-2xl border-0 overflow-visible z-[100]"
+                        collisionPadding={40}
+                        className="w-80 p-0 shadow-2xl border-0 overflow-hidden z-[100]"
                       >
                         {/* Premium Header with prominent type badge */}
                         <div className={cn("p-4", getHoverCardHeaderClass(job))}>
