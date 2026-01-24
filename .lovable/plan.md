@@ -1,371 +1,487 @@
 
+# Premium Enterprise Schedule Redesign
 
-## Visual and UX Refinement Plan: Premium Enterprise Schedule
+## Executive Summary
 
-### Phase 1: New Design System Variables (index.css)
+Complete visual and UX overhaul of the Schedule screen to establish it as the flagship "Command Center" of Arkelium. This redesign focuses on perceived value, operational clarity, and enterprise-grade sophistication while preserving all existing functionality.
 
-**Add dedicated schedule color tokens for semantic clarity:**
+---
 
+## Phase 1: Executive Summary Header (KPI Dashboard Strip)
+
+**Move monthly indicators to a premium dashboard strip above the calendar:**
+
+### Current State
+- Summary stats displayed as inline text below controls
+- Plain formatting: "45 jobs · 38 completed · 2 in progress"
+
+### New Implementation
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  [←] January 2026 [→] [Today]                                        │
+│                                                                       │
+│  ┌──────────┐  ┌──────────┐  ┌───────────┐  ┌──────────┐             │
+│  │ 45 Jobs  │  │ 38       │  │ 0         │  │ 2 Today  │  [+Add Job] │
+│  │          │  │ Completed│  │ In Progress│ │          │             │
+│  └──────────┘  └──────────┘  └───────────┘  └──────────┘             │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Design Specifications
+| KPI Pill | Style |
+|----------|-------|
+| Jobs | Neutral bg-muted/50, muted text |
+| Completed | Success tint bg-success/8, text-success/70 |
+| In Progress | Warning tint bg-warning/10, text-warning (if >0) |
+| Today | Primary emphasis bg-primary/10, text-primary, ring-primary/20 |
+
+**CSS Classes:**
 ```css
-:root {
-  /* Service vs Visit distinction */
-  --schedule-service-bg: 217 91% 60% / 0.08;
-  --schedule-service-border: 217 91% 60% / 0.25;
-  --schedule-service-glow: 0 0 12px rgba(59, 130, 246, 0.15);
-  
-  --schedule-visit-bg: 270 60% 60% / 0.06;
-  --schedule-visit-border: 270 60% 60% / 0.35;
-  --schedule-visit-text: 270 60% 55%;
-  
-  /* Status-specific accent colors (stronger contrast) */
-  --status-scheduled-bg: 217 91% 60% / 0.12;
-  --status-scheduled-border: 217 91% 60% / 0.30;
-  --status-scheduled-indicator: 217 91% 60%;
-  
-  --status-inprogress-bg: 38 92% 50% / 0.15;
-  --status-inprogress-border: 38 92% 50% / 0.40;
-  --status-inprogress-indicator: 38 92% 50%;
-  
-  --status-completed-bg: 160 84% 39% / 0.10;
-  --status-completed-border: 160 84% 39% / 0.25;
-  --status-completed-indicator: 160 84% 39%;
-  
-  --status-cancelled-bg: 220 10% 50% / 0.08;
-  --status-cancelled-border: 220 10% 50% / 0.20;
+.schedule-kpi-pill {
+  @apply px-4 py-2.5 rounded-xl flex flex-col items-center justify-center;
+  @apply border border-border/30 bg-card/80;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.06);
 }
 
-.dark {
-  /* Enhanced glow for dark mode */
-  --schedule-service-glow: 0 0 16px rgba(59, 130, 246, 0.25);
-  --schedule-visit-glow: 0 0 16px rgba(168, 85, 247, 0.20);
+.schedule-kpi-pill-today {
+  @apply bg-primary/8 border-primary/20 ring-1 ring-primary/15;
 }
 ```
 
 ---
 
-### Phase 2: Card Architecture Redesign (Schedule.tsx)
+## Phase 2: Current Time Indicator - Precision Redesign
 
-**New card wrapper classes for Service vs Visit:**
+### Requirements
+- Show ONLY in Day and Week views (NEVER in Month)
+- Respect user's local timezone via `useTimezone()` hook
+- Accuracy to the minute
+- Update every 60 seconds
 
-| Type | Light Mode | Dark Mode |
-|------|------------|-----------|
-| **Service** | Solid bg, subtle blue glow, prominent shadow | Inner glow, stronger shadow |
-| **Visit** | Outlined style, dashed/dotted border, lighter fill | Glass-like with purple accent |
+### Visual Design
+```
+────●─────────── Now · 1:55 PM ─────────────────────────
+```
 
-**Implementation approach:**
-
+### Implementation
 ```tsx
-// New utility function for card styling
-const getCardStyle = (job: ScheduledJob) => {
-  const isVisit = job.jobType === 'visit';
-  const status = job.status;
+// Enhanced current time indicator with floating label
+const CurrentTimeIndicator = ({ position, view }: { position: number; view: ViewType }) => {
+  const { formatLocal } = useTimezone();
+  const [currentTimeLabel, setCurrentTimeLabel] = useState('');
   
-  const baseStyles = cn(
-    "rounded-xl transition-all duration-200 ease-out cursor-pointer",
-    "hover:-translate-y-0.5 hover:scale-[1.01]"
+  useEffect(() => {
+    const updateLabel = () => {
+      setCurrentTimeLabel(formatLocal(new Date(), 'h:mm a'));
+    };
+    updateLabel();
+    const interval = setInterval(updateLabel, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, [formatLocal]);
+  
+  if (view === 'month') return null;
+  
+  return (
+    <div className="schedule-current-time-line" style={{ top: position }}>
+      <div className="schedule-current-time-dot" />
+      <div className="schedule-current-time-label">
+        Now · {currentTimeLabel}
+      </div>
+    </div>
   );
-  
-  if (isVisit) {
-    // VISIT: Outlined, lighter, glass-like
-    return cn(baseStyles,
-      "bg-background/60 backdrop-blur-sm",
-      "border-2 border-dashed border-purple-400/40 dark:border-purple-400/50",
-      "shadow-[inset_0_1px_0_rgba(168,85,247,0.1)]",
-      "hover:border-purple-400/60 hover:shadow-lg"
-    );
-  } else {
-    // SERVICE: Solid, prominent, with glow
-    return cn(baseStyles,
-      statusCardStyles[status].bg,
-      statusCardStyles[status].border,
-      "shadow-[var(--schedule-card-shadow)]",
-      "hover:shadow-[var(--schedule-service-glow),var(--shadow-lg)]"
-    );
-  }
 };
 ```
 
----
+### CSS Specifications
+```css
+.schedule-current-time-line {
+  @apply absolute left-0 right-0 h-[2px] z-40 pointer-events-none;
+  background: linear-gradient(90deg, 
+    hsl(0 72% 51% / 0.8) 0%, 
+    hsl(0 72% 51% / 0.6) 50%,
+    hsl(0 72% 51% / 0.2) 100%);
+}
 
-### Phase 3: Status Badge System Enhancement
+.schedule-current-time-dot {
+  @apply absolute left-14 -top-1.5 w-3 h-3 rounded-full;
+  background: hsl(0 72% 51%);
+  box-shadow: 0 0 0 3px hsl(0 72% 51% / 0.2);
+  animation: time-indicator-pulse 3s ease-in-out infinite;
+}
 
-**Redesigned status badges with left-side indicator stripe:**
+.schedule-current-time-label {
+  @apply absolute left-20 -top-2.5 text-[10px] font-medium;
+  @apply px-2 py-0.5 rounded-full;
+  @apply bg-destructive/90 text-white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
 
-```tsx
-// Status indicator stripe on left edge of card
-<div className={cn(
-  "absolute left-0 top-2 bottom-2 w-1 rounded-full",
-  status === 'scheduled' && "bg-info",
-  status === 'in-progress' && "bg-warning animate-pulse",
-  status === 'completed' && "bg-success/70",
-  status === 'cancelled' && "bg-muted-foreground/40"
-)} />
-
-// Corner status badge (top-right)
-<span className={cn(
-  "absolute top-2 right-2 text-[8px] font-bold uppercase tracking-wider",
-  "px-2 py-0.5 rounded-full shadow-sm",
-  statusBadgeStyles[status]
-)}>
-  {statusLabels[status]}
-</span>
+@keyframes time-indicator-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px hsl(0 72% 51% / 0.2); }
+  50% { box-shadow: 0 0 0 5px hsl(0 72% 51% / 0.1); }
+}
 ```
 
-**Status badge color refinement:**
+---
 
-| Status | Background | Text | Effect |
-|--------|------------|------|--------|
-| Scheduled | `bg-info/15` | `text-info` | Subtle |
-| In Progress | `bg-warning/20` | `text-warning` | Pulsing glow |
-| Completed | `bg-success/12` | `text-success/80` | Subdued check |
-| Cancelled | `bg-muted/50` | `text-muted-foreground/60` | Strikethrough effect |
+## Phase 3: Unified Card Architecture (Service = Visit Parity)
+
+### Core Principle
+**Service and Visit have IDENTICAL visual weight.** They differ ONLY by color accent, icon, and badge label.
+
+### Unified Card Structure (All Views)
+```
+┌────────────────────────────────────────────────┐
+│ ▌ [SERVICE]  Client Name              [Status] │
+│ ▌                                               │
+│ ▌ 🕐 9:00 AM – 11:00 AM (2h)                   │
+│ ▌ 📍 123 Main St, Toronto                      │
+│ ▌ 👤 John Smith                                │
+└────────────────────────────────────────────────┘
+```
+
+### Color Differentiation Only
+| Element | Service | Visit |
+|---------|---------|-------|
+| Left stripe | Blue (--info) | Purple (#8B5CF6) |
+| Type badge bg | bg-info/12 | bg-purple-500/12 |
+| Type badge text | text-info | text-purple-600 |
+| Card hover glow | Blue glow | Purple glow |
+
+### Shared Elements (Identical)
+- Card dimensions
+- Typography hierarchy
+- Shadow/elevation
+- Border radius (rounded-xl)
+- Hover interactions
+- Status badge position/styling
 
 ---
 
-### Phase 4: View-Specific Rendering
+## Phase 4: View-Specific Rendering
 
-#### Month View (Compact, Color-Driven)
-- Cards show only: **Icon + Client name + Status dot**
-- Color-coded left border indicates type (blue = Service, purple = Visit)
-- Status shown as a small colored dot in corner
-- Hover for full details
+### Month View (Compact, Color-Driven)
+**Purpose:** High-level overview, density focused
 
+**Card Design:**
 ```tsx
-// Month view card (ultra-compact)
 <div className={cn(
   "flex items-center gap-1.5 px-2 py-1.5 rounded-lg",
-  "border-l-3", // Left accent border
-  isVisit ? "border-l-purple-500" : "border-l-info",
-  isVisit ? "bg-purple-500/5" : statusBgLight[status]
+  "border-l-[3px]",
+  isVisit ? "border-l-purple-500 bg-purple-500/5" : "border-l-info bg-info/5"
 )}>
-  {isVisit ? <Eye className="h-3 w-3 text-purple-500" /> : <Sparkles className="h-3 w-3 text-info" />}
-  <span className="truncate text-[10px] font-medium">{job.clientName}</span>
-  <span className={cn("w-2 h-2 rounded-full ml-auto", statusDotColor[status])} />
+  {isVisit ? <Eye className="h-2.5 w-2.5" /> : <Sparkles className="h-2.5 w-2.5" />}
+  <span className="text-[10px] font-semibold truncate flex-1">{clientName}</span>
+  <span className={cn("w-2 h-2 rounded-full", statusDotClass)} />
 </div>
 ```
 
-#### Week View (Duration-Focused)
-- Cards span their duration slots with clear time boundaries
-- Show: **Type badge + Client + Time range + Status**
-- Stronger visual weight than Month
-- Time range displayed prominently
+**No current time indicator in Month view.**
 
+---
+
+### Week View (Duration-Focused)
+**Purpose:** Time block visualization with medium detail
+
+**Card Design:**
 ```tsx
-// Week view card with duration emphasis
-<div className={cn(cardBaseStyles, isVisit ? visitStyles : serviceStyles)}>
-  <div className="flex items-center gap-2 mb-1">
-    <Badge variant="outline" className={typeBadgeStyles}>
-      {isVisit ? 'VISIT' : 'SERVICE'}
+<div className={cn("p-2 rounded-xl", cardTypeClass)}>
+  {/* Status stripe */}
+  <div className={cn("schedule-status-indicator", statusIndicatorClass)} />
+  
+  {/* Type + Client */}
+  <div className="flex items-center gap-2 mb-0.5">
+    <Badge variant="outline" className={typeBadgeClass}>
+      {isVisit ? 'VISIT' : 'SVC'}
     </Badge>
-    <span className="text-[10px] font-medium text-muted-foreground">
-      {formatTime(job.time)} - {formatTime(endTime)}
-    </span>
+    <span className="font-semibold text-[11px] truncate">{clientName}</span>
   </div>
-  <p className="font-semibold text-sm truncate">{job.clientName}</p>
-  {/* Status stripe on left */}
+  
+  {/* Time range emphasized */}
+  <p className="text-[10px] font-medium text-foreground/75">
+    {startTime} – {endTime}
+  </p>
+  
+  {/* Status dot */}
+  <span className={cn("w-2 h-2 rounded-full ml-auto", statusDotClass)} />
 </div>
 ```
 
-#### Day View (Immersive, Wide Cards)
-- Full-width cards with maximum detail
-- Show: **Large type badge + Client + Full time + Duration + Address + Assigned staff**
-- Premium card styling with elevation on hover
-- Status prominently displayed with icon
+**Current time indicator:** Red line with dot (no floating label)
 
+---
+
+### Day View (Immersive, Power User)
+**Purpose:** Full operational detail, command center mode
+
+**Critical Change: Flexible Time Grid**
+- Time slots EXPAND to fit card content
+- No text truncation allowed
+- Cards show ALL details
+
+**Card Design (Standard Height >90px):**
 ```tsx
-// Day view card (maximum detail)
-<div className={cn(
-  "p-4 rounded-xl", 
-  cardBaseStyles,
-  isVisit ? visitPremiumStyles : servicePremiumStyles
-)}>
-  {/* Top row: Type + Status */}
-  <div className="flex items-center justify-between mb-2">
-    <Badge className={cn(
-      "text-xs px-3 py-1 font-bold tracking-wide",
-      isVisit 
-        ? "bg-purple-500/15 text-purple-600 border-purple-400/30" 
-        : "bg-info/15 text-info border-info/30"
-    )}>
+<div className={cn("p-4 rounded-xl h-full", cardTypeClass)}>
+  {/* Status indicator stripe */}
+  <div className={cn("schedule-status-indicator", statusIndicatorClass)} />
+  
+  {/* Row 1: Type Badge + Client + Status */}
+  <div className="flex items-center gap-3 mb-2">
+    <Badge variant="outline" className={cn("text-xs px-3 py-1", typeBadgeClass)}>
       {isVisit ? 'VISIT' : 'SERVICE'}
     </Badge>
-    <Badge className={statusBadgePremiumStyles}>
+    <h4 className="text-base font-semibold truncate flex-1">{clientName}</h4>
+    <Badge className={statusBadgeClass}>
       {statusIcon} {statusLabel}
     </Badge>
   </div>
   
-  {/* Client name - Hero element */}
-  <h4 className="text-base font-semibold mb-2">{job.clientName}</h4>
+  {/* Row 2: Time with full range + duration */}
+  <div className="flex items-center gap-2 text-sm text-foreground/75 mb-2">
+    <Clock className="h-4 w-4" />
+    <span className="font-medium">{startTime} – {endTime}</span>
+    <span className="text-muted-foreground">({duration})</span>
+  </div>
   
-  {/* Details grid */}
-  <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+  {/* Row 3: Details grid */}
+  <div className="grid grid-cols-2 gap-3 text-sm text-muted-foreground">
     <div className="flex items-center gap-2">
-      <Clock className="h-4 w-4" />
-      <span>{timeRange} ({duration})</span>
+      <MapPin className="h-4 w-4 flex-shrink-0" />
+      <span className="truncate">{address}</span>
     </div>
     <div className="flex items-center gap-2">
-      <User className="h-4 w-4" />
-      <span>{job.employeeName}</span>
+      <User className="h-4 w-4 flex-shrink-0" />
+      <span className="font-medium">{employeeName}</span>
     </div>
   </div>
 </div>
 ```
 
+**Current time indicator:** Full design with floating label "Now · 1:55 PM"
+
 ---
 
-### Phase 5: Enhanced HoverCard Design
+## Phase 5: Enhanced HoverCard (Premium Detail View)
 
-**Premium hover card with clear type distinction:**
+### Design Structure
+```
+┌──────────────────────────────────────────────┐
+│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │  ← Gradient header
+│  [    SERVICE    ]                           │  ← Large type badge
+├──────────────────────────────────────────────┤
+│  ● Scheduled                                 │  ← Status banner
+├──────────────────────────────────────────────┤
+│                                              │
+│  John & Jane Smith                           │  ← Client (hero)
+│                                              │
+│  🕐  Friday, Jan 24                          │
+│      9:00 AM – 11:00 AM (2h)                 │
+│                                              │
+│  📍  123 Main Street, Toronto ON             │
+│                                              │
+│  👤  Maria Garcia                            │
+│                                              │
+├──────────────────────────────────────────────┤
+│  [   Open Details   ]  [ Edit ]              │  ← Actions
+└──────────────────────────────────────────────┘
+```
 
+### Implementation
 ```tsx
-<HoverCardContent className="w-80 p-0 shadow-2xl border-0 overflow-hidden">
-  {/* Header with prominent type badge */}
+<HoverCardContent className="w-80 p-0 shadow-2xl border-0 overflow-hidden rounded-xl">
+  {/* Gradient Header */}
   <div className={cn(
-    "p-4",
+    "px-4 py-5",
     isVisit 
-      ? "bg-gradient-to-r from-purple-500/20 to-purple-500/5" 
-      : "bg-gradient-to-r from-info/20 to-info/5"
+      ? "bg-gradient-to-br from-purple-500/20 via-purple-500/10 to-transparent" 
+      : "bg-gradient-to-br from-info/20 via-info/10 to-transparent"
   )}>
     <Badge className={cn(
-      "text-sm px-4 py-1.5 font-bold tracking-wide shadow-md",
-      isVisit 
-        ? "bg-purple-500 text-white" 
-        : "bg-info text-white"
+      "text-sm px-5 py-2 font-bold tracking-wider shadow-lg",
+      isVisit ? "bg-purple-500 text-white" : "bg-info text-white"
     )}>
       {isVisit ? 'VISIT' : 'SERVICE'}
     </Badge>
   </div>
   
-  {/* Status banner */}
+  {/* Status Banner */}
   <div className={cn(
-    "px-4 py-2 flex items-center gap-2 border-b",
-    statusBannerStyles[status]
+    "px-4 py-2.5 flex items-center gap-2.5 border-b",
+    statusBannerClass
   )}>
-    {statusIcon}
+    <span className={cn("w-2.5 h-2.5 rounded-full", statusDotClass)} />
     <span className="font-semibold">{statusLabel}</span>
-    {status === 'in-progress' && <span className="animate-pulse">●</span>}
+    {status === 'in-progress' && (
+      <span className="text-warning animate-pulse ml-auto">●</span>
+    )}
   </div>
   
   {/* Content */}
-  <div className="p-4 space-y-3">
-    <h4 className="text-lg font-bold">{job.clientName}</h4>
+  <div className="p-5 space-y-4">
+    <h4 className="text-lg font-bold">{clientName}</h4>
     
-    <div className="space-y-2 text-sm">
-      <div className="flex items-center gap-3">
-        <Clock className="h-4 w-4 text-muted-foreground" />
+    <div className="space-y-3 text-sm">
+      {/* Time details */}
+      <div className="flex items-start gap-3">
+        <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
         <div>
-          <p className="font-medium">{formatDate(job.date)}</p>
+          <p className="font-medium">{formattedDate}</p>
           <p className="text-muted-foreground">{timeRange} ({duration})</p>
         </div>
       </div>
       
-      <div className="flex items-center gap-3">
-        <MapPin className="h-4 w-4 text-muted-foreground" />
-        <p>{job.address}</p>
+      {/* Address */}
+      <div className="flex items-start gap-3">
+        <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+        <p>{address}</p>
       </div>
       
+      {/* Assigned staff */}
       <div className="flex items-center gap-3">
         <User className="h-4 w-4 text-muted-foreground" />
-        <p className="font-medium">{job.employeeName}</p>
+        <p className="font-medium">{employeeName}</p>
       </div>
     </div>
   </div>
   
-  {/* Action footer */}
-  <div className="flex gap-2 p-3 bg-muted/30 border-t">
-    <Button size="sm" className="flex-1">Open Details</Button>
-    <Button size="sm" variant="outline">Edit</Button>
+  {/* Actions */}
+  <div className="flex gap-2 p-4 bg-muted/20 border-t">
+    <Button size="sm" className="flex-1 h-9">Open Details</Button>
+    <Button size="sm" variant="outline" className="h-9">Edit</Button>
   </div>
 </HoverCardContent>
 ```
 
 ---
 
-### Phase 6: Premium Visual Polish
+## Phase 6: Premium Color System
 
-**Add to index.css:**
-
+### Status Colors (Calm, Consistent)
 ```css
-/* Service card glow effect */
-.schedule-card-service {
-  @apply relative;
-  box-shadow: 
-    0 1px 3px rgba(0, 0, 0, 0.06),
-    0 0 0 1px rgba(59, 130, 246, 0.08);
+:root {
+  /* Scheduled - Professional anticipation (blue) */
+  --status-scheduled-bg: 217 91% 60% / 0.10;
+  --status-scheduled-text: 217 91% 55%;
+  --status-scheduled-dot: 217 91% 60%;
+  
+  /* In Progress - Warm active attention (amber) */
+  --status-inprogress-bg: 38 92% 50% / 0.12;
+  --status-inprogress-text: 38 92% 45%;
+  --status-inprogress-dot: 38 92% 50%;
+  
+  /* Completed - Calm success (muted green) */
+  --status-completed-bg: 160 60% 40% / 0.08;
+  --status-completed-text: 160 60% 35%;
+  --status-completed-dot: 160 60% 40% / 0.70;
+  
+  /* Cancelled - Quiet, de-emphasized (gray) */
+  --status-cancelled-bg: 220 10% 50% / 0.06;
+  --status-cancelled-text: 220 10% 45%;
+  --status-cancelled-dot: 220 10% 50% / 0.50;
 }
+```
 
-.schedule-card-service:hover {
-  box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.08),
-    0 0 20px rgba(59, 130, 246, 0.12);
+### No Bright Colors Rule
+- No saturated primary colors for status
+- All backgrounds use alpha transparency (0.06 - 0.12)
+- Text colors are desaturated versions
+- Gradients are "almost imperceptible"
+
+---
+
+## Phase 7: Interaction & Micro-UX
+
+### Hover Behavior
+```css
+.schedule-card:hover {
+  transform: translateY(-2px) scale(1.005);
+  box-shadow: var(--schedule-card-glow), 0 8px 24px rgba(0,0,0,0.08);
 }
+```
 
-.dark .schedule-card-service:hover {
-  box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.4),
-    0 0 24px rgba(59, 130, 246, 0.20);
-}
+### Click Behavior
+**Open right-side drawer (Sheet) instead of modal Dialog**
 
-/* Visit card outlined style */
-.schedule-card-visit {
-  @apply bg-transparent;
-  border: 2px dashed hsl(var(--purple-400) / 0.4);
-  background: linear-gradient(
-    135deg,
-    hsl(270 60% 60% / 0.03) 0%,
-    transparent 100%
-  );
-}
+```tsx
+// Replace Dialog with Sheet for job details
+<Sheet open={!!selectedJob} onOpenChange={() => setSelectedJob(null)}>
+  <SheetContent side="right" className="w-[400px] p-0">
+    {/* Job details content */}
+  </SheetContent>
+</Sheet>
+```
 
-.schedule-card-visit:hover {
-  border-color: hsl(var(--purple-500) / 0.6);
-  background: linear-gradient(
-    135deg,
-    hsl(270 60% 60% / 0.08) 0%,
-    transparent 100%
-  );
-}
+### Drag Behavior (Future Enhancement)
+- Magnetic snap to 30-minute slots
+- Visual guide lines during drag
+- Ghost preview of new position
 
-/* Status indicator pulse for in-progress */
-@keyframes status-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
+---
 
-.status-indicator-active {
-  animation: status-pulse 2s ease-in-out infinite;
-}
+## Phase 8: Focus Mode Toggle
 
-/* Left accent border for type identification */
-.type-indicator-service {
-  @apply border-l-4 border-l-info;
-}
+### Concept
+Single toggle to expand Schedule to full viewport, collapsing sidebar navigation.
 
-.type-indicator-visit {
-  @apply border-l-4 border-l-purple-500;
+### Implementation
+```tsx
+// In Schedule.tsx
+const [focusMode, setFocusMode] = useState(false);
+
+// Toggle button in header
+<Button 
+  variant="ghost" 
+  size="icon"
+  onClick={() => setFocusMode(!focusMode)}
+  className={cn(
+    "h-9 w-9",
+    focusMode && "bg-primary/10 text-primary"
+  )}
+>
+  <Expand className="h-4 w-4" />
+</Button>
+
+// Pass to layout or use CSS class
+<div className={cn("transition-all duration-300", focusMode && "schedule-focus-mode")}>
+```
+
+### CSS
+```css
+.schedule-focus-mode {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: hsl(var(--background));
+  padding: 1rem;
+  overflow-y: auto;
 }
 ```
 
 ---
 
-### Files to Modify
+## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/index.css` | Add schedule design tokens, card utility classes, glow effects |
-| `src/pages/Schedule.tsx` | Refactor card rendering for all views, enhance HoverCard, add type indicators |
+| `src/index.css` | Add premium schedule design tokens, KPI pill classes, enhanced current time indicator styles, focus mode utilities |
+| `src/pages/Schedule.tsx` | Refactor header to KPI pills, enhance time indicator with timezone-aware label, unify card architecture, implement Sheet for details, add Focus Mode toggle |
 
-### Expected Visual Outcome
+---
 
-**Before:** Flat cards, indistinguishable types, same look across views
+## Expected Outcome
+
+**Before:** Generic calendar, flat cards, indistinguishable types, basic interactions
 
 **After:**
-- **Service cards**: Solid, prominent, blue-accented glow, professional weight
-- **Visit cards**: Outlined, dashed border, lighter fill, purple accent
-- **Month View**: Color-coded compact pills with status dots
-- **Week View**: Duration-focused with time range emphasis
-- **Day View**: Immersive wide cards with full detail hierarchy
-- **Hover cards**: Large type badge header, strong status indicator, clear hierarchy
+- Executive KPI dashboard strip above calendar
+- Timezone-accurate current time indicator with floating label
+- Unified Service/Visit cards differing ONLY by color
+- View-specific progressive disclosure (Month → Week → Day)
+- Premium hover cards with large type badges
+- Right-side drawer for details (not modal)
+- Focus Mode for power users
+- Calm, professional color system
 
-The schedule will convey: *"This is a high-value, professional scheduling and revenue control system."*
+**User Perception:**
+> "This system is expensive — and it clearly earns it."
 
