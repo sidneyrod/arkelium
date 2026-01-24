@@ -1,107 +1,94 @@
 
 
-# Plano: Remover Espaços Vazios e Restaurar Legenda
+# Plano: Cards com Cores Transparentes e Elegantes
 
-## 1. Corrigir Espaço Vazio no Header (Direita)
-
-**Arquivo:** `src/pages/Schedule.tsx`
-
-**Problema:** Os grupos de elementos estão com `flex-shrink-0` e não há nada expandindo para preencher o espaço.
-
-**Solução:** Adicionar `flex-1` ao grupo de KPIs para que ele absorva o espaço extra entre navegação e controles:
-
-```tsx
-// Linha ~1572 - Alterar de:
-<div className="flex items-center gap-1.5 flex-shrink-0">
-
-// Para:
-<div className="flex items-center gap-1.5 flex-1 justify-center">
-```
-
-Isso centraliza os KPIs e elimina o espaço vazio à direita.
+## Objetivo
+Reduzir a opacidade dos backgrounds dos cards de **25%** para **10-12%**, criando um visual mais refinado e moderno estilo "glassmorphism".
 
 ---
 
-## 2. Corrigir Espaço Vazio Inferior (Month View)
+## 1. Atualizar Month View (src/pages/Schedule.tsx)
 
-**Problema:** A grid do Month View usa altura mínima fixa (`min-h-[85px]`) que não se adapta para preencher a tela.
-
-**Solução:** Fazer o calendário ocupar toda a altura disponível:
+**Linha ~1707-1709** - Reduzir opacidade de `/25` para `/10`:
 
 ```tsx
-// Linha ~1659 - Container do calendário
-<div className="animate-fade-in flex-1 flex flex-col" key={view}>
+// DE:
+isVisit 
+  ? "bg-purple-500/25 hover:bg-purple-500/35 border border-purple-500/40"
+  : "bg-emerald-500/25 hover:bg-emerald-500/35 border border-emerald-500/40"
 
-// Linha ~1662 - Card do Month View  
-<Card className="border-border/40 shadow-soft-sm overflow-hidden flex-1 flex flex-col">
-  <CardContent className="p-0 flex-1 flex flex-col">
-
-// Linha ~1671 - Grid das células
-<div className="grid grid-cols-7 flex-1">
-```
-
-E alterar a classe das células de `min-h-[85px]` para usar altura proporcional:
-
-```tsx
-// Remover min-h fixo e deixar a grid flex distribuir
-className={cn(
-  "p-1 border-r border-b schedule-grid-line last:border-r-0 cursor-pointer transition-all duration-150",
-  // ... resto das classes
-)}
+// PARA:
+isVisit 
+  ? "bg-purple-500/10 hover:bg-purple-500/18 border border-purple-500/25"
+  : "bg-emerald-500/10 hover:bg-emerald-500/18 border border-emerald-500/25"
 ```
 
 ---
 
-## 3. Ajustar Container Principal para Flex Column
+## 2. Atualizar CSS Global (src/index.css)
 
-**Linha ~1546:**
+### Service Cards (linhas 265-296):
 
-```tsx
-// De:
-<div className={cn("p-1 space-y-1", focusMode && "schedule-focus-mode")}>
+```css
+/* DE: */
+.schedule-card-service {
+  background: linear-gradient(135deg, hsl(var(--schedule-service-bg) / 0.10) 0%, hsl(var(--schedule-service-bg) / 0.05) 100%);
+  border-color: hsl(var(--schedule-service-border) / 0.25);
+}
 
-// Para:
-<div className={cn(
-  "p-1 space-y-1 h-[calc(100vh-60px)] flex flex-col",
-  focusMode && "schedule-focus-mode"
-)}>
+/* PARA (mais transparente): */
+.schedule-card-service {
+  background: linear-gradient(135deg, hsl(var(--schedule-service-bg) / 0.06) 0%, hsl(var(--schedule-service-bg) / 0.02) 100%);
+  border-color: hsl(var(--schedule-service-border) / 0.18);
+}
+
+.schedule-card-service:hover {
+  background: linear-gradient(135deg, hsl(var(--schedule-service-bg) / 0.12) 0%, hsl(var(--schedule-service-bg) / 0.05) 100%);
+  border-color: hsl(var(--schedule-service-border) / 0.30);
+}
 ```
 
-Isso define altura total e permite que os filhos expandam.
+### Visit Cards (linhas 299-332):
+
+```css
+/* DE: */
+.schedule-card-visit {
+  background: linear-gradient(135deg, hsl(270 60% 60% / 0.10) 0%, hsl(270 60% 60% / 0.04) 100%);
+  border-color: hsl(270 60% 60% / 0.25);
+}
+
+/* PARA (mais transparente): */
+.schedule-card-visit {
+  background: linear-gradient(135deg, hsl(270 60% 60% / 0.06) 0%, hsl(270 60% 60% / 0.02) 100%);
+  border-color: hsl(270 60% 60% / 0.18);
+}
+
+.schedule-card-visit:hover {
+  background: linear-gradient(135deg, hsl(270 60% 60% / 0.12) 0%, hsl(270 60% 60% / 0.05) 100%);
+  border-color: hsl(270 60% 60% / 0.30);
+}
+```
 
 ---
 
-## 4. Restaurar Legenda Compacta
+## 3. Atualizar statusConfig (src/pages/Schedule.tsx)
 
-Adicionar de volta a legenda removida, mas inline e compacta:
+**Linhas 110-153** - Reduzir opacidade dos `cardBgClass`:
 
-```tsx
-// Após o container do calendário, antes do Sheet
-<div className="flex items-center gap-3 text-[10px] text-muted-foreground/70 py-1">
-  <div className="flex items-center gap-1">
-    <Sparkles className="h-2.5 w-2.5 text-primary/70" />
-    <span>Service</span>
-  </div>
-  <div className="flex items-center gap-1">
-    <Eye className="h-2.5 w-2.5 text-purple-500/70" />
-    <span>Visit</span>
-  </div>
-  <div className="h-2.5 w-px bg-border/40" />
-  {Object.entries(statusConfig).map(([status, config]) => (
-    <div key={status} className="flex items-center gap-1">
-      <div className={cn("h-1.5 w-1.5 rounded-full", config.bgColor.split(' ')[0])} />
-      <span>{config.label}</span>
-    </div>
-  ))}
-</div>
-```
+| Status | Atual | Novo |
+|--------|-------|------|
+| scheduled | `bg-info/10 hover:bg-info/16` | `bg-info/6 hover:bg-info/12` |
+| in-progress | `bg-warning/12 hover:bg-warning/18` | `bg-warning/8 hover:bg-warning/14` |
+| completed | `bg-success/12 hover:bg-success/18` | `bg-success/8 hover:bg-success/14` |
+| cancelled | `bg-muted/10 hover:bg-muted/16` | `bg-muted/6 hover:bg-muted/12` |
 
 ---
 
-## Resultado Esperado
+## Resultado Visual Esperado
 
-- Header completamente preenchido sem espaço vazio à direita
-- Calendário Month View ocupando 100% da altura disponível
-- Legenda restaurada de forma compacta e não invasiva
-- Zero espaços desperdiçados na tela
+- Cards mais leves e arejados
+- Bordas mais suaves e menos intrusivas
+- Efeito hover mais sutil e elegante
+- Melhor harmonia com o design premium do sistema
+- Mantém diferenciação visual entre Service (verde) e Visit (roxo)
 
