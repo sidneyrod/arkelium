@@ -36,7 +36,7 @@ import {
   FileText,
   ArrowRight
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, parseDurationToMinutes } from '@/lib/utils';
 import { toast } from 'sonner';
 import { logActivity } from '@/stores/activityStore';
 import { useInvoiceStore } from '@/stores/invoiceStore';
@@ -605,8 +605,7 @@ const Schedule = () => {
       }
       
       // Parse duration to minutes
-      const durationMatch = jobData.duration.match(/(\d+\.?\d*)/);
-      const durationMinutes = durationMatch ? parseFloat(durationMatch[1]) * 60 : 120;
+      const durationMinutes = parseDurationToMinutes(jobData.duration);
       
       // Determine job type - map from operation type or legacy jobType
       const isVisit = (jobData as any).jobType === 'visit' || jobData.operationType === 'non_billable_visit';
@@ -696,8 +695,7 @@ const Schedule = () => {
     if (!editingJob) return;
     
     try {
-      const durationMatch = updatedJobData.duration.match(/(\d+\.?\d*)/);
-      const durationMinutes = durationMatch ? parseFloat(durationMatch[1]) * 60 : 120;
+      const durationMinutes = parseDurationToMinutes(updatedJobData.duration);
       
       // Determine if billable
       const isVisit = (updatedJobData as any).jobType === 'visit' || updatedJobData.operationType === 'non_billable_visit';
