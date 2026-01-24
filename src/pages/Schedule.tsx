@@ -1544,7 +1544,7 @@ const Schedule = () => {
 
   return (
     <div className={cn(
-      "p-1 space-y-1",
+      "p-1 space-y-1 h-[calc(100vh/0.80-60px)] flex flex-col",
       focusMode && "schedule-focus-mode"
     )}>
       {/* Overdue Job Alert - For Admin/Manager and Cleaners */}
@@ -1568,8 +1568,8 @@ const Schedule = () => {
           </Button>
         </div>
 
-        {/* KPI Pills (center, inline compact) */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        {/* KPI Pills (center, flex-1 to absorb space) */}
+        <div className="flex items-center gap-1.5 flex-1 justify-center">
           <div className="schedule-kpi-pill-inline schedule-kpi-pill-jobs">
             <span className="schedule-kpi-pill-value">{summaryStats.total}</span>
             <span className="schedule-kpi-pill-label">Jobs</span>
@@ -1656,11 +1656,11 @@ const Schedule = () => {
       </div>
 
       {/* Calendar Views with smooth transitions */}
-      <div className="animate-fade-in" key={view}>
+      <div className="animate-fade-in flex-1 flex flex-col min-h-0" key={view}>
         {/* Month View */}
         {view === 'month' && (
-          <Card className="border-border/40 shadow-soft-sm overflow-hidden">
-            <CardContent className="p-0">
+          <Card className="border-border/40 shadow-soft-sm overflow-hidden flex-1 flex flex-col">
+            <CardContent className="p-0 flex-1 flex flex-col">
               <div className="grid grid-cols-7 border-b border-border/40 bg-muted/20">
                 {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
                   <div key={day} className="p-2.5 text-center text-xs font-medium text-muted-foreground border-r border-border/30 last:border-r-0">
@@ -1668,7 +1668,7 @@ const Schedule = () => {
                   </div>
                 ))}
               </div>
-              <div className="grid grid-cols-7">
+              <div className="grid grid-cols-7 flex-1">
                 {getMonthDays().map((day, idx) => {
                   const dayJobs = getJobsForDate(day);
                   const isCurrentMonth = isSameMonth(day, currentDate);
@@ -1678,7 +1678,7 @@ const Schedule = () => {
                       key={idx}
                       onClick={() => handleDayClick(day)}
                       className={cn(
-                        cn(focusMode ? "min-h-[100px]" : "min-h-[85px]", "p-1 border-r border-b schedule-grid-line last:border-r-0 cursor-pointer transition-all duration-150"),
+                        "p-1 border-r border-b schedule-grid-line last:border-r-0 cursor-pointer transition-all duration-150",
                         "hover:bg-primary/5",
                         !isCurrentMonth && "bg-muted/5 text-muted-foreground/60",
                         isTodayCell && "bg-primary/5 ring-1 ring-inset ring-primary/20"
@@ -2536,6 +2536,24 @@ const Schedule = () => {
         )}
       </div>
 
+      {/* Compact Status Legend */}
+      <div className="flex items-center gap-3 text-[10px] text-muted-foreground/70 py-0.5 px-1 flex-shrink-0">
+        <div className="flex items-center gap-1">
+          <Sparkles className="h-2.5 w-2.5 text-primary/70" />
+          <span>Service</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Eye className="h-2.5 w-2.5 text-purple-500/70" />
+          <span>Visit</span>
+        </div>
+        <div className="h-2.5 w-px bg-border/40" />
+        {Object.entries(statusConfig).map(([status, config]) => (
+          <div key={status} className="flex items-center gap-1">
+            <div className={cn("h-1.5 w-1.5 rounded-full", config.dotClass)} />
+            <span>{config.label}</span>
+          </div>
+        ))}
+      </div>
 
       {/* Job Details Sheet - Right-side drawer for premium UX */}
       <Sheet open={!!selectedJob && !showCompletion} onOpenChange={() => setSelectedJob(null)}>
