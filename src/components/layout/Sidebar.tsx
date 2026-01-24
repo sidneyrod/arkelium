@@ -237,7 +237,7 @@ const Sidebar = () => {
       <aside className={cn(
         "hidden lg:flex flex-col min-h-screen sticky top-0 border-r border-border bg-sidebar-background transition-all duration-300 ease-in-out",
         collapsed ? "w-14" : "w-52"
-      )} style={{ height: 'calc(100vh / 0.85)' }}>
+      )} style={{ height: 'calc(100vh / 0.80)' }}>
         {/* Logo Section */}
         <div className={cn(
           "flex items-center h-14 px-3 shrink-0 border-b border-border",
