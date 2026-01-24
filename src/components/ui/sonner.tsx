@@ -10,17 +10,18 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
+      visibleToasts={1}
       toastOptions={{
         classNames: {
           toast:
-            "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
+            "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border/50 group-[.toaster]:shadow-xl",
           description: "group-[.toast]:text-muted-foreground",
           actionButton: "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
           cancelButton: "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
-          success: "group-[.toaster]:bg-primary/10 group-[.toaster]:border-primary/30 group-[.toaster]:text-primary [&>svg]:text-primary",
+          success: "group-[.toaster]:bg-emerald-50 group-[.toaster]:border-emerald-500/30 group-[.toaster]:text-emerald-900 dark:group-[.toaster]:bg-emerald-950 dark:group-[.toaster]:text-emerald-50 dark:group-[.toaster]:border-emerald-500/30 [&>svg]:text-emerald-600 dark:[&>svg]:text-emerald-400",
           error: "group-[.toaster]:bg-destructive/10 group-[.toaster]:border-destructive/30 group-[.toaster]:text-destructive [&>svg]:text-destructive",
-          warning: "group-[.toaster]:bg-amber-500/10 group-[.toaster]:border-amber-500/30 group-[.toaster]:text-amber-600 [&>svg]:text-amber-500",
-          info: "group-[.toaster]:bg-blue-500/10 group-[.toaster]:border-blue-500/30 group-[.toaster]:text-blue-600 [&>svg]:text-blue-500",
+          warning: "group-[.toaster]:bg-amber-50 group-[.toaster]:border-amber-500/30 group-[.toaster]:text-amber-900 dark:group-[.toaster]:bg-amber-950 dark:group-[.toaster]:text-amber-50 [&>svg]:text-amber-500",
+          info: "group-[.toaster]:bg-blue-50 group-[.toaster]:border-blue-500/30 group-[.toaster]:text-blue-900 dark:group-[.toaster]:bg-blue-950 dark:group-[.toaster]:text-blue-50 [&>svg]:text-blue-500",
         },
       }}
       {...props}
