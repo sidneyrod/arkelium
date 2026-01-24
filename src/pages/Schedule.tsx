@@ -229,9 +229,7 @@ const Schedule = () => {
   const [jobToCancel, setJobToCancel] = useState<ScheduledJob | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [editingJob, setEditingJob] = useState<ScheduledJob | null>(null);
-  const [employeeFilter, setEmployeeFilter] = useState('all');
-  const [serviceTypeFilter, setServiceTypeFilter] = useState<'all' | 'cleaning' | 'visit'>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | JobStatus>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<string>('');
@@ -404,11 +402,9 @@ const Schedule = () => {
     }
   }, [urlView, urlDate]);
 
-  // Reset filters when company changes
+  // Reset search when company changes
   useEffect(() => {
-    setEmployeeFilter('all');
-    setServiceTypeFilter('all');
-    setStatusFilter('all');
+    setSearchQuery('');
   }, [activeCompanyId]);
 
   // For cleaners: only show their own jobs. For admin/manager/super-admin: show all
@@ -423,12 +419,28 @@ const Schedule = () => {
   
   console.log('[Schedule] baseJobs after role filter:', baseJobs.length);
   
-  const filteredJobs = baseJobs.filter(job => {
-    if (employeeFilter !== 'all' && job.employeeId !== employeeFilter) return false;
-    if (serviceTypeFilter !== 'all' && job.jobType !== serviceTypeFilter) return false;
-    if (statusFilter !== 'all' && job.status !== statusFilter) return false;
-    return true;
-  });
+  const filteredJobs = useMemo(() => {
+    if (!searchQuery.trim()) return baseJobs;
+    
+    const query = searchQuery.toLowerCase().trim();
+    
+    return baseJobs.filter(job => {
+      // Search by client name
+      if (job.clientName.toLowerCase().includes(query)) return true;
+      // Search by employee name
+      if (job.employeeName.toLowerCase().includes(query)) return true;
+      // Search by type (cleaning/service/visit)
+      if (job.jobType?.toLowerCase().includes(query)) return true;
+      if (query === 'service' && job.jobType === 'cleaning') return true;
+      // Search by status
+      if (job.status.toLowerCase().includes(query)) return true;
+      // Search by address
+      if (job.address.toLowerCase().includes(query)) return true;
+      // Search for "in progress" as "in-progress"
+      if (query.includes('progress') && job.status === 'in-progress') return true;
+      return false;
+    });
+  }, [baseJobs, searchQuery]);
 
   // Calculate summary stats for contextual header
   const summaryStats = useMemo(() => {
@@ -1579,93 +1591,38 @@ const Schedule = () => {
           </div>
         </div>
 
-        {/* Filters + Actions (right) */}
+        {/* Search + View + Actions (right) */}
         <div className="flex items-center gap-2 ml-auto flex-shrink-0">
-          {/* Service Type Filter */}
-          <Select value={serviceTypeFilter} onValueChange={(v) => setServiceTypeFilter(v as 'all' | 'cleaning' | 'visit')}>
-            <SelectTrigger className="w-[100px] h-9">
-              <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-              <SelectValue placeholder="Type" />
-            </SelectTrigger>
-            <SelectContent className="bg-popover">
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="cleaning">
-                <span className="flex items-center gap-2">
-                  <Sparkles className="h-3.5 w-3.5 text-primary" />
-                  Cleaning
-                </span>
-              </SelectItem>
-              <SelectItem value="visit">
-                <span className="flex items-center gap-2">
-                  <Eye className="h-3.5 w-3.5 text-purple-500" />
-                  Visit
-                </span>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Employee Filter */}
-          <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
-            <SelectTrigger className="w-[120px] h-9">
-              <User className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-              <SelectValue placeholder={t.schedule.filterByEmployee} />
-            </SelectTrigger>
-            <SelectContent className="bg-popover">
-              <SelectItem value="all">{t.schedule.allEmployees}</SelectItem>
-              {uniqueEmployees.map(emp => (
-                <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* Status Filter */}
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as 'all' | JobStatus)}>
-            <SelectTrigger className="w-[100px] h-9">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent className="bg-popover">
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="scheduled">Scheduled</SelectItem>
-              <SelectItem value="in-progress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <div className="flex items-center rounded-lg border border-border/50 p-0.5 bg-muted/30">
-            <Button 
-              variant={view === 'day' ? 'secondary' : 'ghost'} 
-              size="sm"
-              onClick={() => setView('day')}
-              className="h-7 px-2.5 transition-all"
-            >
-              {t.schedule.day}
-            </Button>
-            <Button 
-              variant={view === 'week' ? 'secondary' : 'ghost'} 
-              size="sm"
-              onClick={() => setView('week')}
-              className="h-7 px-2.5 transition-all"
-            >
-              {t.schedule.week}
-            </Button>
-            <Button 
-              variant={view === 'month' ? 'secondary' : 'ghost'} 
-              size="sm"
-              onClick={() => setView('month')}
-              className="h-7 px-2.5 transition-all"
-            >
-              {t.schedule.month}
-            </Button>
-            <Button 
-              variant={view === 'timeline' ? 'secondary' : 'ghost'} 
-              size="sm"
-              onClick={() => setView('timeline')}
-              className="h-7 px-2.5 transition-all"
-            >
-              <List className="h-4 w-4" />
-            </Button>
+          {/* Unified Search Bar */}
+          <div className="relative">
+            <input
+              type="search"
+              placeholder="Search client, user, status..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-9 w-[200px] pl-8 pr-3 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            />
+            <Filter className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           </div>
+
+          {/* View Mode Dropdown */}
+          <Select value={view} onValueChange={(v) => setView(v as ViewType)}>
+            <SelectTrigger className="w-[100px] h-9">
+              <CalendarIcon className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-popover">
+              <SelectItem value="day">{t.schedule.day}</SelectItem>
+              <SelectItem value="week">{t.schedule.week}</SelectItem>
+              <SelectItem value="month">{t.schedule.month}</SelectItem>
+              <SelectItem value="timeline">
+                <span className="flex items-center gap-2">
+                  <List className="h-3.5 w-3.5" />
+                  Timeline
+                </span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
           
           {/* Focus Mode Toggle */}
           <TooltipProvider>
