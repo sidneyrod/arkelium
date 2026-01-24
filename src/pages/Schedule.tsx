@@ -1750,48 +1750,76 @@ const Schedule = () => {
                   </div>
                 )}
                 
-                {TIME_SLOTS.map((slot, slotIndex) => (
-                  <div key={slot.value} className="grid grid-cols-[60px_repeat(7,minmax(0,1fr))] border-b schedule-grid-line last:border-b-0">
-                    <div className="p-2 text-xs text-muted-foreground border-r border-border/20 bg-muted/5 flex items-start justify-center h-14">
-                      {slot.label}
+                {/* Background Grid - Visual time slots */}
+                {TIME_SLOTS.map((slot, slotIndex) => {
+                  return (
+                    <div key={slot.value} className="grid grid-cols-[60px_repeat(7,minmax(0,1fr))] border-b schedule-grid-line last:border-b-0">
+                      <div className="p-2 text-xs text-muted-foreground border-r border-border/20 bg-muted/5 flex items-start justify-center h-14">
+                        {slot.label}
+                      </div>
+                      {getWeekDays().map((day) => {
+                        // Get jobs that SPAN this slot (for pointer-events blocking)
+                        const spanningJobs = getJobsForTimeSlot(day, slot.value);
+                        const hasJob = spanningJobs.length > 0;
+                        const isTodayCell = isToday(day);
+                        
+                        return (
+                          <div 
+                            key={`${day.toISOString()}-${slot.value}`} 
+                            className={cn(
+                              "border-r schedule-grid-line last:border-r-0 h-14 transition-colors min-w-0",
+                              isAdminOrManager && !hasJob && "hover:bg-primary/5 cursor-pointer",
+                              isTodayCell && "bg-primary/[0.02]"
+                            )}
+                            onClick={() => isAdminOrManager && !hasJob && handleTimeSlotClick(day, slot.value)}
+                          />
+                        );
+                      })}
                     </div>
-                    {getWeekDays().map((day) => {
-                      // Get jobs that START at this time slot
-                      const startingJobs = getJobsForDate(day).filter(j => isJobStartingAt(j, slot.value));
-                      // Get jobs that SPAN this slot but started earlier
-                      const spanningJobs = getJobsForTimeSlot(day, slot.value).filter(j => !isJobStartingAt(j, slot.value));
-                      const hasSpanningJob = spanningJobs.length > 0;
-                      const isTodayCell = isToday(day);
-                      
-                      return (
-                        <div 
-                          key={`${day.toISOString()}-${slot.value}`} 
-                          className={cn(
-                            "border-r schedule-grid-line last:border-r-0 h-14 transition-colors relative overflow-hidden min-w-0",
-                            isAdminOrManager && !hasSpanningJob && "hover:bg-primary/5 cursor-pointer",
-                            hasSpanningJob && "bg-transparent pointer-events-none",
-                            isTodayCell && "bg-primary/[0.02]"
-                          )}
-                          onClick={() => isAdminOrManager && !hasSpanningJob && handleTimeSlotClick(day, slot.value)}
-                        >
-                          {startingJobs.map((job) => {
-                            const rowSpan = getJobRowSpan(job);
-                            const slotHeight = 56; // 56px per slot (h-14)
-                            const heightPx = rowSpan * slotHeight;
-                            const endTime = calculateEndTime(job.time, job.duration);
-                            const crossesMidnight = !job._isContinuation && doesJobCrossMidnight(job._originalTime || job.time, job._originalDuration || job.duration);
-                            
-                            // Clamp height to available slots remaining in the grid
-                            const remainingSlots = TIME_SLOTS.length - slotIndex;
-                            const maxHeightPx = remainingSlots * slotHeight;
-                            const clampedHeightPx = Math.min(heightPx, maxHeightPx);
-                            
-                            return (
-                              <HoverCard key={job.id + (job._isContinuation ? '-cont' : '')} openDelay={300} closeDelay={100}>
-                                <HoverCardTrigger asChild>
+                  );
+                })}
+                
+                {/* Overlay Layer - Jobs with absolute positioning */}
+                <div className="absolute inset-0 grid grid-cols-[60px_repeat(7,minmax(0,1fr))] pointer-events-none">
+                  {/* Empty time column offset */}
+                  <div />
+                  
+                  {/* Job columns for each day */}
+                  {getWeekDays().map((day) => {
+                    const dayJobs = getJobsForDate(day);
+                    
+                    return (
+                      <div key={day.toISOString()} className="relative pointer-events-auto">
+                        {dayJobs.map((job) => {
+                          const startSlotIndex = TIME_SLOTS.findIndex(s => s.value === job.time);
+                          if (startSlotIndex === -1) return null;
+                          
+                          const rowSpan = getJobRowSpan(job);
+                          const slotHeight = 56; // h-14 = 56px
+                          const topPosition = startSlotIndex * slotHeight;
+                          const cardHeight = rowSpan * slotHeight;
+                          const endTime = calculateEndTime(job.time, job.duration);
+                          const crossesMidnight = !job._isContinuation && doesJobCrossMidnight(job._originalTime || job.time, job._originalDuration || job.duration);
+                          
+                          // Clamp height to available slots remaining + ensure min legibility height
+                          const remainingSlots = TIME_SLOTS.length - startSlotIndex;
+                          const maxCardHeight = remainingSlots * slotHeight;
+                          const minCardHeight = 80; // Minimum height for legibility
+                          const clampedCardHeight = Math.max(
+                            Math.min(cardHeight, maxCardHeight),
+                            minCardHeight
+                          );
+                          
+                          return (
+                            <HoverCard key={job.id + (job._isContinuation ? '-cont' : '')} openDelay={300} closeDelay={100}>
+                              <HoverCardTrigger asChild>
+                                <div 
+                                  className="absolute left-1 right-1"
+                                  style={{ top: topPosition + 2, height: clampedCardHeight - 6 }}
+                                >
                                   <div 
                                     className={cn(
-                                      "schedule-event left-1 right-1 p-2 rounded-xl border text-xs cursor-pointer z-10",
+                                      "h-full p-2 rounded-xl border text-xs cursor-pointer z-10",
                                       "transition-all duration-200 ease-out shadow-[var(--schedule-card-shadow)]",
                                       "hover:shadow-soft-md hover:-translate-y-0.5 hover:scale-[1.01] hover:z-20",
                                       "active:scale-[0.99] active:shadow-soft-sm",
@@ -1800,7 +1828,6 @@ const Schedule = () => {
                                         : statusConfig[job.status].bgColor,
                                       job._isContinuation && "border-dashed border-l-4 border-l-muted-foreground/30 opacity-95"
                                     )}
-                                    style={{ height: `${clampedHeightPx - 6}px`, top: 2 }}
                                     onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
                                   >
                                     {/* Continuation visual indicator (top gradient) */}
@@ -1809,7 +1836,7 @@ const Schedule = () => {
                                     )}
                                     
                                     {/* Card content with hierarchy */}
-                                    <div className="flex flex-col h-full">
+                                    <div className="flex flex-col h-full overflow-hidden">
                                       {/* Row 1: Type chip + Status */}
                                       <div className="flex items-center gap-1 mb-0.5">
                                         <Badge 
@@ -1858,108 +1885,108 @@ const Schedule = () => {
                                       </>
                                     )}
                                   </div>
-                                </HoverCardTrigger>
-                                <HoverCardContent 
-                                  side="right" 
-                                  align="start"
-                                  sideOffset={8}
-                                  collisionPadding={16}
-                                  className="w-72 p-0 shadow-xl border-border/50 overflow-hidden"
-                                >
-                                  {/* Header with Type + Status */}
-                                  <div className="flex items-center justify-between p-3 bg-muted/30 border-b border-border/30">
-                                    <Badge 
-                                      variant="outline" 
-                                      className={cn(
-                                        "text-[10px] px-2 py-0.5 font-semibold",
-                                        job.jobType === 'visit' 
-                                          ? "border-purple-400/50 bg-purple-500/15 text-purple-600 dark:text-purple-400" 
-                                          : "border-primary/40 bg-primary/10 text-primary"
-                                      )}
-                                    >
-                                      {job.jobType === 'visit' ? 'Visit' : 'Service'}
-                                    </Badge>
-                                    <Badge className={cn("text-[10px]", statusConfig[job.status].bgColor, statusConfig[job.status].color)}>
-                                      {statusConfig[job.status].label}
-                                    </Badge>
-                                  </div>
-                                  
-                                  {/* Content */}
-                                  <div className="p-3 space-y-3">
-                                    {/* Continuation notice */}
-                                    {job._isContinuation && (
-                                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground bg-muted/40 px-2 py-1 rounded">
-                                        <div className="w-1 h-3 rounded-full bg-muted-foreground/30" />
-                                        <span className="italic">Continues from previous day</span>
-                                      </div>
+                                </div>
+                              </HoverCardTrigger>
+                              <HoverCardContent 
+                                side="right" 
+                                align="start"
+                                sideOffset={8}
+                                collisionPadding={16}
+                                className="w-72 p-0 shadow-xl border-border/50 overflow-hidden"
+                              >
+                                {/* Header with Type + Status */}
+                                <div className="flex items-center justify-between p-3 bg-muted/30 border-b border-border/30">
+                                  <Badge 
+                                    variant="outline" 
+                                    className={cn(
+                                      "text-[10px] px-2 py-0.5 font-semibold",
+                                      job.jobType === 'visit' 
+                                        ? "border-purple-400/50 bg-purple-500/15 text-purple-600 dark:text-purple-400" 
+                                        : "border-primary/40 bg-primary/10 text-primary"
                                     )}
-                                    
-                                    {/* Client Name */}
-                                    <p className="font-semibold text-sm">{job.clientName}</p>
-                                    
-                                    {/* Details Grid */}
-                                    <div className="space-y-2 text-xs">
-                                      {/* Date + Time */}
-                                      <div className="flex items-start gap-2">
-                                        <Clock className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
-                                        <div>
-                                          <p className="font-medium">{format(toSafeLocalDate(job.date), 'EEE, MMM d')}</p>
-                                          <p className="text-muted-foreground">
-                                            {formatTimeDisplay(job.time)} – {crossesMidnight ? '12:00 AM (next day)' : formatTimeDisplay(endTime)} ({job.duration})
-                                          </p>
-                                        </div>
-                                      </div>
-                                      
-                                      {/* Address */}
-                                      <div className="flex items-start gap-2">
-                                        <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
-                                        <p className={cn(
-                                          job.address === 'No address' && "text-muted-foreground/60 italic"
-                                        )}>
-                                          {job.address}
+                                  >
+                                    {job.jobType === 'visit' ? 'Visit' : 'Service'}
+                                  </Badge>
+                                  <Badge className={cn("text-[10px]", statusConfig[job.status].bgColor, statusConfig[job.status].color)}>
+                                    {statusConfig[job.status].label}
+                                  </Badge>
+                                </div>
+                                
+                                {/* Content */}
+                                <div className="p-3 space-y-3">
+                                  {/* Continuation notice */}
+                                  {job._isContinuation && (
+                                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground bg-muted/40 px-2 py-1 rounded">
+                                      <div className="w-1 h-3 rounded-full bg-muted-foreground/30" />
+                                      <span className="italic">Continues from previous day</span>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Client Name */}
+                                  <p className="font-semibold text-sm">{job.clientName}</p>
+                                  
+                                  {/* Details Grid */}
+                                  <div className="space-y-2 text-xs">
+                                    {/* Date + Time */}
+                                    <div className="flex items-start gap-2">
+                                      <Clock className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                                      <div>
+                                        <p className="font-medium">{format(toSafeLocalDate(job.date), 'EEE, MMM d')}</p>
+                                        <p className="text-muted-foreground">
+                                          {formatTimeDisplay(job.time)} – {crossesMidnight ? '12:00 AM (next day)' : formatTimeDisplay(endTime)} ({job.duration})
                                         </p>
                                       </div>
-                                      
-                                      {/* Assigned */}
-                                      <div className="flex items-center gap-2">
-                                        <User className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                                        <p>{job.employeeName}</p>
-                                      </div>
+                                    </div>
+                                    
+                                    {/* Address */}
+                                    <div className="flex items-start gap-2">
+                                      <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                                      <p className={cn(
+                                        job.address === 'No address' && "text-muted-foreground/60 italic"
+                                      )}>
+                                        {job.address}
+                                      </p>
+                                    </div>
+                                    
+                                    {/* Assigned */}
+                                    <div className="flex items-center gap-2">
+                                      <User className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                      <p>{job.employeeName}</p>
                                     </div>
                                   </div>
-                                  
-                                  {/* Quick Actions Footer */}
-                                  <div className="flex items-center gap-2 p-3 bg-muted/20 border-t border-border/30">
+                                </div>
+                                
+                                {/* Quick Actions Footer */}
+                                <div className="flex items-center gap-2 p-3 bg-muted/20 border-t border-border/30">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="flex-1 h-7 text-xs"
+                                    onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
+                                  >
+                                    <Eye className="h-3 w-3 mr-1.5" />
+                                    Open Details
+                                  </Button>
+                                  {isAdminOrManager && job.status === 'scheduled' && (
                                     <Button 
-                                      variant="outline" 
+                                      variant="ghost" 
                                       size="sm" 
-                                      className="flex-1 h-7 text-xs"
-                                      onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}
+                                      className="h-7 text-xs"
+                                      onClick={(e) => { e.stopPropagation(); handleEditJob(job); }}
                                     >
-                                      <Eye className="h-3 w-3 mr-1.5" />
-                                      Open Details
+                                      <Pencil className="h-3 w-3 mr-1" />
+                                      Edit
                                     </Button>
-                                    {isAdminOrManager && job.status === 'scheduled' && (
-                                      <Button 
-                                        variant="ghost" 
-                                        size="sm" 
-                                        className="h-7 text-xs"
-                                        onClick={(e) => { e.stopPropagation(); handleEditJob(job); }}
-                                      >
-                                        <Pencil className="h-3 w-3 mr-1" />
-                                        Edit
-                                      </Button>
-                                    )}
-                                  </div>
-                                </HoverCardContent>
-                              </HoverCard>
-                            );
-                          })}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
+                                  )}
+                                </div>
+                              </HoverCardContent>
+                            </HoverCard>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </CardContent>
           </Card>
