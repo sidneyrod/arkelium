@@ -1544,7 +1544,7 @@ const Schedule = () => {
 
   return (
     <div className={cn(
-      "p-1 lg:p-1.5 space-y-1.5",
+      "p-1 space-y-1",
       focusMode && "schedule-focus-mode"
     )}>
       {/* Overdue Job Alert - For Admin/Manager and Cleaners */}
@@ -1592,7 +1592,7 @@ const Schedule = () => {
         </div>
 
         {/* Search + View + Actions (right) */}
-        <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           {/* Unified Search Bar */}
           <div className="relative">
             <input
@@ -1831,7 +1831,7 @@ const Schedule = () => {
                 })}
               </div>
               
-              <div className={cn("overflow-y-auto overflow-x-hidden relative", focusMode ? "max-h-[calc(100vh-80px)]" : "max-h-[calc(100vh-140px)]")}>
+              <div className={cn("overflow-y-auto overflow-x-hidden relative", focusMode ? "max-h-[calc(100vh-60px)]" : "max-h-[calc(100vh-110px)]")}>
                 {/* Current Time Indicator - Enhanced with floating label */}
                 {getWeekDays().some(day => isTodayForIndicator(day)) && (
                   <div 
@@ -2142,7 +2142,7 @@ const Schedule = () => {
               </h3>
             </div>
             <CardContent className="p-0 overflow-hidden">
-              <div className="relative pb-2 overflow-y-auto overflow-x-hidden" style={{ maxHeight: focusMode ? 'calc(100vh - 80px)' : 'calc(100vh - 140px)' }}>
+              <div className="relative overflow-y-auto overflow-x-hidden" style={{ maxHeight: focusMode ? 'calc(100vh - 60px)' : 'calc(100vh - 110px)' }}>
                 {/* Current Time Indicator - Enhanced with floating label */}
                 {isTodayForIndicator(currentDate) && (
                   <div 
@@ -2536,26 +2536,6 @@ const Schedule = () => {
         )}
       </div>
 
-      {/* Status Legend - Refined */}
-      <div className="flex flex-wrap items-center gap-4 text-[11px] text-muted-foreground/70 pt-2 border-t border-border/20 mt-1">
-        {/* Type Legend */}
-        <div className="flex items-center gap-1.5 opacity-80 hover:opacity-100 transition-opacity">
-          <Sparkles className="h-3 w-3 text-primary/70" />
-          <span>Service</span>
-        </div>
-        <div className="flex items-center gap-1.5 opacity-80 hover:opacity-100 transition-opacity">
-          <Eye className="h-3 w-3 text-purple-500/70" />
-          <span>Visit</span>
-        </div>
-        <div className="h-3 w-px bg-border/40 mx-1" />
-        {/* Status Legend */}
-        {Object.entries(statusConfig).map(([status, config]) => (
-          <div key={status} className="flex items-center gap-1.5 opacity-80 hover:opacity-100 transition-opacity">
-            <div className={cn("h-2 w-2 rounded-full", config.bgColor.split(' ')[0])} />
-            <span>{config.label}</span>
-          </div>
-        ))}
-      </div>
 
       {/* Job Details Sheet - Right-side drawer for premium UX */}
       <Sheet open={!!selectedJob && !showCompletion} onOpenChange={() => setSelectedJob(null)}>
