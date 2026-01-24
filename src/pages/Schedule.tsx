@@ -2027,9 +2027,14 @@ const Schedule = () => {
                   const crossesMidnight = !job._isContinuation && doesJobCrossMidnight(job._originalTime || job.time, job._originalDuration || job.duration);
                   
                   // Clamp height to available slots remaining in the grid
+                  // but ensure minimum height for legibility (Type chip, Client, Time, Address)
                   const remainingSlots = TIME_SLOTS.length - startSlotIndex;
                   const maxCardHeight = remainingSlots * slotHeight;
-                  const clampedCardHeight = Math.min(cardHeight, maxCardHeight);
+                  const minCardHeight = 100; // Minimum height to show all essential info
+                  const clampedCardHeight = Math.max(
+                    Math.min(cardHeight, maxCardHeight),
+                    minCardHeight
+                  );
                   
                   return (
                     <HoverCard key={job.id + (job._isContinuation ? '-cont' : '')} openDelay={300} closeDelay={100}>
