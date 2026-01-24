@@ -464,7 +464,9 @@
   }
   
   .schedule-kpi-pill-today {
-    @apply bg-primary/8 border-primary/20 ring-1 ring-primary/15;
+    background: hsl(var(--primary) / 0.08);
+    border-color: hsl(var(--primary) / 0.20);
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.15);
   }
   
   .schedule-kpi-pill-today .schedule-kpi-pill-value {
