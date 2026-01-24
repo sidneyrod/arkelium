@@ -1539,8 +1539,8 @@ const Schedule = () => {
       <OverdueJobAlert />
       
       {/* Single-Line Executive Header: Calendar Nav + KPI Pills + Filters + Actions */}
-      <div className="flex items-center gap-3 min-w-0">
-        {/* Calendar Navigation (left) */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        {/* Calendar Navigation + Critical Actions (left) */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <Button variant="outline" size="icon" onClick={goToPrevious} className="h-9 w-9">
             <ChevronLeft className="h-4 w-4" />
@@ -1554,6 +1554,36 @@ const Schedule = () => {
           <Button variant="outline" size="sm" className="h-9" onClick={goToToday}>
             {t.schedule.today}
           </Button>
+          
+          {/* Focus Mode - Moved here for visibility */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => setFocusMode(!focusMode)}
+                  className={cn(
+                    "h-9 w-9 transition-colors",
+                    focusMode && "bg-primary/10 text-primary"
+                  )}
+                >
+                  {focusMode ? <Minimize2 className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {focusMode ? 'Exit Focus Mode' : 'Focus Mode'}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          {/* Add Job - CRITICAL: Moved here for visibility */}
+          {isAdminOrManager && (
+            <Button onClick={() => setShowAddJob(true)} className="gap-2 h-9">
+              <CalendarPlus className="h-4 w-4" />
+              {t.schedule.addJob}
+            </Button>
+          )}
         </div>
 
         {/* KPI Pills (center, inline compact) */}
@@ -1667,34 +1697,6 @@ const Schedule = () => {
             </Button>
           </div>
           
-          {/* Focus Mode Toggle */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => setFocusMode(!focusMode)}
-                  className={cn(
-                    "h-9 w-9 transition-colors",
-                    focusMode && "bg-primary/10 text-primary"
-                  )}
-                >
-                  {focusMode ? <Minimize2 className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {focusMode ? 'Exit Focus Mode' : 'Focus Mode'}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          {isAdminOrManager && (
-            <Button onClick={() => setShowAddJob(true)} className="gap-2 h-9">
-              <CalendarPlus className="h-4 w-4" />
-              {t.schedule.addJob}
-            </Button>
-          )}
         </div>
       </div>
 
