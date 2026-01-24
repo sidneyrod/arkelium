@@ -1528,171 +1528,163 @@ const Schedule = () => {
       {/* Overdue Job Alert - For Admin/Manager and Cleaners */}
       <OverdueJobAlert />
       
-      {/* Executive Header: Calendar Nav + KPI Dashboard Strip */}
-      <div className="flex flex-col gap-3">
-        {/* Row 1: Calendar Navigation + View Toggles + Actions */}
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={goToPrevious} className="h-9 w-9">
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <div className="px-4 py-2 rounded-lg bg-card border border-border/50 min-w-[160px] text-center">
-              <span className="font-medium">{format(currentDate, view === 'month' ? 'MMMM yyyy' : 'MMM d, yyyy')}</span>
-            </div>
-            <Button variant="outline" size="icon" onClick={goToNext} className="h-9 w-9">
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="sm" className="ml-2 h-9" onClick={goToToday}>
-              {t.schedule.today}
-            </Button>
+      {/* Single-Line Executive Header: Calendar Nav + KPI Pills + Filters + Actions */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Calendar Navigation (left) */}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={goToPrevious} className="h-9 w-9">
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="px-4 py-2 rounded-lg bg-card border border-border/50 min-w-[140px] text-center">
+            <span className="font-medium text-sm">{format(currentDate, view === 'month' ? 'MMMM yyyy' : 'MMM d, yyyy')}</span>
           </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Service Type Filter */}
-            <Select value={serviceTypeFilter} onValueChange={(v) => setServiceTypeFilter(v as 'all' | 'cleaning' | 'visit')}>
-              <SelectTrigger className="w-[130px] h-9">
-                <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover">
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="cleaning">
-                  <span className="flex items-center gap-2">
-                    <Sparkles className="h-3.5 w-3.5 text-primary" />
-                    Cleaning
-                  </span>
-                </SelectItem>
-                <SelectItem value="visit">
-                  <span className="flex items-center gap-2">
-                    <Eye className="h-3.5 w-3.5 text-purple-500" />
-                    Visit
-                  </span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Employee Filter */}
-            <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
-              <SelectTrigger className="w-[150px] h-9">
-                <User className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-                <SelectValue placeholder={t.schedule.filterByEmployee} />
-              </SelectTrigger>
-              <SelectContent className="bg-popover">
-                <SelectItem value="all">{t.schedule.allEmployees}</SelectItem>
-                {uniqueEmployees.map(emp => (
-                  <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Status Filter */}
-            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as 'all' | JobStatus)}>
-              <SelectTrigger className="w-[130px] h-9">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover">
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="scheduled">Scheduled</SelectItem>
-                <SelectItem value="in-progress">In Progress</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <div className="flex items-center rounded-lg border border-border/50 p-0.5 bg-muted/30">
-              <Button 
-                variant={view === 'day' ? 'secondary' : 'ghost'} 
-                size="sm"
-                onClick={() => setView('day')}
-                className="h-7 px-2.5 transition-all"
-              >
-                {t.schedule.day}
-              </Button>
-              <Button 
-                variant={view === 'week' ? 'secondary' : 'ghost'} 
-                size="sm"
-                onClick={() => setView('week')}
-                className="h-7 px-2.5 transition-all"
-              >
-                {t.schedule.week}
-              </Button>
-              <Button 
-                variant={view === 'month' ? 'secondary' : 'ghost'} 
-                size="sm"
-                onClick={() => setView('month')}
-                className="h-7 px-2.5 transition-all"
-              >
-                {t.schedule.month}
-              </Button>
-              <Button 
-                variant={view === 'timeline' ? 'secondary' : 'ghost'} 
-                size="sm"
-                onClick={() => setView('timeline')}
-                className="h-7 px-2.5 transition-all"
-              >
-                <List className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            {/* Focus Mode Toggle */}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={() => setFocusMode(!focusMode)}
-                    className={cn(
-                      "h-9 w-9 transition-colors",
-                      focusMode && "bg-primary/10 text-primary"
-                    )}
-                  >
-                    {focusMode ? <Minimize2 className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {focusMode ? 'Exit Focus Mode' : 'Focus Mode'}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            {isAdminOrManager && (
-              <Button onClick={() => setShowAddJob(true)} className="gap-2 h-9">
-                <CalendarPlus className="h-4 w-4" />
-                {t.schedule.addJob}
-              </Button>
-            )}
-          </div>
+          <Button variant="outline" size="icon" onClick={goToNext} className="h-9 w-9">
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="sm" className="h-9" onClick={goToToday}>
+            {t.schedule.today}
+          </Button>
         </div>
-        
-        {/* Row 2: Executive KPI Dashboard Strip */}
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* Total Jobs Pill */}
-          <div className="schedule-kpi-pill schedule-kpi-pill-jobs">
+
+        {/* KPI Pills (center, inline compact) */}
+        <div className="flex items-center gap-2">
+          <div className="schedule-kpi-pill-inline schedule-kpi-pill-jobs">
             <span className="schedule-kpi-pill-value">{summaryStats.total}</span>
             <span className="schedule-kpi-pill-label">Jobs</span>
           </div>
-          
-          {/* Completed Pill */}
-          <div className="schedule-kpi-pill schedule-kpi-pill-completed">
+          <div className="schedule-kpi-pill-inline schedule-kpi-pill-completed">
             <span className="schedule-kpi-pill-value">{summaryStats.completed}</span>
             <span className="schedule-kpi-pill-label">Completed</span>
           </div>
-          
-          {/* In Progress Pill */}
           <div className={cn(
-            "schedule-kpi-pill",
+            "schedule-kpi-pill-inline",
             summaryStats.inProgress > 0 ? "schedule-kpi-pill-inprogress" : "schedule-kpi-pill-jobs"
           )}>
             <span className="schedule-kpi-pill-value">{summaryStats.inProgress}</span>
             <span className="schedule-kpi-pill-label">In Progress</span>
           </div>
-          
-          {/* Today Pill - Emphasized */}
-          <div className="schedule-kpi-pill schedule-kpi-pill-today">
+          <div className="schedule-kpi-pill-inline schedule-kpi-pill-today">
             <span className="schedule-kpi-pill-value">{summaryStats.todayCount}</span>
             <span className="schedule-kpi-pill-label">Today</span>
           </div>
+        </div>
+
+        {/* Filters + Actions (right) */}
+        <div className="flex items-center gap-2 ml-auto flex-wrap">
+          {/* Service Type Filter */}
+          <Select value={serviceTypeFilter} onValueChange={(v) => setServiceTypeFilter(v as 'all' | 'cleaning' | 'visit')}>
+            <SelectTrigger className="w-[120px] h-9">
+              <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+              <SelectValue placeholder="Type" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover">
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="cleaning">
+                <span className="flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  Cleaning
+                </span>
+              </SelectItem>
+              <SelectItem value="visit">
+                <span className="flex items-center gap-2">
+                  <Eye className="h-3.5 w-3.5 text-purple-500" />
+                  Visit
+                </span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Employee Filter */}
+          <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+            <SelectTrigger className="w-[140px] h-9">
+              <User className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+              <SelectValue placeholder={t.schedule.filterByEmployee} />
+            </SelectTrigger>
+            <SelectContent className="bg-popover">
+              <SelectItem value="all">{t.schedule.allEmployees}</SelectItem>
+              {uniqueEmployees.map(emp => (
+                <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Status Filter */}
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as 'all' | JobStatus)}>
+            <SelectTrigger className="w-[120px] h-9">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover">
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="scheduled">Scheduled</SelectItem>
+              <SelectItem value="in-progress">In Progress</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div className="flex items-center rounded-lg border border-border/50 p-0.5 bg-muted/30">
+            <Button 
+              variant={view === 'day' ? 'secondary' : 'ghost'} 
+              size="sm"
+              onClick={() => setView('day')}
+              className="h-7 px-2.5 transition-all"
+            >
+              {t.schedule.day}
+            </Button>
+            <Button 
+              variant={view === 'week' ? 'secondary' : 'ghost'} 
+              size="sm"
+              onClick={() => setView('week')}
+              className="h-7 px-2.5 transition-all"
+            >
+              {t.schedule.week}
+            </Button>
+            <Button 
+              variant={view === 'month' ? 'secondary' : 'ghost'} 
+              size="sm"
+              onClick={() => setView('month')}
+              className="h-7 px-2.5 transition-all"
+            >
+              {t.schedule.month}
+            </Button>
+            <Button 
+              variant={view === 'timeline' ? 'secondary' : 'ghost'} 
+              size="sm"
+              onClick={() => setView('timeline')}
+              className="h-7 px-2.5 transition-all"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {/* Focus Mode Toggle */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => setFocusMode(!focusMode)}
+                  className={cn(
+                    "h-9 w-9 transition-colors",
+                    focusMode && "bg-primary/10 text-primary"
+                  )}
+                >
+                  {focusMode ? <Minimize2 className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {focusMode ? 'Exit Focus Mode' : 'Focus Mode'}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          {isAdminOrManager && (
+            <Button onClick={() => setShowAddJob(true)} className="gap-2 h-9">
+              <CalendarPlus className="h-4 w-4" />
+              {t.schedule.addJob}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -2194,7 +2186,7 @@ const Schedule = () => {
                   </div>
                 )}
                 
-                {/* Time slots grid as background */}
+                {/* Time slots grid as background - Increased height for better cards */}
                 {TIME_SLOTS.map((slot, slotIndex) => {
                   // Get jobs that SPAN this slot but started earlier
                   const spanningJobs = getJobsForTimeSlot(currentDate, slot.value).filter(j => !isJobStartingAt(j, slot.value));
@@ -2206,12 +2198,12 @@ const Schedule = () => {
                     <div 
                       key={slot.value}
                       className={cn(
-                        "flex gap-3 border-b schedule-grid-line last:border-b-0 h-14 min-w-0",
+                        "flex gap-3 border-b schedule-grid-line last:border-b-0 h-20 min-w-0",
                         isAdminOrManager && !isOccupied && "hover:bg-primary/5 cursor-pointer transition-colors"
                       )}
                       onClick={() => isAdminOrManager && !isOccupied && handleTimeSlotClick(currentDate, slot.value)}
                     >
-                      <div className="w-20 text-sm text-muted-foreground shrink-0 flex items-start justify-center pt-2 bg-muted/5 border-r border-border/20">
+                      <div className="w-20 text-sm text-muted-foreground shrink-0 flex items-start justify-center pt-3 bg-muted/5 border-r border-border/20">
                         {slot.label}
                       </div>
                       <div className="flex-1 relative min-w-0 overflow-hidden" />
@@ -2227,7 +2219,7 @@ const Schedule = () => {
                     if (startSlotIndex === -1) return null;
                     
                     const rowSpan = getJobRowSpan(job);
-                    const slotHeight = 56; // h-14 = 56px
+                    const slotHeight = 80; // h-20 = 80px (increased from 56px for better card display)
                     const topPosition = startSlotIndex * slotHeight;
                     const cardHeight = rowSpan * slotHeight;
                     const endTime = calculateEndTime(job.time, job.duration);
@@ -2242,15 +2234,17 @@ const Schedule = () => {
                     
                     // If there's a job after this one, cap the height to avoid overlap (with small gap)
                     if (maxBeforeNextJob !== null) {
-                      maxCardHeight = Math.min(maxCardHeight, maxBeforeNextJob - 4);
+                      maxCardHeight = Math.min(maxCardHeight, maxBeforeNextJob - 6);
                     }
                     
-                    // Minimum height for legibility (at least one slot minus padding)
-                    const minCardHeight = slotHeight - 8;
+                    // Minimum height for legibility (at least ~100px for all info)
+                    const minCardHeight = 100;
                     const clampedCardHeight = Math.max(
                       Math.min(cardHeight, maxCardHeight),
                       minCardHeight
                     );
+                    
+                    const isVisit = job.jobType === 'visit';
                   
                   return (
                     <HoverCard key={job.id + (job._isContinuation ? '-cont' : '')} openDelay={300} closeDelay={100}>
@@ -2261,7 +2255,7 @@ const Schedule = () => {
                         >
                           <div 
                             className={cn(
-                              "h-full p-4 cursor-pointer relative pl-5",
+                              "h-full p-3 cursor-pointer relative pl-5",
                               "transition-all duration-200 ease-out",
                               getScheduleCardClass(job),
                               job._isContinuation && "opacity-90"
@@ -2279,82 +2273,52 @@ const Schedule = () => {
                               <div className="absolute top-0 inset-x-0 h-2.5 bg-gradient-to-b from-muted-foreground/10 to-transparent rounded-t-xl" />
                             )}
                             
-                            {/* Adaptive Content based on available height */}
-                            {(() => {
-                              const isCompact = clampedCardHeight < 60;
-                              const isMedium = !isCompact && clampedCardHeight < 90;
-                              const isVisit = job.jobType === 'visit';
+                            {/* Enhanced Day View Card Layout: Type > Client > User > Time > Status */}
+                            <div className="flex flex-col h-full justify-between overflow-hidden">
+                              {/* Row 1: Type Badge + Status (aligned right) */}
+                              <div className="flex items-center justify-between mb-1">
+                                <Badge 
+                                  variant="outline" 
+                                  className={cn(
+                                    "text-[10px] px-2 py-0.5 h-5 flex-shrink-0",
+                                    getTypeBadgeClass(job)
+                                  )}
+                                >
+                                  {isVisit ? 'VISIT' : 'SERVICE'}
+                                </Badge>
+                                <Badge 
+                                  variant="outline" 
+                                  className={cn(
+                                    "text-[10px] px-2 py-0.5 flex-shrink-0",
+                                    statusConfig[job.status].badgeClass
+                                  )}
+                                >
+                                  {statusConfig[job.status].label}
+                                </Badge>
+                              </div>
                               
-                              return (
-                                <div className="flex flex-col h-full relative overflow-hidden">
-                                  {/* Row 1: Type Badge + Client + Status */}
-                                  <div className="flex items-center gap-2 mb-1">
-                                    {!isCompact && (
-                                      <Badge 
-                                        variant="outline" 
-                                        className={cn(
-                                          "text-[10px] px-2 py-0.5 h-5 flex-shrink-0",
-                                          getTypeBadgeClass(job)
-                                        )}
-                                      >
-                                        {isVisit ? 'VISIT' : 'SERVICE'}
-                                      </Badge>
-                                    )}
-                                    <span className={cn(
-                                      "font-semibold truncate flex-1",
-                                      isCompact ? "text-xs" : "text-base",
-                                      isVisit && "text-purple-700 dark:text-purple-300"
-                                    )}>
-                                      {job.clientName}
-                                    </span>
-                                    <Badge 
-                                      variant="outline" 
-                                      className={cn(
-                                        "flex-shrink-0",
-                                        isCompact ? "text-[7px] px-1 py-0" : "text-[10px] px-2 py-0.5",
-                                        statusConfig[job.status].badgeClass
-                                      )}
-                                    >
-                                      {isCompact ? statusConfig[job.status].label.charAt(0) : statusConfig[job.status].label}
-                                    </Badge>
-                                  </div>
-                                  
-                                  {/* Row 2: Time range with duration */}
-                                  <div className={cn(
-                                    "flex items-center gap-2 font-medium text-foreground/75",
-                                    isCompact ? "text-[10px]" : "text-sm"
-                                  )}>
-                                    <Clock className={cn("flex-shrink-0", isCompact ? "h-3 w-3" : "h-4 w-4")} />
-                                    <span>
-                                      {formatTimeDisplay(job.time)}{!isCompact && ` – ${crossesMidnight ? '12:00 AM' : formatTimeDisplay(endTime)}`}
-                                    </span>
-                                    {!isCompact && <span className="text-muted-foreground font-normal">({job.duration})</span>}
-                                  </div>
-                                  
-                                  {/* Row 3+: Address + Employee - Only in standard mode */}
-                                  {!isMedium && !isCompact && (
-                                    <div className="grid grid-cols-2 gap-2 mt-2 text-sm text-muted-foreground">
-                                      <div className="flex items-center gap-2">
-                                        <MapPin className="h-4 w-4 flex-shrink-0" />
-                                        <span className="truncate">{job.address}</span>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <User className="h-4 w-4 flex-shrink-0" />
-                                        <span className="truncate font-medium">{job.employeeName}</span>
-                                      </div>
-                                    </div>
-                                  )}
-                                  
-                                  {/* Medium mode: Only show employee */}
-                                  {isMedium && !isCompact && (
-                                    <p className="text-xs text-muted-foreground truncate mt-1 flex items-center gap-1">
-                                      <User className="h-3 w-3" />
-                                      {job.employeeName}
-                                    </p>
-                                  )}
-                                </div>
-                              );
-                            })()}
+                              {/* Row 2: Client Name - Hero (never truncated) */}
+                              <h4 className={cn(
+                                "font-bold text-base text-foreground leading-tight",
+                                isVisit && "text-purple-700 dark:text-purple-300"
+                              )}>
+                                {job.clientName}
+                              </h4>
+                              
+                              {/* Row 3: Responsible User */}
+                              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                <User className="h-3.5 w-3.5 flex-shrink-0" />
+                                <span className="font-medium truncate">{job.employeeName}</span>
+                              </div>
+                              
+                              {/* Row 4: Time Range */}
+                              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+                                <span>
+                                  {formatTimeDisplay(job.time)} – {crossesMidnight ? '12:00 AM' : formatTimeDisplay(endTime)}
+                                </span>
+                              </div>
+                            </div>
                             
                             {/* Crosses midnight visual indicator (bottom gradient + arrow) */}
                             {crossesMidnight && (
