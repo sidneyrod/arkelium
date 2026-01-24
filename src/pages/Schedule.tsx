@@ -932,9 +932,11 @@ const Schedule = () => {
   };
   
   const handleCompleteJob = async (jobId: string, afterPhotos?: string[], notes?: string, paymentData?: PaymentData) => {
-    // Close modal first to prevent reopening
-    setShowCompletion(false);
+    // IMPORTANT: Clear selectedJob FIRST to prevent job details dialog from flashing
+    // The dialog condition is: !!selectedJob && !showCompletion
+    // So we must nullify selectedJob before setting showCompletion to false
     setSelectedJob(null);
+    setShowCompletion(false);
     
     try {
       let companyId = user?.profile?.company_id;
