@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { parseDurationToMinutes } from '@/lib/utils';
 
 interface ValidationResult {
   isValid: boolean;
@@ -15,12 +16,6 @@ interface JobData {
   duration: string;
   jobId?: string; // For editing - exclude current job from validation
 }
-
-// Parse duration string to minutes
-const parseDurationToMinutes = (duration: string): number => {
-  const match = duration.match(/(\d+\.?\d*)/);
-  return match ? parseFloat(match[1]) * 60 : 120;
-};
 
 // Convert time string to minutes from midnight
 const timeToMinutes = (time: string): number => {
