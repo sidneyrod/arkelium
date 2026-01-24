@@ -1872,45 +1872,63 @@ const Schedule = () => {
                                       <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-b from-muted-foreground/10 to-transparent rounded-t-xl" />
                                     )}
                                     
-                                    {/* Card content with hierarchy */}
-                                    <div className="flex flex-col h-full overflow-hidden">
-                                      {/* Row 1: Type chip + Status */}
-                                      <div className="flex items-center gap-1 mb-0.5">
-                                        <Badge 
-                                          variant="outline" 
-                                          className={cn(
-                                            "text-[7px] px-1 py-0 h-3.5 font-semibold",
-                                            job.jobType === 'visit' 
-                                              ? "border-purple-400/40 bg-purple-500/10 text-purple-600 dark:text-purple-400" 
-                                              : "border-primary/30 bg-primary/5 text-primary"
+                                    {/* Adaptive Card content based on available height */}
+                                    {(() => {
+                                      const isCompact = clampedCardHeight < 55;
+                                      const isMedium = !isCompact && clampedCardHeight < 80;
+                                      
+                                      return (
+                                        <div className="flex flex-col h-full overflow-hidden">
+                                          {/* Row 1: Client + Status (always show) */}
+                                          <div className="flex items-center gap-1 mb-0.5">
+                                            <span className={cn(
+                                              "font-semibold truncate flex-1",
+                                              isCompact ? "text-[9px]" : "text-[11px]"
+                                            )}>
+                                              {job.clientName}
+                                            </span>
+                                            <span className={cn(
+                                              "font-semibold uppercase rounded-full flex-shrink-0",
+                                              isCompact ? "text-[6px] px-1 py-0" : "text-[7px] px-1.5 py-0.5",
+                                              statusConfig[job.status].bgColor,
+                                              statusConfig[job.status].color
+                                            )}>
+                                              {isCompact ? statusConfig[job.status].label.charAt(0) : statusConfig[job.status].label}
+                                            </span>
+                                          </div>
+                                          
+                                          {/* Row 2: Time (always show, but shortened in compact) */}
+                                          <p className={cn(
+                                            "font-medium text-foreground/75",
+                                            isCompact ? "text-[8px]" : "text-[10px]"
+                                          )}>
+                                            {formatTimeDisplay(job.time)}{!isCompact && ` – ${crossesMidnight ? '12:00 AM' : formatTimeDisplay(endTime)}`}
+                                          </p>
+                                          
+                                          {/* Row 3: Type badge (only in standard mode) */}
+                                          {!isMedium && !isCompact && (
+                                            <Badge 
+                                              variant="outline" 
+                                              className={cn(
+                                                "text-[6px] px-1 py-0 h-3 font-semibold w-fit mt-0.5",
+                                                job.jobType === 'visit' 
+                                                  ? "border-purple-400/40 bg-purple-500/10 text-purple-600 dark:text-purple-400" 
+                                                  : "border-primary/30 bg-primary/5 text-primary"
+                                              )}
+                                            >
+                                              {job.jobType === 'visit' ? 'Visit' : 'Service'}
+                                            </Badge>
                                           )}
-                                        >
-                                          {job.jobType === 'visit' ? 'Visit' : 'Service'}
-                                        </Badge>
-                                        <span className={cn(
-                                          "ml-auto text-[7px] font-semibold uppercase px-1.5 py-0.5 rounded-full flex-shrink-0",
-                                          statusConfig[job.status].bgColor,
-                                          statusConfig[job.status].color
-                                        )}>
-                                          {statusConfig[job.status].label}
-                                        </span>
-                                      </div>
-                                      
-                                      {/* Primary: Client name */}
-                                      <span className="font-semibold truncate text-[11px] leading-tight">{job.clientName}</span>
-                                      
-                                      {/* Secondary: Time range */}
-                                      <p className="text-[10px] font-medium text-foreground/75 mt-0.5">
-                                        {formatTimeDisplay(job.time)} – {crossesMidnight ? '12:00 AM' : formatTimeDisplay(endTime)}
-                                      </p>
-                                      
-                                      {/* Tertiary: Employee (only if enough height) */}
-                                      {rowSpan >= 2 && (
-                                        <p className="text-[9px] text-muted-foreground truncate mt-auto">
-                                          {job.employeeName}
-                                        </p>
-                                      )}
-                                    </div>
+                                          
+                                          {/* Row 4: Employee (only if enough height) */}
+                                          {!isMedium && !isCompact && (
+                                            <p className="text-[8px] text-muted-foreground truncate mt-auto">
+                                              {job.employeeName}
+                                            </p>
+                                          )}
+                                        </div>
+                                      );
+                                    })()}
                                     
                                     {/* Crosses midnight visual indicator (bottom gradient + arrow) */}
                                     {crossesMidnight && (
@@ -2138,46 +2156,73 @@ const Schedule = () => {
                               <div className="absolute top-0 inset-x-0 h-2.5 bg-gradient-to-b from-muted-foreground/10 to-transparent rounded-t-xl" />
                             )}
                             
-                            {/* Content with hierarchy */}
-                            <div className="flex flex-col h-full relative">
-                              {/* Row 1: Type chip + Client + Status */}
-                              <div className="flex items-center gap-2 mb-1">
-                                <Badge 
-                                  variant="outline" 
-                                  className={cn(
-                                    "text-[9px] px-1.5 py-0 h-4 font-semibold",
-                                    job.jobType === 'visit' 
-                                      ? "border-purple-400/40 bg-purple-500/10 text-purple-600 dark:text-purple-400" 
-                                      : "border-primary/30 bg-primary/5 text-primary"
-                                  )}
-                                >
-                                  {job.jobType === 'visit' ? 'Visit' : 'Service'}
-                                </Badge>
-                                <span className="font-semibold text-sm truncate flex-1">{job.clientName}</span>
-                                <Badge 
-                                  variant="outline" 
-                                  className={cn(
-                                    "text-[9px] px-1.5 py-0 flex-shrink-0",
-                                    statusConfig[job.status].bgColor,
-                                    statusConfig[job.status].color
-                                  )}
-                                >
-                                  {statusConfig[job.status].label}
-                                </Badge>
-                              </div>
+                            {/* Adaptive Content based on available height */}
+                            {(() => {
+                              const isCompact = clampedCardHeight < 60;
+                              const isMedium = !isCompact && clampedCardHeight < 90;
                               
-                              {/* Secondary: Time range */}
-                              <div className="flex items-center gap-2 text-xs font-medium text-foreground/75 mb-1">
-                                <span>
-                                  {formatTimeDisplay(job.time)} – {crossesMidnight ? '12:00 AM' : formatTimeDisplay(endTime)}
-                                </span>
-                                <span className="text-muted-foreground font-normal">({job.duration})</span>
-                              </div>
-                              
-                              {/* Tertiary: Address + Employee */}
-                              <p className="text-xs text-muted-foreground truncate">{job.address}</p>
-                              <p className="text-xs text-muted-foreground truncate">{job.employeeName}</p>
-                            </div>
+                              return (
+                                <div className="flex flex-col h-full relative overflow-hidden">
+                                  {/* Row 1: Always show - Client + Status (adaptive) */}
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    {!isCompact && (
+                                      <Badge 
+                                        variant="outline" 
+                                        className={cn(
+                                          "text-[9px] px-1.5 py-0 h-4 font-semibold flex-shrink-0",
+                                          job.jobType === 'visit' 
+                                            ? "border-purple-400/40 bg-purple-500/10 text-purple-600 dark:text-purple-400" 
+                                            : "border-primary/30 bg-primary/5 text-primary"
+                                        )}
+                                      >
+                                        {job.jobType === 'visit' ? 'Visit' : 'Svc'}
+                                      </Badge>
+                                    )}
+                                    <span className={cn(
+                                      "font-semibold truncate flex-1",
+                                      isCompact ? "text-xs" : "text-sm"
+                                    )}>
+                                      {job.clientName}
+                                    </span>
+                                    <Badge 
+                                      variant="outline" 
+                                      className={cn(
+                                        "px-1 py-0 flex-shrink-0",
+                                        isCompact ? "text-[7px]" : "text-[9px] px-1.5",
+                                        statusConfig[job.status].bgColor,
+                                        statusConfig[job.status].color
+                                      )}
+                                    >
+                                      {isCompact ? statusConfig[job.status].label.charAt(0) : statusConfig[job.status].label}
+                                    </Badge>
+                                  </div>
+                                  
+                                  {/* Row 2: Time - Always show but smaller in compact mode */}
+                                  <div className={cn(
+                                    "flex items-center gap-1 font-medium text-foreground/75",
+                                    isCompact ? "text-[10px]" : "text-xs"
+                                  )}>
+                                    <span>
+                                      {formatTimeDisplay(job.time)}{!isCompact && ` – ${crossesMidnight ? '12:00 AM' : formatTimeDisplay(endTime)}`}
+                                    </span>
+                                    {!isCompact && <span className="text-muted-foreground font-normal">({job.duration})</span>}
+                                  </div>
+                                  
+                                  {/* Row 3+: Address + Employee - Only in standard mode */}
+                                  {!isMedium && !isCompact && (
+                                    <>
+                                      <p className="text-xs text-muted-foreground truncate mt-0.5">{job.address}</p>
+                                      <p className="text-xs text-muted-foreground truncate">{job.employeeName}</p>
+                                    </>
+                                  )}
+                                  
+                                  {/* Medium mode: Only show employee */}
+                                  {isMedium && !isCompact && (
+                                    <p className="text-[10px] text-muted-foreground truncate mt-0.5">{job.employeeName}</p>
+                                  )}
+                                </div>
+                              );
+                            })()}
                             
                             {/* Crosses midnight visual indicator (bottom gradient + arrow) */}
                             {crossesMidnight && (
@@ -2293,9 +2338,9 @@ const Schedule = () => {
           </Card>
         )}
 
-        {/* Timeline View */}
+        {/* Timeline View - Enhanced with date grouping */}
         {view === 'timeline' && (
-          <div className="space-y-1.5">
+          <div className="space-y-3">
             {filteredJobs.length === 0 ? (
               <Card className="border-border/40 shadow-soft-sm">
                 <CardContent className="py-12 text-center text-muted-foreground">
@@ -2304,87 +2349,142 @@ const Schedule = () => {
                 </CardContent>
               </Card>
             ) : (
-              filteredJobs.map((job) => {
-                const config = statusConfig[job.status];
-                const crossesMidnight = doesJobCrossMidnight(job.time, job.duration);
+              (() => {
+                // Group jobs by date
+                const jobsByDate = filteredJobs.reduce((acc, job) => {
+                  const dateKey = job.date;
+                  if (!acc[dateKey]) acc[dateKey] = [];
+                  acc[dateKey].push(job);
+                  return acc;
+                }, {} as Record<string, typeof filteredJobs>);
                 
-                return (
-                  <Card 
-                    key={job.id} 
-                    className={cn(
-                      "border-l-4 cursor-pointer overflow-hidden shadow-soft-sm",
-                      "transition-all duration-200 ease-out",
-                      "hover:shadow-soft-md hover:-translate-y-0.5 hover:scale-[1.002]",
-                      "active:scale-[0.998] active:shadow-soft-sm",
-                      job.jobType === 'visit' 
-                        ? "border-l-purple-500"
-                        : job.status === 'scheduled' ? "border-l-info"
-                        : job.status === 'in-progress' ? "border-l-warning"
-                        : job.status === 'completed' ? "border-l-success"
-                        : "border-l-muted-foreground"
-                    )}
-                    onClick={() => setSelectedJob(job)}
-                  >
-                    <CardContent className="p-3.5">
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3 min-w-0">
-                          {/* Time block */}
-                          <div className="text-center min-w-[55px] flex-shrink-0">
-                            <p className="text-base font-semibold leading-tight">{formatTimeDisplay(job.time)}</p>
-                            <p className="text-[10px] text-muted-foreground">{job.duration}</p>
-                          </div>
-                          
-                          <div className="h-9 w-px bg-border/40 flex-shrink-0" />
-                          
-                          {/* Main content */}
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              {job.jobType === 'visit' ? (
-                                <Eye className="h-3.5 w-3.5 text-purple-500 flex-shrink-0" />
-                              ) : (
-                                <Sparkles className="h-3.5 w-3.5 text-primary/70 flex-shrink-0" />
-                              )}
-                              <span className="font-semibold text-sm truncate">{job.clientName}</span>
-                              <Badge 
-                                variant="outline" 
-                                className={cn(
-                                  "text-[9px] px-1.5 py-0 flex-shrink-0",
-                                  job.jobType === 'visit' 
-                                    ? "border-purple-500/30 bg-purple-500/10 text-purple-600 dark:text-purple-400" 
-                                    : "border-primary/30 bg-primary/5 text-primary"
-                                )}
-                              >
-                                {job.jobType === 'visit' ? 'Visit' : 'Service'}
-                              </Badge>
-                              {crossesMidnight && (
-                                <div className="flex items-center gap-0.5 text-[9px] text-warning">
-                                  <ArrowRight className="h-2.5 w-2.5" />
-                                  <span>Next day</span>
-                                </div>
-                              )}
-                            </div>
-                            <p className="text-xs text-muted-foreground truncate mt-0.5 flex items-center gap-1">
-                              <MapPin className="h-3 w-3 flex-shrink-0" />
-                              {job.address}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        {/* Right side: Employee + Status */}
-                        <div className="flex items-center gap-2.5 flex-shrink-0">
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <User className="h-3.5 w-3.5" />
-                            <span className="max-w-[80px] truncate">{job.employeeName}</span>
-                          </div>
-                          <Badge className={cn("text-[9px] px-2 py-0.5", config.bgColor, config.color)}>
-                            {config.label}
-                          </Badge>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                // Sort dates
+                const sortedDates = Object.keys(jobsByDate).sort((a, b) => 
+                  toSafeLocalDate(a).getTime() - toSafeLocalDate(b).getTime()
                 );
-              })
+                
+                return sortedDates.map((dateKey) => {
+                  const dateJobs = jobsByDate[dateKey];
+                  const dateObj = toSafeLocalDate(dateKey);
+                  const isDateToday = isToday(dateObj);
+                  
+                  return (
+                    <div key={dateKey} className="space-y-1.5">
+                      {/* Date Header - Sticky */}
+                      <div className={cn(
+                        "sticky top-0 z-10 backdrop-blur-sm py-2 px-3 rounded-lg flex items-center justify-between",
+                        isDateToday 
+                          ? "bg-primary/10 border border-primary/20" 
+                          : "bg-muted/60 border border-border/30"
+                      )}>
+                        <div className="flex items-center gap-2">
+                          <CalendarIcon className={cn(
+                            "h-4 w-4",
+                            isDateToday ? "text-primary" : "text-muted-foreground"
+                          )} />
+                          <span className={cn(
+                            "font-semibold text-sm",
+                            isDateToday && "text-primary"
+                          )}>
+                            {format(dateObj, 'EEEE, MMMM d, yyyy')}
+                          </span>
+                          {isDateToday && (
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-primary/30 bg-primary/10 text-primary">
+                              Today
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {dateJobs.length} {dateJobs.length === 1 ? 'job' : 'jobs'}
+                        </span>
+                      </div>
+                      
+                      {/* Jobs for this date */}
+                      {dateJobs.map((job) => {
+                        const config = statusConfig[job.status];
+                        const crossesMidnight = doesJobCrossMidnight(job.time, job.duration);
+                        
+                        return (
+                          <Card 
+                            key={job.id} 
+                            className={cn(
+                              "border-l-4 cursor-pointer overflow-hidden shadow-soft-sm ml-2",
+                              "transition-all duration-200 ease-out",
+                              "hover:shadow-soft-md hover:-translate-y-0.5 hover:scale-[1.002]",
+                              "active:scale-[0.998] active:shadow-soft-sm",
+                              job.jobType === 'visit' 
+                                ? "border-l-purple-500"
+                                : job.status === 'scheduled' ? "border-l-info"
+                                : job.status === 'in-progress' ? "border-l-warning"
+                                : job.status === 'completed' ? "border-l-success"
+                                : "border-l-muted-foreground"
+                            )}
+                            onClick={() => setSelectedJob(job)}
+                          >
+                            <CardContent className="p-3.5">
+                              <div className="flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  {/* Time block */}
+                                  <div className="text-center min-w-[55px] flex-shrink-0">
+                                    <p className="text-base font-semibold leading-tight">{formatTimeDisplay(job.time)}</p>
+                                    <p className="text-[10px] text-muted-foreground">{job.duration}</p>
+                                  </div>
+                                  
+                                  <div className="h-9 w-px bg-border/40 flex-shrink-0" />
+                                  
+                                  {/* Main content */}
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2">
+                                      {job.jobType === 'visit' ? (
+                                        <Eye className="h-3.5 w-3.5 text-purple-500 flex-shrink-0" />
+                                      ) : (
+                                        <Sparkles className="h-3.5 w-3.5 text-primary/70 flex-shrink-0" />
+                                      )}
+                                      <span className="font-semibold text-sm truncate">{job.clientName}</span>
+                                      <Badge 
+                                        variant="outline" 
+                                        className={cn(
+                                          "text-[9px] px-1.5 py-0 flex-shrink-0",
+                                          job.jobType === 'visit' 
+                                            ? "border-purple-500/30 bg-purple-500/10 text-purple-600 dark:text-purple-400" 
+                                            : "border-primary/30 bg-primary/5 text-primary"
+                                        )}
+                                      >
+                                        {job.jobType === 'visit' ? 'Visit' : 'Service'}
+                                      </Badge>
+                                      {crossesMidnight && (
+                                        <div className="flex items-center gap-0.5 text-[9px] text-warning">
+                                          <ArrowRight className="h-2.5 w-2.5" />
+                                          <span>Next day</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground truncate mt-0.5 flex items-center gap-1">
+                                      <MapPin className="h-3 w-3 flex-shrink-0" />
+                                      {job.address}
+                                    </p>
+                                  </div>
+                                </div>
+                                
+                                {/* Right side: Employee + Status */}
+                                <div className="flex items-center gap-2.5 flex-shrink-0">
+                                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                    <User className="h-3.5 w-3.5" />
+                                    <span className="max-w-[80px] truncate">{job.employeeName}</span>
+                                  </div>
+                                  <Badge className={cn("text-[9px] px-2 py-0.5", config.bgColor, config.color)}>
+                                    {config.label}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  );
+                });
+              })()
             )}
           </div>
         )}
