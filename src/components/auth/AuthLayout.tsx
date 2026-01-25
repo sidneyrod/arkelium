@@ -71,13 +71,13 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               loading="eager"
               decoding="sync"
               fetchPriority="high"
-              className="h-64 xl:h-72 2xl:h-80 w-auto mb-3 select-none"
+              className="h-44 xl:h-48 2xl:h-52 w-auto mb-6 select-none"
               style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }}
             />
 
             {/* Headline - Centered with Logo */}
             <h1
-              className="font-light leading-[1.15] mb-5 text-white"
+              className="font-light leading-[1.15] mb-3 text-white"
               style={{ 
                 fontSize: 'clamp(28px, 3vw, 44px)',
                 letterSpacing: '-0.02em'
@@ -90,7 +90,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             
             {/* Subtitle - Lower contrast */}
             <p
-              className="max-w-md text-white/50 mb-10"
+              className="max-w-md text-white/50 mb-6"
               style={{ fontSize: 'clamp(13px, 1vw, 16px)', lineHeight: 1.6 }}
             >
               Operational clarity, financial accuracy, audit-ready by design.
