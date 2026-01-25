@@ -33,7 +33,7 @@ import {
 import { CANADIAN_TIMEZONES } from '@/hooks/useTimezone';
 import PreferencesTab from '@/components/company/PreferencesTab';
 import ActivitiesTab from '@/components/company/ActivitiesTab';
-import { CompanyListItem } from '@/components/company/CompanyListTable';
+import CompanyListTable, { CompanyListItem } from '@/components/company/CompanyListTable';
 import EditCompanyModal, { CompanyFormData } from '@/components/company/EditCompanyModal';
 import ConfirmDialog from '@/components/modals/ConfirmDialog';
 
@@ -1002,6 +1002,10 @@ const Company = () => {
       <Tabs defaultValue="branding" className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <TabsList className="h-auto p-1 gap-2 bg-muted/50">
+          <TabsTrigger value="profile" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
+              <Building2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Profile</span>
+            </TabsTrigger>
             <TabsTrigger value="activities" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
               <Zap className="h-4 w-4" />
               <span className="hidden sm:inline">Activities</span>
@@ -1025,6 +1029,19 @@ const Company = () => {
           </TabsList>
         </div>
 
+
+        {/* Profile Tab - Company List */}
+        <TabsContent value="profile" className="space-y-4 mt-4">
+          <CompanyListTable
+            companies={companies}
+            activeCompanyId={activeCompanyId}
+            isLoading={isLoadingCompanies}
+            onSelectCompany={handleSelectCompany}
+            onEditCompany={handleOpenEditModal}
+            onDeleteCompany={handleDeleteCompany}
+            onRegisterCompany={handleOpenRegisterModal}
+          />
+        </TabsContent>
 
         {/* Activities Tab */}
         <TabsContent value="activities" className="space-y-4 mt-4">
