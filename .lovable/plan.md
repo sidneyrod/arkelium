@@ -1,53 +1,81 @@
 
+Objetivo: eliminar 100% o “sumir por 1–2s” do logo ao navegar de **/login → /forgot-password** (e também entre outras telas públicas), mantendo o logo sempre renderizado e constante.
 
-## Plano: Melhorar a Legibilidade dos Textos de Segurança na Tela de Login
+Diagnóstico (causa provável)
+- Hoje, cada página pública (Login/ForgotPassword/ResetPassword) renderiza seu próprio `<AuthLayout>`:
+  - `src/pages/Login.tsx` (envolve conteúdo com `<AuthLayout>`)
+  - `src/pages/ForgotPassword.tsx`
+  - `src/pages/ResetPassword.tsx`
+- Ao trocar a rota, o React Router desmonta a página inteira anterior e monta a nova. Isso faz o `<AuthLayout>` (incluindo o `<img>` do logo) sair do DOM e entrar de novo.
+- Mesmo com preload (`new Image()` em `src/components/auth/AuthLayout.tsx`), o navegador pode demorar a “pintar” o logo novamente (decode/raster/filter), gerando a impressão de desaparecimento.
 
-### Problema Identificado
+Solução (arquitetura correta para “nunca desaparecer”)
+1) Tornar o `AuthLayout` um “shell” persistente de rotas públicas usando rotas aninhadas (Outlet)
+- Em vez de cada página importar `<AuthLayout>`, vamos renderizar o layout UMA vez no roteamento e trocar somente o miolo (o card/form).
+- Resultado: ao navegar /login ↔ /forgot-password, apenas o conteúdo do formulário troca; o painel com logo nunca desmonta, então não existe janela onde ele “some”.
 
-Os textos na seção inferior do formulário de login estão com opacidade muito baixa, tornando-os difíceis de ler:
+Passos de implementação (arquivos e mudanças)
+A) Criar um layout de rotas públicas que mantém o AuthLayout constante
+- Criar um componente novo, por exemplo:
+  - `src/components/auth/PublicAuthLayout.tsx`
+- Conteúdo:
+  - Renderiza `<AuthLayout>` e dentro dele um `<Outlet />` (do `react-router-dom`).
+  - Esse componente não faz lógica de auth; ele só “segura” o layout.
 
-| Elemento | Opacidade Atual | Classe Atual |
-|----------|-----------------|--------------|
-| Mensagem de segurança principal | 40% | `text-white/40` |
-| Indicadores de confiança | 30% | `text-white/30` |
+B) Refatorar o roteamento para usar rotas aninhadas com o layout persistente
+- Editar `src/App.tsx`:
+  - Substituir:
+    - `<Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />`
+    - `<Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />`
+    - `<Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />`
+  - Por algo neste formato:
+    - `<Route element={<PublicRoute><PublicAuthLayout /></PublicRoute>}>`
+      - `<Route path="/login" element={<Login />} />`
+      - `<Route path="/forgot-password" element={<ForgotPassword />} />`
+      - `<Route path="/reset-password" element={<ResetPassword />} />`
+    - `</Route>`
+  - Assim, ao mudar entre essas rotas, o `PublicAuthLayout` continua montado.
 
-### Solução Proposta
+C) Ajustar as páginas públicas para não renderizarem mais AuthLayout (viram “somente o card”)
+- Editar:
+  - `src/pages/Login.tsx`
+  - `src/pages/ForgotPassword.tsx`
+  - `src/pages/ResetPassword.tsx`
+- Mudanças:
+  - Remover `import AuthLayout from '@/components/auth/AuthLayout'`
+  - Remover o wrapper `<AuthLayout> ... </AuthLayout>`
+  - Manter apenas o conteúdo interno (o card transparente), retornando diretamente o `<div className="w-full ...">...</div>`
+- Resultado:
+  - O layout fica 100% centralizado no `PublicAuthLayout`, e cada página só fornece o “miolo”.
 
-Aumentar a opacidade dos textos para valores mais legíveis, mantendo o visual elegante e discreto:
+D) “Hardening” do carregamento do logo (para evitar qualquer atraso até mesmo no primeiro load)
+- Editar `src/components/auth/AuthLayout.tsx`:
+  - No `<img>` do logo (desktop e mobile), adicionar atributos para priorizar o carregamento/pintura:
+    - `loading="eager"`
+    - `decoding="sync"` (ou manter default se preferir; mas “sync” ajuda a evitar paint atrasado)
+    - `fetchPriority="high"`
+  - Manter o preload existente (`new Image()`), e opcionalmente chamar `preloadLogo.decode?.().catch(...)` para “forçar decode” antecipado quando suportado.
 
-**Arquivo:** `src/pages/Login.tsx`
+Critérios de aceite (como vamos validar que ficou perfeito)
+1) No desktop (>=1024px):
+- Abrir `/login` e clicar em “Forgot Password?”:
+  - O logo no painel esquerdo não pode desaparecer em nenhum momento (nem 1 frame perceptível).
+2) No mobile/tablet (<1024px):
+- O logo do header também não pode piscar ao navegar entre telas públicas.
+3) Verificar também:
+- `/forgot-password` → “Back to login”
+- `/forgot-password` → `/reset-password` (quando aplicável)
+4) Garantir que não voltamos com barras de rolagem no login:
+- Confirmar que `AuthLayout` continua com `overflow-hidden` no container raiz e não adicionamos `overflow-auto` novamente.
 
-1. **Mensagem de segurança (linha 189)**
-   - De: `text-white/40`
-   - Para: `text-white/60` (60% de opacidade)
+Risco/impacto
+- É uma refatoração bem localizada (roteamento + 3 páginas públicas), sem mexer no fluxo de autenticação em si.
+- Benefício adicional: o seletor de idioma e o fundo também ficam totalmente estáveis ao trocar as telas públicas.
 
-2. **Indicadores de confiança (linha 194)**
-   - De: `text-white/30`
-   - Para: `text-white/50` (50% de opacidade)
-
-### Código Antes vs Depois
-
-**Antes:**
-```tsx
-<p className="text-[11px] text-white/40 text-center leading-relaxed">
-  {t.securityMsg}
-</p>
-
-<div className="mt-4 flex items-center justify-center gap-4 text-[10px] text-white/30">
-```
-
-**Depois:**
-```tsx
-<p className="text-[11px] text-white/60 text-center leading-relaxed">
-  {t.securityMsg}
-</p>
-
-<div className="mt-4 flex items-center justify-center gap-4 text-[10px] text-white/50">
-```
-
-### Resultado Esperado
-
-- Textos visivelmente mais legíveis contra o fundo escuro
-- Hierarquia visual mantida (mensagem principal mais clara que os indicadores)
-- Estilo discreto e elegante preservado
-
+Arquivos que serão mexidos
+- Novo: `src/components/auth/PublicAuthLayout.tsx` (nome pode variar)
+- Editar: `src/App.tsx`
+- Editar: `src/pages/Login.tsx`
+- Editar: `src/pages/ForgotPassword.tsx`
+- Editar: `src/pages/ResetPassword.tsx`
+- Editar: `src/components/auth/AuthLayout.tsx` (atributos do `<img>` para priorização)
