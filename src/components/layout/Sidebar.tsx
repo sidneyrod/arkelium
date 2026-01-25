@@ -40,7 +40,7 @@ const Sidebar = () => {
   const { t } = useLanguage();
   const { hasRole } = useAuth();
   const { canView, loading: permissionsLoading } = usePermissions();
-  const { openTab } = useWorkspaceStore();
+  const { openTab, focusMode } = useWorkspaceStore();
   const location = useLocation();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
@@ -316,27 +316,29 @@ const Sidebar = () => {
           </div>
         </nav>
 
-        {/* Collapse Toggle */}
-        <div className="mt-auto shrink-0">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setCollapsed(!collapsed)}
-            className={cn(
-              "w-full h-8 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-none border-t border-border",
-              collapsed ? "justify-center px-0" : "justify-start px-3"
-            )}
-          >
-            {collapsed ? (
-              <ChevronRight className="h-3.5 w-3.5" />
-            ) : (
-              <>
-                <ChevronLeft className="h-3.5 w-3.5 mr-2" />
-                <span>Collapse</span>
-              </>
-            )}
-          </Button>
-        </div>
+        {/* Collapse Toggle - Hidden when Focus Mode is active */}
+        {!focusMode && (
+          <div className="mt-auto shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCollapsed(!collapsed)}
+              className={cn(
+                "w-full h-8 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-none border-t border-border",
+                collapsed ? "justify-center px-0" : "justify-start px-3"
+              )}
+            >
+              {collapsed ? (
+                <ChevronRight className="h-3.5 w-3.5" />
+              ) : (
+                <>
+                  <ChevronLeft className="h-3.5 w-3.5 mr-2" />
+                  <span>Collapse</span>
+                </>
+              )}
+            </Button>
+          </div>
+        )}
       </aside>
     </TooltipProvider>
   );

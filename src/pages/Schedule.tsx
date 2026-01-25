@@ -44,6 +44,7 @@ import { toast } from 'sonner';
 import { logActivity } from '@/stores/activityStore';
 import { useInvoiceStore } from '@/stores/invoiceStore';
 import { useCompanyStore } from '@/stores/companyStore';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
 import useRoleAccess from '@/hooks/useRoleAccess';
 import { useCompanyPreferences } from '@/hooks/useCompanyPreferences';
 import { useTimezone } from '@/hooks/useTimezone';
@@ -246,7 +247,7 @@ const Schedule = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<string>('');
-  const [focusMode, setFocusMode] = useState(false);
+  const { focusMode, setFocusMode } = useWorkspaceStore();
   const [currentTimeLabel, setCurrentTimeLabel] = useState<string>('');
   
   // Timezone hook for accurate current time display
