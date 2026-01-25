@@ -1,235 +1,157 @@
 
 
-## Plano: Nome do Grupo Dinâmico + Remover Lista de Empresas + Editar Nome do Grupo na Aba Branding
+## Plano: Ajustar Layout do Header da Tela Schedule
 
 ### Situação Atual
-- TopBar mostra "Business Group" fixo (linha 414)
-- Company.tsx tem seletor de empresa (linhas 986-997) e lista de empresas na tab Profile
-- Não usaremos a tabela `organizations` - tudo será dinâmico
+O header do Schedule (linhas 1621-1731) tem a seguinte ordem:
+1. Company Filter (w-[160px])
+2. Search Bar (max-w-[200px])
+3. View Mode Dropdown (w-[90px]) 
+4. KPIs
+5. Date Navigation
+6. Add Job + Focus Mode
+
+### Mudanças Solicitadas
+
+**Arquivo:** `src/pages/Schedule.tsx`
 
 ---
 
-### Fase 1: Criar Coluna para Nome do Grupo (Database)
+### 1. Nova Ordem dos Elementos
 
-**Opção escolhida**: Criar uma tabela simples `app_settings` para configurações globais do sistema.
+Reordenar para:
+1. **Search Bar** (primeiro)
+2. **Company Filter** (segundo)
+3. **View Mode** (terceiro)
+4. KPIs, Date Nav, Add Job, Focus Mode (mantém como está)
 
-**Migration SQL:**
-```sql
--- Criar tabela de configurações globais
-CREATE TABLE IF NOT EXISTS app_settings (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  key text NOT NULL UNIQUE,
-  value text,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
+---
 
--- Habilitar RLS
-ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
+### 2. Aumentar Largura dos Campos
 
--- Política: Admins podem gerenciar
-CREATE POLICY "Admins can manage app settings"
-ON app_settings FOR ALL
-USING (
-  EXISTS (
-    SELECT 1 FROM profiles 
-    WHERE profiles.id = auth.uid() 
-    AND profiles.is_super_admin = true
-  )
-  OR EXISTS (
-    SELECT 1 FROM user_roles 
-    WHERE user_roles.user_id = auth.uid() 
-    AND user_roles.role = 'admin' 
-    AND user_roles.status = 'active'
-  )
-);
+**View Mode Dropdown:**
+```tsx
+// Antes (linha ~1646)
+<SelectTrigger className="w-[90px] h-8 text-xs flex-shrink-0">
 
--- Política: Todos podem visualizar
-CREATE POLICY "Anyone can view app settings"
-ON app_settings FOR SELECT
-USING (true);
+// Depois
+<SelectTrigger className="w-[120px] h-8 text-xs flex-shrink-0">
+```
 
--- Inserir nome inicial do grupo
-INSERT INTO app_settings (key, value) 
-VALUES ('business_group_name', 'Business Group');
+**Company Filter:**
+```tsx
+// Antes (linha ~1629)
+className="w-[160px] h-8 text-xs flex-shrink-0"
+
+// Depois
+className="w-[180px] h-8 text-xs flex-shrink-0"
 ```
 
 ---
 
-### Fase 2: Atualizar TopBar para Exibir Nome Dinâmico
+### 3. Preencher Linha Toda (Estilo Work & Time Tracking)
 
-**Arquivo:** `src/components/layout/TopBar.tsx`
+Aplicar `flex-1` aos badges KPI para que eles se expandam e preencham todo o espaço disponível.
 
-1.  **Adicionar fetch do nome do grupo:**
-    ```typescript
-    const [groupName, setGroupName] = useState<string>('Business Group');
-
-    useEffect(() => {
-      const fetchGroupName = async () => {
-        const { data } = await supabase
-          .from('app_settings')
-          .select('value')
-          .eq('key', 'business_group_name')
-          .maybeSingle();
-        
-        if (data?.value) {
-          setGroupName(data.value);
-        }
-      };
-      fetchGroupName();
-    }, []);
-    ```
-
-2.  **Atualizar exibição (linha 414):**
-    ```typescript
-    // Antes:
-    {companies.length > 0 ? 'Business Group' : 'No Companies'}
-
-    // Depois:
-    {groupName}
-    ```
-
----
-
-### Fase 3: Adicionar Campo para Editar Nome do Grupo na Aba Branding
-
-**Local:** Página `Company.tsx`, dentro da aba `Branding` (antes do Company Logo).
-
-**Arquivo:** `src/pages/Company.tsx` (linhas 1021-1092)
-
-1.  **Adicionar estado para o nome do grupo:**
-    ```typescript
-    const [groupName, setGroupName] = useState<string>('Business Group');
-    const [isSavingGroupName, setIsSavingGroupName] = useState(false);
-    ```
-
-2.  **Adicionar fetch no useEffect inicial:**
-    ```typescript
-    useEffect(() => {
-      const fetchGroupName = async () => {
-        const { data } = await supabase
-          .from('app_settings')
-          .select('value')
-          .eq('key', 'business_group_name')
-          .maybeSingle();
-        if (data?.value) setGroupName(data.value);
-      };
-      fetchGroupName();
-    }, []);
-    ```
-
-3.  **Adicionar função de salvar:**
-    ```typescript
-    const handleSaveGroupName = async () => {
-      setIsSavingGroupName(true);
-      const { error } = await supabase
-        .from('app_settings')
-        .upsert({ key: 'business_group_name', value: groupName, updated_at: new Date().toISOString() }, 
-          { onConflict: 'key' });
-      
-      if (!error) {
-        toast({ title: 'Success', description: 'Group name updated' });
-      }
-      setIsSavingGroupName(false);
-    };
-    ```
-
-4.  **Adicionar Card antes do Company Logo (linha ~1030):**
-    ```tsx
-    {/* Business Group Name - ANTES do Company Logo */}
-    <Card className="border-border/50 mb-4">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <Building2 className="h-4 w-4 text-primary" />
-          Business Group Name
-        </CardTitle>
-        <CardDescription className="text-xs">
-          This name appears in the top bar for all users
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center gap-3">
-          <Input
-            value={groupName}
-            onChange={(e) => setGroupName(e.target.value)}
-            placeholder="Enter group name"
-            className="max-w-sm"
-          />
-          <Button 
-            onClick={handleSaveGroupName} 
-            disabled={isSavingGroupName}
-            size="sm"
-          >
-            {isSavingGroupName ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-    
-    {/* Company Logo - Card existente continua aqui */}
-    ```
-
----
-
-### Fase 4: Remover Seletor e Lista de Empresas da Página Company
-
-**Arquivo:** `src/pages/Company.tsx`
-
-1.  **Remover seletor de empresa (linhas 986-997)**
-2.  **Remover tab "Profile" inteira (linhas 960-963 e 1001-1011)**
-3.  **Atualizar `defaultValue` das tabs para `"branding"` (linha 957)**
-
-**Código a remover:**
+**Antes (linha ~1664):**
 ```tsx
-// Remover linhas 986-997 (seletor dropdown)
-<div className="flex items-center gap-2">
-  <Select value={activeCompanyId || ''} onValueChange={handleSelectCompany}>
+<div className="flex items-center gap-1.5 flex-shrink-0">
+  <div className="schedule-kpi-pill-inline schedule-kpi-pill-jobs">
+    ...
+  </div>
+</div>
+```
+
+**Depois:**
+```tsx
+<div className="flex items-center gap-2 flex-1">
+  <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0 schedule-kpi-pill-jobs">
+    <span className="font-semibold text-sm">{summaryStats.total}</span>
+    <span className="text-[10px] text-muted-foreground">Jobs</span>
+  </div>
+  <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0 schedule-kpi-pill-completed">
+    <span className="font-semibold text-sm">{summaryStats.completed}</span>
+    <span className="text-[10px] text-muted-foreground">Done</span>
+  </div>
+  <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0 schedule-kpi-pill-inprogress">
+    <span className="font-semibold text-sm">{summaryStats.inProgress}</span>
+    <span className="text-[10px] text-muted-foreground">In Progress</span>
+  </div>
+  <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0 schedule-kpi-pill-today">
+    <span className="font-semibold text-sm">{summaryStats.todayCount}</span>
+    <span className="text-[10px] text-muted-foreground">Today</span>
+  </div>
+</div>
+```
+
+---
+
+### Código Final do Header (Visão Geral)
+
+```tsx
+<div className="flex items-center gap-2 w-full">
+  {/* 1. Search Bar (primeiro) */}
+  <div className="relative min-w-[120px] max-w-[200px]">
+    <input ... />
+    <Filter className="..." />
+  </div>
+
+  {/* 2. Company Filter (segundo) */}
+  <CompanyFilter
+    className="w-[180px] h-8 text-xs flex-shrink-0"
+    ...
+  />
+  
+  {/* 3. View Mode (terceiro, maior) */}
+  <Select value={view} onValueChange={(v) => setView(v as ViewType)}>
+    <SelectTrigger className="w-[120px] h-8 text-xs flex-shrink-0">
+      ...
+    </SelectTrigger>
     ...
   </Select>
+
+  {/* 4. KPIs com flex-1 para preencher espaço */}
+  <div className="flex items-center gap-2 flex-1">
+    <div className="flex-1 flex items-center justify-center ...">
+      Jobs: {summaryStats.total}
+    </div>
+    <div className="flex-1 flex items-center justify-center ...">
+      Done: {summaryStats.completed}
+    </div>
+    <div className="flex-1 flex items-center justify-center ...">
+      In Progress: {summaryStats.inProgress}
+    </div>
+    <div className="flex-1 flex items-center justify-center ...">
+      Today: {summaryStats.todayCount}
+    </div>
+  </div>
+
+  {/* 5. Date Navigation */}
+  <div className="flex items-center gap-1 flex-shrink-0">
+    ...
+  </div>
+
+  {/* 6. Add Job Button */}
+  <Button ... />
+
+  {/* 7. Focus Mode Toggle */}
+  <Button ... />
 </div>
-
-// Remover TabsTrigger "profile" (linhas 960-963)
-<TabsTrigger value="profile" ...>
-  ...
-</TabsTrigger>
-
-// Remover TabsContent "profile" (linhas 1001-1011)
-<TabsContent value="profile" className="space-y-4 mt-4">
-  <CompanyListTable ... />
-</TabsContent>
 ```
-
----
-
-### Fase 5: Simplificar Tabs da Página Company
-
-**Tabs que permanecem:**
-- Activities (gestao de atividades)
-- Branding (logo, cores e **nome do grupo**)
-- Estimates (configuracao de valores)
-- Schedule Config (configuracao de agenda)
-- Preferences (preferencias gerais)
-
-**Tab removida:**
-- Profile (lista de empresas)
-
----
-
-### Arquivos a Modificar
-
-| Arquivo | Acao |
-|---------|------|
-| **Migration SQL** | Criar tabela `app_settings` com nome do grupo |
-| `TopBar.tsx` | Buscar e exibir nome dinamico do grupo |
-| `Company.tsx` | Remover seletor (986-997), remover tab Profile, adicionar campo Group Name na aba Branding |
-| `CompanyListTable.tsx` | Pode ser removido ou mantido para uso futuro |
 
 ---
 
 ### Resultado Final
 
-1.  **TopBar**: Exibe o nome definido pelo ADMIN (ex: "Arkelium Group")
-2.  **Pagina Company**: Aba Branding com campo para editar nome do grupo + tabs de configuracao, sem lista de empresas
-3.  **ADMIN pode editar**: Nome do grupo via aba Branding na pagina Company
-4.  **Sistema dinamico**: Filtros de empresa em cada modulo operacional sao mantidos
+| Elemento | Posição | Largura |
+|----------|---------|---------|
+| Search Bar | 1º | max-w-[200px] |
+| Company Filter | 2º | w-[180px] (aumentado) |
+| View Mode | 3º | w-[120px] (aumentado) |
+| KPIs | 4º | flex-1 (preenche) |
+| Date Nav | 5º | shrink-0 |
+| Add Job | 6º | shrink-0 |
+| Focus | 7º | shrink-0 |
+
+A linha ficará completamente preenchida como na tela Work & Time Tracking, com os KPIs expandindo proporcionalmente para preencher o espaço disponível.
 
