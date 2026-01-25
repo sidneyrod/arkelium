@@ -1,151 +1,235 @@
 
 
-## Plano: Definir Nome do Business Group e Remover Seletor de Empresa
+## Plano: Nome do Grupo Dinâmico + Remover Lista de Empresas + Editar Nome do Grupo na Aba Branding
 
 ### Situação Atual
-
-1. **Tabela `organizations` existe mas está vazia** - O sistema já tem infraestrutura para grupos
-2. **Empresas não têm `organization_id` vinculado** - Todas mostram `null`
-3. **TopBar mostra "Business Group" de forma estática** (linha 414) - Texto fixo, não dinâmico
-4. **Company.tsx tem seletor desnecessário** (linhas 986-997) - Precisa ser removido
+- TopBar mostra "Business Group" fixo (linha 414)
+- Company.tsx tem seletor de empresa (linhas 986-997) e lista de empresas na tab Profile
+- Não usaremos a tabela `organizations` - tudo será dinâmico
 
 ---
 
-### Fase 1: Criar Organização e Vincular Empresas (Database)
+### Fase 1: Criar Coluna para Nome do Grupo (Database)
+
+**Opção escolhida**: Criar uma tabela simples `app_settings` para configurações globais do sistema.
 
 **Migration SQL:**
 ```sql
--- 1. Criar a organização do grupo
-INSERT INTO organizations (name, legal_name, status)
-VALUES ('Arkelium Group', 'Arkelium Business Group Inc.', 'active');
+-- Criar tabela de configurações globais
+CREATE TABLE IF NOT EXISTS app_settings (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  key text NOT NULL UNIQUE,
+  value text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
 
--- 2. Vincular todas as empresas existentes a esta organização
-UPDATE companies 
-SET organization_id = (SELECT id FROM organizations WHERE name = 'Arkelium Group' LIMIT 1)
-WHERE organization_id IS NULL;
+-- Habilitar RLS
+ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
+
+-- Política: Admins podem gerenciar
+CREATE POLICY "Admins can manage app settings"
+ON app_settings FOR ALL
+USING (
+  EXISTS (
+    SELECT 1 FROM profiles 
+    WHERE profiles.id = auth.uid() 
+    AND profiles.is_super_admin = true
+  )
+  OR EXISTS (
+    SELECT 1 FROM user_roles 
+    WHERE user_roles.user_id = auth.uid() 
+    AND user_roles.role = 'admin' 
+    AND user_roles.status = 'active'
+  )
+);
+
+-- Política: Todos podem visualizar
+CREATE POLICY "Anyone can view app settings"
+ON app_settings FOR SELECT
+USING (true);
+
+-- Inserir nome inicial do grupo
+INSERT INTO app_settings (key, value) 
+VALUES ('business_group_name', 'Business Group');
 ```
 
 ---
 
-### Fase 2: Atualizar TopBar para Exibir Nome da Organização
+### Fase 2: Atualizar TopBar para Exibir Nome Dinâmico
 
 **Arquivo:** `src/components/layout/TopBar.tsx`
 
-1. **Adicionar hook/query para buscar organização do usuário:**
-   ```typescript
-   const [organizationName, setOrganizationName] = useState<string | null>(null);
-   
-   useEffect(() => {
-     const fetchOrganization = async () => {
-       // Buscar organização via organization_members ou companies linkadas
-       const { data } = await supabase
-         .from('organization_members')
-         .select('organization:organizations(name)')
-         .eq('user_id', user?.id)
-         .limit(1)
-         .maybeSingle();
-       
-       if (data?.organization?.name) {
-         setOrganizationName(data.organization.name);
-       } else {
-         // Fallback: buscar via company do usuário
-         const { data: company } = await supabase
-           .from('companies')
-           .select('organization:organizations(name)')
-           .eq('id', user?.profile?.company_id)
-           .maybeSingle();
-         
-         if (company?.organization?.name) {
-           setOrganizationName(company.organization.name);
-         }
-       }
-     };
-     
-     if (user?.id) fetchOrganization();
-   }, [user?.id, user?.profile?.company_id]);
-   ```
+1.  **Adicionar fetch do nome do grupo:**
+    ```typescript
+    const [groupName, setGroupName] = useState<string>('Business Group');
 
-2. **Atualizar exibição (linha 414):**
-   ```typescript
-   // Antes:
-   <span className="text-sm font-medium text-foreground">
-     {companies.length > 0 ? 'Business Group' : 'No Companies'}
-   </span>
-   
-   // Depois:
-   <span className="text-sm font-medium text-foreground">
-     {organizationName || 'Business Group'}
-   </span>
-   ```
+    useEffect(() => {
+      const fetchGroupName = async () => {
+        const { data } = await supabase
+          .from('app_settings')
+          .select('value')
+          .eq('key', 'business_group_name')
+          .maybeSingle();
+        
+        if (data?.value) {
+          setGroupName(data.value);
+        }
+      };
+      fetchGroupName();
+    }, []);
+    ```
+
+2.  **Atualizar exibição (linha 414):**
+    ```typescript
+    // Antes:
+    {companies.length > 0 ? 'Business Group' : 'No Companies'}
+
+    // Depois:
+    {groupName}
+    ```
 
 ---
 
-### Fase 3: Remover Seletor de Empresa na Página Company
+### Fase 3: Adicionar Campo para Editar Nome do Grupo na Aba Branding
+
+**Local:** Página `Company.tsx`, dentro da aba `Branding` (antes do Company Logo).
+
+**Arquivo:** `src/pages/Company.tsx` (linhas 1021-1092)
+
+1.  **Adicionar estado para o nome do grupo:**
+    ```typescript
+    const [groupName, setGroupName] = useState<string>('Business Group');
+    const [isSavingGroupName, setIsSavingGroupName] = useState(false);
+    ```
+
+2.  **Adicionar fetch no useEffect inicial:**
+    ```typescript
+    useEffect(() => {
+      const fetchGroupName = async () => {
+        const { data } = await supabase
+          .from('app_settings')
+          .select('value')
+          .eq('key', 'business_group_name')
+          .maybeSingle();
+        if (data?.value) setGroupName(data.value);
+      };
+      fetchGroupName();
+    }, []);
+    ```
+
+3.  **Adicionar função de salvar:**
+    ```typescript
+    const handleSaveGroupName = async () => {
+      setIsSavingGroupName(true);
+      const { error } = await supabase
+        .from('app_settings')
+        .upsert({ key: 'business_group_name', value: groupName, updated_at: new Date().toISOString() }, 
+          { onConflict: 'key' });
+      
+      if (!error) {
+        toast({ title: 'Success', description: 'Group name updated' });
+      }
+      setIsSavingGroupName(false);
+    };
+    ```
+
+4.  **Adicionar Card antes do Company Logo (linha ~1030):**
+    ```tsx
+    {/* Business Group Name - ANTES do Company Logo */}
+    <Card className="border-border/50 mb-4">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <Building2 className="h-4 w-4 text-primary" />
+          Business Group Name
+        </CardTitle>
+        <CardDescription className="text-xs">
+          This name appears in the top bar for all users
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center gap-3">
+          <Input
+            value={groupName}
+            onChange={(e) => setGroupName(e.target.value)}
+            placeholder="Enter group name"
+            className="max-w-sm"
+          />
+          <Button 
+            onClick={handleSaveGroupName} 
+            disabled={isSavingGroupName}
+            size="sm"
+          >
+            {isSavingGroupName ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+    
+    {/* Company Logo - Card existente continua aqui */}
+    ```
+
+---
+
+### Fase 4: Remover Seletor e Lista de Empresas da Página Company
 
 **Arquivo:** `src/pages/Company.tsx`
 
-**Remover linhas 986-997:**
+1.  **Remover seletor de empresa (linhas 986-997)**
+2.  **Remover tab "Profile" inteira (linhas 960-963 e 1001-1011)**
+3.  **Atualizar `defaultValue` das tabs para `"branding"` (linha 957)**
+
+**Código a remover:**
 ```tsx
-// REMOVER ESTE BLOCO INTEIRO:
+// Remover linhas 986-997 (seletor dropdown)
 <div className="flex items-center gap-2">
   <Select value={activeCompanyId || ''} onValueChange={handleSelectCompany}>
-    <SelectTrigger className="w-[200px] h-8 text-sm">
-      <SelectValue placeholder="Select company" />
-    </SelectTrigger>
-    <SelectContent className="bg-popover">
-      {companies.filter(c => c.status !== 'archived').map(company => (
-        <SelectItem key={company.id} value={company.id}>{company.trade_name}</SelectItem>
-      ))}
-    </SelectContent>
+    ...
   </Select>
 </div>
-```
 
-**Manter:** A lista de empresas na tab Profile para gestão (editar/criar/excluir)
+// Remover TabsTrigger "profile" (linhas 960-963)
+<TabsTrigger value="profile" ...>
+  ...
+</TabsTrigger>
+
+// Remover TabsContent "profile" (linhas 1001-1011)
+<TabsContent value="profile" className="space-y-4 mt-4">
+  <CompanyListTable ... />
+</TabsContent>
+```
 
 ---
 
-### Fase 4: (Opcional) Criar Tela para Gerenciar Organização
+### Fase 5: Simplificar Tabs da Página Company
 
-**Novo local para ADMIN editar o nome do grupo:**
+**Tabs que permanecem:**
+- Activities (gestao de atividades)
+- Branding (logo, cores e **nome do grupo**)
+- Estimates (configuracao de valores)
+- Schedule Config (configuracao de agenda)
+- Preferences (preferencias gerais)
 
-Opção A: Adicionar no topo da página Company Profile
-```tsx
-<Card className="mb-4">
-  <CardContent className="py-3 flex items-center justify-between">
-    <div className="flex items-center gap-3">
-      <Building2 className="h-5 w-5 text-primary" />
-      <div>
-        <p className="text-sm font-medium">Business Group</p>
-        <p className="text-xs text-muted-foreground">{organizationName}</p>
-      </div>
-    </div>
-    <Button variant="outline" size="sm" onClick={handleEditOrganization}>
-      <Pencil className="h-3 w-3 mr-1" /> Edit
-    </Button>
-  </CardContent>
-</Card>
-```
-
-Opção B: Adicionar nas Settings (Administration > Settings)
+**Tab removida:**
+- Profile (lista de empresas)
 
 ---
 
 ### Arquivos a Modificar
 
-| Arquivo | Ação |
+| Arquivo | Acao |
 |---------|------|
-| **Migration SQL** | Criar organização e vincular empresas |
-| `TopBar.tsx` | Buscar e exibir nome da organização dinamicamente |
-| `Company.tsx` | Remover seletor de empresa (linhas 986-997) |
-| `Company.tsx` (opcional) | Adicionar card para gerenciar grupo |
+| **Migration SQL** | Criar tabela `app_settings` com nome do grupo |
+| `TopBar.tsx` | Buscar e exibir nome dinamico do grupo |
+| `Company.tsx` | Remover seletor (986-997), remover tab Profile, adicionar campo Group Name na aba Branding |
+| `CompanyListTable.tsx` | Pode ser removido ou mantido para uso futuro |
 
 ---
 
 ### Resultado Final
 
-1. **TopBar**: Exibe "Arkelium Group" (ou o nome definido) em vez de "Business Group"
-2. **Company Profile**: Sem dropdown de seleção - apenas lista de empresas para gestão
-3. **ADMIN pode editar**: Nome do grupo pode ser alterado via Settings ou modal
-4. **Empresas vinculadas**: Todas as empresas ficam sob o mesmo `organization_id`
+1.  **TopBar**: Exibe o nome definido pelo ADMIN (ex: "Arkelium Group")
+2.  **Pagina Company**: Aba Branding com campo para editar nome do grupo + tabs de configuracao, sem lista de empresas
+3.  **ADMIN pode editar**: Nome do grupo via aba Branding na pagina Company
+4.  **Sistema dinamico**: Filtros de empresa em cada modulo operacional sao mantidos
 
