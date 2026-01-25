@@ -1,49 +1,53 @@
 
 
-# Plano: Atualizar Logo Arkelium com Transparência
+## Plano: Melhorar a Legibilidade dos Textos de Segurança na Tela de Login
 
-## Objetivo
-Substituir o logo atual pelo novo **LogaPrincipal.png** que já possui fundo transparente.
+### Problema Identificado
 
----
+Os textos na seção inferior do formulário de login estão com opacidade muito baixa, tornando-os difíceis de ler:
 
-## 1. Substituir o arquivo do logo
+| Elemento | Opacidade Atual | Classe Atual |
+|----------|-----------------|--------------|
+| Mensagem de segurança principal | 40% | `text-white/40` |
+| Indicadores de confiança | 30% | `text-white/30` |
 
-**Arquivo**: `src/assets/arkelium-logo.png`
+### Solução Proposta
 
-- Substituir pelo arquivo `user-uploads://LogaPrincipal.png`
-- O novo logo tem fundo transparente (PNG com alpha channel)
+Aumentar a opacidade dos textos para valores mais legíveis, mantendo o visual elegante e discreto:
 
----
+**Arquivo:** `src/pages/Login.tsx`
 
-## 2. Ajustar drop-shadow para melhor integração
+1. **Mensagem de segurança (linha 189)**
+   - De: `text-white/40`
+   - Para: `text-white/60` (60% de opacidade)
 
-**Arquivo**: `src/components/auth/AuthLayout.tsx`
+2. **Indicadores de confiança (linha 194)**
+   - De: `text-white/30`
+   - Para: `text-white/50` (50% de opacidade)
 
-Atualizar o estilo do logo para remover ou ajustar o drop-shadow, já que o novo logo já possui sombra incorporada:
+### Código Antes vs Depois
 
+**Antes:**
 ```tsx
-// DE:
-style={{ filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.5))' }}
+<p className="text-[11px] text-white/40 text-center leading-relaxed">
+  {t.securityMsg}
+</p>
 
-// PARA (sombra mais sutil para não duplicar):
-style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }}
+<div className="mt-4 flex items-center justify-center gap-4 text-[10px] text-white/30">
 ```
 
----
+**Depois:**
+```tsx
+<p className="text-[11px] text-white/60 text-center leading-relaxed">
+  {t.securityMsg}
+</p>
 
-## 3. Verificar ArkeliumIcon component
+<div className="mt-4 flex items-center justify-center gap-4 text-[10px] text-white/50">
+```
 
-**Arquivo**: `src/components/ArkeliumIcon.tsx`
+### Resultado Esperado
 
-Este componente também usa o logo - ele será automaticamente atualizado com o novo arquivo.
-
----
-
-## Resultado Esperado
-
-- Logo dourado elegante sobre fundo dark blue-gray
-- Sem quadrado branco ou fundo indesejado
-- Sombra sutil integrada naturalmente ao design
-- Visual premium enterprise-grade
+- Textos visivelmente mais legíveis contra o fundo escuro
+- Hierarquia visual mantida (mensagem principal mais clara que os indicadores)
+- Estilo discreto e elegante preservado
 
