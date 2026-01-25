@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Shield, FileCheck, Lock } from 'lucide-react';
 
 import arkeliumLogo from '@/assets/arkelium-logo.png';
 
@@ -60,19 +61,19 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           
           {/* Brand Content - Centered with Large Logo */}
           <div className="relative z-10 flex flex-col items-center text-center max-w-xl mx-auto">
-            {/* Logo - Gold, 200% Size, Centered */}
+            {/* Logo - Gold, Large, Centered */}
             <img
               src={arkeliumLogo}
               alt="Arkelium"
-              className="h-40 xl:h-48 2xl:h-56 w-auto mb-10 xl:mb-12 select-none"
-              style={{ filter: 'drop-shadow(0 4px 16px rgba(0,0,0,0.4))' }}
+              className="h-44 xl:h-52 2xl:h-60 w-auto mb-10 xl:mb-12 select-none"
+              style={{ filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.5))' }}
             />
 
             {/* Headline - Centered with Logo */}
             <h1
-              className="font-light leading-[1.15] mb-6 text-white"
+              className="font-light leading-[1.15] mb-5 text-white"
               style={{ 
-                fontSize: 'clamp(32px, 3.5vw, 52px)',
+                fontSize: 'clamp(28px, 3vw, 44px)',
                 letterSpacing: '-0.02em'
               }}
             >
@@ -83,11 +84,27 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             
             {/* Subtitle - Lower contrast */}
             <p
-              className="max-w-md text-white/50"
-              style={{ fontSize: 'clamp(14px, 1.1vw, 17px)', lineHeight: 1.6 }}
+              className="max-w-md text-white/50 mb-10"
+              style={{ fontSize: 'clamp(13px, 1vw, 16px)', lineHeight: 1.6 }}
             >
-              Financial control. Operational clarity. Real-time insight.
+              Operational clarity, financial accuracy, audit-ready by design.
             </p>
+
+            {/* Trust Indicators */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2.5 text-white/40">
+                <Shield className="h-4 w-4 text-amber-500/70" />
+                <span className="text-xs font-medium tracking-wide">Audit-ready architecture</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-white/40">
+                <FileCheck className="h-4 w-4 text-amber-500/70" />
+                <span className="text-xs font-medium tracking-wide">Compliance-driven by default</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-white/40">
+                <Lock className="h-4 w-4 text-amber-500/70" />
+                <span className="text-xs font-medium tracking-wide">Enterprise-grade security</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -96,7 +113,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           <img
             src={arkeliumLogo}
             alt="Arkelium"
-            className="h-10 sm:h-12 w-auto mb-3 select-none"
+            className="h-16 sm:h-20 w-auto mb-3 select-none"
+            style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.4))' }}
           />
           <p className="text-xs sm:text-sm text-center max-w-[280px] text-white/50">
             Enterprise Operations & Financial Control

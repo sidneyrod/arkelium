@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, CheckCircle, Shield } from 'lucide-react';
 
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
@@ -10,8 +10,6 @@ import AuthLayout from '@/components/auth/AuthLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-
-import arkeliumSymbol from '@/assets/arkelium-symbol.png';
 
 export default function ResetPassword() {
   const { language } = useLanguage();
@@ -28,7 +26,8 @@ export default function ResetPassword() {
   const t = useMemo(() => {
     const dict: Record<Language, Record<string, string>> = {
       en: {
-        title: 'New Password',
+        title: 'Create New Password',
+        subtitle: 'Enter a secure password for your account',
         newPassword: 'New Password',
         confirmPassword: 'Confirm Password',
         passwordPlaceholder: '••••••••',
@@ -39,19 +38,22 @@ export default function ResetPassword() {
         tooShort: 'Password must be at least 6 characters.',
         failed: 'Unable to update password. Please try again.',
         noSession: 'Invalid or expired reset link.',
+        security: 'Enterprise-grade security',
       },
       fr: {
-        title: 'Nouveau mot de passe',
+        title: 'Créer un nouveau mot de passe',
+        subtitle: 'Entrez un mot de passe sécurisé pour votre compte',
         newPassword: 'Nouveau mot de passe',
-        confirmPassword: 'Confirmer',
+        confirmPassword: 'Confirmer le mot de passe',
         passwordPlaceholder: '••••••••',
         button: 'Mettre à jour',
-        back: 'Retour',
+        back: 'Retour à la connexion',
         success: 'Mot de passe mis à jour ! Redirection...',
         mismatch: 'Les mots de passe ne correspondent pas.',
         tooShort: 'Le mot de passe doit contenir au moins 6 caractères.',
         failed: 'Impossible de mettre à jour. Réessayez.',
         noSession: 'Lien invalide ou expiré.',
+        security: 'Sécurité de niveau entreprise',
       },
     };
 
@@ -104,51 +106,41 @@ export default function ResetPassword() {
     }
   }
 
-  // Dark-only styles
-  const cardClass = 'bg-[#14181e]/85 backdrop-blur-xl border border-white/10 shadow-2xl';
-  const inputClass = 'h-11 bg-[#0a0e14]/60 border-white/10 text-white placeholder:text-white/40 focus:border-white/30 focus:ring-white/10';
-  const labelClass = 'text-white/70';
-
   return (
     <AuthLayout>
-      {/* Auth Card - Compact */}
-      <div className={`w-full max-w-[520px] rounded-[22px] p-6 sm:p-7 lg:p-8 ${cardClass}`}>
-        {/* Logo only */}
-        <div className="flex justify-center mb-5">
-          <img
-            src={arkeliumSymbol}
-            alt="Arkelium"
-            className="h-10 sm:h-11 w-auto select-none filter-gold"
-          />
-        </div>
-
+      {/* Auth Card - Glass Effect */}
+      <div className="w-full rounded-2xl p-6 sm:p-8 bg-[#12151a]/80 backdrop-blur-xl border border-white/[0.06] shadow-2xl">
+        
         {/* Title */}
-        <div className="text-center mb-5">
-          <h1 className="text-lg font-semibold text-white">
+        <div className="text-center mb-6">
+          <h1 className="text-xl font-semibold text-white mb-2">
             {t.title}
           </h1>
+          <p className="text-sm text-white/50">
+            {t.subtitle}
+          </p>
         </div>
 
         {/* Error Message */}
         {errorMsg && (
-          <div className="mb-5 rounded-xl px-4 py-2.5 text-sm font-medium bg-red-500/10 border border-red-500/20 text-red-400">
+          <div className="mb-5 rounded-lg px-4 py-3 text-sm font-medium bg-red-500/10 border border-red-500/20 text-red-400">
             {errorMsg}
           </div>
         )}
 
         {/* Success Message */}
         {successMsg && (
-          <div className="mb-5 rounded-xl px-4 py-2.5 text-sm font-medium flex items-center gap-2 bg-green-500/10 border border-green-500/20 text-green-400">
+          <div className="mb-5 rounded-lg px-4 py-3 text-sm font-medium flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
             <CheckCircle className="h-4 w-4 shrink-0" />
             {successMsg}
           </div>
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {/* New Password */}
           <div className="space-y-2">
-            <Label className={labelClass}>{t.newPassword}</Label>
+            <Label className="text-white/70 text-sm">{t.newPassword}</Label>
             <div className="relative">
               <Input
                 value={newPassword}
@@ -156,17 +148,17 @@ export default function ResetPassword() {
                 type={showNewPassword ? 'text' : 'password'}
                 autoComplete="new-password"
                 placeholder={t.passwordPlaceholder}
-                className={`${inputClass} pr-12`}
+                className="h-12 rounded-lg pr-12 bg-[#0a0c10]/70 border-white/[0.08] text-white placeholder:text-white/35 focus:border-white/20 focus:ring-white/10"
               />
               <button
                 type="button"
                 onClick={() => setShowNewPassword(!showNewPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded transition-colors text-white/40 hover:text-white/70"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-md transition-colors text-white/40 hover:text-white/70 hover:bg-white/5"
               >
                 {showNewPassword ? (
-                  <EyeOff className="h-5 w-5" />
+                  <EyeOff className="h-4 w-4" />
                 ) : (
-                  <Eye className="h-5 w-5" />
+                  <Eye className="h-4 w-4" />
                 )}
               </button>
             </div>
@@ -174,7 +166,7 @@ export default function ResetPassword() {
 
           {/* Confirm Password */}
           <div className="space-y-2">
-            <Label className={labelClass}>{t.confirmPassword}</Label>
+            <Label className="text-white/70 text-sm">{t.confirmPassword}</Label>
             <div className="relative">
               <Input
                 value={confirmPassword}
@@ -182,17 +174,17 @@ export default function ResetPassword() {
                 type={showConfirmPassword ? 'text' : 'password'}
                 autoComplete="new-password"
                 placeholder={t.passwordPlaceholder}
-                className={`${inputClass} pr-12`}
+                className="h-12 rounded-lg pr-12 bg-[#0a0c10]/70 border-white/[0.08] text-white placeholder:text-white/35 focus:border-white/20 focus:ring-white/10"
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded transition-colors text-white/40 hover:text-white/70"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-md transition-colors text-white/40 hover:text-white/70 hover:bg-white/5"
               >
                 {showConfirmPassword ? (
-                  <EyeOff className="h-5 w-5" />
+                  <EyeOff className="h-4 w-4" />
                 ) : (
-                  <Eye className="h-5 w-5" />
+                  <Eye className="h-4 w-4" />
                 )}
               </button>
             </div>
@@ -202,7 +194,7 @@ export default function ResetPassword() {
           <Button
             type="submit"
             disabled={isSubmitting || !!successMsg}
-            className="w-full h-11 text-[15px] font-medium"
+            className="w-full h-12 text-[15px] font-semibold rounded-lg bg-white text-gray-900 hover:bg-white/90 transition-all"
           >
             {isSubmitting ? (
               <div className="flex items-center gap-2">
@@ -214,7 +206,7 @@ export default function ResetPassword() {
           </Button>
 
           {/* Back to Login */}
-          <div className="flex items-center justify-center pt-1">
+          <div className="flex items-center justify-center pt-2">
             <Link
               to="/login"
               className="flex items-center gap-2 text-sm font-medium transition-colors text-white/50 hover:text-white/80"
@@ -225,10 +217,11 @@ export default function ResetPassword() {
           </div>
         </form>
 
-        {/* Minimal footer */}
-        <div className="mt-4 text-center">
-          <span className="text-[10px] text-white/20">
-            Enterprise-grade security
+        {/* Security Footer */}
+        <div className="mt-6 pt-5 border-t border-white/[0.05] text-center">
+          <span className="flex items-center justify-center gap-1.5 text-[11px] text-white/30">
+            <Shield className="h-3 w-3" />
+            {t.security}
           </span>
         </div>
       </div>
