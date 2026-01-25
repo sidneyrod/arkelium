@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Shield, Activity, FileCheck } from 'lucide-react';
 
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,7 +38,10 @@ export default function Login() {
         button: 'Sign in',
         invalid: 'Please enter a valid email address.',
         failed: 'Invalid email or password. Please try again.',
-        security: 'Enterprise-grade security',
+        securityMsg: 'Enterprise-grade security, audit trails, and compliance controls built-in.',
+        roleAccess: 'Role-based access',
+        auditLogs: 'Activity audit logs',
+        compliance: 'Compliance-ready',
       },
       fr: {
         email: 'E-mail',
@@ -50,7 +53,10 @@ export default function Login() {
         button: 'Connexion',
         invalid: 'Veuillez saisir une adresse e-mail valide.',
         failed: 'E-mail ou mot de passe invalide. Réessayez.',
-        security: 'Sécurité de niveau entreprise',
+        securityMsg: 'Sécurité de niveau entreprise, pistes d\'audit et contrôles de conformité intégrés.',
+        roleAccess: 'Accès par rôle',
+        auditLogs: 'Journaux d\'activité',
+        compliance: 'Prêt conformité',
       },
     };
 
@@ -83,8 +89,8 @@ export default function Login() {
 
   return (
     <AuthLayout>
-      {/* Auth Card - Fully Transparent, Dark Only */}
-      <div className="w-full rounded-2xl p-6 sm:p-8 bg-transparent border border-white/[0.03] shadow-2xl">
+      {/* Auth Card - Glass Effect */}
+      <div className="w-full rounded-2xl p-6 sm:p-8 bg-[#12151a]/80 backdrop-blur-xl border border-white/[0.06] shadow-2xl">
 
         {/* Error Message */}
         {errorMsg && (
@@ -97,7 +103,7 @@ export default function Login() {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Email */}
           <div className="space-y-2">
-            <Label className="text-white/70">
+            <Label className="text-white/70 text-sm">
               {t.email}
             </Label>
             <Input
@@ -112,7 +118,7 @@ export default function Login() {
 
           {/* Password */}
           <div className="space-y-2">
-            <Label className="text-white/70">
+            <Label className="text-white/70 text-sm">
               {t.password}
             </Label>
             <div className="relative">
@@ -145,7 +151,7 @@ export default function Login() {
                 id="remember"
                 checked={rememberMe}
                 onCheckedChange={(checked) => setRememberMe(checked === true)}
-                className="border-white/20"
+                className="border-white/20 data-[state=checked]:bg-white/20 data-[state=checked]:border-white/30"
               />
               <label
                 htmlFor="remember"
@@ -166,7 +172,7 @@ export default function Login() {
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="w-full h-12 text-[15px] font-medium rounded-lg mt-2 bg-white text-gray-900 hover:bg-white/90"
+            className="w-full h-12 text-[15px] font-semibold rounded-lg mt-2 bg-white text-gray-900 hover:bg-white/90 transition-all"
           >
             {isSubmitting ? (
               <div className="flex items-center gap-2">
@@ -178,11 +184,27 @@ export default function Login() {
           </Button>
         </form>
 
-        {/* Security Footer */}
-        <div className="mt-6 text-center">
-          <span className="text-[11px] text-white/25">
-            {t.security}
-          </span>
+        {/* Security Message */}
+        <div className="mt-6 pt-5 border-t border-white/[0.05]">
+          <p className="text-[11px] text-white/40 text-center leading-relaxed">
+            {t.securityMsg}
+          </p>
+          
+          {/* Micro Trust Indicators */}
+          <div className="mt-4 flex items-center justify-center gap-4 text-[10px] text-white/30">
+            <span className="flex items-center gap-1">
+              <Shield className="h-3 w-3" />
+              {t.roleAccess}
+            </span>
+            <span className="flex items-center gap-1">
+              <Activity className="h-3 w-3" />
+              {t.auditLogs}
+            </span>
+            <span className="flex items-center gap-1">
+              <FileCheck className="h-3 w-3" />
+              {t.compliance}
+            </span>
+          </div>
         </div>
       </div>
     </AuthLayout>
