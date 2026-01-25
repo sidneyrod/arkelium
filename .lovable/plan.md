@@ -1,118 +1,98 @@
 
 
-## Plano: Ocultar Botão "Collapse" Quando Focus Mode Estiver Ativo
+## Plano: Otimizar Espaço Vertical no Focus Mode da Schedule
 
 ### Problema Identificado
-O Focus Mode da Schedule (`focusMode`) é um estado local dentro do componente `Schedule.tsx` (linha 249). O `Sidebar.tsx` não tem conhecimento desse estado, então o botão "Collapse" (linhas 321-339) continua visível mesmo quando a Schedule está expandida.
+Quando o Focus Mode está ativo, a Schedule não está aproveitando todo o espaço vertical disponível:
+1. A legenda (Service, Visit, Scheduled, In Progress, Completed, Cancelled) na base ocupa espaço vertical
+2. O container principal mantém o offset de 20px mesmo no Focus Mode
+3. O scroll-area das views (Week/Day) usa 80px de offset fora do Focus Mode e apenas 40px no Focus Mode - poderia ser ainda menor
 
----
-
-### Solução: Estado Global para Focus Mode
-
-Adicionar `focusMode` ao `workspaceStore` para que seja acessível tanto pela Schedule quanto pelo Sidebar.
-
----
-
-### Fase 1: Atualizar workspaceStore
-
-**Arquivo:** `src/stores/workspaceStore.ts`
-
-1. Adicionar estado `focusMode` ao store:
-```typescript
-interface WorkspaceState {
-  // ... existing properties
-  focusMode: boolean;
-  setFocusMode: (enabled: boolean) => void;
-}
-```
-
-2. Implementar o estado (sem persistir, para reset ao recarregar):
-```typescript
-focusMode: false,
-
-setFocusMode: (enabled: boolean) => {
-  set({ focusMode: enabled });
-},
-```
-
----
-
-### Fase 2: Atualizar Schedule.tsx
+### Mudanças Propostas
 
 **Arquivo:** `src/pages/Schedule.tsx`
 
-1. Remover estado local `focusMode`:
-```typescript
-// REMOVER:
-const [focusMode, setFocusMode] = useState(false);
+---
+
+### 1. Ajustar Altura do Container Principal no Focus Mode
+
+**Antes (linha 1616):**
+```tsx
+"p-1 space-y-1 h-[calc(100vh/0.80-20px)] flex flex-col"
 ```
 
-2. Usar o estado do store:
-```typescript
-import { useWorkspaceStore } from '@/stores/workspaceStore';
-
-// Dentro do componente:
-const { focusMode, setFocusMode } = useWorkspaceStore();
-```
-
-3. O botão toggle continua funcionando igual:
-```typescript
-onClick={() => setFocusMode(!focusMode)}
+**Depois:**
+```tsx
+cn(
+  "p-1 space-y-1 flex flex-col",
+  focusMode 
+    ? "h-[calc(100vh/0.80-8px)]"  // Menos offset no Focus Mode
+    : "h-[calc(100vh/0.80-20px)]"
+)
 ```
 
 ---
 
-### Fase 3: Atualizar Sidebar.tsx
+### 2. Ocultar ou Minimizar a Legenda no Focus Mode
 
-**Arquivo:** `src/components/layout/Sidebar.tsx`
+A legenda ocupa ~20px de altura na base. No Focus Mode, podemos ocultá-la para maximizar o espaço do calendário.
 
-1. Importar o focusMode do store:
-```typescript
-const { focusMode } = useWorkspaceStore();
+**Antes (linhas 2615-2632):**
+```tsx
+{/* Compact Status Legend */}
+<div className="flex items-center gap-3 text-[10px] text-muted-foreground/70 py-0.5 px-1 flex-shrink-0">
+  ...
+</div>
 ```
 
-2. Ocultar o botão "Collapse" quando focusMode estiver ativo (linhas 320-339):
-```typescript
-{/* Collapse Toggle - Hidden when Focus Mode is active */}
+**Depois:**
+```tsx
+{/* Compact Status Legend - Hidden in Focus Mode */}
 {!focusMode && (
-  <div className="mt-auto shrink-0">
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={() => setCollapsed(!collapsed)}
-      className={cn(
-        "w-full h-8 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-none border-t border-border",
-        collapsed ? "justify-center px-0" : "justify-start px-3"
-      )}
-    >
-      {collapsed ? (
-        <ChevronRight className="h-3.5 w-3.5" />
-      ) : (
-        <>
-          <ChevronLeft className="h-3.5 w-3.5 mr-2" />
-          <span>Collapse</span>
-        </>
-      )}
-    </Button>
+  <div className="flex items-center gap-3 text-[10px] text-muted-foreground/70 py-0.5 px-1 flex-shrink-0">
+    ...
   </div>
 )}
 ```
 
 ---
 
-### Arquivos a Modificar
+### 3. Reduzir Offset do Scroll-Area no Focus Mode
 
-| Arquivo | Ação |
-|---------|------|
-| `src/stores/workspaceStore.ts` | Adicionar `focusMode` e `setFocusMode` |
-| `src/pages/Schedule.tsx` | Usar `focusMode` do store ao invés de estado local |
-| `src/components/layout/Sidebar.tsx` | Condicionar visibilidade do botão Collapse ao `focusMode` |
+**Week View (linha 1910):**
+```tsx
+// Antes
+focusMode ? "max-h-[calc(100vh-40px)]" : "max-h-[calc(100vh-80px)]"
+
+// Depois (menos offset no Focus Mode)
+focusMode ? "max-h-[calc(100vh-24px)]" : "max-h-[calc(100vh-80px)]"
+```
+
+**Day View (linha 2221):**
+```tsx
+// Antes
+style={{ maxHeight: focusMode ? 'calc(100vh - 40px)' : 'calc(100vh - 80px)' }}
+
+// Depois
+style={{ maxHeight: focusMode ? 'calc(100vh - 24px)' : 'calc(100vh - 80px)' }}
+```
 
 ---
 
-### Resultado Final
+### Resumo das Mudanças
 
-- Quando o usuário clicar no botão **Expand** (Focus Mode) na Schedule, o botão "Collapse" do sidebar desaparece
-- Quando o usuário clicar no botão **Minimize** para sair do Focus Mode, o botão "Collapse" reaparece
-- O sidebar pode continuar colapsado/expandido independentemente, mas seu botão de controle fica oculto durante o Focus Mode
+| Elemento | Modo Normal | Focus Mode |
+|----------|-------------|------------|
+| Container height offset | -20px | -8px (reduzido) |
+| Legenda na base | Visível | **Oculta** |
+| Scroll-area max-height offset | -80px | -24px (reduzido de -40px) |
+
+---
+
+### Resultado Esperado
+
+- No Focus Mode, a Schedule ocupará praticamente todo o espaço vertical da tela
+- A legenda desaparecerá para maximizar a área útil do calendário
+- Os resquícios de espaço vazio na base serão eliminados
+- O usuário terá uma experiência de visualização totalmente imersiva
 
