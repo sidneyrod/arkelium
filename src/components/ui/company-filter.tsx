@@ -15,6 +15,8 @@ export interface CompanyFilterProps {
   onChange: (companyId: string | 'all') => void;
   showAllOption?: boolean;
   allLabel?: string;
+  /** Placeholder text when no company is selected */
+  placeholder?: string;
   className?: string;
   disabled?: boolean;
   /** Only show companies with status = 'active' */
@@ -30,6 +32,7 @@ export function CompanyFilter({
   onChange,
   showAllOption = false,
   allLabel = 'All Companies',
+  placeholder = 'Select Company',
   className,
   disabled = false,
   activeOnly = true,
@@ -72,8 +75,13 @@ export function CompanyFilter({
       disabled={disabled}
     >
       <SelectTrigger className={cn("w-[180px] h-9", className)}>
-        <SelectValue placeholder="Select company">
-          {value === 'all' ? (
+        <SelectValue placeholder={placeholder}>
+          {!value || value === '' ? (
+            <span className="flex items-center gap-2 text-muted-foreground">
+              <Building2 className="h-4 w-4" />
+              <span>{placeholder}</span>
+            </span>
+          ) : value === 'all' ? (
             <span className="flex items-center gap-2">
               <Building2 className="h-4 w-4 text-muted-foreground" />
               <span>{allLabel}</span>
@@ -81,7 +89,7 @@ export function CompanyFilter({
           ) : (
             (() => {
               const selected = displayCompanies.find(c => c.id === value);
-              if (!selected) return 'Select company';
+              if (!selected) return placeholder;
               return (
                 <span className="flex items-center gap-2">
                   <span className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-semibold text-primary shrink-0">
