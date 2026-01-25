@@ -65,7 +65,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             <img
               src={arkeliumLogo}
               alt="Arkelium"
-              className="h-[22rem] xl:h-[26rem] 2xl:h-[30rem] w-auto mb-14 xl:mb-16 select-none"
+              className="h-[22rem] xl:h-[26rem] 2xl:h-[30rem] w-auto mb-4 select-none"
               style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }}
             />
 
