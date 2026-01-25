@@ -1,85 +1,117 @@
 
 
-## Plano: Ajustar Proporções e Espaçamentos do Painel de Branding
+## Plano: Fazer os KPIs Acompanharem o Período de Data Selecionado
 
-### Problema Identificado
-O painel esquerdo tem espaçamentos desproporcionais - há uma lacuna visual grande entre o logo e os textos, e os textos não formam um bloco coeso.
+### Objetivo
+Os KPIs (JOBS, DONE, IN PROGRESS, TODAY) devem refletir apenas os jobs que estão **dentro do período visível** (dia, semana, ou mês selecionado), não o total histórico da empresa.
 
-### Solução Proposta
+### Arquivo a Modificar
+`src/pages/Schedule.tsx`
 
-**Arquivo:** `src/components/auth/AuthLayout.tsx`
+---
 
-#### 1. Reduzir o tamanho do logo para melhor proporção
-```tsx
-// Antes
-className="h-64 xl:h-72 2xl:h-80 w-auto mb-3 select-none"
+### 1. Criar uma função para determinar o intervalo de datas do período visível
 
-// Depois - logo menor e mais elegante
-className="h-44 xl:h-48 2xl:h-52 w-auto mb-6 select-none"
+```typescript
+// Adicionar helper para obter range de datas baseado na view e currentDate
+const getVisibleDateRange = useMemo(() => {
+  switch (viewType) {
+    case 'day':
+      return {
+        start: startOfDay(currentDate),
+        end: endOfDay(currentDate)
+      };
+    case 'week':
+      return {
+        start: startOfWeek(currentDate, { weekStartsOn: 1 }),
+        end: endOfWeek(currentDate, { weekStartsOn: 1 })
+      };
+    case 'month':
+    default:
+      return {
+        start: startOfMonth(currentDate),
+        end: endOfMonth(currentDate)
+      };
+  }
+}, [viewType, currentDate]);
 ```
 
-#### 2. Aumentar levemente a margem entre logo e headline
-- Ajustar de `mb-3` para `mb-6` para dar respiro sem criar buraco
+---
 
-#### 3. Reduzir espaço entre headline e subtitle
-```tsx
-// Antes
-<h1 className="... mb-5 ...">
+### 2. Criar `periodFilteredJobs` que filtra por período visível
 
-// Depois - mais coeso
-<h1 className="... mb-3 ...">
+```typescript
+// Filtrar jobs pelo período visível (além do filtro de busca)
+const periodFilteredJobs = useMemo(() => {
+  const { start, end } = getVisibleDateRange;
+  return filteredJobs.filter(job => {
+    const jobDate = toSafeLocalDate(job.date);
+    return jobDate >= start && jobDate <= end;
+  });
+}, [filteredJobs, getVisibleDateRange]);
 ```
 
-#### 4. Reduzir dramaticamente o espaço entre subtitle e trust indicators
-```tsx
-// Antes
-<p className="... mb-10">
+---
 
-// Depois - bloco compacto
-<p className="... mb-6">
+### 3. Atualizar `summaryStats` para usar `periodFilteredJobs`
+
+```typescript
+const summaryStats = useMemo(() => {
+  const today = new Date();
+  
+  // Usar periodFilteredJobs em vez de filteredJobs
+  const todayJobs = periodFilteredJobs.filter(job => 
+    isSameDay(toSafeLocalDate(job.date), today)
+  );
+  const completedCount = periodFilteredJobs.filter(job => 
+    job.status === 'completed'
+  ).length;
+  const inProgressCount = periodFilteredJobs.filter(job => 
+    job.status === 'in-progress'
+  ).length;
+  const scheduledCount = periodFilteredJobs.filter(job => 
+    job.status === 'scheduled'
+  ).length;
+  
+  return {
+    total: periodFilteredJobs.length,        // ← Total do período
+    completed: completedCount,               // ← Completados do período
+    inProgress: inProgressCount,             // ← Em progresso do período
+    scheduled: scheduledCount,               // ← Agendados do período
+    todayCount: todayJobs.length,            // ← Hoje real (mantém)
+  };
+}, [periodFilteredJobs]);
 ```
 
-### Resultado Visual Esperado
+---
 
-**Antes:**
-```
-[    LOGO GRANDE    ]
-       (buraco)
-  Enterprise Operations
-  & Financial Control
-       (buraco)
-   Operational clarity...
-       (buraco grande)
-   ○ Audit-ready
-   ○ Compliance
-   ○ Security
-```
+### 4. (Opcional) Ajustar label "Today" para ser contextual
 
-**Depois:**
-```
-  [  LOGO MÉDIO  ]
-       (respiro)
-  Enterprise Operations
-  & Financial Control
-  Operational clarity...
-       (respiro)
-   ○ Audit-ready
-   ○ Compliance
-   ○ Security
-```
+Se o usuário estiver navegando em um mês diferente, pode fazer sentido alterar o KPI "TODAY" para mostrar algo mais relevante. Mas inicialmente podemos manter como está (sempre mostra jobs do dia atual real).
 
-### Mudanças Específicas
+---
 
-| Elemento | Antes | Depois |
-|----------|-------|--------|
-| Logo altura | `h-64 xl:h-72 2xl:h-80` | `h-44 xl:h-48 2xl:h-52` |
-| Logo margem inferior | `mb-3` | `mb-6` |
-| Headline margem inferior | `mb-5` | `mb-3` |
-| Subtitle margem inferior | `mb-10` | `mb-6` |
+### Resultado Esperado
 
-### Impacto
-- Painel esquerdo com hierarquia visual mais elegante
-- Elementos formando um bloco coeso e profissional
-- Proporcionalidade entre logo e texto melhorada
-- Mantém o estilo premium enterprise
+| View | Período | KPIs Mostrarão |
+|------|---------|----------------|
+| **Month: January 2026** | 1-31 Jan 2026 | Jobs apenas de Janeiro 2026 |
+| **Week: 19-25 Jan** | 19-25 Jan | Jobs apenas dessa semana |
+| **Day: 25 Jan** | 25 Jan | Jobs apenas desse dia |
+
+### Exemplo Visual
+
+**Antes (Janeiro 2026 selecionado):**
+- 45 JOBS | 38 DONE | 0 IN PROGRESS | 0 TODAY ← Dados de TODA a história
+
+**Depois (Janeiro 2026 selecionado):**
+- 12 JOBS | 8 DONE | 1 IN PROGRESS | 0 TODAY ← Apenas dados de Janeiro 2026
+
+---
+
+### Imports Necessários
+
+Já existentes: `startOfMonth`, `endOfMonth`, `startOfWeek`, `endOfWeek` (de `date-fns`)
+
+Adicionar se necessário: `startOfDay`, `endOfDay`
 
