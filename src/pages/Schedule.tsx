@@ -1544,7 +1544,7 @@ const Schedule = () => {
 
   return (
     <div className={cn(
-      "p-1 space-y-1 h-[calc(100vh/0.75-40px)] flex flex-col",
+      "p-1 space-y-1 h-[calc(100vh/0.80-20px)] flex flex-col",
       focusMode && "schedule-focus-mode"
     )}>
       {/* Overdue Job Alert - For Admin/Manager and Cleaners */}
@@ -1829,7 +1829,7 @@ const Schedule = () => {
                 })}
               </div>
               
-              <div className={cn("overflow-y-auto overflow-x-hidden relative", focusMode ? "max-h-[calc(100vh-60px)]" : "max-h-[calc(100vh-110px)]")}>
+              <div className={cn("overflow-y-auto overflow-x-hidden relative", focusMode ? "max-h-[calc(100vh-40px)]" : "max-h-[calc(100vh-80px)]")}>
                 {/* Current Time Indicator - Enhanced with floating label */}
                 {getWeekDays().some(day => isTodayForIndicator(day)) && (
                   <div 
@@ -2140,7 +2140,7 @@ const Schedule = () => {
               </h3>
             </div>
             <CardContent className="p-0 overflow-hidden">
-              <div className="relative overflow-y-auto overflow-x-hidden" style={{ maxHeight: focusMode ? 'calc(100vh - 60px)' : 'calc(100vh - 110px)' }}>
+              <div className="relative overflow-y-auto overflow-x-hidden" style={{ maxHeight: focusMode ? 'calc(100vh - 40px)' : 'calc(100vh - 80px)' }}>
                 {/* Current Time Indicator - Enhanced with floating label */}
                 {isTodayForIndicator(currentDate) && (
                   <div 
