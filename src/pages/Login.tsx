@@ -186,12 +186,12 @@ export default function Login() {
 
         {/* Security Message */}
         <div className="mt-6 pt-5 border-t border-white/[0.05]">
-          <p className="text-[11px] text-white/40 text-center leading-relaxed">
+          <p className="text-[11px] text-white/60 text-center leading-relaxed">
             {t.securityMsg}
           </p>
           
           {/* Micro Trust Indicators */}
-          <div className="mt-4 flex items-center justify-center gap-4 text-[10px] text-white/30">
+          <div className="mt-4 flex items-center justify-center gap-4 text-[10px] text-white/50">
             <span className="flex items-center gap-1">
               <Shield className="h-3 w-3" />
               {t.roleAccess}
