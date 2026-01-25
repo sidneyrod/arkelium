@@ -35,6 +35,7 @@ import PaymentsCollections from "./pages/PaymentsCollections";
 import AccessRoles from "./pages/AccessRoles";
 import ResetPassword from "./pages/ResetPassword";
 import PermissionRoute from "./components/auth/PermissionRoute";
+import PublicAuthLayout from "./components/auth/PublicAuthLayout";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -166,9 +167,12 @@ const CleanerRoute = ({ children }: { children: React.ReactNode }) => {
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-      <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
-      <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+      {/* Public auth routes with persistent layout shell */}
+      <Route element={<PublicRoute><PublicAuthLayout /></PublicRoute>}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+      </Route>
       
       <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         {/* Dashboard - accessible to all authenticated users */}

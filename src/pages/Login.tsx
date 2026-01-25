@@ -6,7 +6,6 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Language } from '@/i18n/translations';
 
-import AuthLayout from '@/components/auth/AuthLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -88,9 +87,8 @@ export default function Login() {
   }
 
   return (
-    <AuthLayout>
-      {/* Auth Card - Fully Transparent */}
-      <div className="w-full rounded-2xl p-6 sm:p-8 bg-transparent border-0 shadow-none">
+    // Card content only - AuthLayout is rendered by PublicAuthLayout
+    <div className="w-full rounded-2xl p-6 sm:p-8 bg-transparent border-0 shadow-none">
 
         {/* Error Message */}
         {errorMsg && (
@@ -207,6 +205,5 @@ export default function Login() {
           </div>
         </div>
       </div>
-    </AuthLayout>
   );
 }
