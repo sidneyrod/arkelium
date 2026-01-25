@@ -55,7 +55,7 @@ import VisitCompletionModal, { VisitCompletionData } from '@/components/schedule
 import CancelJobModal from '@/components/modals/CancelJobModal';
 import OverdueJobAlert from '@/components/schedule/OverdueJobAlert';
 import { notifyJobCreated, notifyJobUpdated, notifyJobCancelled, notifyVisitCreated, notifyJobCompleted, notifyInvoiceGenerated } from '@/hooks/useNotifications';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, startOfWeek, endOfWeek, addWeeks, subWeeks, isSameDay, addDays, subDays, parseISO } from 'date-fns';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, startOfWeek, endOfWeek, addWeeks, subWeeks, isSameDay, addDays, subDays, parseISO, startOfDay, endOfDay } from 'date-fns';
 import { toSafeLocalDate } from '@/lib/dates';
 import { generatePaymentReceiptPdf, openPdfPreview } from '@/utils/pdfGenerator';
 
@@ -442,22 +442,53 @@ const Schedule = () => {
     });
   }, [baseJobs, searchQuery]);
 
-  // Calculate summary stats for contextual header
+  // Calculate visible date range based on current view and selected date
+  const visibleDateRange = useMemo(() => {
+    switch (view) {
+      case 'day':
+        return {
+          start: startOfDay(currentDate),
+          end: endOfDay(currentDate)
+        };
+      case 'week':
+        return {
+          start: startOfWeek(currentDate, { weekStartsOn: 1 }),
+          end: endOfWeek(currentDate, { weekStartsOn: 1 })
+        };
+      case 'month':
+      default:
+        return {
+          start: startOfMonth(currentDate),
+          end: endOfMonth(currentDate)
+        };
+    }
+  }, [view, currentDate]);
+
+  // Filter jobs by the visible date period (for KPIs)
+  const periodFilteredJobs = useMemo(() => {
+    const { start, end } = visibleDateRange;
+    return filteredJobs.filter(job => {
+      const jobDate = toSafeLocalDate(job.date);
+      return jobDate >= start && jobDate <= end;
+    });
+  }, [filteredJobs, visibleDateRange]);
+
+  // Calculate summary stats for contextual header - now based on visible period
   const summaryStats = useMemo(() => {
     const today = new Date();
-    const todayJobs = filteredJobs.filter(job => isSameDay(toSafeLocalDate(job.date), today));
-    const completedCount = filteredJobs.filter(job => job.status === 'completed').length;
-    const inProgressCount = filteredJobs.filter(job => job.status === 'in-progress').length;
-    const scheduledCount = filteredJobs.filter(job => job.status === 'scheduled').length;
+    const todayJobs = periodFilteredJobs.filter(job => isSameDay(toSafeLocalDate(job.date), today));
+    const completedCount = periodFilteredJobs.filter(job => job.status === 'completed').length;
+    const inProgressCount = periodFilteredJobs.filter(job => job.status === 'in-progress').length;
+    const scheduledCount = periodFilteredJobs.filter(job => job.status === 'scheduled').length;
     
     return {
-      total: filteredJobs.length,
+      total: periodFilteredJobs.length,
       completed: completedCount,
       inProgress: inProgressCount,
       scheduled: scheduledCount,
       todayCount: todayJobs.length,
     };
-  }, [filteredJobs]);
+  }, [periodFilteredJobs]);
 
   // Update current time label every minute for the time indicator
   useEffect(() => {
