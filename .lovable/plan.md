@@ -1,143 +1,133 @@
 
 
-## Plano: Sistema Dinâmico com Filtros por Empresa em Cada Módulo
+## Plano: Definir Nome do Business Group e Remover Seletor de Empresa
 
-### Visão Geral da Mudança
+### Situação Atual
 
-O sistema deixará de ter um "seletor de empresa ativa global" e passará a ter **filtros de empresa contextuais** dentro de cada módulo. O ADMIN terá controle total para analisar dados de qualquer empresa a qualquer momento.
+1. **Tabela `organizations` existe mas está vazia** - O sistema já tem infraestrutura para grupos
+2. **Empresas não têm `organization_id` vinculado** - Todas mostram `null`
+3. **TopBar mostra "Business Group" de forma estática** (linha 414) - Texto fixo, não dinâmico
+4. **Company.tsx tem seletor desnecessário** (linhas 986-997) - Precisa ser removido
 
 ---
 
-### Fase 1: Remover Seletor Global de Empresa
+### Fase 1: Criar Organização e Vincular Empresas (Database)
+
+**Migration SQL:**
+```sql
+-- 1. Criar a organização do grupo
+INSERT INTO organizations (name, legal_name, status)
+VALUES ('Arkelium Group', 'Arkelium Business Group Inc.', 'active');
+
+-- 2. Vincular todas as empresas existentes a esta organização
+UPDATE companies 
+SET organization_id = (SELECT id FROM organizations WHERE name = 'Arkelium Group' LIMIT 1)
+WHERE organization_id IS NULL;
+```
+
+---
+
+### Fase 2: Atualizar TopBar para Exibir Nome da Organização
 
 **Arquivo:** `src/components/layout/TopBar.tsx`
 
-1. **Converter o dropdown de empresa em apenas exibição do nome do grupo**
-   - Remover o `DropdownMenu` com lista de empresas (linhas 410-451)
-   - Substituir por um elemento estático mostrando apenas o nome da organização/grupo
-   - Manter o ícone `Building2` para contexto visual
-
-2. **Alternativa de Exibição:**
-   - Se não houver `organization` vinculada, mostrar "All Companies" ou o nome da empresa principal do usuário
-   - Texto estático, sem interação de click
-
----
-
-### Fase 2: Adicionar Filtro de Empresa nos Módulos Operacionais
-
-**Componente Reutilizável:** `src/components/ui/company-filter.tsx`
-
-```tsx
-// Novo componente de filtro de empresa
-interface CompanyFilterProps {
-  value: string | 'all';
-  onChange: (companyId: string | 'all') => void;
-  showAllOption?: boolean; // Para relatórios consolidados
-  className?: string;
-}
-```
-
-**Módulos que receberão o filtro:**
-
-| Módulo | Arquivo | Comportamento |
-|--------|---------|---------------|
-| Schedule | `Schedule.tsx` | Filtrar jobs por empresa selecionada |
-| Invoices | `Invoices.tsx` | Filtrar invoices por empresa |
-| Receipts | `Receipts.tsx` | Filtrar recibos por empresa |
-| Payments | `PaymentsCollections.tsx` | Filtrar cash collections por empresa |
-| Financial Ledger | `Financial.tsx` | Filtrar ledger por empresa |
-| Clients | `Clients.tsx` | Filtrar clientes por empresa |
-| Contracts | `Contracts.tsx` | Filtrar contratos por empresa |
-| Completed Services | `CompletedServices.tsx` | Filtrar por empresa |
-| Work & Time Tracking | `WorkEarningsSummary.tsx` | Filtrar por empresa |
-
----
-
-### Fase 3: Refatorar Store de Empresa
-
-**Arquivo:** `src/stores/activeCompanyStore.ts`
-
-1. **Remover lógica de "empresa ativa global"**
-   - O `activeCompanyId` deixa de ser o contexto único
-   - Cada módulo gerencia seu próprio filtro local
-
-2. **Adicionar helper para filtro padrão:**
+1. **Adicionar hook/query para buscar organização do usuário:**
    ```typescript
-   // Retorna a empresa do perfil do usuário como default
-   getDefaultCompanyId: () => string | null
+   const [organizationName, setOrganizationName] = useState<string | null>(null);
+   
+   useEffect(() => {
+     const fetchOrganization = async () => {
+       // Buscar organização via organization_members ou companies linkadas
+       const { data } = await supabase
+         .from('organization_members')
+         .select('organization:organizations(name)')
+         .eq('user_id', user?.id)
+         .limit(1)
+         .maybeSingle();
+       
+       if (data?.organization?.name) {
+         setOrganizationName(data.organization.name);
+       } else {
+         // Fallback: buscar via company do usuário
+         const { data: company } = await supabase
+           .from('companies')
+           .select('organization:organizations(name)')
+           .eq('id', user?.profile?.company_id)
+           .maybeSingle();
+         
+         if (company?.organization?.name) {
+           setOrganizationName(company.organization.name);
+         }
+       }
+     };
+     
+     if (user?.id) fetchOrganization();
+   }, [user?.id, user?.profile?.company_id]);
+   ```
+
+2. **Atualizar exibição (linha 414):**
+   ```typescript
+   // Antes:
+   <span className="text-sm font-medium text-foreground">
+     {companies.length > 0 ? 'Business Group' : 'No Companies'}
+   </span>
+   
+   // Depois:
+   <span className="text-sm font-medium text-foreground">
+     {organizationName || 'Business Group'}
+   </span>
    ```
 
 ---
 
-### Fase 4: Simplificar Status das Empresas
-
-**Arquivo:** `src/pages/Company.tsx` e `src/components/company/CompanyListTable.tsx`
-
-1. **Unificar status para binary:**
-   - `active` = Participando das movimentações
-   - `inactive` = Não participa (dados históricos preservados)
-
-2. **Remover status "AVAILABLE"** - consolidar em apenas ACTIVE/INACTIVE
-
-3. **Atualizar badges visuais:**
-   - ACTIVE = Badge verde (operacional)
-   - INACTIVE = Badge cinza (pausado)
-
----
-
-### Fase 5: Remover Seletor de Empresa na Página Company
+### Fase 3: Remover Seletor de Empresa na Página Company
 
 **Arquivo:** `src/pages/Company.tsx`
 
-1. **Linhas 986-996**: Remover o `Select` de empresa ao lado das tabs
-2. **A lista de empresas na tab Profile permanece** para gerenciamento (editar, criar, deletar)
-3. **Ao clicar em uma empresa na lista**: Abre modal de edição, não troca contexto global
-
----
-
-### Fase 6: Relatórios Dinâmicos com Filtros
-
-**Novos Parâmetros de Relatório:**
-
-Cada modal/tela de geração de relatório terá:
-
+**Remover linhas 986-997:**
 ```tsx
-// Campos obrigatórios para relatórios
-<PeriodSelector value={dateRange} onChange={setDateRange} />
-<CompanyFilter 
-  value={companyFilter} 
-  onChange={setCompanyFilter}
-  showAllOption={true} // Permite "Todas as Empresas"
-/>
+// REMOVER ESTE BLOCO INTEIRO:
+<div className="flex items-center gap-2">
+  <Select value={activeCompanyId || ''} onValueChange={handleSelectCompany}>
+    <SelectTrigger className="w-[200px] h-8 text-sm">
+      <SelectValue placeholder="Select company" />
+    </SelectTrigger>
+    <SelectContent className="bg-popover">
+      {companies.filter(c => c.status !== 'archived').map(company => (
+        <SelectItem key={company.id} value={company.id}>{company.trade_name}</SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+</div>
 ```
 
-**Módulos de Relatório Afetados:**
-- `GenerateReportModal.tsx` - Relatórios financeiros
-- `ExportReportButton.tsx` - Exportações de dados
-- `Financial.tsx` - Ledger exports (CSV/PDF)
-- Dashboard KPIs - Adicionar filtro de empresa
+**Manter:** A lista de empresas na tab Profile para gestão (editar/criar/excluir)
 
 ---
 
-### Fase 7: Atualizar RLS e Queries
+### Fase 4: (Opcional) Criar Tela para Gerenciar Organização
 
-**Padrão de Query Atualizado:**
+**Novo local para ADMIN editar o nome do grupo:**
 
-```typescript
-// Antes (usa activeCompanyId global)
-.eq('company_id', activeCompanyId)
-
-// Depois (aceita filtro ou lista de empresas acessíveis)
-.eq('company_id', selectedCompanyId) // ou
-.in('company_id', accessibleCompanyIds) // para "all"
+Opção A: Adicionar no topo da página Company Profile
+```tsx
+<Card className="mb-4">
+  <CardContent className="py-3 flex items-center justify-between">
+    <div className="flex items-center gap-3">
+      <Building2 className="h-5 w-5 text-primary" />
+      <div>
+        <p className="text-sm font-medium">Business Group</p>
+        <p className="text-xs text-muted-foreground">{organizationName}</p>
+      </div>
+    </div>
+    <Button variant="outline" size="sm" onClick={handleEditOrganization}>
+      <Pencil className="h-3 w-3 mr-1" /> Edit
+    </Button>
+  </CardContent>
+</Card>
 ```
 
-**Hook de Empresas Acessíveis:**
-```typescript
-// Novo hook: useAccessibleCompanies
-const { companies, isLoading } = useAccessibleCompanies();
-// Retorna todas as empresas que o usuário pode acessar via user_roles
-```
+Opção B: Adicionar nas Settings (Administration > Settings)
 
 ---
 
@@ -145,27 +135,17 @@ const { companies, isLoading } = useAccessibleCompanies();
 
 | Arquivo | Ação |
 |---------|------|
-| `TopBar.tsx` | Remover dropdown, exibir nome fixo |
-| `Company.tsx` | Remover seletor, manter lista de gestão |
-| `CompanyListTable.tsx` | Atualizar status badges (ACTIVE/INACTIVE) |
-| `activeCompanyStore.ts` | Refatorar para defaults, não contexto único |
-| `Schedule.tsx` | Adicionar filtro de empresa inline |
-| `Invoices.tsx` | Adicionar filtro de empresa |
-| `Receipts.tsx` | Adicionar filtro de empresa |
-| `PaymentsCollections.tsx` | Adicionar filtro de empresa |
-| `Financial.tsx` | Adicionar filtro de empresa |
-| `Clients.tsx` | Adicionar filtro de empresa |
-| `Dashboard.tsx` | Adicionar filtro de empresa nos KPIs |
-| **Novo:** `company-filter.tsx` | Componente reutilizável |
-| **Novo:** `useAccessibleCompanies.ts` | Hook para listar empresas do usuário |
+| **Migration SQL** | Criar organização e vincular empresas |
+| `TopBar.tsx` | Buscar e exibir nome da organização dinamicamente |
+| `Company.tsx` | Remover seletor de empresa (linhas 986-997) |
+| `Company.tsx` (opcional) | Adicionar card para gerenciar grupo |
 
 ---
 
 ### Resultado Final
 
-1. **TopBar**: Exibe apenas nome do grupo/empresa principal (sem dropdown)
-2. **Cada módulo**: Tem seu próprio filtro de empresa no header
-3. **Status simplificado**: Apenas ACTIVE/INACTIVE
-4. **Relatórios**: Sempre pedem período + empresa antes de gerar
-5. **Flexibilidade total**: ADMIN pode analisar qualquer empresa em qualquer tela
+1. **TopBar**: Exibe "Arkelium Group" (ou o nome definido) em vez de "Business Group"
+2. **Company Profile**: Sem dropdown de seleção - apenas lista de empresas para gestão
+3. **ADMIN pode editar**: Nome do grupo pode ser alterado via Settings ou modal
+4. **Empresas vinculadas**: Todas as empresas ficam sob o mesmo `organization_id`
 
