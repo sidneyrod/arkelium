@@ -6,7 +6,6 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import { Language } from '@/i18n/translations';
 
-import AuthLayout from '@/components/auth/AuthLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -76,11 +75,10 @@ export default function ForgotPassword() {
   }
 
   return (
-    <AuthLayout>
-      {/* Auth Card - Fully Transparent */}
-      <div className="w-full rounded-2xl p-6 sm:p-8 bg-transparent border-0 shadow-none">
-        
-        {/* Title */}
+    // Card content only - AuthLayout is rendered by PublicAuthLayout
+    <div className="w-full rounded-2xl p-6 sm:p-8 bg-transparent border-0 shadow-none">
+      
+      {/* Title */}
         <div className="text-center mb-6">
           <h1 className="text-xl font-semibold text-white mb-2">
             {t.title}
@@ -154,6 +152,5 @@ export default function ForgotPassword() {
           </span>
         </div>
       </div>
-    </AuthLayout>
   );
 }

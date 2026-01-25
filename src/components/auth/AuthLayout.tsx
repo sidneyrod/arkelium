@@ -64,10 +64,13 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           
           {/* Brand Content - Centered with Large Logo */}
           <div className="relative z-10 flex flex-col items-center text-center max-w-xl mx-auto w-full">
-            {/* Logo - Gold, Large, Centered */}
+            {/* Logo - Gold, Large, Centered - Prioritized loading */}
             <img
               src={arkeliumLogo}
               alt="Arkelium"
+              loading="eager"
+              decoding="sync"
+              fetchPriority="high"
               className="h-64 xl:h-72 2xl:h-80 w-auto mb-3 select-none"
               style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }}
             />
@@ -116,6 +119,9 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           <img
             src={arkeliumLogo}
             alt="Arkelium"
+            loading="eager"
+            decoding="sync"
+            fetchPriority="high"
             className="h-32 sm:h-40 w-auto mb-4 select-none"
             style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.25))' }}
           />
