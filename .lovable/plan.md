@@ -1,117 +1,171 @@
 
 
-## Plano: Fazer os KPIs Acompanharem o Período de Data Selecionado
+## Plano: Sistema Dinâmico com Filtros por Empresa em Cada Módulo
 
-### Objetivo
-Os KPIs (JOBS, DONE, IN PROGRESS, TODAY) devem refletir apenas os jobs que estão **dentro do período visível** (dia, semana, ou mês selecionado), não o total histórico da empresa.
+### Visão Geral da Mudança
 
-### Arquivo a Modificar
-`src/pages/Schedule.tsx`
+O sistema deixará de ter um "seletor de empresa ativa global" e passará a ter **filtros de empresa contextuais** dentro de cada módulo. O ADMIN terá controle total para analisar dados de qualquer empresa a qualquer momento.
 
 ---
 
-### 1. Criar uma função para determinar o intervalo de datas do período visível
+### Fase 1: Remover Seletor Global de Empresa
+
+**Arquivo:** `src/components/layout/TopBar.tsx`
+
+1. **Converter o dropdown de empresa em apenas exibição do nome do grupo**
+   - Remover o `DropdownMenu` com lista de empresas (linhas 410-451)
+   - Substituir por um elemento estático mostrando apenas o nome da organização/grupo
+   - Manter o ícone `Building2` para contexto visual
+
+2. **Alternativa de Exibição:**
+   - Se não houver `organization` vinculada, mostrar "All Companies" ou o nome da empresa principal do usuário
+   - Texto estático, sem interação de click
+
+---
+
+### Fase 2: Adicionar Filtro de Empresa nos Módulos Operacionais
+
+**Componente Reutilizável:** `src/components/ui/company-filter.tsx`
+
+```tsx
+// Novo componente de filtro de empresa
+interface CompanyFilterProps {
+  value: string | 'all';
+  onChange: (companyId: string | 'all') => void;
+  showAllOption?: boolean; // Para relatórios consolidados
+  className?: string;
+}
+```
+
+**Módulos que receberão o filtro:**
+
+| Módulo | Arquivo | Comportamento |
+|--------|---------|---------------|
+| Schedule | `Schedule.tsx` | Filtrar jobs por empresa selecionada |
+| Invoices | `Invoices.tsx` | Filtrar invoices por empresa |
+| Receipts | `Receipts.tsx` | Filtrar recibos por empresa |
+| Payments | `PaymentsCollections.tsx` | Filtrar cash collections por empresa |
+| Financial Ledger | `Financial.tsx` | Filtrar ledger por empresa |
+| Clients | `Clients.tsx` | Filtrar clientes por empresa |
+| Contracts | `Contracts.tsx` | Filtrar contratos por empresa |
+| Completed Services | `CompletedServices.tsx` | Filtrar por empresa |
+| Work & Time Tracking | `WorkEarningsSummary.tsx` | Filtrar por empresa |
+
+---
+
+### Fase 3: Refatorar Store de Empresa
+
+**Arquivo:** `src/stores/activeCompanyStore.ts`
+
+1. **Remover lógica de "empresa ativa global"**
+   - O `activeCompanyId` deixa de ser o contexto único
+   - Cada módulo gerencia seu próprio filtro local
+
+2. **Adicionar helper para filtro padrão:**
+   ```typescript
+   // Retorna a empresa do perfil do usuário como default
+   getDefaultCompanyId: () => string | null
+   ```
+
+---
+
+### Fase 4: Simplificar Status das Empresas
+
+**Arquivo:** `src/pages/Company.tsx` e `src/components/company/CompanyListTable.tsx`
+
+1. **Unificar status para binary:**
+   - `active` = Participando das movimentações
+   - `inactive` = Não participa (dados históricos preservados)
+
+2. **Remover status "AVAILABLE"** - consolidar em apenas ACTIVE/INACTIVE
+
+3. **Atualizar badges visuais:**
+   - ACTIVE = Badge verde (operacional)
+   - INACTIVE = Badge cinza (pausado)
+
+---
+
+### Fase 5: Remover Seletor de Empresa na Página Company
+
+**Arquivo:** `src/pages/Company.tsx`
+
+1. **Linhas 986-996**: Remover o `Select` de empresa ao lado das tabs
+2. **A lista de empresas na tab Profile permanece** para gerenciamento (editar, criar, deletar)
+3. **Ao clicar em uma empresa na lista**: Abre modal de edição, não troca contexto global
+
+---
+
+### Fase 6: Relatórios Dinâmicos com Filtros
+
+**Novos Parâmetros de Relatório:**
+
+Cada modal/tela de geração de relatório terá:
+
+```tsx
+// Campos obrigatórios para relatórios
+<PeriodSelector value={dateRange} onChange={setDateRange} />
+<CompanyFilter 
+  value={companyFilter} 
+  onChange={setCompanyFilter}
+  showAllOption={true} // Permite "Todas as Empresas"
+/>
+```
+
+**Módulos de Relatório Afetados:**
+- `GenerateReportModal.tsx` - Relatórios financeiros
+- `ExportReportButton.tsx` - Exportações de dados
+- `Financial.tsx` - Ledger exports (CSV/PDF)
+- Dashboard KPIs - Adicionar filtro de empresa
+
+---
+
+### Fase 7: Atualizar RLS e Queries
+
+**Padrão de Query Atualizado:**
 
 ```typescript
-// Adicionar helper para obter range de datas baseado na view e currentDate
-const getVisibleDateRange = useMemo(() => {
-  switch (viewType) {
-    case 'day':
-      return {
-        start: startOfDay(currentDate),
-        end: endOfDay(currentDate)
-      };
-    case 'week':
-      return {
-        start: startOfWeek(currentDate, { weekStartsOn: 1 }),
-        end: endOfWeek(currentDate, { weekStartsOn: 1 })
-      };
-    case 'month':
-    default:
-      return {
-        start: startOfMonth(currentDate),
-        end: endOfMonth(currentDate)
-      };
-  }
-}, [viewType, currentDate]);
+// Antes (usa activeCompanyId global)
+.eq('company_id', activeCompanyId)
+
+// Depois (aceita filtro ou lista de empresas acessíveis)
+.eq('company_id', selectedCompanyId) // ou
+.in('company_id', accessibleCompanyIds) // para "all"
+```
+
+**Hook de Empresas Acessíveis:**
+```typescript
+// Novo hook: useAccessibleCompanies
+const { companies, isLoading } = useAccessibleCompanies();
+// Retorna todas as empresas que o usuário pode acessar via user_roles
 ```
 
 ---
 
-### 2. Criar `periodFilteredJobs` que filtra por período visível
+### Arquivos a Modificar
 
-```typescript
-// Filtrar jobs pelo período visível (além do filtro de busca)
-const periodFilteredJobs = useMemo(() => {
-  const { start, end } = getVisibleDateRange;
-  return filteredJobs.filter(job => {
-    const jobDate = toSafeLocalDate(job.date);
-    return jobDate >= start && jobDate <= end;
-  });
-}, [filteredJobs, getVisibleDateRange]);
-```
-
----
-
-### 3. Atualizar `summaryStats` para usar `periodFilteredJobs`
-
-```typescript
-const summaryStats = useMemo(() => {
-  const today = new Date();
-  
-  // Usar periodFilteredJobs em vez de filteredJobs
-  const todayJobs = periodFilteredJobs.filter(job => 
-    isSameDay(toSafeLocalDate(job.date), today)
-  );
-  const completedCount = periodFilteredJobs.filter(job => 
-    job.status === 'completed'
-  ).length;
-  const inProgressCount = periodFilteredJobs.filter(job => 
-    job.status === 'in-progress'
-  ).length;
-  const scheduledCount = periodFilteredJobs.filter(job => 
-    job.status === 'scheduled'
-  ).length;
-  
-  return {
-    total: periodFilteredJobs.length,        // ← Total do período
-    completed: completedCount,               // ← Completados do período
-    inProgress: inProgressCount,             // ← Em progresso do período
-    scheduled: scheduledCount,               // ← Agendados do período
-    todayCount: todayJobs.length,            // ← Hoje real (mantém)
-  };
-}, [periodFilteredJobs]);
-```
+| Arquivo | Ação |
+|---------|------|
+| `TopBar.tsx` | Remover dropdown, exibir nome fixo |
+| `Company.tsx` | Remover seletor, manter lista de gestão |
+| `CompanyListTable.tsx` | Atualizar status badges (ACTIVE/INACTIVE) |
+| `activeCompanyStore.ts` | Refatorar para defaults, não contexto único |
+| `Schedule.tsx` | Adicionar filtro de empresa inline |
+| `Invoices.tsx` | Adicionar filtro de empresa |
+| `Receipts.tsx` | Adicionar filtro de empresa |
+| `PaymentsCollections.tsx` | Adicionar filtro de empresa |
+| `Financial.tsx` | Adicionar filtro de empresa |
+| `Clients.tsx` | Adicionar filtro de empresa |
+| `Dashboard.tsx` | Adicionar filtro de empresa nos KPIs |
+| **Novo:** `company-filter.tsx` | Componente reutilizável |
+| **Novo:** `useAccessibleCompanies.ts` | Hook para listar empresas do usuário |
 
 ---
 
-### 4. (Opcional) Ajustar label "Today" para ser contextual
+### Resultado Final
 
-Se o usuário estiver navegando em um mês diferente, pode fazer sentido alterar o KPI "TODAY" para mostrar algo mais relevante. Mas inicialmente podemos manter como está (sempre mostra jobs do dia atual real).
-
----
-
-### Resultado Esperado
-
-| View | Período | KPIs Mostrarão |
-|------|---------|----------------|
-| **Month: January 2026** | 1-31 Jan 2026 | Jobs apenas de Janeiro 2026 |
-| **Week: 19-25 Jan** | 19-25 Jan | Jobs apenas dessa semana |
-| **Day: 25 Jan** | 25 Jan | Jobs apenas desse dia |
-
-### Exemplo Visual
-
-**Antes (Janeiro 2026 selecionado):**
-- 45 JOBS | 38 DONE | 0 IN PROGRESS | 0 TODAY ← Dados de TODA a história
-
-**Depois (Janeiro 2026 selecionado):**
-- 12 JOBS | 8 DONE | 1 IN PROGRESS | 0 TODAY ← Apenas dados de Janeiro 2026
-
----
-
-### Imports Necessários
-
-Já existentes: `startOfMonth`, `endOfMonth`, `startOfWeek`, `endOfWeek` (de `date-fns`)
-
-Adicionar se necessário: `startOfDay`, `endOfDay`
+1. **TopBar**: Exibe apenas nome do grupo/empresa principal (sem dropdown)
+2. **Cada módulo**: Tem seu próprio filtro de empresa no header
+3. **Status simplificado**: Apenas ACTIVE/INACTIVE
+4. **Relatórios**: Sempre pedem período + empresa antes de gerar
+5. **Flexibilidade total**: ADMIN pode analisar qualquer empresa em qualquer tela
 
