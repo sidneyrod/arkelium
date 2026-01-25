@@ -66,7 +66,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               src={arkeliumLogo}
               alt="Arkelium"
               className="h-44 xl:h-52 2xl:h-60 w-auto mb-10 xl:mb-12 select-none"
-              style={{ filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.5))' }}
+              style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }}
             />
 
             {/* Headline - Centered with Logo */}
@@ -114,7 +114,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             src={arkeliumLogo}
             alt="Arkelium"
             className="h-16 sm:h-20 w-auto mb-3 select-none"
-            style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.4))' }}
+            style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.25))' }}
           />
           <p className="text-xs sm:text-sm text-center max-w-[280px] text-white/50">
             Enterprise Operations & Financial Control
