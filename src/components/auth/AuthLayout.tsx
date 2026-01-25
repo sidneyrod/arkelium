@@ -16,9 +16,12 @@ interface AuthLayoutProps {
   children: ReactNode;
 }
 
-// Preload dark background image
-const preloadImage = new Image();
-preloadImage.src = '/images/auth-bg-dark.png';
+// Preload dark background image and logo
+const preloadBg = new Image();
+preloadBg.src = '/images/auth-bg-dark.png';
+
+const preloadLogo = new Image();
+preloadLogo.src = arkeliumLogo;
 
 export default function AuthLayout({ children }: AuthLayoutProps) {
   const { language, setLanguage } = useLanguage();
