@@ -1879,7 +1879,7 @@ const Schedule = () => {
                     const dayJobs = getJobsForDate(day);
                     
                     return (
-                      <div key={day.toISOString()} className="relative pointer-events-auto">
+                      <div key={day.toISOString()} className="relative">
                         {dayJobs.map((job) => {
                           const startSlotIndex = TIME_SLOTS.findIndex(s => s.value === job.time);
                           if (startSlotIndex === -1) return null;
@@ -1914,7 +1914,7 @@ const Schedule = () => {
                             <HoverCard key={job.id + (job._isContinuation ? '-cont' : '')} openDelay={300} closeDelay={100}>
                               <HoverCardTrigger asChild>
                                 <div 
-                                  className="absolute left-1 right-1"
+                                  className="absolute left-1 right-1 pointer-events-auto"
                                   style={{ top: topPosition + 2, height: clampedCardHeight - 6 }}
                                 >
                                   <div 
