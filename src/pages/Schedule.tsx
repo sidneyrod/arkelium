@@ -1613,8 +1613,10 @@ const Schedule = () => {
 
   return (
     <div className={cn(
-      "p-1 space-y-1 h-[calc(100vh/0.80-20px)] flex flex-col",
-      focusMode && "schedule-focus-mode"
+      "p-1 space-y-1 flex flex-col",
+      focusMode 
+        ? "h-[calc(100vh/0.80-8px)] schedule-focus-mode"
+        : "h-[calc(100vh/0.80-20px)]"
     )}>
       {/* Overdue Job Alert - For Admin/Manager and Cleaners */}
       <OverdueJobAlert />
@@ -1907,7 +1909,7 @@ const Schedule = () => {
                 })}
               </div>
               
-              <div className={cn("overflow-y-auto overflow-x-hidden relative", focusMode ? "max-h-[calc(100vh-40px)]" : "max-h-[calc(100vh-80px)]")}>
+              <div className={cn("overflow-y-auto overflow-x-hidden relative", focusMode ? "max-h-[calc(100vh-24px)]" : "max-h-[calc(100vh-80px)]")}>
                 {/* Current Time Indicator - Enhanced with floating label */}
                 {getWeekDays().some(day => isTodayForIndicator(day)) && (
                   <div 
@@ -2218,7 +2220,7 @@ const Schedule = () => {
               </h3>
             </div>
             <CardContent className="p-0 overflow-hidden">
-              <div className="relative overflow-y-auto overflow-x-hidden" style={{ maxHeight: focusMode ? 'calc(100vh - 40px)' : 'calc(100vh - 80px)' }}>
+              <div className="relative overflow-y-auto overflow-x-hidden" style={{ maxHeight: focusMode ? 'calc(100vh - 24px)' : 'calc(100vh - 80px)' }}>
                 {/* Current Time Indicator - Enhanced with floating label */}
                 {isTodayForIndicator(currentDate) && (
                   <div 
@@ -2612,24 +2614,26 @@ const Schedule = () => {
         )}
       </div>
 
-      {/* Compact Status Legend */}
-      <div className="flex items-center gap-3 text-[10px] text-muted-foreground/70 py-0.5 px-1 flex-shrink-0">
-        <div className="flex items-center gap-1">
-          <Sparkles className="h-2.5 w-2.5 text-primary/70" />
-          <span>Service</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Eye className="h-2.5 w-2.5 text-purple-500/70" />
-          <span>Visit</span>
-        </div>
-        <div className="h-2.5 w-px bg-border/40" />
-        {Object.entries(statusConfig).map(([status, config]) => (
-          <div key={status} className="flex items-center gap-1">
-            <div className={cn("h-1.5 w-1.5 rounded-full", config.dotClass)} />
-            <span>{config.label}</span>
+      {/* Compact Status Legend - Hidden in Focus Mode */}
+      {!focusMode && (
+        <div className="flex items-center gap-3 text-[10px] text-muted-foreground/70 py-0.5 px-1 flex-shrink-0">
+          <div className="flex items-center gap-1">
+            <Sparkles className="h-2.5 w-2.5 text-primary/70" />
+            <span>Service</span>
           </div>
-        ))}
-      </div>
+          <div className="flex items-center gap-1">
+            <Eye className="h-2.5 w-2.5 text-purple-500/70" />
+            <span>Visit</span>
+          </div>
+          <div className="h-2.5 w-px bg-border/40" />
+          {Object.entries(statusConfig).map(([status, config]) => (
+            <div key={status} className="flex items-center gap-1">
+              <div className={cn("h-1.5 w-1.5 rounded-full", config.dotClass)} />
+              <span>{config.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Job Details Sheet - Right-side drawer for premium UX */}
       <Sheet open={!!selectedJob && !showCompletion} onOpenChange={() => setSelectedJob(null)}>
