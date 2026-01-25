@@ -60,7 +60,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       <div className="relative z-10 h-screen flex flex-col lg:flex-row">
         
         {/* Left Brand Panel - Desktop Only (≥1024px) */}
-        <div className="hidden lg:flex lg:w-[48%] xl:w-[45%] 2xl:w-[42%] relative items-center justify-start px-8 py-12 overflow-auto">
+        <div className="hidden lg:flex lg:w-[48%] xl:w-[45%] 2xl:w-[42%] relative items-center justify-center px-8">
           
           {/* Brand Content - Centered with Large Logo */}
           <div className="relative z-10 flex flex-col items-center text-center max-w-xl mx-auto w-full">
