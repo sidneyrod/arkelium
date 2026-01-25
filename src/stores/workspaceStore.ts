@@ -20,9 +20,11 @@ interface WorkspaceState {
   userTabs: UserTabsState;
   currentUserId: string | null;
   activeTabId: string | null;
+  focusMode: boolean;
   
   // Actions
   setCurrentUser: (userId: string | null) => void;
+  setFocusMode: (enabled: boolean) => void;
   openTab: (path: string, label: string, icon?: string) => void;
   closeTab: (id: string) => void;
   setActiveTab: (id: string) => void;
@@ -56,6 +58,11 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       userTabs: {},
       currentUserId: null,
       activeTabId: 'dashboard',
+      focusMode: false,
+      
+      setFocusMode: (enabled: boolean) => {
+        set({ focusMode: enabled });
+      },
       
       get tabs() {
         const { currentUserId, userTabs } = get();
