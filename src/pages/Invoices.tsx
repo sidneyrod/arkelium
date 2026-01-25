@@ -3,9 +3,9 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
+import { useAccessibleCompanies } from '@/hooks/useAccessibleCompanies';
 import { notifyInvoicePaid } from '@/hooks/useNotifications';
-
+import { CompanyFilter } from '@/components/ui/company-filter';
 import SearchInput from '@/components/ui/search-input';
 import PaginatedDataTable, { Column } from '@/components/ui/paginated-data-table';
 import { useServerPagination } from '@/hooks/useServerPagination';
@@ -73,9 +73,25 @@ const statusConfig: Record<InvoiceStatus, { color: string; bgColor: string; labe
 const Invoices = () => {
   const { t } = useLanguage();
   const { user, hasRole } = useAuth();
-  const { activeCompanyId } = useActiveCompanyStore();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Use accessible companies hook for module-level filtering
+  const { companies: accessibleCompanies, getDefaultCompanyId, isLoading: isLoadingCompanies } = useAccessibleCompanies();
+  
+  // Module-local company filter state
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | 'all'>('all');
+  
+  // Get accessible company IDs for query
+  const accessibleCompanyIds = useMemo(() => accessibleCompanies.map(c => c.id), [accessibleCompanies]);
+  
+  // Determine which company IDs to query
+  const queryCompanyIds = useMemo(() => {
+    if (selectedCompanyId === 'all') {
+      return accessibleCompanyIds;
+    }
+    return [selectedCompanyId];
+  }, [selectedCompanyId, accessibleCompanyIds]);
   
   const urlStatus = searchParams.get('status');
   const urlFrom = searchParams.get('from');
@@ -127,15 +143,20 @@ const Invoices = () => {
     setSearchParams(newParams, { replace: true });
   };
 
-  // Fetch company profile
+  // Fetch company profile using first selected company
+  const primaryCompanyId = useMemo(() => {
+    if (selectedCompanyId !== 'all') return selectedCompanyId;
+    return getDefaultCompanyId() || accessibleCompanyIds[0] || null;
+  }, [selectedCompanyId, getDefaultCompanyId, accessibleCompanyIds]);
+  
   useEffect(() => {
     const fetchCompanyProfile = async () => {
-      if (!activeCompanyId) return;
+      if (!primaryCompanyId) return;
 
       const { data } = await supabase
         .from('companies')
         .select('*')
-        .eq('id', activeCompanyId)
+        .eq('id', primaryCompanyId)
         .maybeSingle();
 
       if (data) {
@@ -152,11 +173,11 @@ const Invoices = () => {
     };
 
     fetchCompanyProfile();
-  }, [activeCompanyId]);
+  }, [primaryCompanyId]);
 
   // Server-side pagination fetch function
   const fetchInvoices = useCallback(async (from: number, to: number) => {
-    if (!activeCompanyId) {
+    if (queryCompanyIds.length === 0) {
       return { data: [], count: 0 };
     }
 
@@ -202,10 +223,16 @@ const Invoices = () => {
           unit_price,
           total
         )
-      `, { count: 'exact' })
-      .eq('company_id', activeCompanyId)
-      .gte('service_date', startDate)
-      .lte('service_date', endDate);
+      `, { count: 'exact' });
+    
+    // Apply company filter
+    if (queryCompanyIds.length === 1) {
+      query = query.eq('company_id', queryCompanyIds[0]);
+    } else {
+      query = query.in('company_id', queryCompanyIds);
+    }
+    
+    query = query.gte('service_date', startDate).lte('service_date', endDate);
 
     // Apply filters
     if (statusFilter !== 'all') {
@@ -269,7 +296,7 @@ const Invoices = () => {
     });
 
     return { data: mappedInvoices, count: count || 0 };
-  }, [activeCompanyId, dateRange, statusFilter, debouncedSearch]);
+  }, [queryCompanyIds, dateRange, statusFilter, debouncedSearch]);
 
   const {
     data: invoices,
@@ -468,12 +495,21 @@ const Invoices = () => {
     <div className="p-2 lg:p-3 space-y-2">
       {/* Inline KPIs + Filters */}
       <div className="flex items-center gap-2 flex-wrap">
+        {/* Company Filter */}
+        <CompanyFilter
+          value={selectedCompanyId}
+          onChange={setSelectedCompanyId}
+          showAllOption={accessibleCompanies.length > 1}
+          allLabel="All Companies"
+          className="w-[160px] h-8"
+        />
+        
         {/* Search Input */}
         <SearchInput
           placeholder="Search invoices..."
           value={search}
           onChange={setSearch}
-          className="w-full sm:w-48"
+          className="w-full sm:w-40"
         />
         
         {/* Status Filter */}

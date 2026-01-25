@@ -183,13 +183,10 @@ export default function CompanyListTable({
                       </td>
                       <td className="px-4 py-3">
                         <Badge 
-                          variant={isActive ? "default" : "outline"}
-                          className={cn(
-                            "text-[10px] uppercase tracking-wider",
-                            isActive && "bg-primary"
-                          )}
+                          variant={company.status === 'active' ? "successOutline" : "outline"}
+                          className="text-[10px] uppercase tracking-wider"
                         >
-                          {isActive ? "Active" : "Available"}
+                          {company.status === 'active' ? 'Active' : 'Inactive'}
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-right">
