@@ -3,7 +3,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
+import { useAccessibleCompanies } from '@/hooks/useAccessibleCompanies';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -49,6 +49,7 @@ import { useCompanyPreferences } from '@/hooks/useCompanyPreferences';
 import { useTimezone } from '@/hooks/useTimezone';
 import AddJobDrawer from '@/components/schedule/AddJobDrawer';
 import { NewBookingModal } from '@/components/schedule/NewBookingModal';
+import { CompanyFilter } from '@/components/ui/company-filter';
 import JobCompletionModal, { PaymentData } from '@/components/modals/JobCompletionModal';
 import StartServiceModal from '@/components/modals/StartServiceModal';
 import VisitCompletionModal, { VisitCompletionData } from '@/components/schedule/VisitCompletionModal';
@@ -202,7 +203,19 @@ const Schedule = () => {
   const { estimateConfig } = useCompanyStore();
   const { isCleaner, isAdminOrManager } = useRoleAccess();
   const { preferences: companyPreferences } = useCompanyPreferences();
-  const { activeCompanyId } = useActiveCompanyStore();
+  
+  // Use accessible companies hook for module-level filtering
+  const { companies: accessibleCompanies, getDefaultCompanyId, isLoading: isLoadingCompanies } = useAccessibleCompanies();
+  
+  // Module-local company filter state
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | 'all'>('all');
+  
+  // Initialize selectedCompanyId when companies load
+  useEffect(() => {
+    if (!isLoadingCompanies && accessibleCompanies.length > 0 && selectedCompanyId === 'all') {
+      // Keep 'all' as default for multi-company view
+    }
+  }, [isLoadingCompanies, accessibleCompanies, selectedCompanyId]);
   
   // Read URL params for initial state
   const urlView = searchParams.get('view') as ViewType | null;
@@ -242,36 +255,44 @@ const Schedule = () => {
   // QueryClient for cache invalidation
   const queryClient = useQueryClient();
   
-  // Compute effective company ID with stable primitives (not object references)
+  // Get accessible company IDs for query
+  const accessibleCompanyIds = useMemo(() => accessibleCompanies.map(c => c.id), [accessibleCompanies]);
   const userCompanyId = user?.profile?.company_id || null;
   const userId = user?.id || null;
-  const effectiveCompanyId = activeCompanyId || userCompanyId;
+  
+  // Determine which company IDs to query
+  const queryCompanyIds = useMemo(() => {
+    if (selectedCompanyId === 'all') {
+      return accessibleCompanyIds;
+    }
+    return [selectedCompanyId];
+  }, [selectedCompanyId, accessibleCompanyIds]);
 
   // React Query hook for fetching jobs - stable cache, no window focus refetch
   const { data: jobs = [], isLoading } = useQuery({
-    queryKey: ['schedule-jobs', effectiveCompanyId],
+    queryKey: ['schedule-jobs', selectedCompanyId, ...queryCompanyIds],
     queryFn: async () => {
-      console.log('[Schedule] React Query fetching jobs', { effectiveCompanyId });
+      console.log('[Schedule] React Query fetching jobs', { selectedCompanyId, queryCompanyIds });
       
-      let companyId = effectiveCompanyId;
-      if (!companyId) {
+      if (queryCompanyIds.length === 0) {
+        // No companies to query - fallback to RPC
         const { data: companyIdData } = await supabase.rpc('get_user_company_id');
-        companyId = companyIdData;
-        console.log('[Schedule] Fallback to RPC company_id:', companyId);
+        if (!companyIdData) {
+          console.log('[Schedule] No company ID found, returning empty');
+          setDebugInfo('No company ID available');
+          return [];
+        }
+        queryCompanyIds.push(companyIdData);
       }
       
-      if (!companyId) {
-        console.log('[Schedule] No company ID found, returning empty');
-        setDebugInfo('No company ID available');
-        return [];
-      }
-      
-      const { data, error } = await supabase
+      // Query jobs from selected company(ies)
+      let query = supabase
         .from('jobs')
         .select(`
           id,
           client_id,
           cleaner_id,
+          company_id,
           scheduled_date,
           start_time,
           duration_minutes,
@@ -291,12 +312,21 @@ const Schedule = () => {
           organization_id,
           clients(id, name),
           profiles:cleaner_id(id, first_name, last_name),
-          client_locations:location_id(address, city)
+          client_locations:location_id(address, city),
+          companies:company_id(id, trade_name, company_code)
         `)
-        .eq('company_id', companyId)
         .order('scheduled_date', { ascending: true });
       
-      console.log('[Schedule] Query result:', { count: data?.length, error, companyId });
+      // Apply company filter - use .in() for multi-company, .eq() for single
+      if (queryCompanyIds.length === 1) {
+        query = query.eq('company_id', queryCompanyIds[0]);
+      } else {
+        query = query.in('company_id', queryCompanyIds);
+      }
+      
+      const { data, error } = await query;
+      
+      console.log('[Schedule] Query result:', { count: data?.length, error, queryCompanyIds });
       
       if (error) {
         console.error('Error fetching jobs:', error);
@@ -332,6 +362,8 @@ const Schedule = () => {
           serviceDate: job.scheduled_date,
           operationType: job.operation_type || 'billable_service',
           activityCode: job.activity_code || 'cleaning',
+          operatingCompanyId: job.company_id,
+          operatingCompanyName: job.companies?.trade_name || '',
           serviceCatalogId: job.service_catalog_id,
           billableAmount: job.billable_amount,
           isBillable: job.is_billable ?? true,
@@ -340,10 +372,10 @@ const Schedule = () => {
       });
       
       console.log('[Schedule] Mapped jobs:', mappedJobs.length);
-      setDebugInfo(`Loaded ${mappedJobs.length} jobs for company ${companyId}`);
+      setDebugInfo(`Loaded ${mappedJobs.length} jobs`);
       return mappedJobs;
     },
-    enabled: !!userId && !!effectiveCompanyId,
+    enabled: !!userId && queryCompanyIds.length > 0,
     staleTime: 5 * 60 * 1000, // 5 minutes - data stays fresh
     gcTime: 30 * 60 * 1000,   // 30 minutes in cache
     refetchOnWindowFocus: false, // CRITICAL: prevents refresh on tab switch
@@ -352,10 +384,15 @@ const Schedule = () => {
   });
 
   // React Query hook for invoice settings - stable cache
+  // Uses first accessible company for settings (or default company)
+  const defaultCompanyForSettings = useMemo(() => {
+    return getDefaultCompanyId() || (queryCompanyIds.length > 0 ? queryCompanyIds[0] : null);
+  }, [getDefaultCompanyId, queryCompanyIds]);
+  
   const { data: invoiceSettings } = useQuery({
-    queryKey: ['schedule-invoice-settings', effectiveCompanyId],
+    queryKey: ['schedule-invoice-settings', defaultCompanyForSettings],
     queryFn: async () => {
-      let companyId = effectiveCompanyId;
+      let companyId = defaultCompanyForSettings;
       if (!companyId) {
         const { data: companyIdData } = await supabase.rpc('get_user_company_id');
         companyId = companyIdData;
@@ -374,7 +411,7 @@ const Schedule = () => {
         autoSend: data?.auto_send_cash_receipt || false,
       };
     },
-    enabled: !!userId && !!effectiveCompanyId,
+    enabled: !!userId && !!defaultCompanyForSettings,
     staleTime: 30 * 60 * 1000, // 30 minutes
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -385,7 +422,7 @@ const Schedule = () => {
 
   // Helper to invalidate jobs cache after mutations
   const refetchJobs = () => {
-    queryClient.invalidateQueries({ queryKey: ['schedule-jobs', effectiveCompanyId] });
+    queryClient.invalidateQueries({ queryKey: ['schedule-jobs'] });
   };
   
   // Update view and date when URL params change
@@ -402,10 +439,10 @@ const Schedule = () => {
     }
   }, [urlView, urlDate]);
 
-  // Reset search when company changes
+  // Reset search when company filter changes
   useEffect(() => {
     setSearchQuery('');
-  }, [activeCompanyId]);
+  }, [selectedCompanyId]);
 
   // For cleaners: only show their own jobs. For admin/manager/super-admin: show all
   // Super Admin has isAdminOrManager=true, so we check both conditions
@@ -708,8 +745,8 @@ const Schedule = () => {
     organizationId?: string | null;
   }) => {
     try {
-      // Use operating company from enterprise flow, fallback to active/user company
-      let companyId = jobData.operatingCompanyId || activeCompanyId || user?.profile?.company_id;
+      // Use operating company from enterprise flow, fallback to default or user company
+      let companyId = jobData.operatingCompanyId || getDefaultCompanyId() || user?.profile?.company_id;
       if (!companyId) {
         const { data: companyIdData } = await supabase.rpc('get_user_company_id');
         companyId = companyIdData;
@@ -1581,10 +1618,19 @@ const Schedule = () => {
       {/* Overdue Job Alert - For Admin/Manager and Cleaners */}
       <OverdueJobAlert />
       
-      {/* Single-Line Header: Search → Mode → KPIs → Date Nav → Add Job → Expand */}
+      {/* Single-Line Header: Company → Search → Mode → KPIs → Date Nav → Add Job → Expand */}
       <div className="flex items-center gap-2 w-full">
-        {/* 1. Search Bar (flex-1 to fill available space) */}
-        <div className="relative flex-1 min-w-[120px] max-w-[280px]">
+        {/* 1. Company Filter */}
+        <CompanyFilter
+          value={selectedCompanyId}
+          onChange={setSelectedCompanyId}
+          showAllOption={accessibleCompanies.length > 1}
+          allLabel="All Companies"
+          className="w-[160px] h-8 text-xs flex-shrink-0"
+        />
+        
+        {/* 2. Search Bar (flex-1 to fill available space) */}
+        <div className="relative flex-1 min-w-[120px] max-w-[200px]">
           <input
             type="search"
             placeholder="Search..."

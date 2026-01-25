@@ -12,8 +12,7 @@ import {
   Loader2,
   Key,
   User,
-  ChevronDown,
-  Check
+  Building2
 } from 'lucide-react';
 import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
 
@@ -406,49 +405,15 @@ const TopBar = () => {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2 shrink-0">
-          {/* Active Company Selector */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="hidden md:flex items-center gap-2 px-3 h-9 border-border bg-background hover:bg-muted"
-              >
-                <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary shrink-0">
-                  {activeCompanyCode || '?'}
-                </div>
-                <span className="text-sm font-medium max-w-32 truncate">{activeCompanyName || 'Select Company'}</span>
-                <ChevronDown className="h-3 w-3 text-muted-foreground" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 bg-popover">
-              <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Switch Company</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {companies.map((company) => (
-                <DropdownMenuItem 
-                  key={company.id}
-                  onClick={() => handleSwitchCompany(company)}
-                  className={cn(
-                    "flex items-center gap-2 cursor-pointer",
-                    activeCompanyId === company.id && "bg-accent"
-                  )}
-                >
-                  <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-xs font-semibold shrink-0">
-                    {company.company_code}
-                  </div>
-                  <span className="flex-1 truncate">{company.trade_name}</span>
-                  {activeCompanyId === company.id && (
-                    <Check className="h-4 w-4 text-primary shrink-0" />
-                  )}
-                </DropdownMenuItem>
-              ))}
-              {companies.length === 0 && (
-                <div className="px-2 py-4 text-sm text-muted-foreground text-center">
-                  No companies available
-                </div>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Organization/Group Name Display (Static - no dropdown) */}
+          <div className="hidden md:flex items-center gap-2 px-3 h-9 border border-border rounded-md bg-background">
+            <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+              <Building2 className="h-3.5 w-3.5 text-primary" />
+            </div>
+            <span className="text-sm font-medium text-foreground">
+              {companies.length > 0 ? 'Business Group' : 'No Companies'}
+            </span>
+          </div>
 
           {/* Notifications */}
           <NotificationBell />
