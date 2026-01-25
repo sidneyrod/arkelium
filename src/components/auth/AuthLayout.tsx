@@ -57,15 +57,15 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       <div className="relative z-10 h-screen flex flex-col lg:flex-row">
         
         {/* Left Brand Panel - Desktop Only (≥1024px) */}
-        <div className="hidden lg:flex lg:w-[48%] xl:w-[45%] 2xl:w-[42%] relative items-center justify-center px-8 py-8 overflow-auto">
+        <div className="hidden lg:flex lg:w-[48%] xl:w-[45%] 2xl:w-[42%] relative items-center justify-start px-8 py-12 overflow-auto">
           
           {/* Brand Content - Centered with Large Logo */}
-          <div className="relative z-10 flex flex-col items-center text-center max-w-xl mx-auto">
+          <div className="relative z-10 flex flex-col items-center text-center max-w-xl mx-auto w-full">
             {/* Logo - Gold, Large, Centered */}
             <img
               src={arkeliumLogo}
               alt="Arkelium"
-              className="h-56 xl:h-64 2xl:h-72 w-auto mb-4 select-none"
+              className="h-64 xl:h-72 2xl:h-80 w-auto mb-3 select-none"
               style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }}
             />
 
