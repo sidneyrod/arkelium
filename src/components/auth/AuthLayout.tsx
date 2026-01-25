@@ -71,7 +71,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               loading="eager"
               decoding="sync"
               fetchPriority="high"
-              className="h-44 xl:h-48 2xl:h-52 w-auto mb-6 select-none"
+              className="h-64 xl:h-72 2xl:h-80 w-auto mb-6 select-none"
               style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }}
             />
 
