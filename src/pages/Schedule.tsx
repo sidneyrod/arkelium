@@ -1618,19 +1618,10 @@ const Schedule = () => {
       {/* Overdue Job Alert - For Admin/Manager and Cleaners */}
       <OverdueJobAlert />
       
-      {/* Single-Line Header: Company → Search → Mode → KPIs → Date Nav → Add Job → Expand */}
+      {/* Single-Line Header: Search → Company → Mode → KPIs → Date Nav → Add Job → Expand */}
       <div className="flex items-center gap-2 w-full">
-        {/* 1. Company Filter */}
-        <CompanyFilter
-          value={selectedCompanyId}
-          onChange={setSelectedCompanyId}
-          showAllOption={accessibleCompanies.length > 1}
-          allLabel="All Companies"
-          className="w-[160px] h-8 text-xs flex-shrink-0"
-        />
-        
-        {/* 2. Search Bar (flex-1 to fill available space) */}
-        <div className="relative flex-1 min-w-[120px] max-w-[200px]">
+        {/* 1. Search Bar (primeiro) */}
+        <div className="relative min-w-[120px] max-w-[200px] flex-shrink-0">
           <input
             type="search"
             placeholder="Search..."
@@ -1641,9 +1632,18 @@ const Schedule = () => {
           <Filter className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
         </div>
 
-        {/* 2. View Mode Dropdown */}
+        {/* 2. Company Filter (segundo) */}
+        <CompanyFilter
+          value={selectedCompanyId}
+          onChange={setSelectedCompanyId}
+          showAllOption={accessibleCompanies.length > 1}
+          allLabel="All Companies"
+          className="w-[180px] h-8 text-xs flex-shrink-0"
+        />
+
+        {/* 3. View Mode Dropdown (terceiro, maior) */}
         <Select value={view} onValueChange={(v) => setView(v as ViewType)}>
-          <SelectTrigger className="w-[90px] h-8 text-xs flex-shrink-0">
+          <SelectTrigger className="w-[120px] h-8 text-xs flex-shrink-0">
             <CalendarIcon className="h-3 w-3 mr-1 text-muted-foreground" />
             <SelectValue />
           </SelectTrigger>
@@ -1660,26 +1660,26 @@ const Schedule = () => {
           </SelectContent>
         </Select>
 
-        {/* 3. KPI Pills (Jobs, Done, In Progress, Today) */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          <div className="schedule-kpi-pill-inline schedule-kpi-pill-jobs">
-            <span className="schedule-kpi-pill-value">{summaryStats.total}</span>
-            <span className="schedule-kpi-pill-label">Jobs</span>
+        {/* 4. KPI Pills com flex-1 para preencher espaço */}
+        <div className="flex items-center gap-2 flex-1">
+          <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0 schedule-kpi-pill-jobs">
+            <span className="font-semibold text-sm">{summaryStats.total}</span>
+            <span className="text-[10px] text-muted-foreground">Jobs</span>
           </div>
-          <div className="schedule-kpi-pill-inline schedule-kpi-pill-completed">
-            <span className="schedule-kpi-pill-value">{summaryStats.completed}</span>
-            <span className="schedule-kpi-pill-label">Done</span>
+          <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0 schedule-kpi-pill-completed">
+            <span className="font-semibold text-sm">{summaryStats.completed}</span>
+            <span className="text-[10px] text-muted-foreground">Done</span>
           </div>
           <div className={cn(
-            "schedule-kpi-pill-inline",
+            "flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0",
             summaryStats.inProgress > 0 ? "schedule-kpi-pill-inprogress" : "schedule-kpi-pill-jobs"
           )}>
-            <span className="schedule-kpi-pill-value">{summaryStats.inProgress}</span>
-            <span className="schedule-kpi-pill-label">In Progress</span>
+            <span className="font-semibold text-sm">{summaryStats.inProgress}</span>
+            <span className="text-[10px] text-muted-foreground">In Progress</span>
           </div>
-          <div className="schedule-kpi-pill-inline schedule-kpi-pill-today">
-            <span className="schedule-kpi-pill-value">{summaryStats.todayCount}</span>
-            <span className="schedule-kpi-pill-label">Today</span>
+          <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0 schedule-kpi-pill-today">
+            <span className="font-semibold text-sm">{summaryStats.todayCount}</span>
+            <span className="text-[10px] text-muted-foreground">Today</span>
           </div>
         </div>
 
