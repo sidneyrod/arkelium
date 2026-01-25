@@ -77,8 +77,8 @@ export default function ForgotPassword() {
 
   return (
     <AuthLayout>
-      {/* Auth Card - Glass Effect */}
-      <div className="w-full rounded-2xl p-6 sm:p-8 bg-[#12151a]/80 backdrop-blur-xl border border-white/[0.06] shadow-2xl">
+      {/* Auth Card - Fully Transparent */}
+      <div className="w-full rounded-2xl p-6 sm:p-8 bg-transparent border-0 shadow-none">
         
         {/* Title */}
         <div className="text-center mb-6">
