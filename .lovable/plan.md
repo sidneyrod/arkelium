@@ -1,98 +1,171 @@
 
 
-## Plano: Otimizar Espaço Vertical no Focus Mode da Schedule
+## Plano: Refatorar Seleção de Empresa no Schedule
 
-### Problema Identificado
-Quando o Focus Mode está ativo, a Schedule não está aproveitando todo o espaço vertical disponível:
-1. A legenda (Service, Visit, Scheduled, In Progress, Completed, Cancelled) na base ocupa espaço vertical
-2. O container principal mantém o offset de 20px mesmo no Focus Mode
-3. O scroll-area das views (Week/Day) usa 80px de offset fora do Focus Mode e apenas 40px no Focus Mode - poderia ser ainda menor
+### Problema Atual
+- O Schedule mostra "All Companies" por padrão, trazendo jobs de todas as empresas acessíveis
+- Isso pode causar confusão sobre qual job pertence a qual empresa
+- Os cards não identificam claramente a empresa de origem
 
-### Mudanças Propostas
+### Solução Proposta
+
+**Arquivos a modificar:**
+- `src/pages/Schedule.tsx`
+- `src/components/ui/company-filter.tsx`
+
+---
+
+### Fase 1: Atualizar o Estado Inicial no Schedule
 
 **Arquivo:** `src/pages/Schedule.tsx`
 
+1. Mudar o estado inicial de `'all'` para `''` (vazio):
+```typescript
+// Antes (linha 212):
+const [selectedCompanyId, setSelectedCompanyId] = useState<string | 'all'>('all');
+
+// Depois:
+const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
+```
+
+2. Atualizar a lógica de query para não buscar dados quando nenhuma empresa está selecionada:
+```typescript
+// Antes (linha 265-270):
+const queryCompanyIds = useMemo(() => {
+  if (selectedCompanyId === 'all') {
+    return accessibleCompanyIds;
+  }
+  return [selectedCompanyId];
+}, [selectedCompanyId, accessibleCompanyIds]);
+
+// Depois:
+const queryCompanyIds = useMemo(() => {
+  // Se nenhuma empresa selecionada, retorna array vazio
+  if (!selectedCompanyId || selectedCompanyId === '') {
+    return [];
+  }
+  return [selectedCompanyId];
+}, [selectedCompanyId]);
+```
+
+3. Atualizar a query para retornar vazio quando não há empresa selecionada:
+```typescript
+// Dentro do queryFn (linhas 275-286):
+if (queryCompanyIds.length === 0) {
+  // Sem empresa selecionada - retornar lista vazia
+  return [];
+}
+```
+
 ---
 
-### 1. Ajustar Altura do Container Principal no Focus Mode
+### Fase 2: Remover Opção "All Companies" do Header
 
-**Antes (linha 1616):**
-```tsx
-"p-1 space-y-1 h-[calc(100vh/0.80-20px)] flex flex-col"
-```
+**Arquivo:** `src/pages/Schedule.tsx` (linhas 1639-1645)
 
-**Depois:**
-```tsx
-cn(
-  "p-1 space-y-1 flex flex-col",
-  focusMode 
-    ? "h-[calc(100vh/0.80-8px)]"  // Menos offset no Focus Mode
-    : "h-[calc(100vh/0.80-20px)]"
-)
+```typescript
+// Antes:
+<CompanyFilter
+  value={selectedCompanyId}
+  onChange={setSelectedCompanyId}
+  showAllOption={accessibleCompanies.length > 1}
+  allLabel="All Companies"
+  className="w-[180px] h-8 text-xs flex-shrink-0"
+/>
+
+// Depois:
+<CompanyFilter
+  value={selectedCompanyId}
+  onChange={setSelectedCompanyId}
+  showAllOption={false}  // Nunca mostrar "All Companies"
+  placeholder="Select Company"  // Novo prop
+  className="w-[180px] h-8 text-xs flex-shrink-0"
+/>
 ```
 
 ---
 
-### 2. Ocultar ou Minimizar a Legenda no Focus Mode
+### Fase 3: Adicionar Suporte a Placeholder no CompanyFilter
 
-A legenda ocupa ~20px de altura na base. No Focus Mode, podemos ocultá-la para maximizar o espaço do calendário.
+**Arquivo:** `src/components/ui/company-filter.tsx`
 
-**Antes (linhas 2615-2632):**
-```tsx
-{/* Compact Status Legend */}
-<div className="flex items-center gap-3 text-[10px] text-muted-foreground/70 py-0.5 px-1 flex-shrink-0">
-  ...
-</div>
+1. Adicionar nova prop `placeholder`:
+```typescript
+export interface CompanyFilterProps {
+  value: string | 'all';
+  onChange: (companyId: string | 'all') => void;
+  showAllOption?: boolean;
+  allLabel?: string;
+  placeholder?: string;  // NOVO
+  className?: string;
+  disabled?: boolean;
+  activeOnly?: boolean;
+}
 ```
 
-**Depois:**
-```tsx
-{/* Compact Status Legend - Hidden in Focus Mode */}
-{!focusMode && (
-  <div className="flex items-center gap-3 text-[10px] text-muted-foreground/70 py-0.5 px-1 flex-shrink-0">
-    ...
+2. Atualizar a renderização do SelectValue:
+```typescript
+<SelectValue placeholder={placeholder || "Select company"}>
+  {!value || value === '' ? (
+    <span className="flex items-center gap-2 text-muted-foreground">
+      <Building2 className="h-4 w-4" />
+      <span>{placeholder || "Select Company"}</span>
+    </span>
+  ) : value === 'all' ? (
+    // ... existing all logic
+  ) : (
+    // ... existing company display logic
+  )}
+</SelectValue>
+```
+
+---
+
+### Fase 4: Exibir Estado Vazio no Calendário
+
+Quando nenhuma empresa estiver selecionada, mostrar mensagem orientando o usuário.
+
+**Arquivo:** `src/pages/Schedule.tsx`
+
+Adicionar verificação antes de renderizar as views:
+```typescript
+{/* Empty state when no company selected */}
+{!selectedCompanyId && (
+  <div className="flex-1 flex items-center justify-center bg-muted/20 rounded-lg border border-dashed">
+    <div className="text-center p-8">
+      <Building2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+      <h3 className="font-medium text-lg mb-2">Select a Company</h3>
+      <p className="text-sm text-muted-foreground">
+        Choose a company from the dropdown above to view its schedule
+      </p>
+    </div>
   </div>
 )}
-```
 
----
-
-### 3. Reduzir Offset do Scroll-Area no Focus Mode
-
-**Week View (linha 1910):**
-```tsx
-// Antes
-focusMode ? "max-h-[calc(100vh-40px)]" : "max-h-[calc(100vh-80px)]"
-
-// Depois (menos offset no Focus Mode)
-focusMode ? "max-h-[calc(100vh-24px)]" : "max-h-[calc(100vh-80px)]"
-```
-
-**Day View (linha 2221):**
-```tsx
-// Antes
-style={{ maxHeight: focusMode ? 'calc(100vh - 40px)' : 'calc(100vh - 80px)' }}
-
-// Depois
-style={{ maxHeight: focusMode ? 'calc(100vh - 24px)' : 'calc(100vh - 80px)' }}
+{/* Existing calendar views - only render when company is selected */}
+{selectedCompanyId && (
+  // ... existing Week/Day/Month/Timeline views
+)}
 ```
 
 ---
 
 ### Resumo das Mudanças
 
-| Elemento | Modo Normal | Focus Mode |
-|----------|-------------|------------|
-| Container height offset | -20px | -8px (reduzido) |
-| Legenda na base | Visível | **Oculta** |
-| Scroll-area max-height offset | -80px | -24px (reduzido de -40px) |
+| Componente | Mudança |
+|------------|---------|
+| Estado inicial | `'all'` → `''` (vazio) |
+| CompanyFilter | Remover `showAllOption`, adicionar `placeholder` |
+| Query | Retornar `[]` quando `selectedCompanyId` está vazio |
+| UI | Mostrar estado vazio com instrução ao usuário |
 
 ---
 
 ### Resultado Esperado
 
-- No Focus Mode, a Schedule ocupará praticamente todo o espaço vertical da tela
-- A legenda desaparecerá para maximizar a área útil do calendário
-- Os resquícios de espaço vazio na base serão eliminados
-- O usuário terá uma experiência de visualização totalmente imersiva
+1. Ao abrir o Schedule, o dropdown mostra **"Select Company"**
+2. O calendário mostra uma mensagem orientando a selecionar uma empresa
+3. KPIs mostram 0 até uma empresa ser selecionada
+4. Ao selecionar uma empresa, apenas os jobs daquela empresa aparecem
+5. Não há mais opção "All Companies" no dropdown
 
