@@ -1,81 +1,85 @@
 
-Objetivo: eliminar 100% o “sumir por 1–2s” do logo ao navegar de **/login → /forgot-password** (e também entre outras telas públicas), mantendo o logo sempre renderizado e constante.
 
-Diagnóstico (causa provável)
-- Hoje, cada página pública (Login/ForgotPassword/ResetPassword) renderiza seu próprio `<AuthLayout>`:
-  - `src/pages/Login.tsx` (envolve conteúdo com `<AuthLayout>`)
-  - `src/pages/ForgotPassword.tsx`
-  - `src/pages/ResetPassword.tsx`
-- Ao trocar a rota, o React Router desmonta a página inteira anterior e monta a nova. Isso faz o `<AuthLayout>` (incluindo o `<img>` do logo) sair do DOM e entrar de novo.
-- Mesmo com preload (`new Image()` em `src/components/auth/AuthLayout.tsx`), o navegador pode demorar a “pintar” o logo novamente (decode/raster/filter), gerando a impressão de desaparecimento.
+## Plano: Ajustar Proporções e Espaçamentos do Painel de Branding
 
-Solução (arquitetura correta para “nunca desaparecer”)
-1) Tornar o `AuthLayout` um “shell” persistente de rotas públicas usando rotas aninhadas (Outlet)
-- Em vez de cada página importar `<AuthLayout>`, vamos renderizar o layout UMA vez no roteamento e trocar somente o miolo (o card/form).
-- Resultado: ao navegar /login ↔ /forgot-password, apenas o conteúdo do formulário troca; o painel com logo nunca desmonta, então não existe janela onde ele “some”.
+### Problema Identificado
+O painel esquerdo tem espaçamentos desproporcionais - há uma lacuna visual grande entre o logo e os textos, e os textos não formam um bloco coeso.
 
-Passos de implementação (arquivos e mudanças)
-A) Criar um layout de rotas públicas que mantém o AuthLayout constante
-- Criar um componente novo, por exemplo:
-  - `src/components/auth/PublicAuthLayout.tsx`
-- Conteúdo:
-  - Renderiza `<AuthLayout>` e dentro dele um `<Outlet />` (do `react-router-dom`).
-  - Esse componente não faz lógica de auth; ele só “segura” o layout.
+### Solução Proposta
 
-B) Refatorar o roteamento para usar rotas aninhadas com o layout persistente
-- Editar `src/App.tsx`:
-  - Substituir:
-    - `<Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />`
-    - `<Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />`
-    - `<Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />`
-  - Por algo neste formato:
-    - `<Route element={<PublicRoute><PublicAuthLayout /></PublicRoute>}>`
-      - `<Route path="/login" element={<Login />} />`
-      - `<Route path="/forgot-password" element={<ForgotPassword />} />`
-      - `<Route path="/reset-password" element={<ResetPassword />} />`
-    - `</Route>`
-  - Assim, ao mudar entre essas rotas, o `PublicAuthLayout` continua montado.
+**Arquivo:** `src/components/auth/AuthLayout.tsx`
 
-C) Ajustar as páginas públicas para não renderizarem mais AuthLayout (viram “somente o card”)
-- Editar:
-  - `src/pages/Login.tsx`
-  - `src/pages/ForgotPassword.tsx`
-  - `src/pages/ResetPassword.tsx`
-- Mudanças:
-  - Remover `import AuthLayout from '@/components/auth/AuthLayout'`
-  - Remover o wrapper `<AuthLayout> ... </AuthLayout>`
-  - Manter apenas o conteúdo interno (o card transparente), retornando diretamente o `<div className="w-full ...">...</div>`
-- Resultado:
-  - O layout fica 100% centralizado no `PublicAuthLayout`, e cada página só fornece o “miolo”.
+#### 1. Reduzir o tamanho do logo para melhor proporção
+```tsx
+// Antes
+className="h-64 xl:h-72 2xl:h-80 w-auto mb-3 select-none"
 
-D) “Hardening” do carregamento do logo (para evitar qualquer atraso até mesmo no primeiro load)
-- Editar `src/components/auth/AuthLayout.tsx`:
-  - No `<img>` do logo (desktop e mobile), adicionar atributos para priorizar o carregamento/pintura:
-    - `loading="eager"`
-    - `decoding="sync"` (ou manter default se preferir; mas “sync” ajuda a evitar paint atrasado)
-    - `fetchPriority="high"`
-  - Manter o preload existente (`new Image()`), e opcionalmente chamar `preloadLogo.decode?.().catch(...)` para “forçar decode” antecipado quando suportado.
+// Depois - logo menor e mais elegante
+className="h-44 xl:h-48 2xl:h-52 w-auto mb-6 select-none"
+```
 
-Critérios de aceite (como vamos validar que ficou perfeito)
-1) No desktop (>=1024px):
-- Abrir `/login` e clicar em “Forgot Password?”:
-  - O logo no painel esquerdo não pode desaparecer em nenhum momento (nem 1 frame perceptível).
-2) No mobile/tablet (<1024px):
-- O logo do header também não pode piscar ao navegar entre telas públicas.
-3) Verificar também:
-- `/forgot-password` → “Back to login”
-- `/forgot-password` → `/reset-password` (quando aplicável)
-4) Garantir que não voltamos com barras de rolagem no login:
-- Confirmar que `AuthLayout` continua com `overflow-hidden` no container raiz e não adicionamos `overflow-auto` novamente.
+#### 2. Aumentar levemente a margem entre logo e headline
+- Ajustar de `mb-3` para `mb-6` para dar respiro sem criar buraco
 
-Risco/impacto
-- É uma refatoração bem localizada (roteamento + 3 páginas públicas), sem mexer no fluxo de autenticação em si.
-- Benefício adicional: o seletor de idioma e o fundo também ficam totalmente estáveis ao trocar as telas públicas.
+#### 3. Reduzir espaço entre headline e subtitle
+```tsx
+// Antes
+<h1 className="... mb-5 ...">
 
-Arquivos que serão mexidos
-- Novo: `src/components/auth/PublicAuthLayout.tsx` (nome pode variar)
-- Editar: `src/App.tsx`
-- Editar: `src/pages/Login.tsx`
-- Editar: `src/pages/ForgotPassword.tsx`
-- Editar: `src/pages/ResetPassword.tsx`
-- Editar: `src/components/auth/AuthLayout.tsx` (atributos do `<img>` para priorização)
+// Depois - mais coeso
+<h1 className="... mb-3 ...">
+```
+
+#### 4. Reduzir dramaticamente o espaço entre subtitle e trust indicators
+```tsx
+// Antes
+<p className="... mb-10">
+
+// Depois - bloco compacto
+<p className="... mb-6">
+```
+
+### Resultado Visual Esperado
+
+**Antes:**
+```
+[    LOGO GRANDE    ]
+       (buraco)
+  Enterprise Operations
+  & Financial Control
+       (buraco)
+   Operational clarity...
+       (buraco grande)
+   ○ Audit-ready
+   ○ Compliance
+   ○ Security
+```
+
+**Depois:**
+```
+  [  LOGO MÉDIO  ]
+       (respiro)
+  Enterprise Operations
+  & Financial Control
+  Operational clarity...
+       (respiro)
+   ○ Audit-ready
+   ○ Compliance
+   ○ Security
+```
+
+### Mudanças Específicas
+
+| Elemento | Antes | Depois |
+|----------|-------|--------|
+| Logo altura | `h-64 xl:h-72 2xl:h-80` | `h-44 xl:h-48 2xl:h-52` |
+| Logo margem inferior | `mb-3` | `mb-6` |
+| Headline margem inferior | `mb-5` | `mb-3` |
+| Subtitle margem inferior | `mb-10` | `mb-6` |
+
+### Impacto
+- Painel esquerdo com hierarquia visual mais elegante
+- Elementos formando um bloco coeso e profissional
+- Proporcionalidade entre logo e texto melhorada
+- Mantém o estilo premium enterprise
+
