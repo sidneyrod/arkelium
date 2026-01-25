@@ -37,7 +37,8 @@ import {
   FileText,
   ArrowRight,
   Expand,
-  Minimize2
+  Minimize2,
+  Building2
 } from 'lucide-react';
 import { cn, parseDurationToMinutes } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -208,15 +209,8 @@ const Schedule = () => {
   // Use accessible companies hook for module-level filtering
   const { companies: accessibleCompanies, getDefaultCompanyId, isLoading: isLoadingCompanies } = useAccessibleCompanies();
   
-  // Module-local company filter state
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string | 'all'>('all');
-  
-  // Initialize selectedCompanyId when companies load
-  useEffect(() => {
-    if (!isLoadingCompanies && accessibleCompanies.length > 0 && selectedCompanyId === 'all') {
-      // Keep 'all' as default for multi-company view
-    }
-  }, [isLoadingCompanies, accessibleCompanies, selectedCompanyId]);
+  // Module-local company filter state - starts empty, user must select a company
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
   
   // Read URL params for initial state
   const urlView = searchParams.get('view') as ViewType | null;
@@ -261,29 +255,24 @@ const Schedule = () => {
   const userCompanyId = user?.profile?.company_id || null;
   const userId = user?.id || null;
   
-  // Determine which company IDs to query
+  // Determine which company IDs to query - empty if no company selected
   const queryCompanyIds = useMemo(() => {
-    if (selectedCompanyId === 'all') {
-      return accessibleCompanyIds;
+    if (!selectedCompanyId || selectedCompanyId === '') {
+      return []; // No company selected - return empty array
     }
     return [selectedCompanyId];
-  }, [selectedCompanyId, accessibleCompanyIds]);
+  }, [selectedCompanyId]);
 
   // React Query hook for fetching jobs - stable cache, no window focus refetch
   const { data: jobs = [], isLoading } = useQuery({
-    queryKey: ['schedule-jobs', selectedCompanyId, ...queryCompanyIds],
+    queryKey: ['schedule-jobs', selectedCompanyId],
     queryFn: async () => {
-      console.log('[Schedule] React Query fetching jobs', { selectedCompanyId, queryCompanyIds });
+      console.log('[Schedule] React Query fetching jobs', { selectedCompanyId });
       
-      if (queryCompanyIds.length === 0) {
-        // No companies to query - fallback to RPC
-        const { data: companyIdData } = await supabase.rpc('get_user_company_id');
-        if (!companyIdData) {
-          console.log('[Schedule] No company ID found, returning empty');
-          setDebugInfo('No company ID available');
-          return [];
-        }
-        queryCompanyIds.push(companyIdData);
+      // No company selected - return empty list
+      if (!selectedCompanyId || selectedCompanyId === '') {
+        console.log('[Schedule] No company selected, returning empty');
+        return [];
       }
       
       // Query jobs from selected company(ies)
@@ -1635,12 +1624,12 @@ const Schedule = () => {
           <Filter className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
         </div>
 
-        {/* 2. Company Filter (segundo) */}
+        {/* 2. Company Filter (segundo) - obrigatório selecionar uma empresa */}
         <CompanyFilter
           value={selectedCompanyId}
-          onChange={setSelectedCompanyId}
-          showAllOption={accessibleCompanies.length > 1}
-          allLabel="All Companies"
+          onChange={(value) => setSelectedCompanyId(value === 'all' ? '' : value)}
+          showAllOption={false}
+          placeholder="Select Company"
           className="w-[180px] h-8 text-xs flex-shrink-0"
         />
 
@@ -1733,7 +1722,21 @@ const Schedule = () => {
         </TooltipProvider>
       </div>
 
-      {/* Calendar Views with smooth transitions */}
+      {/* Empty state when no company selected */}
+      {!selectedCompanyId && (
+        <div className="flex-1 flex flex-col items-center justify-center bg-muted/10 rounded-lg border border-dashed border-border/50">
+          <div className="text-center p-8">
+            <Building2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground/40" />
+            <h3 className="font-medium text-lg mb-2 text-foreground">Select a Company</h3>
+            <p className="text-sm text-muted-foreground max-w-xs">
+              Choose a company from the dropdown above to view its schedule
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Calendar Views with smooth transitions - only show when company is selected */}
+      {selectedCompanyId && (
       <div className="animate-fade-in flex-1 flex flex-col min-h-0" key={view}>
         {/* Month View */}
         {view === 'month' && (
@@ -2613,6 +2616,7 @@ const Schedule = () => {
           </div>
         )}
       </div>
+      )}
 
       {/* Compact Status Legend - Hidden in Focus Mode */}
       {!focusMode && (
