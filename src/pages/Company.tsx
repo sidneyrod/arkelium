@@ -33,7 +33,7 @@ import {
 import { CANADIAN_TIMEZONES } from '@/hooks/useTimezone';
 import PreferencesTab from '@/components/company/PreferencesTab';
 import ActivitiesTab from '@/components/company/ActivitiesTab';
-import CompanyListTable, { CompanyListItem } from '@/components/company/CompanyListTable';
+import { CompanyListItem } from '@/components/company/CompanyListTable';
 import EditCompanyModal, { CompanyFormData } from '@/components/company/EditCompanyModal';
 import ConfirmDialog from '@/components/modals/ConfirmDialog';
 
@@ -121,6 +121,10 @@ const Company = () => {
   
   const [extraFees, setExtraFees] = useState<ExtraFee[]>([]);
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
+  
+  // Business Group Name state
+  const [businessGroupName, setBusinessGroupName] = useState<string>('Business Group');
+  const [isSavingGroupName, setIsSavingGroupName] = useState(false);
   
   // Fee modal state
   const [feeModalOpen, setFeeModalOpen] = useState(false);
@@ -224,6 +228,17 @@ const Company = () => {
 
   useEffect(() => {
     fetchCompanies();
+    
+    // Fetch business group name
+    const fetchGroupName = async () => {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'business_group_name')
+        .maybeSingle();
+      if (data?.value) setBusinessGroupName(data.value);
+    };
+    fetchGroupName();
   }, []);
 
   // Load active company data (tabs data)
@@ -504,6 +519,36 @@ const Company = () => {
       });
     } finally {
       setIsSubmittingCompany(false);
+    }
+  };
+
+  // Handle save business group name
+  const handleSaveGroupName = async () => {
+    setIsSavingGroupName(true);
+    try {
+      const { error } = await supabase
+        .from('app_settings')
+        .upsert({ 
+          key: 'business_group_name', 
+          value: businessGroupName, 
+          updated_at: new Date().toISOString() 
+        }, { onConflict: 'key' });
+      
+      if (error) throw error;
+      
+      toast({ 
+        title: t.common.success, 
+        description: 'Group name updated successfully' 
+      });
+    } catch (error) {
+      console.error('Error saving group name:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save group name',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSavingGroupName(false);
     }
   };
 
@@ -954,13 +999,9 @@ const Company = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      <Tabs defaultValue="profile" className="space-y-4">
+      <Tabs defaultValue="branding" className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <TabsList className="h-auto p-1 gap-2 bg-muted/50">
-            <TabsTrigger value="profile" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
-              <Building2 className="h-4 w-4" />
-              <span className="hidden sm:inline">{t.company.profile}</span>
-            </TabsTrigger>
             <TabsTrigger value="activities" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
               <Zap className="h-4 w-4" />
               <span className="hidden sm:inline">Activities</span>
@@ -982,33 +1023,8 @@ const Company = () => {
               <span className="hidden sm:inline">Preferences</span>
             </TabsTrigger>
           </TabsList>
-          
-          <div className="flex items-center gap-2">
-            <Select value={activeCompanyId || ''} onValueChange={handleSelectCompany}>
-              <SelectTrigger className="w-[200px] h-8 text-sm">
-                <SelectValue placeholder="Select company" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover">
-                {companies.filter(c => c.status !== 'archived').map(company => (
-                  <SelectItem key={company.id} value={company.id}>{company.trade_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
         </div>
 
-        {/* Profile Tab - Companies List */}
-        <TabsContent value="profile" className="space-y-4 mt-4">
-          <CompanyListTable
-            companies={companies}
-            activeCompanyId={activeCompanyId}
-            isLoading={isLoadingCompanies}
-            onSelectCompany={handleSelectCompany}
-            onEditCompany={handleOpenEditModal}
-            onDeleteCompany={handleDeleteCompany}
-            onRegisterCompany={handleOpenRegisterModal}
-          />
-        </TabsContent>
 
         {/* Activities Tab */}
         <TabsContent value="activities" className="space-y-4 mt-4">
@@ -1027,7 +1043,39 @@ const Company = () => {
               </CardContent>
             </Card>
           ) : (
-            <Card className="border-border/50">
+            <>
+              {/* Business Group Name Card */}
+              <Card className="border-border/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-primary" />
+                    Business Group Name
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    This name appears in the top bar for all users
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-3">
+                    <Input
+                      value={businessGroupName}
+                      onChange={(e) => setBusinessGroupName(e.target.value)}
+                      placeholder="Enter group name"
+                      className="max-w-sm"
+                    />
+                    <Button 
+                      onClick={handleSaveGroupName} 
+                      disabled={isSavingGroupName}
+                      size="sm"
+                    >
+                      {isSavingGroupName ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Company Logo Card */}
+              <Card className="border-border/50">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
                   <ImageIcon className="h-4 w-4 text-primary" />
@@ -1089,6 +1137,7 @@ const Company = () => {
                 </div>
               </CardContent>
             </Card>
+            </>
           )}
         </TabsContent>
 

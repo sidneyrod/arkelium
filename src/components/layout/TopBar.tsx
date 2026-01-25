@@ -90,6 +90,46 @@ const TopBar = () => {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [groupName, setGroupName] = useState<string>('Business Group');
+
+  // Fetch business group name from app_settings
+  useEffect(() => {
+    const fetchGroupName = async () => {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'business_group_name')
+        .maybeSingle();
+      
+      if (data?.value) {
+        setGroupName(data.value);
+      }
+    };
+    fetchGroupName();
+
+    // Subscribe to changes
+    const channel = supabase
+      .channel('app-settings-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'app_settings',
+          filter: 'key=eq.business_group_name'
+        },
+        (payload) => {
+          if (payload.new && (payload.new as any).value) {
+            setGroupName((payload.new as any).value);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -411,7 +451,7 @@ const TopBar = () => {
               <Building2 className="h-3.5 w-3.5 text-primary" />
             </div>
             <span className="text-sm font-medium text-foreground">
-              {companies.length > 0 ? 'Business Group' : 'No Companies'}
+              {groupName}
             </span>
           </div>
 
