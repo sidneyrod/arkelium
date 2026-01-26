@@ -28,25 +28,27 @@ const AttentionCard = ({
   };
 
   return (
-    <div className="bg-card rounded-xl border border-border/40 p-4 flex flex-col items-center text-center space-y-3">
-      {/* Icon and Title Row */}
-      <div className="flex items-center gap-2">
-        <Icon className={cn('h-5 w-5', iconColor)} />
-        <span className="text-sm font-medium text-muted-foreground">{title}</span>
+    <div className="bg-card rounded-xl border border-border/40 p-4 space-y-4">
+      {/* Top Row: Icon+Title (left) | Value (right) */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Icon className={cn('h-5 w-5', iconColor)} />
+          <span className="text-sm font-medium text-muted-foreground">{title}</span>
+        </div>
+        <span className="text-2xl font-bold text-foreground">{value}</span>
       </div>
 
-      {/* Value */}
-      <span className="text-2xl font-bold text-foreground">{value}</span>
-
-      {/* CTA Button */}
-      <Button
-        variant="outline"
-        size="sm"
-        className={cn('w-full max-w-[120px]', ctaStyles[ctaVariant])}
-        onClick={onClick}
-      >
-        {ctaLabel}
-      </Button>
+      {/* CTA Button - Centered */}
+      <div className="flex justify-center">
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn('min-w-[100px]', ctaStyles[ctaVariant])}
+          onClick={onClick}
+        >
+          {ctaLabel}
+        </Button>
+      </div>
     </div>
   );
 };

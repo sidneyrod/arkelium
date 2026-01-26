@@ -493,7 +493,7 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <AttentionCard
             icon={Clock}
-            iconColor="text-warning"
+            iconColor="text-amber-500"
             title="Delayed Jobs"
             value={alertStats.delayedJobs}
             ctaLabel="Review"
@@ -502,7 +502,7 @@ const Dashboard = () => {
           />
           <AttentionCard
             icon={FileText}
-            iconColor="text-[#C9A84B]"
+            iconColor="text-blue-500"
             title="Pending Invoices"
             value={`$${alertStats.pendingInvoicesAmount.toLocaleString()}`}
             ctaLabel="Bill Now"
@@ -510,7 +510,7 @@ const Dashboard = () => {
             onClick={handlePendingInvoicesClick}
           />
           <AttentionCard
-            icon={CalendarX}
+            icon={AlertTriangle}
             iconColor="text-destructive"
             title="Schedule Conflicts"
             value={alertStats.scheduleConflicts}
