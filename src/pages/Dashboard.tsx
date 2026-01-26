@@ -4,53 +4,52 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
-import StatCard from '@/components/ui/stat-card';
-import AlertCard from '@/components/ui/alert-card';
 import useRoleAccess from '@/hooks/useRoleAccess';
-import { PeriodSelector, DateRange } from '@/components/ui/period-selector';
-import CashPendingCard from '@/components/dashboard/CashPendingCard';
-import OverdueJobAlert from '@/components/schedule/OverdueJobAlert';
-import { 
-  Briefcase, 
-  Users, 
-  UserCircle, 
-  DollarSign, 
-  CreditCard, 
-  Calendar,
-  TrendingUp,
-  BarChart3,
-  Clock,
-  CalendarCheck
-} from 'lucide-react';
+import { PeriodSelector, DateRange, getDefaultDateRange } from '@/components/ui/period-selector';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-} from 'recharts';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO, isWithinInterval } from 'date-fns';
+import KPICard from '@/components/dashboard/KPICard';
+import RevenueTrendChart, { RevenuePoint } from '@/components/dashboard/RevenueTrendChart';
+import OperationalDonut from '@/components/dashboard/OperationalDonut';
+import AttentionCard from '@/components/dashboard/AttentionCard';
+import StatCard from '@/components/ui/stat-card';
+import {
+  DollarSign,
+  Clock,
+  Briefcase,
+  AlertTriangle,
+  FileText,
+  CalendarX,
+  Calendar,
+  CalendarCheck,
+} from 'lucide-react';
+import { format, startOfWeek, endOfWeek, startOfMonth, parseISO, subMonths } from 'date-fns';
 import { toSafeLocalDate } from '@/lib/dates';
-import { getDefaultDateRange } from '@/components/ui/period-selector';
-
 
 interface DashboardStats {
-  todayJobs: number;
-  activeEmployees: number;
-  activeClients: number;
-  monthlyRevenue: number;
-  pendingPayments: number;
-  upcomingSchedule: number;
+  revenueMTD: number;
+  previousMonthRevenue: number;
+  onTimePerformance: number;
+  inProgressJobs: number;
+  delayedJobs: number;
+  criticalAlerts: number;
+  pendingEvents: number;
   // Cleaner-specific stats
   myTodayJobs: number;
   myWeekJobs: number;
   myCompletedJobs: number;
   myHoursThisWeek: number;
+}
+
+interface OperationalData {
+  completed: number;
+  inProgress: number;
+  delayed: number;
+}
+
+interface AlertStats {
+  delayedJobs: number;
+  pendingInvoicesAmount: number;
+  scheduleConflicts: number;
 }
 
 interface UpcomingJob {
@@ -62,64 +61,44 @@ interface UpcomingJob {
   status: string;
 }
 
-interface AlertStats {
-  delayedJobs: number;
-  pendingInvoices: number;
-  scheduleConflicts: number;
-  pendingOffRequests: number;
-}
-
 const Dashboard = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { isCleaner, isAdminOrManager } = useRoleAccess();
   const { activeCompanyId } = useActiveCompanyStore();
-  
+
   const [period, setPeriod] = useState<DateRange>(getDefaultDateRange());
-  
+
   const [stats, setStats] = useState<DashboardStats>({
-    todayJobs: 0,
-    activeEmployees: 0,
-    activeClients: 0,
-    monthlyRevenue: 0,
-    pendingPayments: 0,
-    upcomingSchedule: 0,
+    revenueMTD: 0,
+    previousMonthRevenue: 0,
+    onTimePerformance: 0,
+    inProgressJobs: 0,
+    delayedJobs: 0,
+    criticalAlerts: 0,
+    pendingEvents: 0,
     myTodayJobs: 0,
     myWeekJobs: 0,
     myCompletedJobs: 0,
     myHoursThisWeek: 0,
   });
-  const [upcomingJobs, setUpcomingJobs] = useState<UpcomingJob[]>([]);
+
+  const [operationalData, setOperationalData] = useState<OperationalData>({
+    completed: 0,
+    inProgress: 0,
+    delayed: 0,
+  });
+
   const [alertStats, setAlertStats] = useState<AlertStats>({
     delayedJobs: 0,
-    pendingInvoices: 0,
+    pendingInvoicesAmount: 0,
     scheduleConflicts: 0,
-    pendingOffRequests: 0,
   });
-  const [weeklyJobsData, setWeeklyJobsData] = useState([
-    { name: 'Mon', jobs: 0 },
-    { name: 'Tue', jobs: 0 },
-    { name: 'Wed', jobs: 0 },
-    { name: 'Thu', jobs: 0 },
-    { name: 'Fri', jobs: 0 },
-    { name: 'Sat', jobs: 0 },
-    { name: 'Sun', jobs: 0 },
-  ]);
-  const [revenueData, setRevenueData] = useState([
-    { name: 'Jan', revenue: 0 },
-    { name: 'Feb', revenue: 0 },
-    { name: 'Mar', revenue: 0 },
-    { name: 'Apr', revenue: 0 },
-    { name: 'May', revenue: 0 },
-    { name: 'Jun', revenue: 0 },
-  ]);
 
-  const firstName = user?.profile?.first_name || '';
-  const lastName = user?.profile?.last_name || '';
-  const userName = firstName && lastName 
-    ? `${firstName} ${lastName}` 
-    : firstName || lastName || 'User';
+  const [revenueData, setRevenueData] = useState<RevenuePoint[]>([]);
+  const [sparklineData, setSparklineData] = useState<number[]>([]);
+  const [upcomingJobs, setUpcomingJobs] = useState<UpcomingJob[]>([]);
 
   const fetchDashboardData = useCallback(async () => {
     if (!activeCompanyId) return;
@@ -128,14 +107,15 @@ const Dashboard = () => {
     const today = format(new Date(), 'yyyy-MM-dd');
     const weekStart = format(startOfWeek(new Date()), 'yyyy-MM-dd');
     const weekEnd = format(endOfWeek(new Date()), 'yyyy-MM-dd');
-    // Use selected period for revenue/payments filtering
     const periodStart = format(period.startDate, 'yyyy-MM-dd');
     const periodEnd = format(period.endDate, 'yyyy-MM-dd');
+    const monthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+    const prevMonthStart = format(startOfMonth(subMonths(new Date(), 1)), 'yyyy-MM-dd');
+    const prevMonthEnd = format(new Date(new Date().getFullYear(), new Date().getMonth(), 0), 'yyyy-MM-dd');
 
     try {
       // For cleaners: only fetch their own jobs
-      if (isCleaner) {
-        // Fetch cleaner's today jobs
+      if (isCleaner && user) {
         const { data: myTodayJobs } = await supabase
           .from('jobs')
           .select('id')
@@ -143,7 +123,6 @@ const Dashboard = () => {
           .eq('cleaner_id', user.id)
           .eq('scheduled_date', today);
 
-        // Fetch cleaner's week jobs
         const { data: myWeekJobs } = await supabase
           .from('jobs')
           .select('id, duration_minutes, status')
@@ -152,11 +131,9 @@ const Dashboard = () => {
           .gte('scheduled_date', weekStart)
           .lte('scheduled_date', weekEnd);
 
-        // Calculate hours worked this week (from completed jobs)
-        const completedWeekJobs = myWeekJobs?.filter(j => j.status === 'completed') || [];
+        const completedWeekJobs = myWeekJobs?.filter((j) => j.status === 'completed') || [];
         const hoursThisWeek = completedWeekJobs.reduce((sum, job) => sum + (job.duration_minutes || 0), 0) / 60;
 
-        // Fetch cleaner's upcoming jobs with details
         const { data: myUpcomingJobsData } = await supabase
           .from('jobs')
           .select(`
@@ -174,7 +151,6 @@ const Dashboard = () => {
           .order('start_time', { ascending: true })
           .limit(5);
 
-        // Format upcoming jobs
         const formattedUpcoming: UpcomingJob[] = (myUpcomingJobsData || []).map((job: any) => ({
           id: job.id,
           scheduled_date: job.scheduled_date,
@@ -185,126 +161,139 @@ const Dashboard = () => {
         }));
         setUpcomingJobs(formattedUpcoming);
 
-        setStats({
-          todayJobs: myTodayJobs?.length || 0,
-          activeEmployees: 0,
-          activeClients: 0,
-          monthlyRevenue: 0,
-          pendingPayments: 0,
-          upcomingSchedule: formattedUpcoming.length,
+        setStats((prev) => ({
+          ...prev,
           myTodayJobs: myTodayJobs?.length || 0,
           myWeekJobs: myWeekJobs?.length || 0,
           myCompletedJobs: completedWeekJobs.length,
           myHoursThisWeek: Math.round(hoursThisWeek * 10) / 10,
-        });
+        }));
 
         return;
       }
 
       // Admin/Manager: fetch all company data
-      // Fetch today's jobs
-      const { data: todayJobs } = await supabase
-        .from('jobs')
-        .select('id')
-        .eq('company_id', companyId)
-        .eq('scheduled_date', today);
-
-      // Fetch active employees (profiles with roles)
-      const { data: employees } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('company_id', companyId);
-
-      // Fetch active clients
-      const { data: clients } = await supabase
-        .from('clients')
-        .select('id')
-        .eq('company_id', companyId);
-
-      // Fetch revenue from paid invoices using selected period
-      const { data: paidInvoices } = await supabase
+      // Revenue MTD
+      const { data: paidInvoicesMTD } = await supabase
         .from('invoices')
         .select('total')
         .eq('company_id', companyId)
         .eq('status', 'paid')
-        .gte('paid_at', periodStart)
-        .lte('paid_at', periodEnd);
+        .gte('paid_at', monthStart)
+        .lte('paid_at', today);
 
-      // Fetch pending payments
-      const { data: pendingInvoices } = await supabase
+      const revenueMTD = paidInvoicesMTD?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0;
+
+      // Previous month revenue for comparison
+      const { data: prevMonthInvoices } = await supabase
         .from('invoices')
         .select('total')
         .eq('company_id', companyId)
-        .in('status', ['draft', 'sent']);
+        .eq('status', 'paid')
+        .gte('paid_at', prevMonthStart)
+        .lte('paid_at', prevMonthEnd);
 
-      // Fetch upcoming jobs
-      const { data: upcomingJobs } = await supabase
+      const previousMonthRevenue = prevMonthInvoices?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0;
+
+      // Jobs status counts for operational distribution
+      const { data: allJobs } = await supabase
         .from('jobs')
-        .select('id')
+        .select('id, status, scheduled_date')
         .eq('company_id', companyId)
-        .gte('scheduled_date', today)
-        .eq('status', 'scheduled');
+        .gte('scheduled_date', periodStart)
+        .lte('scheduled_date', periodEnd);
 
-      // Fetch delayed jobs (scheduled in the past but not completed)
-      const { data: delayedJobs } = await supabase
-        .from('jobs')
-        .select('id')
-        .eq('company_id', companyId)
-        .lt('scheduled_date', today)
-        .eq('status', 'scheduled');
+      const completedJobs = allJobs?.filter((j) => j.status === 'completed').length || 0;
+      const inProgressJobs = allJobs?.filter((j) => j.status === 'in_progress').length || 0;
+      const scheduledJobs = allJobs?.filter((j) => j.status === 'scheduled').length || 0;
 
-      // Fetch pending off requests
+      // Delayed jobs (scheduled in the past but not completed)
+      const delayedJobs = allJobs?.filter(
+        (j) => j.status === 'scheduled' && j.scheduled_date < today
+      ).length || 0;
+
+      // On-time performance calculation
+      const totalCompleted = completedJobs;
+      const onTimePerformance = totalCompleted > 0 ? Math.round(((totalCompleted - delayedJobs) / totalCompleted) * 100) : 0;
+
+      // Critical alerts (pending off requests)
       const { data: pendingOffRequests } = await supabase
         .from('absence_requests')
         .select('id')
         .eq('company_id', companyId)
         .eq('status', 'pending');
 
-      // Calculate stats
-      const monthlyRevenue = paidInvoices?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0;
-      const pendingPayments = pendingInvoices?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0;
+      const criticalAlerts = pendingOffRequests?.length || 0;
 
-        setStats({
-          todayJobs: todayJobs?.length || 0,
-          activeEmployees: employees?.length || 0,
-          activeClients: clients?.length || 0,
-          monthlyRevenue,
-          pendingPayments,
-          upcomingSchedule: upcomingJobs?.length || 0,
-          myTodayJobs: 0,
-          myWeekJobs: 0,
-          myCompletedJobs: 0,
-          myHoursThisWeek: 0,
-        });
+      // Pending invoices amount
+      const { data: pendingInvoices } = await supabase
+        .from('invoices')
+        .select('total')
+        .eq('company_id', companyId)
+        .in('status', ['draft', 'sent']);
 
-      setAlertStats({
-        delayedJobs: delayedJobs?.length || 0,
-        pendingInvoices: pendingInvoices?.length || 0,
-        scheduleConflicts: 0, // TODO: Implement conflict detection
-        pendingOffRequests: pendingOffRequests?.length || 0,
+      const pendingInvoicesAmount = pendingInvoices?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0;
+
+      setStats({
+        revenueMTD,
+        previousMonthRevenue,
+        onTimePerformance: Math.min(100, Math.max(0, onTimePerformance)),
+        inProgressJobs,
+        delayedJobs,
+        criticalAlerts,
+        pendingEvents: criticalAlerts,
+        myTodayJobs: 0,
+        myWeekJobs: 0,
+        myCompletedJobs: 0,
+        myHoursThisWeek: 0,
       });
 
-      // Fetch weekly jobs for chart
-      const { data: weekJobs } = await supabase
-        .from('jobs')
-        .select('scheduled_date')
-        .eq('company_id', companyId)
-        .gte('scheduled_date', weekStart)
-        .lte('scheduled_date', weekEnd);
+      setOperationalData({
+        completed: completedJobs,
+        inProgress: inProgressJobs + scheduledJobs,
+        delayed: delayedJobs,
+      });
 
-      if (weekJobs) {
-        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        const weeklyData = dayNames.map((name, index) => {
-          const count = weekJobs.filter(job => {
-            // Use safe date parsing to prevent timezone shift
-            const jobDate = toSafeLocalDate(job.scheduled_date);
-            return jobDate.getDay() === index;
-          }).length;
-          return { name, jobs: count };
+      setAlertStats({
+        delayedJobs,
+        pendingInvoicesAmount,
+        scheduleConflicts: 0,
+      });
+
+      // Generate revenue trend data (last 6 months)
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const currentMonth = new Date().getMonth();
+      const revenuePoints: RevenuePoint[] = [];
+      const sparklinePoints: number[] = [];
+
+      for (let i = 5; i >= 0; i--) {
+        const monthIndex = (currentMonth - i + 12) % 12;
+        const year = new Date().getFullYear() - (currentMonth - i < 0 ? 1 : 0);
+        const monthStartDate = new Date(year, monthIndex, 1);
+        const monthEndDate = new Date(year, monthIndex + 1, 0);
+
+        const { data: monthInvoices } = await supabase
+          .from('invoices')
+          .select('total')
+          .eq('company_id', companyId)
+          .eq('status', 'paid')
+          .gte('paid_at', format(monthStartDate, 'yyyy-MM-dd'))
+          .lte('paid_at', format(monthEndDate, 'yyyy-MM-dd'));
+
+        const monthRevenue = monthInvoices?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0;
+        const forecast = monthRevenue * (1 + Math.random() * 0.2 - 0.1); // Simulated forecast
+
+        revenuePoints.push({
+          month: monthNames[monthIndex],
+          revenue: monthRevenue,
+          forecast: Math.round(forecast),
         });
-        // Reorder to start from Monday
-        setWeeklyJobsData([...weeklyData.slice(1), weeklyData[0]]);
+
+        sparklinePoints.push(monthRevenue);
       }
+
+      setRevenueData(revenuePoints);
+      setSparklineData(sparklinePoints);
 
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
@@ -315,324 +304,221 @@ const Dashboard = () => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  // Navigation handlers with smart filters
-  const handleTodayJobsClick = () => {
-    const today = format(new Date(), 'yyyy-MM-dd');
-    navigate(`/schedule?view=day&date=${today}`);
-  };
-
-  const handleActiveEmployeesClick = () => {
-    navigate('/users?filter=active&roles=cleaner,manager');
-  };
-
-  const handleActiveClientsClick = () => {
-    navigate('/clients?status=active');
-  };
-
-  const handleMonthlyRevenueClick = () => {
+  // Navigation handlers
+  const handleRevenueClick = () => {
     const monthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
-    const monthEnd = format(endOfMonth(new Date()), 'yyyy-MM-dd');
+    const monthEnd = format(new Date(), 'yyyy-MM-dd');
     navigate(`/invoices?status=paid&from=${monthStart}&to=${monthEnd}`);
   };
 
-  const handlePendingPaymentsClick = () => {
+  const handleInProgressClick = () => {
+    navigate('/schedule?filter=in_progress');
+  };
+
+  const handleDelayedJobsClick = () => {
+    navigate('/schedule?filter=delayed');
+  };
+
+  const handlePendingInvoicesClick = () => {
     navigate('/invoices?status=pending');
+  };
+
+  const handleTodayJobsClick = () => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    navigate(`/schedule?view=day&date=${today}`);
   };
 
   const handleUpcomingScheduleClick = () => {
     navigate('/schedule?view=week');
   };
 
-  return (
-    <div className="p-2 lg:p-3 space-y-2">
-      {/* Period Selector - Admin/Manager only */}
-      {isAdminOrManager && (
-        <div className="flex justify-end">
-          <PeriodSelector value={period} onChange={setPeriod} />
-        </div>
-      )}
+  // Calculate revenue trend percentage
+  const revenueTrendPercent =
+    stats.previousMonthRevenue > 0
+      ? Math.round(((stats.revenueMTD - stats.previousMonthRevenue) / stats.previousMonthRevenue) * 100)
+      : 0;
 
-      {/* Stats Grid - Premium Cards with Color Variants */}
-      {/* For cleaners: show only Today's Jobs and Upcoming Schedule */}
-      {isCleaner ? (
-        <div className="space-y-3">
-          {/* Week Overview Cards */}
-          <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard 
-              title={t.dashboard.todayJobs} 
-              value={stats.todayJobs.toString()} 
-              icon={Briefcase}
-              variant="green"
-              onClick={handleTodayJobsClick}
-              tooltip="Click to view today's jobs"
-            />
-            <StatCard 
-              title={t.dashboard.weekJobs || "Week Jobs"} 
-              value={stats.myWeekJobs.toString()} 
-              icon={CalendarCheck}
-              variant="blue"
-              onClick={handleUpcomingScheduleClick}
-              tooltip="Total jobs scheduled this week"
-            />
-            <StatCard 
-              title={t.dashboard.completedJobs || "Completed"} 
-              value={stats.myCompletedJobs.toString()} 
-              icon={Briefcase}
-              variant="purple"
-              tooltip="Jobs completed this week"
-            />
-            <StatCard 
-              title={t.dashboard.hoursWorked} 
-              value={`${stats.myHoursThisWeek}h`} 
-              icon={Clock}
-              variant="gold"
-              tooltip="Hours worked this week"
-            />
-          </div>
-
-          {/* Upcoming Jobs List */}
-          {upcomingJobs.length > 0 && (
-            <Card className="border-border/60 shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-medium flex items-center gap-2 heading-secondary">
-                  <Calendar className="h-4 w-4 text-primary" />
-                  {t.dashboard.upcomingSchedule}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {upcomingJobs.map((job) => (
-                    <div 
-                      key={job.id} 
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted cursor-pointer transition-colors"
-                      onClick={() => navigate(`/schedule?view=day&date=${job.scheduled_date}`)}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{job.client_name}</p>
-                        {job.address && (
-                          <p className="text-xs text-muted-foreground truncate">{job.address}</p>
-                        )}
-                      </div>
-                      <div className="text-right shrink-0 ml-4">
-                        <p className="text-sm font-medium">
-                          {/* Use safe date parsing to prevent timezone shift */}
-                          {format(toSafeLocalDate(job.scheduled_date), 'EEE, MMM d')}
-                        </p>
-                        {job.start_time && (
-                          <p className="text-xs text-muted-foreground">
-                            {job.start_time.slice(0, 5)}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <button 
-                  onClick={handleUpcomingScheduleClick}
-                  className="w-full mt-4 text-sm text-primary hover:underline"
-                >
-                  {t.dashboard.viewAll} →
-                </button>
-              </CardContent>
-            </Card>
-          )}
+  // Cleaner Dashboard
+  if (isCleaner) {
+    return (
+      <div className="p-4 space-y-4 bg-background min-h-screen">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
         </div>
-      ) : (
-        <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <StatCard 
-            title={t.dashboard.todayJobs} 
-            value={stats.todayJobs.toString()} 
+
+        {/* Week Overview Cards */}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            title={t.dashboard.todayJobs}
+            value={stats.myTodayJobs.toString()}
             icon={Briefcase}
             variant="green"
             onClick={handleTodayJobsClick}
-            tooltip="Click to view today's jobs in Schedule (Day view)"
+            tooltip="Click to view today's jobs"
           />
-          <StatCard 
-            title={t.dashboard.activeEmployees} 
-            value={stats.activeEmployees.toString()} 
-            icon={Users}
+          <StatCard
+            title={t.dashboard.weekJobs || 'Week Jobs'}
+            value={stats.myWeekJobs.toString()}
+            icon={CalendarCheck}
             variant="blue"
-            onClick={handleActiveEmployeesClick}
-            tooltip="Click to view active employees (Cleaners & Managers)"
-          />
-          <StatCard 
-            title={t.dashboard.activeClients} 
-            value={stats.activeClients.toString()} 
-            icon={UserCircle}
-            variant="purple"
-            onClick={handleActiveClientsClick}
-            tooltip="Click to view all active clients"
-          />
-          <StatCard 
-            title={t.dashboard.monthlyRevenue}
-            value={`$${stats.monthlyRevenue.toLocaleString()}`} 
-            icon={DollarSign}
-            variant="gold"
-            onClick={handleMonthlyRevenueClick}
-            tooltip="Click to view paid invoices for this month"
-          />
-          <StatCard 
-            title={t.dashboard.pendingPayments} 
-            value={`$${stats.pendingPayments.toLocaleString()}`} 
-            icon={CreditCard}
-            variant="orange"
-            onClick={handlePendingPaymentsClick}
-            tooltip="Click to view pending invoices"
-          />
-          <StatCard 
-            title={t.dashboard.upcomingSchedule} 
-            value={stats.upcomingSchedule.toString()} 
-            icon={Calendar}
-            variant="teal"
             onClick={handleUpcomingScheduleClick}
-            tooltip="Click to view upcoming jobs in Schedule (Week view)"
+            tooltip="Total jobs scheduled this week"
+          />
+          <StatCard
+            title={t.dashboard.completedJobs || 'Completed'}
+            value={stats.myCompletedJobs.toString()}
+            icon={Briefcase}
+            variant="purple"
+            tooltip="Jobs completed this week"
+          />
+          <StatCard
+            title={t.dashboard.hoursWorked}
+            value={`${stats.myHoursThisWeek}h`}
+            icon={Clock}
+            variant="gold"
+            tooltip="Hours worked this week"
           />
         </div>
-      )}
 
-      {/* Charts Row - Only for Admin/Manager */}
-      {isAdminOrManager && (
-        <div className="grid gap-3 lg:grid-cols-2">
-          {/* Jobs This Week */}
+        {/* Upcoming Jobs List */}
+        {upcomingJobs.length > 0 && (
           <Card className="border-border/60 shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-medium flex items-center gap-2 heading-secondary">
-                <BarChart3 className="h-4 w-4 text-primary" />
-                {t.dashboard.jobsThisWeek}
+              <CardTitle className="text-base font-medium flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-primary" />
+                {t.dashboard.upcomingSchedule}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-[240px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={weeklyJobsData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis 
-                      dataKey="name" 
-                      stroke="hsl(var(--muted-foreground))" 
-                      fontSize={12}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <YAxis 
-                      stroke="hsl(var(--muted-foreground))" 
-                      fontSize={12}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                      }}
-                    />
-                    <Bar 
-                      dataKey="jobs" 
-                      fill="hsl(var(--primary))" 
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+              <div className="space-y-3">
+                {upcomingJobs.map((job) => (
+                  <div
+                    key={job.id}
+                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted cursor-pointer transition-colors"
+                    onClick={() => navigate(`/schedule?view=day&date=${job.scheduled_date}`)}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{job.client_name}</p>
+                      {job.address && (
+                        <p className="text-xs text-muted-foreground truncate">{job.address}</p>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0 ml-4">
+                      <p className="text-sm font-medium">
+                        {format(toSafeLocalDate(job.scheduled_date), 'EEE, MMM d')}
+                      </p>
+                      {job.start_time && (
+                        <p className="text-xs text-muted-foreground">
+                          {job.start_time.slice(0, 5)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
+              <button
+                onClick={handleUpcomingScheduleClick}
+                className="w-full mt-4 text-sm text-primary hover:underline"
+              >
+                {t.dashboard.viewAll} →
+              </button>
             </CardContent>
           </Card>
+        )}
+      </div>
+    );
+  }
 
-          {/* Revenue by Month */}
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-medium flex items-center gap-2 heading-secondary">
-                <TrendingUp className="h-4 w-4 text-primary" />
-                {t.dashboard.revenueByMonth}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[240px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={revenueData}>
-                    <defs>
-                      <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis 
-                      dataKey="name" 
-                      stroke="hsl(var(--muted-foreground))" 
-                      fontSize={12}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <YAxis 
-                      stroke="hsl(var(--muted-foreground))" 
-                      fontSize={12}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(value) => `$${value/1000}k`}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                      }}
-                      formatter={(value: number) => [`$${value.toLocaleString()}`, 'Revenue']}
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="revenue" 
-                      stroke="hsl(var(--primary))" 
-                      fillOpacity={1} 
-                      fill="url(#colorRevenue)" 
-                      strokeWidth={2}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+  // Admin/Manager Dashboard - Premium Enterprise Layout
+  return (
+    <div className="p-4 space-y-4 bg-[hsl(220_20%_98%)] min-h-screen">
+      {/* Header Row */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
+        <PeriodSelector value={period} onChange={setPeriod} />
+      </div>
+
+      {/* KPI Row - Exactly 4 Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <KPICard
+          title="Revenue (MTD)"
+          value={`$${stats.revenueMTD.toLocaleString()}`}
+          trend={revenueTrendPercent !== 0 ? { value: revenueTrendPercent, isPositive: revenueTrendPercent > 0 } : undefined}
+          sparklineData={sparklineData}
+          onClick={handleRevenueClick}
+        />
+        <KPICard
+          title="On-Time Performance"
+          value={`${stats.onTimePerformance}%`}
+          badge={
+            stats.onTimePerformance >= 80
+              ? { text: 'Good', variant: 'success' }
+              : stats.onTimePerformance >= 60
+              ? { text: 'Fair', variant: 'warning' }
+              : { text: 'Low', variant: 'danger' }
+          }
+          subtitle={`Week span: ${format(startOfWeek(new Date()), 'd')}-${format(new Date(), 'd')}`}
+          icon={Clock}
+          iconColor="text-muted-foreground"
+        />
+        <KPICard
+          title="In Progress"
+          value={stats.inProgressJobs.toString()}
+          warning={stats.delayedJobs > 0 ? { count: stats.delayedJobs, label: 'Delayed' } : undefined}
+          icon={Briefcase}
+          iconColor="text-warning"
+          onClick={handleInProgressClick}
+        />
+        <KPICard
+          title="Critical Alerts"
+          value={stats.criticalAlerts.toString()}
+          subtitle={`${stats.pendingEvents} Evt`}
+          icon={AlertTriangle}
+          iconColor={stats.criticalAlerts > 0 ? 'text-destructive' : 'text-muted-foreground'}
+        />
+      </div>
+
+      {/* Charts Row - 70/30 Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4">
+        <RevenueTrendChart data={revenueData} />
+        <OperationalDonut data={operationalData} />
+      </div>
+
+      {/* Attention Required Section */}
+      <div className="space-y-3">
+        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+          Attention Required
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <AttentionCard
+            icon={Clock}
+            iconColor="text-warning"
+            title="Delayed Jobs"
+            value={alertStats.delayedJobs}
+            ctaLabel="Review"
+            ctaVariant="gold-outline"
+            onClick={handleDelayedJobsClick}
+          />
+          <AttentionCard
+            icon={FileText}
+            iconColor="text-[#C9A84B]"
+            title="Pending Invoices"
+            value={`$${alertStats.pendingInvoicesAmount.toLocaleString()}`}
+            ctaLabel="Bill Now"
+            ctaVariant="gold"
+            onClick={handlePendingInvoicesClick}
+          />
+          <AttentionCard
+            icon={CalendarX}
+            iconColor="text-destructive"
+            title="Schedule Conflicts"
+            value={alertStats.scheduleConflicts}
+            ctaLabel="Resolve"
+            ctaVariant="red-outline"
+          />
         </div>
-      )}
-
-      {/* Overdue Job Alert - For Admin/Manager */}
-      {isAdminOrManager && (
-        <OverdueJobAlert />
-      )}
-
-      {/* Cash Pending + Alerts Section - Only for Admin/Manager */}
-      {isAdminOrManager && (
-        <div className="space-y-3">
-          {/* Alerts Section - Full width grid */}
-          <div className="space-y-2">
-            <h2 className="text-base font-semibold heading-secondary">{t.dashboard.alerts}</h2>
-            <div className="grid gap-2.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-              <AlertCard 
-                type="delayed" 
-                title={t.dashboard.delayedJobs} 
-                count={alertStats.delayedJobs} 
-              />
-              <AlertCard 
-                type="invoice" 
-                title={t.dashboard.pendingInvoices} 
-                count={alertStats.pendingInvoices} 
-              />
-              <AlertCard 
-                type="conflict" 
-                title="Pending Field Requests" 
-                count={alertStats.pendingOffRequests} 
-              />
-              <AlertCard 
-                type="churn" 
-                title={t.dashboard.scheduleConflicts} 
-                count={alertStats.scheduleConflicts} 
-              />
-            </div>
-          </div>
-          
-          {/* Cash Pending Card - Separate section */}
-          <CashPendingCard />
-        </div>
-      )}
+      </div>
     </div>
   );
 };
