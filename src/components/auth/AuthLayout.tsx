@@ -71,13 +71,13 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               loading="eager"
               decoding="sync"
               fetchPriority="high"
-              className="h-80 xl:h-[340px] 2xl:h-96 w-auto mb-3 select-none"
+              className="h-80 xl:h-[340px] 2xl:h-96 w-auto mb-1 select-none"
               style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }}
             />
 
             {/* Headline - Centered with Logo */}
             <h1
-              className="font-light leading-[1.15] mb-2 text-white"
+              className="font-light leading-[1.05] mb-1 text-white"
               style={{ 
                 fontSize: 'clamp(28px, 3vw, 44px)',
                 letterSpacing: '-0.02em'
@@ -90,7 +90,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             
             {/* Subtitle - Lower contrast */}
             <p
-              className="max-w-md text-white/50 mb-5"
+              className="max-w-md text-white/50 mb-4"
               style={{ fontSize: 'clamp(13px, 1vw, 16px)', lineHeight: 1.6 }}
             >
               Operational clarity, financial accuracy, audit-ready by design.
@@ -122,7 +122,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             loading="eager"
             decoding="sync"
             fetchPriority="high"
-            className="h-40 sm:h-48 w-auto mb-2 select-none"
+            className="h-40 sm:h-48 w-auto mb-0.5 select-none"
             style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.25))' }}
           />
           <p className="text-xs sm:text-sm text-center max-w-[280px] text-white/50">
