@@ -1,14 +1,40 @@
 
 
-## Plano: Ajustar Hierarquia Visual da Área Esquerda do Login
+## Plano: Recalcular Espaçamentos Proporcionais na Área de Branding
 
-### Problema Identificado
+### Análise do Problema
 
-Conforme destacado na imagem, existe um espaço vertical excessivo entre a logo Arkelium e o headline "Enterprise Operations & Financial Control". Isso quebra a coesão visual e não transmite a sofisticação esperada de um design Premium Enterprise SaaS.
+Os espaçamentos atuais não estão matematicamente proporcionais aos tamanhos dos elementos:
 
-**Valores Atuais (linhas 68-76):**
-- Logo: `h-64 xl:h-72 2xl:h-80` (256px / 288px / 320px)
-- Margem inferior: `mb-6` (24px)
+| Elemento | Altura Aproximada | Margem Atual | Proporção |
+|----------|-------------------|--------------|-----------|
+| Logo | 320px (h-80) | mb-3 (12px) | 3.75% da altura |
+| Headline | ~100px (2 linhas @ 44px) | mb-2 (8px) | 8% da altura |
+| Subtitle | ~26px (1 linha) | mb-5 (20px) | 77% da altura |
+
+**Problema:** O espaço de 12px entre uma logo de 320px parece insignificante, mas ainda há muito espaço visual porque o `leading-[1.15]` do headline adiciona espaço interno.
+
+---
+
+### Solução: Escala Tipográfica Proporcional
+
+Usando a **Regra Áurea (1.618)** e proporção inversa:
+- Elementos maiores → margens proporcionalmente menores
+- Elementos menores → margens proporcionalmente maiores
+
+#### Cálculos Propostos:
+
+**Desktop (lg+):**
+
+| Elemento | Altura | Nova Margem | Cálculo |
+|----------|--------|-------------|---------|
+| Logo (h-80 = 320px) | 320px | **mb-1** (4px) | Contato visual quase direto |
+| Headline | ~100px | **mb-1** (4px) | Unificação com subtitle |
+| Subtitle | ~26px | **mb-4** (16px) | Separação para trust indicators |
+| Trust Indicators | ~72px | - | Sem margem inferior |
+
+**Total vertical anterior:** 12px + 8px + 20px = **40px** de espaço
+**Total vertical novo:** 4px + 4px + 16px = **24px** de espaço (40% redução)
 
 ---
 
@@ -16,146 +42,134 @@ Conforme destacado na imagem, existe um espaço vertical excessivo entre a logo 
 
 **Arquivo:** `src/components/auth/AuthLayout.tsx`
 
----
+#### 1. Logo - Margem Mínima (linha 74)
 
-#### 1. Aumentar Tamanho da Logo (~20%)
-
-| Breakpoint | Antes | Depois | Aumento |
-|------------|-------|--------|---------|
-| `lg` (base) | `h-64` (256px) | `h-80` (320px) | +25% |
-| `xl` | `h-72` (288px) | `h-[340px]` | +18% |
-| `2xl` | `h-80` (320px) | `h-96` (384px) | +20% |
-
-**Código:**
 ```tsx
-// Antes (linha 74):
-className="h-64 xl:h-72 2xl:h-80 w-auto mb-6 select-none"
+// Antes:
+className="h-80 xl:h-[340px] 2xl:h-96 w-auto mb-3 select-none"
 
 // Depois:
-className="h-80 xl:h-[340px] 2xl:h-96 w-auto mb-3 select-none"
+className="h-80 xl:h-[340px] 2xl:h-96 w-auto mb-1 select-none"
+```
+
+#### 2. Headline - Margem Compacta (linha 80)
+
+```tsx
+// Antes:
+className="font-light leading-[1.15] mb-2 text-white"
+
+// Depois - Também reduzir line-height para compactar:
+className="font-light leading-[1.05] mb-1 text-white"
+```
+
+#### 3. Subtitle - Separação Moderada (linha 93)
+
+```tsx
+// Antes:
+className="max-w-md text-white/50 mb-5"
+
+// Depois:
+className="max-w-md text-white/50 mb-4"
 ```
 
 ---
 
-#### 2. Reduzir Espaçamento entre Logo e Headline
-
-**Antes:** `mb-6` (24px) na logo
-**Depois:** `mb-3` (12px) - redução de 50%
-
-Isso elimina a área vazia destacada na imagem e cria um bloco visual coeso.
-
----
-
-#### 3. Ajustar Espaçamento do Headline para Subheadline
-
-Para manter proporção e hierarquia, ajustar também o espaço após o headline:
-
-**Antes (linha 80):** `mb-3` (12px)
-**Depois:** `mb-2` (8px)
-
----
-
-#### 4. Ajustar Espaçamento do Subtitle para Trust Indicators
-
-**Antes (linha 93):** `mb-6` (24px)
-**Depois:** `mb-5` (20px)
-
----
-
-### Resumo Visual das Mudanças
+### Visualização Comparativa
 
 ```text
-┌─────────────────────────────────────────┐
-│                                         │
-│            [ARKELIUM LOGO]              │  ← +20% maior
-│               ↕ 12px                    │  ← Era 24px
-│      Enterprise Operations              │
-│       & Financial Control               │
-│               ↕ 8px                     │  ← Era 12px
-│   Operational clarity, financial...     │
-│               ↕ 20px                    │  ← Era 24px
-│   ⬡ Audit-ready architecture           │
-│   ⬡ Compliance-driven by default       │
-│   ⬡ Enterprise-grade security          │
-│                                         │
-└─────────────────────────────────────────┘
+ANTES (40px total)              DEPOIS (24px total)
+┌─────────────────┐             ┌─────────────────┐
+│                 │             │                 │
+│  [LOGO 320px]   │             │  [LOGO 320px]   │
+│                 │             │                 │
+│     ↕ 12px      │             │     ↕ 4px       │  ← 67% menor
+│                 │             │                 │
+│   Enterprise    │             │   Enterprise    │
+│   Operations    │             │   Operations    │  ← line-height menor
+│   & Financial   │             │   & Financial   │
+│                 │             │                 │
+│     ↕ 8px       │             │     ↕ 4px       │  ← 50% menor
+│                 │             │                 │
+│  Operational... │             │  Operational... │
+│                 │             │                 │
+│     ↕ 20px      │             │     ↕ 16px      │  ← 20% menor
+│                 │             │                 │
+│  ⬡ Audit-ready  │             │  ⬡ Audit-ready  │
+│  ⬡ Compliance   │             │  ⬡ Compliance   │
+│  ⬡ Enterprise   │             │  ⬡ Enterprise   │
+│                 │             │                 │
+└─────────────────┘             └─────────────────┘
 ```
 
 ---
 
-### Código Final (Desktop - Linhas 66-113)
+### Mobile/Tablet (linha 125)
 
 ```tsx
-{/* Brand Content - Centered with Large Logo */}
-<div className="relative z-10 flex flex-col items-center text-center max-w-xl mx-auto w-full">
-  {/* Logo - Gold, Large, Centered - 20% larger */}
-  <img
-    src={arkeliumLogo}
-    alt="Arkelium"
-    loading="eager"
-    decoding="sync"
-    fetchPriority="high"
-    className="h-80 xl:h-[340px] 2xl:h-96 w-auto mb-3 select-none"
-    style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }}
-  />
-
-  {/* Headline - Tighter spacing to logo */}
-  <h1
-    className="font-light leading-[1.15] mb-2 text-white"
-    style={{ 
-      fontSize: 'clamp(28px, 3vw, 44px)',
-      letterSpacing: '-0.02em'
-    }}
-  >
-    Enterprise Operations
-    <br />
-    <span className="font-normal">&amp; Financial Control</span>
-  </h1>
-  
-  {/* Subtitle - Adjusted spacing */}
-  <p
-    className="max-w-md text-white/50 mb-5"
-    style={{ fontSize: 'clamp(13px, 1vw, 16px)', lineHeight: 1.6 }}
-  >
-    Operational clarity, financial accuracy, audit-ready by design.
-  </p>
-
-  {/* Trust Indicators - unchanged */}
-  <div className="flex flex-col gap-3">
-    ...
-  </div>
-</div>
-```
-
----
-
-### Mobile/Tablet (Linhas 118-131)
-
-Proporcionalizar ajustes para telas menores:
-
-```tsx
-// Antes (linha 125):
-className="h-32 sm:h-40 w-auto mb-4 select-none"
-
-// Depois - ~20% maior e espaçamento reduzido:
+// Antes:
 className="h-40 sm:h-48 w-auto mb-2 select-none"
+
+// Depois - Margem zero, texto colado:
+className="h-40 sm:h-48 w-auto mb-0.5 select-none"
 ```
 
 ---
 
-### Arquivos a Modificar
+### Código Final Desktop (linhas 67-97)
 
-| Arquivo | Mudanças |
-|---------|----------|
-| `src/components/auth/AuthLayout.tsx` | Aumentar logo, reduzir espaçamentos |
+```tsx
+{/* Logo - Margem mínima para contato visual */}
+<img
+  src={arkeliumLogo}
+  alt="Arkelium"
+  loading="eager"
+  decoding="sync"
+  fetchPriority="high"
+  className="h-80 xl:h-[340px] 2xl:h-96 w-auto mb-1 select-none"
+  style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }}
+/>
+
+{/* Headline - Line-height compacto e margem mínima */}
+<h1
+  className="font-light leading-[1.05] mb-1 text-white"
+  style={{ 
+    fontSize: 'clamp(28px, 3vw, 44px)',
+    letterSpacing: '-0.02em'
+  }}
+>
+  Enterprise Operations
+  <br />
+  <span className="font-normal">&amp; Financial Control</span>
+</h1>
+
+{/* Subtitle - Separação moderada para trust indicators */}
+<p
+  className="max-w-md text-white/50 mb-4"
+  style={{ fontSize: 'clamp(13px, 1vw, 16px)', lineHeight: 1.6 }}
+>
+  Operational clarity, financial accuracy, audit-ready by design.
+</p>
+```
+
+---
+
+### Resumo das Reduções
+
+| Elemento | Antes | Depois | Redução |
+|----------|-------|--------|---------|
+| Logo → Headline | 12px | 4px | **-67%** |
+| Headline → Subtitle | 8px | 4px | **-50%** |
+| Subtitle → Trust | 20px | 16px | **-20%** |
+| Headline line-height | 1.15 | 1.05 | Mais compacto |
+| **Total espaçamento** | 40px | 24px | **-40%** |
 
 ---
 
 ### Resultado Esperado
 
-1. Logo Arkelium ~20% maior - maior presença institucional
-2. Espaço entre logo e headline reduzido pela metade - bloco visual coeso
-3. Hierarquia clara: Logo → Headline → Subheadline → Trust Indicators
-4. Sem áreas vazias sem propósito visual
-5. Estética premium, enterprise e minimalista preservada
+1. Bloco visual **extremamente coeso** - logo e texto parecem uma unidade
+2. Hierarquia **proporcional** - espaços calculados matematicamente
+3. Zero espaço desperdiçado entre elementos
+4. Estética **ultra-premium** e minimalista
+5. Trust indicators claramente separados do bloco principal
 
