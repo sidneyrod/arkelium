@@ -77,7 +77,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
             {/* Headline - Negative margin to visually connect with logo */}
             <h1
-              className="font-light leading-none -mt-3 mb-1 text-white"
+              className="font-light leading-none -mt-4 mb-1 text-white"
               style={{ 
                 fontSize: 'clamp(28px, 3vw, 44px)',
                 letterSpacing: '-0.02em'
