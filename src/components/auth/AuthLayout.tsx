@@ -71,13 +71,13 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               loading="eager"
               decoding="sync"
               fetchPriority="high"
-              className="h-80 xl:h-[340px] 2xl:h-96 w-auto mb-1 select-none"
+              className="h-80 xl:h-[340px] 2xl:h-96 w-auto mb-0 select-none"
               style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }}
             />
 
-            {/* Headline - Centered with Logo */}
+            {/* Headline - Negative margin to visually connect with logo */}
             <h1
-              className="font-light leading-[1.05] mb-1 text-white"
+              className="font-light leading-none -mt-3 mb-1 text-white"
               style={{ 
                 fontSize: 'clamp(28px, 3vw, 44px)',
                 letterSpacing: '-0.02em'
@@ -88,10 +88,10 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               <span className="font-normal">&amp; Financial Control</span>
             </h1>
             
-            {/* Subtitle - Lower contrast */}
+            {/* Subtitle - Moderate spacing */}
             <p
-              className="max-w-md text-white/50 mb-4"
-              style={{ fontSize: 'clamp(13px, 1vw, 16px)', lineHeight: 1.6 }}
+              className="max-w-md text-white/50 mt-0.5 mb-4"
+              style={{ fontSize: 'clamp(13px, 1vw, 16px)', lineHeight: 1.5 }}
             >
               Operational clarity, financial accuracy, audit-ready by design.
             </p>
@@ -122,10 +122,10 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             loading="eager"
             decoding="sync"
             fetchPriority="high"
-            className="h-40 sm:h-48 w-auto mb-0.5 select-none"
+            className="h-40 sm:h-48 w-auto mb-0 select-none"
             style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.25))' }}
           />
-          <p className="text-xs sm:text-sm text-center max-w-[280px] text-white/50">
+          <p className="text-xs sm:text-sm text-center max-w-[280px] text-white/50 -mt-1">
             Enterprise Operations & Financial Control
           </p>
         </div>
