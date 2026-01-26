@@ -338,187 +338,187 @@ const Dashboard = () => {
       ? Math.round(((stats.revenueMTD - stats.previousMonthRevenue) / stats.previousMonthRevenue) * 100)
       : 0;
 
-  // Cleaner Dashboard
-  if (isCleaner) {
+  // Admin/Manager Dashboard - Premium Enterprise Layout (check FIRST for higher privilege)
+  if (isAdminOrManager) {
     return (
       <div className="p-4 space-y-4 bg-background min-h-screen">
-        {/* Header */}
+        {/* Header Row */}
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
+          <PeriodSelector value={period} onChange={setPeriod} />
         </div>
 
-        {/* Week Overview Cards */}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            title={t.dashboard.todayJobs}
-            value={stats.myTodayJobs.toString()}
-            icon={Briefcase}
-            variant="green"
-            onClick={handleTodayJobsClick}
-            tooltip="Click to view today's jobs"
+        {/* KPI Row - Exactly 4 Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <KPICard
+            title="Revenue (MTD)"
+            value={`$${stats.revenueMTD.toLocaleString()}`}
+            trend={revenueTrendPercent !== 0 ? { value: revenueTrendPercent, isPositive: revenueTrendPercent > 0 } : undefined}
+            sparklineData={sparklineData}
+            onClick={handleRevenueClick}
           />
-          <StatCard
-            title={t.dashboard.weekJobs || 'Week Jobs'}
-            value={stats.myWeekJobs.toString()}
-            icon={CalendarCheck}
-            variant="blue"
-            onClick={handleUpcomingScheduleClick}
-            tooltip="Total jobs scheduled this week"
-          />
-          <StatCard
-            title={t.dashboard.completedJobs || 'Completed'}
-            value={stats.myCompletedJobs.toString()}
-            icon={Briefcase}
-            variant="purple"
-            tooltip="Jobs completed this week"
-          />
-          <StatCard
-            title={t.dashboard.hoursWorked}
-            value={`${stats.myHoursThisWeek}h`}
+          <KPICard
+            title="On-Time Performance"
+            value={`${stats.onTimePerformance}%`}
+            badge={
+              stats.onTimePerformance >= 80
+                ? { text: 'Good', variant: 'success' }
+                : stats.onTimePerformance >= 60
+                ? { text: 'Fair', variant: 'warning' }
+                : { text: 'Low', variant: 'danger' }
+            }
+            subtitle={`Week span: ${format(startOfWeek(new Date()), 'd')}-${format(new Date(), 'd')}`}
             icon={Clock}
-            variant="gold"
-            tooltip="Hours worked this week"
+            iconColor="text-muted-foreground"
+          />
+          <KPICard
+            title="In Progress"
+            value={stats.inProgressJobs.toString()}
+            warning={stats.delayedJobs > 0 ? { count: stats.delayedJobs, label: 'Delayed' } : undefined}
+            icon={Briefcase}
+            iconColor="text-warning"
+            onClick={handleInProgressClick}
+          />
+          <KPICard
+            title="Critical Alerts"
+            value={stats.criticalAlerts.toString()}
+            subtitle={`${stats.pendingEvents} Evt`}
+            icon={AlertTriangle}
+            iconColor={stats.criticalAlerts > 0 ? 'text-destructive' : 'text-muted-foreground'}
           />
         </div>
 
-        {/* Upcoming Jobs List */}
-        {upcomingJobs.length > 0 && (
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-medium flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-primary" />
-                {t.dashboard.upcomingSchedule}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {upcomingJobs.map((job) => (
-                  <div
-                    key={job.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted cursor-pointer transition-colors"
-                    onClick={() => navigate(`/schedule?view=day&date=${job.scheduled_date}`)}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{job.client_name}</p>
-                      {job.address && (
-                        <p className="text-xs text-muted-foreground truncate">{job.address}</p>
-                      )}
-                    </div>
-                    <div className="text-right shrink-0 ml-4">
-                      <p className="text-sm font-medium">
-                        {format(toSafeLocalDate(job.scheduled_date), 'EEE, MMM d')}
-                      </p>
-                      {job.start_time && (
-                        <p className="text-xs text-muted-foreground">
-                          {job.start_time.slice(0, 5)}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <button
-                onClick={handleUpcomingScheduleClick}
-                className="w-full mt-4 text-sm text-primary hover:underline"
-              >
-                {t.dashboard.viewAll} →
-              </button>
-            </CardContent>
-          </Card>
-        )}
+        {/* Charts Row - 70/30 Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4">
+          <RevenueTrendChart data={revenueData} />
+          <OperationalDonut data={operationalData} />
+        </div>
+
+        {/* Attention Required Section */}
+        <div className="space-y-3">
+          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            Attention Required
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <AttentionCard
+              icon={Clock}
+              iconColor="text-amber-500"
+              title="Delayed Jobs"
+              value={alertStats.delayedJobs}
+              ctaLabel="Review"
+              ctaVariant="gold-outline"
+              onClick={handleDelayedJobsClick}
+            />
+            <AttentionCard
+              icon={FileText}
+              iconColor="text-blue-500"
+              title="Pending Invoices"
+              value={`$${alertStats.pendingInvoicesAmount.toLocaleString()}`}
+              ctaLabel="Bill Now"
+              ctaVariant="gold"
+              onClick={handlePendingInvoicesClick}
+            />
+            <AttentionCard
+              icon={AlertTriangle}
+              iconColor="text-destructive"
+              title="Schedule Conflicts"
+              value={alertStats.scheduleConflicts}
+              ctaLabel="Resolve"
+              ctaVariant="red-outline"
+            />
+          </div>
+        </div>
       </div>
     );
   }
 
-  // Admin/Manager Dashboard - Premium Enterprise Layout
+  // Cleaner Dashboard - fallback for cleaner role
   return (
     <div className="p-4 space-y-4 bg-background min-h-screen">
-      {/* Header Row */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
-        <PeriodSelector value={period} onChange={setPeriod} />
       </div>
 
-      {/* KPI Row - Exactly 4 Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <KPICard
-          title="Revenue (MTD)"
-          value={`$${stats.revenueMTD.toLocaleString()}`}
-          trend={revenueTrendPercent !== 0 ? { value: revenueTrendPercent, isPositive: revenueTrendPercent > 0 } : undefined}
-          sparklineData={sparklineData}
-          onClick={handleRevenueClick}
-        />
-        <KPICard
-          title="On-Time Performance"
-          value={`${stats.onTimePerformance}%`}
-          badge={
-            stats.onTimePerformance >= 80
-              ? { text: 'Good', variant: 'success' }
-              : stats.onTimePerformance >= 60
-              ? { text: 'Fair', variant: 'warning' }
-              : { text: 'Low', variant: 'danger' }
-          }
-          subtitle={`Week span: ${format(startOfWeek(new Date()), 'd')}-${format(new Date(), 'd')}`}
-          icon={Clock}
-          iconColor="text-muted-foreground"
-        />
-        <KPICard
-          title="In Progress"
-          value={stats.inProgressJobs.toString()}
-          warning={stats.delayedJobs > 0 ? { count: stats.delayedJobs, label: 'Delayed' } : undefined}
+      {/* Week Overview Cards */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title={t.dashboard.todayJobs}
+          value={stats.myTodayJobs.toString()}
           icon={Briefcase}
-          iconColor="text-warning"
-          onClick={handleInProgressClick}
+          variant="green"
+          onClick={handleTodayJobsClick}
+          tooltip="Click to view today's jobs"
         />
-        <KPICard
-          title="Critical Alerts"
-          value={stats.criticalAlerts.toString()}
-          subtitle={`${stats.pendingEvents} Evt`}
-          icon={AlertTriangle}
-          iconColor={stats.criticalAlerts > 0 ? 'text-destructive' : 'text-muted-foreground'}
+        <StatCard
+          title={t.dashboard.weekJobs || 'Week Jobs'}
+          value={stats.myWeekJobs.toString()}
+          icon={CalendarCheck}
+          variant="blue"
+          onClick={handleUpcomingScheduleClick}
+          tooltip="Total jobs scheduled this week"
+        />
+        <StatCard
+          title={t.dashboard.completedJobs || 'Completed'}
+          value={stats.myCompletedJobs.toString()}
+          icon={Briefcase}
+          variant="purple"
+          tooltip="Jobs completed this week"
+        />
+        <StatCard
+          title={t.dashboard.hoursWorked}
+          value={`${stats.myHoursThisWeek}h`}
+          icon={Clock}
+          variant="gold"
+          tooltip="Hours worked this week"
         />
       </div>
 
-      {/* Charts Row - 70/30 Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4">
-        <RevenueTrendChart data={revenueData} />
-        <OperationalDonut data={operationalData} />
-      </div>
-
-      {/* Attention Required Section */}
-      <div className="space-y-3">
-        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-          Attention Required
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <AttentionCard
-            icon={Clock}
-            iconColor="text-amber-500"
-            title="Delayed Jobs"
-            value={alertStats.delayedJobs}
-            ctaLabel="Review"
-            ctaVariant="gold-outline"
-            onClick={handleDelayedJobsClick}
-          />
-          <AttentionCard
-            icon={FileText}
-            iconColor="text-blue-500"
-            title="Pending Invoices"
-            value={`$${alertStats.pendingInvoicesAmount.toLocaleString()}`}
-            ctaLabel="Bill Now"
-            ctaVariant="gold"
-            onClick={handlePendingInvoicesClick}
-          />
-          <AttentionCard
-            icon={AlertTriangle}
-            iconColor="text-destructive"
-            title="Schedule Conflicts"
-            value={alertStats.scheduleConflicts}
-            ctaLabel="Resolve"
-            ctaVariant="red-outline"
-          />
-        </div>
-      </div>
+      {/* Upcoming Jobs List */}
+      {upcomingJobs.length > 0 && (
+        <Card className="border-border/60 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-medium flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-primary" />
+              {t.dashboard.upcomingSchedule}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {upcomingJobs.map((job) => (
+                <div
+                  key={job.id}
+                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted cursor-pointer transition-colors"
+                  onClick={() => navigate(`/schedule?view=day&date=${job.scheduled_date}`)}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{job.client_name}</p>
+                    {job.address && (
+                      <p className="text-xs text-muted-foreground truncate">{job.address}</p>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0 ml-4">
+                    <p className="text-sm font-medium">
+                      {format(toSafeLocalDate(job.scheduled_date), 'EEE, MMM d')}
+                    </p>
+                    {job.start_time && (
+                      <p className="text-xs text-muted-foreground">
+                        {job.start_time.slice(0, 5)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={handleUpcomingScheduleClick}
+              className="w-full mt-4 text-sm text-primary hover:underline"
+            >
+              {t.dashboard.viewAll} →
+            </button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
