@@ -432,7 +432,7 @@ const Dashboard = () => {
 
   // Admin/Manager Dashboard - Premium Enterprise Layout
   return (
-    <div className="p-4 space-y-4 bg-[hsl(220_20%_98%)] min-h-screen">
+    <div className="p-4 space-y-4 bg-background min-h-screen">
       {/* Header Row */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
