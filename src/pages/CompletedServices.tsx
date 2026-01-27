@@ -4,8 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { notifyInvoiceGenerated } from '@/hooks/useNotifications';
 import { formatSafeDate, formatDateTime } from '@/lib/dates';
-import PageHeader from '@/components/ui/page-header';
 import SearchInput from '@/components/ui/search-input';
+import { useAccessibleCompanies } from '@/hooks/useAccessibleCompanies';
+import { CompanyFilter } from '@/components/ui/company-filter';
 import { PaginatedDataTable, Column } from '@/components/ui/paginated-data-table';
 import { useServerPagination } from '@/hooks/useServerPagination';
 import { Button } from '@/components/ui/button';
@@ -39,6 +40,19 @@ interface CompletedService {
 const CompletedServices = () => {
   const { t } = useLanguage();
   const { user, hasRole } = useAuth();
+  const { companies: accessibleCompanies } = useAccessibleCompanies();
+  
+  // Company filter state
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | 'all'>('all');
+  
+  const accessibleCompanyIds = useMemo(() => accessibleCompanies.map(c => c.id), [accessibleCompanies]);
+  
+  const queryCompanyIds = useMemo(() => {
+    if (selectedCompanyId === 'all') {
+      return accessibleCompanyIds;
+    }
+    return [selectedCompanyId];
+  }, [selectedCompanyId, accessibleCompanyIds]);
   
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [search, setSearch] = useState('');
@@ -53,7 +67,7 @@ const CompletedServices = () => {
   const canGenerateInvoices = isAdmin;
   const canViewServices = isAdmin || isManager;
 
-  const companyId = user?.profile?.company_id;
+  const companyId = queryCompanyIds.length === 1 ? queryCompanyIds[0] : user?.profile?.company_id;
 
   // Debounce search
   useEffect(() => {
@@ -128,8 +142,10 @@ const CompletedServices = () => {
 
   // Refresh when filters change
   useEffect(() => {
-    refreshServices();
-  }, [debouncedSearch, period]);
+    if (accessibleCompanyIds.length > 0 || selectedCompanyId !== 'all') {
+      refreshServices();
+    }
+  }, [debouncedSearch, period, selectedCompanyId, accessibleCompanyIds]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -344,7 +360,24 @@ const CompletedServices = () => {
     <div className="p-2 lg:p-3 space-y-2">
       {/* Single-Line Header: Cards → Search → Date Filter → Select All → Generate */}
       <div className="flex items-center gap-2 flex-wrap">
-        {/* 1. KPI Badges (Cards) */}
+        {/* 1. Search Input */}
+        <SearchInput 
+          placeholder="Search services..."
+          value={search}
+          onChange={setSearch}
+          className="w-48"
+        />
+
+        {/* 2. Company Filter */}
+        <CompanyFilter
+          value={selectedCompanyId}
+          onChange={setSelectedCompanyId}
+          showAllOption={accessibleCompanies.length > 1}
+          allLabel="All Companies"
+          className="w-[180px] h-9 text-xs flex-shrink-0"
+        />
+
+        {/* 3. KPI Badges (Cards) */}
         <div className="flex items-center gap-2 flex-1">
           <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
             <CheckCircle className="h-3.5 w-3.5 text-success shrink-0" />
@@ -363,15 +396,7 @@ const CompletedServices = () => {
           </div>
         </div>
 
-        {/* 2. Search Input */}
-        <SearchInput 
-          placeholder="Search services..."
-          value={search}
-          onChange={setSearch}
-          className="w-48"
-        />
-
-        {/* 3. Period Selector (Date Filter) */}
+        {/* 4. Period Selector (Date Filter) */}
         <PeriodSelector value={period} onChange={setPeriod} />
 
         {/* 4. Select All */}

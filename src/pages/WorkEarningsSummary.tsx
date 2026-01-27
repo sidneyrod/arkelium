@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import PageHeader from '@/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DatePickerDialog } from '@/components/ui/date-picker-dialog';
 import { DateRange } from 'react-day-picker';
+import { useAccessibleCompanies } from '@/hooks/useAccessibleCompanies';
+import { CompanyFilter } from '@/components/ui/company-filter';
+import SearchInput from '@/components/ui/search-input';
 import { 
   Briefcase, 
   Clock, 
@@ -17,7 +19,6 @@ import {
   Banknote,
   RefreshCw,
   ChevronRight,
-  Info,
   AlertTriangle,
   CheckCircle,
   TrendingUp
@@ -27,10 +28,24 @@ import { format } from 'date-fns';
 import { useWorkEarnings, CleanerWorkSummary } from '@/hooks/useWorkEarnings';
 import { CleanerDetailModal } from '@/components/work-earnings/CleanerDetailModal';
 import { ExportReportButton } from '@/components/work-earnings/ExportReportButton';
-import { FinancialInfoBanner } from '@/components/financial/FinancialInfoBanner';
 
 const WorkEarningsSummary = () => {
   const { t } = useLanguage();
+  const { companies: accessibleCompanies } = useAccessibleCompanies();
+  
+  // Company filter state
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | 'all'>('all');
+  const [search, setSearch] = useState('');
+  
+  const accessibleCompanyIds = useMemo(() => accessibleCompanies.map(c => c.id), [accessibleCompanies]);
+  
+  const queryCompanyIds = useMemo(() => {
+    if (selectedCompanyId === 'all') {
+      return accessibleCompanyIds;
+    }
+    return [selectedCompanyId];
+  }, [selectedCompanyId, accessibleCompanyIds]);
+
   const {
     period,
     setPeriod,
@@ -41,7 +56,7 @@ const WorkEarningsSummary = () => {
     fetchCleanerDetails,
     getExportData,
     enableCashKept,
-  } = useWorkEarnings();
+  } = useWorkEarnings({ companyIds: queryCompanyIds });
 
   const [selectedCleaner, setSelectedCleaner] = useState<CleanerWorkSummary | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -49,6 +64,13 @@ const WorkEarningsSummary = () => {
     from: new Date(period.startDate),
     to: new Date(period.endDate),
   });
+
+  // Filter summaries by search
+  const filteredSummaries = useMemo(() => {
+    if (!search.trim()) return cleanerSummaries;
+    const q = search.toLowerCase();
+    return cleanerSummaries.filter(c => c.cleanerName.toLowerCase().includes(q));
+  }, [cleanerSummaries, search]);
 
   const handleCleanerClick = (cleaner: CleanerWorkSummary) => {
     setSelectedCleaner(cleaner);
@@ -87,8 +109,25 @@ const WorkEarningsSummary = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      {/* Inline KPIs + Action Controls */}
+      {/* Single-Line Header: Search → Company Filter → KPIs → Actions */}
       <div className="flex items-center gap-2">
+        {/* Search Input */}
+        <SearchInput
+          placeholder="Search employee..."
+          value={search}
+          onChange={setSearch}
+          className="min-w-[120px] max-w-[200px] flex-shrink-0 h-8"
+        />
+        
+        {/* Company Filter */}
+        <CompanyFilter
+          value={selectedCompanyId}
+          onChange={setSelectedCompanyId}
+          showAllOption={accessibleCompanies.length > 1}
+          allLabel="All Companies"
+          className="w-[180px] h-8 text-xs flex-shrink-0"
+        />
+
         {/* KPIs with flex-1 to expand proportionally */}
         <div className="flex items-center gap-2 flex-1">
           <div className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-card border rounded-md min-w-0">
@@ -163,7 +202,7 @@ const WorkEarningsSummary = () => {
           <CardTitle className="text-sm font-medium">Staff Work Summary</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {cleanerSummaries.length === 0 ? (
+          {filteredSummaries.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <Briefcase className="h-10 w-10 mb-3 opacity-50" />
               <p className="text-sm">No completed jobs found for this period</p>
@@ -185,7 +224,7 @@ const WorkEarningsSummary = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {cleanerSummaries.map((cleaner) => (
+                {filteredSummaries.map((cleaner) => (
                   <TableRow 
                     key={cleaner.id} 
                     className="text-[12px] cursor-pointer hover:bg-muted/50"

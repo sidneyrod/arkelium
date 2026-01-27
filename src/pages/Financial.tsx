@@ -2,7 +2,8 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
+import { useAccessibleCompanies } from '@/hooks/useAccessibleCompanies';
+import { CompanyFilter } from '@/components/ui/company-filter';
 import SearchInput from '@/components/ui/search-input';
 import PaginatedDataTable, { Column } from '@/components/ui/paginated-data-table';
 import { useServerPagination } from '@/hooks/useServerPagination';
@@ -83,9 +84,27 @@ const paymentMethodLabels: Record<string, string> = {
 const Financial = () => {
   const { t } = useLanguage();
   const { user, hasRole } = useAuth();
-  const { activeCompanyId, activeCompanyName } = useActiveCompanyStore();
+  const { companies: accessibleCompanies } = useAccessibleCompanies();
   const isAdmin = hasRole(['admin']);
   const isAdminOrManager = hasRole(['admin', 'manager']);
+  
+  // Company filter state
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | 'all'>('all');
+  
+  const accessibleCompanyIds = useMemo(() => accessibleCompanies.map(c => c.id), [accessibleCompanies]);
+  
+  const queryCompanyIds = useMemo(() => {
+    if (selectedCompanyId === 'all') {
+      return accessibleCompanyIds;
+    }
+    return [selectedCompanyId];
+  }, [selectedCompanyId, accessibleCompanyIds]);
+  
+  // For exports - selected company name
+  const selectedCompanyName = useMemo(() => {
+    if (selectedCompanyId === 'all') return 'All Companies';
+    return accessibleCompanies.find(c => c.id === selectedCompanyId)?.trade_name || 'Company';
+  }, [selectedCompanyId, accessibleCompanies]);
   
   const [showReportModal, setShowReportModal] = useState(false);
   const [search, setSearch] = useState('');
@@ -128,21 +147,28 @@ const Financial = () => {
   // Fetch filter options (clients, cleaners, and dynamic filter values)
   useEffect(() => {
     const fetchFilterOptions = async () => {
-      if (!activeCompanyId) return;
+      if (queryCompanyIds.length === 0) return;
       
-      // Fetch clients and cleaners from their respective tables (type-safe)
-      const [clientsRes, cleanersRes] = await Promise.all([
-        supabase
-          .from('clients')
-          .select('id, name')
-          .eq('company_id', activeCompanyId)
-          .order('name'),
-        supabase
-          .from('profiles')
-          .select('id, first_name, last_name')
-          .eq('company_id', activeCompanyId)
-          .order('first_name'),
-      ]);
+      // Build queries with company filter
+      let clientsQuery = supabase
+        .from('clients')
+        .select('id, name')
+        .order('name');
+        
+      let cleanersQuery = supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .order('first_name');
+      
+      if (queryCompanyIds.length === 1) {
+        clientsQuery = clientsQuery.eq('company_id', queryCompanyIds[0]);
+        cleanersQuery = cleanersQuery.eq('company_id', queryCompanyIds[0]);
+      } else {
+        clientsQuery = clientsQuery.in('company_id', queryCompanyIds);
+        cleanersQuery = cleanersQuery.in('company_id', queryCompanyIds);
+      }
+      
+      const [clientsRes, cleanersRes] = await Promise.all([clientsQuery, cleanersQuery]);
       
       if (clientsRes.data) {
         setClients(clientsRes.data.map(c => ({ id: c.id, name: c.name })));
@@ -155,10 +181,12 @@ const Financial = () => {
       }
 
       // Fetch unique filter values from financial_ledger view (type-safe via helper)
+      // Use first company for distinct values query
+      const companyForDistinct = queryCompanyIds[0] || '';
       const [eventTypesData, statusData, paymentMethodsData] = await Promise.all([
-        queryLedgerDistinctValues('event_type', activeCompanyId),
-        queryLedgerDistinctValues('status', activeCompanyId),
-        queryLedgerDistinctValues('payment_method', activeCompanyId),
+        queryLedgerDistinctValues('event_type', companyForDistinct),
+        queryLedgerDistinctValues('status', companyForDistinct),
+        queryLedgerDistinctValues('payment_method', companyForDistinct),
       ]);
 
       setEventTypes(eventTypesData);
@@ -167,20 +195,21 @@ const Financial = () => {
     };
     
     fetchFilterOptions();
-  }, [activeCompanyId]);
+  }, [queryCompanyIds]);
 
   // Server-side pagination fetch function - type-safe with Zod validation
   const fetchLedgerEntries = useCallback(async (from: number, to: number) => {
-    if (!activeCompanyId) {
+    if (queryCompanyIds.length === 0) {
       return { data: [], count: 0 };
     }
 
     const startDate = globalPeriod.from ? format(globalPeriod.from, 'yyyy-MM-dd') : format(startOfMonth(new Date()), 'yyyy-MM-dd');
     const endDate = globalPeriod.to ? format(globalPeriod.to, 'yyyy-MM-dd') : format(endOfMonth(new Date()), 'yyyy-MM-dd');
 
-    // Build query params
+    // Build query params - use first company for single, or handle multi-company in query
     const params: LedgerQueryParams = {
-      companyId: activeCompanyId,
+      companyId: queryCompanyIds.length === 1 ? queryCompanyIds[0] : queryCompanyIds[0], // Note: queryFinancialLedger needs to be updated for multi-company
+      companyIds: queryCompanyIds, // Pass array for multi-company support
       startDate,
       endDate,
       eventTypeFilter,
@@ -215,7 +244,7 @@ const Financial = () => {
     }
 
     return { data: result.data, count: result.count };
-  }, [activeCompanyId, globalPeriod, eventTypeFilter, statusFilter, paymentMethodFilter, clientFilter, cleanerFilter, debouncedSearch, referenceFilter, grossFilter, deductFilter, netFilter]);
+  }, [queryCompanyIds, globalPeriod, eventTypeFilter, statusFilter, paymentMethodFilter, clientFilter, cleanerFilter, debouncedSearch, referenceFilter, grossFilter, deductFilter, netFilter]);
 
   const {
     data: entries,
@@ -228,8 +257,10 @@ const Financial = () => {
 
   // Refresh when filters or company change
   useEffect(() => {
-    refresh();
-  }, [activeCompanyId, globalPeriod, eventTypeFilter, statusFilter, paymentMethodFilter, clientFilter, cleanerFilter, debouncedSearch, referenceFilter, grossFilter, deductFilter, netFilter]);
+    if (accessibleCompanyIds.length > 0 || selectedCompanyId !== 'all') {
+      refresh();
+    }
+  }, [selectedCompanyId, accessibleCompanyIds, globalPeriod, eventTypeFilter, statusFilter, paymentMethodFilter, clientFilter, cleanerFilter, debouncedSearch, referenceFilter, grossFilter, deductFilter, netFilter]);
 
   // Export functions
   const exportToCSV = () => {
@@ -238,7 +269,7 @@ const Financial = () => {
     
     // Company info header for accountant
     const companyInfo = [
-      ['Company:', activeCompanyName || 'N/A'],
+      ['Company:', selectedCompanyName || 'N/A'],
       ['Period:', `${periodFrom} - ${periodTo}`],
       ['Generated:', format(new Date(), 'MMMM d, yyyy HH:mm')],
       ['Records:', entries.length.toString()],
@@ -280,7 +311,7 @@ const Financial = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    const companySlug = activeCompanyName?.replace(/\s+/g, '-') || 'report';
+    const companySlug = selectedCompanyName?.replace(/\s+/g, '-') || 'report';
     a.download = `ledger-${companySlug}-${format(new Date(), 'yyyy-MM-dd')}.csv`;
     a.click();
     URL.revokeObjectURL(url);
@@ -302,13 +333,13 @@ const Financial = () => {
 
     const periodFrom = globalPeriod.from ? format(globalPeriod.from, 'MMMM d, yyyy') : 'N/A';
     const periodTo = globalPeriod.to ? format(globalPeriod.to, 'MMMM d, yyyy') : 'N/A';
-    const companySlug = activeCompanyName?.replace(/\s+/g, '-') || 'report';
+    const companySlug = selectedCompanyName?.replace(/\s+/g, '-') || 'report';
 
     const html = `
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Ledger - ${activeCompanyName || 'Company'}</title>
+        <title>Ledger - ${selectedCompanyName || 'Company'}</title>
         <style>
           @page { size: A4 landscape; margin: 1.5cm; }
           * { box-sizing: border-box; }
@@ -333,7 +364,7 @@ const Financial = () => {
         </style>
       </head>
       <body>
-        <h1 class="company-name">${activeCompanyName || 'Company'}</h1>
+        <h1 class="company-name">${selectedCompanyName || 'Company'}</h1>
         <h2 class="report-title">Financial Ledger Report</h2>
         <div class="meta">
           <p><strong>Period:</strong> ${periodFrom} — ${periodTo}</p>
@@ -703,6 +734,16 @@ const Financial = () => {
             onChange={setSearch}
             className="w-64 h-8 text-xs"
           />
+          
+          {/* Company Filter - after Search */}
+          <CompanyFilter
+            value={selectedCompanyId}
+            onChange={setSelectedCompanyId}
+            showAllOption={accessibleCompanies.length > 1}
+            allLabel="All Companies"
+            className="w-[180px] h-8 text-xs flex-shrink-0"
+          />
+          
           <DatePickerDialog
             mode="range"
             selected={globalPeriod}

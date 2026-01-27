@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
+import { useAccessibleCompanies } from '@/hooks/useAccessibleCompanies';
+import { CompanyFilter } from '@/components/ui/company-filter';
 import { useCompanyPreferences } from '@/hooks/useCompanyPreferences';
 import PageHeader from '@/components/ui/page-header';
 import { Card, CardContent } from '@/components/ui/card';
@@ -105,9 +106,21 @@ const statusConfig: Record<string, { label: string; variant: 'active' | 'pending
 
 const PaymentsCollections = () => {
   const { user } = useAuth();
-  const { activeCompanyId } = useActiveCompanyStore();
+  const { companies: accessibleCompanies } = useAccessibleCompanies();
   const { preferences } = useCompanyPreferences();
   const enableCashKept = preferences.enableCashKeptByEmployee;
+  
+  // Company filter state
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | 'all'>('all');
+  
+  const accessibleCompanyIds = useMemo(() => accessibleCompanies.map(c => c.id), [accessibleCompanies]);
+  
+  const queryCompanyIds = useMemo(() => {
+    if (selectedCompanyId === 'all') {
+      return accessibleCompanyIds;
+    }
+    return [selectedCompanyId];
+  }, [selectedCompanyId, accessibleCompanyIds]);
   
   // State - Default tab to 'receipts' if cash kept is disabled
   const [activeTab, setActiveTab] = useState(enableCashKept ? 'cash' : 'receipts');
@@ -137,26 +150,33 @@ const PaymentsCollections = () => {
 
   // Fetch KPIs separately
   const fetchKpis = useCallback(async () => {
-    if (!activeCompanyId) return;
-    const companyId = activeCompanyId;
+    if (queryCompanyIds.length === 0) return;
 
     const startDate = format(dateRange.startDate, 'yyyy-MM-dd');
     const endDate = format(dateRange.endDate, 'yyyy-MM-dd');
 
-    const [cashRes, receiptsRes] = await Promise.all([
-      supabase
-        .from('cash_collections')
-        .select('amount, cash_handling, compensation_status')
-        .eq('company_id', companyId)
-        .gte('service_date', startDate)
-        .lte('service_date', endDate),
-      supabase
-        .from('payment_receipts')
-        .select('amount')
-        .eq('company_id', companyId)
-        .gte('service_date', startDate)
-        .lte('service_date', endDate),
-    ]);
+    // Build queries with company filter
+    let cashQuery = supabase
+      .from('cash_collections')
+      .select('amount, cash_handling, compensation_status')
+      .gte('service_date', startDate)
+      .lte('service_date', endDate);
+    
+    let receiptsQuery = supabase
+      .from('payment_receipts')
+      .select('amount')
+      .gte('service_date', startDate)
+      .lte('service_date', endDate);
+
+    if (queryCompanyIds.length === 1) {
+      cashQuery = cashQuery.eq('company_id', queryCompanyIds[0]);
+      receiptsQuery = receiptsQuery.eq('company_id', queryCompanyIds[0]);
+    } else {
+      cashQuery = cashQuery.in('company_id', queryCompanyIds);
+      receiptsQuery = receiptsQuery.in('company_id', queryCompanyIds);
+    }
+
+    const [cashRes, receiptsRes] = await Promise.all([cashQuery, receiptsQuery]);
 
     const cashData = cashRes.data || [];
     const receiptsData = receiptsRes.data || [];
@@ -169,7 +189,7 @@ const PaymentsCollections = () => {
     const cashDisputed = cashData.filter(c => c.compensation_status === 'disputed').reduce((sum, c) => sum + c.amount, 0);
 
     setKpis({ totalReceived, cashPending, cashApproved, cashDisputed });
-  }, [activeCompanyId, dateRange]);
+  }, [queryCompanyIds, dateRange]);
 
   useEffect(() => {
     fetchKpis();
@@ -177,8 +197,7 @@ const PaymentsCollections = () => {
 
   // Cash collections fetch function
   const fetchCashCollections = useCallback(async (from: number, to: number) => {
-    if (!activeCompanyId) return { data: [], count: 0 };
-    const companyId = activeCompanyId;
+    if (queryCompanyIds.length === 0) return { data: [], count: 0 };
 
     const startDate = format(dateRange.startDate, 'yyyy-MM-dd');
     const endDate = format(dateRange.endDate, 'yyyy-MM-dd');
@@ -191,9 +210,15 @@ const PaymentsCollections = () => {
         cleaner:cleaner_id(first_name, last_name),
         receipt:payment_receipt_id(receipt_number)
       `, { count: 'exact' })
-      .eq('company_id', companyId)
       .gte('service_date', startDate)
       .lte('service_date', endDate);
+
+    // Apply company filter
+    if (queryCompanyIds.length === 1) {
+      query = query.eq('company_id', queryCompanyIds[0]);
+    } else {
+      query = query.in('company_id', queryCompanyIds);
+    }
 
     if (selectedStatus !== 'all') {
       query = query.eq('compensation_status', selectedStatus);
@@ -218,12 +243,11 @@ const PaymentsCollections = () => {
     }));
 
     return { data: mapped, count: count || 0 };
-  }, [activeCompanyId, dateRange, selectedStatus, debouncedSearch]);
+  }, [queryCompanyIds, dateRange, selectedStatus, debouncedSearch]);
 
   // Receipts fetch function
   const fetchReceipts = useCallback(async (from: number, to: number) => {
-    if (!activeCompanyId) return { data: [], count: 0 };
-    const companyId = activeCompanyId;
+    if (queryCompanyIds.length === 0) return { data: [], count: 0 };
 
     const startDate = format(dateRange.startDate, 'yyyy-MM-dd');
     const endDate = format(dateRange.endDate, 'yyyy-MM-dd');
@@ -235,9 +259,15 @@ const PaymentsCollections = () => {
         client:client_id(name),
         cleaner:cleaner_id(first_name, last_name)
       `, { count: 'exact' })
-      .eq('company_id', companyId)
       .gte('service_date', startDate)
       .lte('service_date', endDate);
+
+    // Apply company filter
+    if (queryCompanyIds.length === 1) {
+      query = query.eq('company_id', queryCompanyIds[0]);
+    } else {
+      query = query.in('company_id', queryCompanyIds);
+    }
 
     if (debouncedSearch) {
       query = query.ilike('receipt_number', `%${debouncedSearch}%`);
@@ -258,12 +288,11 @@ const PaymentsCollections = () => {
     }));
 
     return { data: mapped, count: count || 0 };
-  }, [activeCompanyId, dateRange, debouncedSearch]);
+  }, [queryCompanyIds, dateRange, debouncedSearch]);
 
   // Invoices fetch function
   const fetchInvoices = useCallback(async (from: number, to: number) => {
-    if (!activeCompanyId) return { data: [], count: 0 };
-    const companyId = activeCompanyId;
+    if (queryCompanyIds.length === 0) return { data: [], count: 0 };
 
     const startDate = format(dateRange.startDate, 'yyyy-MM-dd');
     const endDate = format(dateRange.endDate, 'yyyy-MM-dd');
@@ -275,9 +304,15 @@ const PaymentsCollections = () => {
         client:client_id(name),
         cleaner:cleaner_id(first_name, last_name)
       `, { count: 'exact' })
-      .eq('company_id', companyId)
       .gte('created_at', startDate)
       .lte('created_at', endDate + 'T23:59:59');
+
+    // Apply company filter
+    if (queryCompanyIds.length === 1) {
+      query = query.eq('company_id', queryCompanyIds[0]);
+    } else {
+      query = query.in('company_id', queryCompanyIds);
+    }
 
     if (selectedStatus !== 'all') {
       query = query.eq('status', selectedStatus);
@@ -301,7 +336,7 @@ const PaymentsCollections = () => {
     }));
 
     return { data: mapped, count: count || 0 };
-  }, [activeCompanyId, dateRange, selectedStatus, debouncedSearch]);
+  }, [queryCompanyIds, dateRange, selectedStatus, debouncedSearch]);
 
   // Pagination hooks
   const cashPagination = useServerPagination<CashCollection>(fetchCashCollections, { pageSize: 25 });
@@ -310,11 +345,13 @@ const PaymentsCollections = () => {
 
   // Refresh when filters change
   useEffect(() => {
-    cashPagination.refresh();
-    receiptsPagination.refresh();
-    invoicesPagination.refresh();
-    fetchKpis();
-  }, [activeCompanyId, dateRange, selectedStatus, debouncedSearch]);
+    if (accessibleCompanyIds.length > 0 || selectedCompanyId !== 'all') {
+      cashPagination.refresh();
+      receiptsPagination.refresh();
+      invoicesPagination.refresh();
+      fetchKpis();
+    }
+  }, [selectedCompanyId, accessibleCompanyIds, dateRange, selectedStatus, debouncedSearch]);
 
   // Handle approval/dispute
   const handleApproveCash = async (collectionId: string) => {
@@ -598,13 +635,22 @@ const PaymentsCollections = () => {
   }
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      {/* Filters Row: Search, Status, Date, Actions */}
+      {/* Filters Row: Search, Company, Status, Date, Actions */}
       <div className="flex flex-wrap items-center gap-3">
         <SearchInput
           placeholder="Search..."
           value={search}
           onChange={setSearch}
           className="w-full sm:w-auto sm:max-w-[200px]"
+        />
+        
+        {/* Company Filter - after Search */}
+        <CompanyFilter
+          value={selectedCompanyId}
+          onChange={setSelectedCompanyId}
+          showAllOption={accessibleCompanies.length > 1}
+          allLabel="All Companies"
+          className="w-[180px] h-9 text-xs flex-shrink-0"
         />
         
         <Select value={selectedStatus} onValueChange={setSelectedStatus}>
