@@ -307,10 +307,13 @@ const Invoices = () => {
     refresh,
   } = useServerPagination<Invoice>(fetchInvoices, { pageSize: 25 });
 
-  // Refresh when filters change
+  // Refresh when filters change OR when accessible companies finish loading
   useEffect(() => {
-    refresh();
-  }, [dateRange, statusFilter, debouncedSearch, selectedCompanyId]);
+    // Only refresh if we have companies to query (prevents empty query on mount)
+    if (accessibleCompanyIds.length > 0 || selectedCompanyId !== 'all') {
+      refresh();
+    }
+  }, [dateRange, statusFilter, debouncedSearch, selectedCompanyId, accessibleCompanyIds]);
 
   // Stats based on visible invoices (simplified - for accurate totals use RPC)
   const stats = useMemo(() => {
