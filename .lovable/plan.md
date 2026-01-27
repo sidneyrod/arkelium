@@ -1,114 +1,181 @@
 
 
-## Plano: Carregar Dados de Invoices ao Abrir a Página
+## Plano: Adicionar Filtro Dinâmico de Empresas na Tela Receipts
 
-### Problema Identificado
+### Análise Atual
 
-| Causa Raiz | Localização | Impacto |
-|------------|-------------|---------|
-| **`useEffect` dispara antes das empresas carregarem** | `Invoices.tsx:311-313` | `queryCompanyIds` está vazio na primeira execução, retornando 0 resultados |
+| Componente | Status | Problema |
+|------------|--------|----------|
+| `payment_receipts.company_id` | ✅ Existe | Tabela já possui coluna `company_id` |
+| `CompanyFilter` no Header | ❌ Ausente | Não existe filtro de empresa |
+| Filtragem por empresa na query | ❌ Ausente | Query não filtra por `company_id` |
 
-### Fluxo do Bug
+---
+
+### Mudanças Necessárias
+
+#### 1. Adicionar Importações
+
+```tsx
+// Novas importações
+import { useAccessibleCompanies } from '@/hooks/useAccessibleCompanies';
+import { CompanyFilter } from '@/components/ui/company-filter';
+import SearchInput from '@/components/ui/search-input';
+```
+
+---
+
+#### 2. Adicionar Estado de Empresa
+
+```tsx
+// Dentro do componente Receipts
+const { companies: accessibleCompanies, isLoading: isLoadingCompanies } = useAccessibleCompanies();
+
+const [selectedCompanyId, setSelectedCompanyId] = useState<string | 'all'>('all');
+
+const accessibleCompanyIds = useMemo(() => accessibleCompanies.map(c => c.id), [accessibleCompanies]);
+
+const queryCompanyIds = useMemo(() => {
+  if (selectedCompanyId === 'all') {
+    return accessibleCompanyIds;
+  }
+  return [selectedCompanyId];
+}, [selectedCompanyId, accessibleCompanyIds]);
+```
+
+---
+
+#### 3. Atualizar Query `fetchReceipts`
+
+```tsx
+const fetchReceipts = async () => {
+  try {
+    setLoading(true);
+    
+    // Guard: aguarda empresas carregarem
+    if (queryCompanyIds.length === 0) {
+      setReceipts([]);
+      return;
+    }
+    
+    let query = supabase
+      .from('payment_receipts')
+      .select(`
+        *,
+        clients(name, email),
+        profiles:cleaner_id(first_name, last_name)
+      `)
+      .gte('service_date', format(dateRange.startDate, 'yyyy-MM-dd'))
+      .lte('service_date', format(dateRange.endDate, 'yyyy-MM-dd'));
+    
+    // Aplicar filtro de empresa
+    if (queryCompanyIds.length === 1) {
+      query = query.eq('company_id', queryCompanyIds[0]);
+    } else {
+      query = query.in('company_id', queryCompanyIds);
+    }
+    
+    const { data, error } = await query.order('created_at', { ascending: false });
+    
+    // ... resto do código
+  }
+};
+```
+
+---
+
+#### 4. Atualizar `useEffect` para Incluir Empresa
+
+```tsx
+useEffect(() => {
+  if (accessibleCompanyIds.length > 0 || selectedCompanyId !== 'all') {
+    fetchReceipts();
+  }
+}, [dateRange, selectedCompanyId, accessibleCompanyIds]);
+```
+
+---
+
+#### 5. Atualizar Header (Sequência: Search → Company → KPIs)
+
+```tsx
+<div className="flex items-center gap-2 flex-wrap">
+  {/* Search Input - 1st */}
+  <SearchInput
+    placeholder="Search receipts..."
+    value={searchQuery}
+    onChange={setSearchQuery}
+    className="min-w-[120px] max-w-[200px] flex-shrink-0 h-8"
+  />
+  
+  {/* Company Filter - 2nd (NOVO) */}
+  <CompanyFilter
+    value={selectedCompanyId}
+    onChange={setSelectedCompanyId}
+    showAllOption={accessibleCompanies.length > 1}
+    allLabel="All Companies"
+    className="w-[180px] h-8 text-xs flex-shrink-0"
+  />
+
+  {/* Inline KPIs - permanece */}
+  <div className="flex items-center gap-2 flex-1">
+    ...
+  </div>
+
+  {/* Date Filter - permanece */}
+  <PeriodSelector value={dateRange} onChange={setDateRange} className="shrink-0" />
+  
+  {/* Generate Button - permanece */}
+  <Button onClick={() => setGenerateModalOpen(true)} size="sm" className="gap-1.5 h-8">
+    <Plus className="h-4 w-4" />
+    Generate Receipt
+  </Button>
+</div>
+```
+
+---
+
+### Resumo das Mudanças
+
+| Arquivo | Mudança |
+|---------|---------|
+| `src/pages/Receipts.tsx` | Adicionar importações: `useAccessibleCompanies`, `CompanyFilter`, `SearchInput` |
+| `src/pages/Receipts.tsx` | Adicionar estado: `selectedCompanyId`, `accessibleCompanyIds`, `queryCompanyIds` |
+| `src/pages/Receipts.tsx` | Atualizar `fetchReceipts` para filtrar por `company_id` |
+| `src/pages/Receipts.tsx` | Atualizar `useEffect` para incluir `accessibleCompanyIds` e `selectedCompanyId` |
+| `src/pages/Receipts.tsx` | Atualizar header: Trocar Input por SearchInput + adicionar CompanyFilter após search |
+
+---
+
+### Resultado Visual Esperado
 
 ```text
-┌─────────────────────────────────────────────────────────────────────┐
-│ PÁGINA CARREGA                                                      │
-├─────────────────────────────────────────────────────────────────────┤
-│ 1. selectedCompanyId = 'all' ✓                                     │
-│ 2. accessibleCompanies = [] (ainda carregando)                     │
-│ 3. accessibleCompanyIds = [] (mapeado de array vazio)              │
-│ 4. queryCompanyIds = [] (selectedCompanyId='all' → usa accessibles)│
-│ 5. useEffect dispara refresh()                                     │
-│ 6. fetchInvoices: queryCompanyIds.length === 0 → return vazio     │
-│ 7. Dados: 0 invoices ❌                                             │
-│                                                                     │
-│ ...algum tempo depois...                                            │
-│                                                                     │
-│ 8. accessibleCompanies carrega [Tidy Out, ...]                     │
-│ 9. MAS nenhum useEffect dispara novo refresh!                      │
-└─────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│ [🔍 Search...] [🏢 All Companies ▼] [Total 6] [$1502.90] [Sent 6/6] [📅] [+ Generate]   │
+└────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
----
-
-### Solução
-
-Adicionar `accessibleCompanyIds` ao array de dependências do `useEffect` que chama `refresh()`. Dessa forma, quando as empresas acessíveis terminarem de carregar, o `useEffect` será re-disparado e os dados serão buscados corretamente.
-
-**Linha 311-313 - Atual:**
-```tsx
-useEffect(() => {
-  refresh();
-}, [dateRange, statusFilter, debouncedSearch, selectedCompanyId]);
-```
-
-**Após correção:**
-```tsx
-useEffect(() => {
-  // Only refresh if we have companies to query
-  if (accessibleCompanyIds.length > 0 || selectedCompanyId !== 'all') {
-    refresh();
-  }
-}, [dateRange, statusFilter, debouncedSearch, selectedCompanyId, accessibleCompanyIds]);
-```
-
----
-
-### Detalhes da Mudança
-
-| Arquivo | Linha | Mudança |
-|---------|-------|---------|
-| `src/pages/Invoices.tsx` | 311-313 | Adicionar `accessibleCompanyIds` às dependências e condição de guarda |
-
----
-
-### Código Completo
-
-```tsx
-// src/pages/Invoices.tsx - Linhas 310-314
-
-// Refresh when filters change OR when accessible companies finish loading
-useEffect(() => {
-  // Only refresh if we have companies to query (prevents empty query on mount)
-  if (accessibleCompanyIds.length > 0 || selectedCompanyId !== 'all') {
-    refresh();
-  }
-}, [dateRange, statusFilter, debouncedSearch, selectedCompanyId, accessibleCompanyIds]);
-```
-
----
-
-### Fluxo Corrigido
+### Fluxo de Dados
 
 ```text
-┌─────────────────────────────────────────────────────────────────────┐
-│ PÁGINA CARREGA                                                      │
-├─────────────────────────────────────────────────────────────────────┤
-│ 1. selectedCompanyId = 'all' ✓                                     │
-│ 2. accessibleCompanies = [] (ainda carregando)                     │
-│ 3. accessibleCompanyIds = []                                       │
-│ 4. useEffect dispara, MAS condição falha:                          │
-│    accessibleCompanyIds.length > 0 = false                         │
-│    selectedCompanyId !== 'all' = false                             │
-│    → refresh() NÃO é chamado                                       │
-│                                                                     │
-│ ...empresas carregam...                                             │
-│                                                                     │
-│ 5. accessibleCompanies = [Tidy Out, ...]                           │
-│ 6. accessibleCompanyIds = ['uuid1', 'uuid2']                       │
-│ 7. useEffect DISPARA novamente (dependência mudou)                 │
-│ 8. Condição accessibleCompanyIds.length > 0 = true ✓               │
-│ 9. refresh() é chamado                                             │
-│ 10. Dados: invoices carregadas ✓                                   │
-└─────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│ USUÁRIO ABRE RECEIPTS                                                   │
+├─────────────────────────────────────────────────────────────────────────┤
+│ 1. useAccessibleCompanies carrega empresas                             │
+│ 2. selectedCompanyId = 'all' (padrão)                                  │
+│ 3. accessibleCompanyIds = ['uuid1', 'uuid2', ...]                      │
+│ 4. queryCompanyIds = accessibleCompanyIds (pois 'all')                 │
+│ 5. useEffect dispara fetchReceipts()                                   │
+│ 6. Query: .in('company_id', queryCompanyIds)                           │
+│ 7. Dados renderizam automaticamente ✓                                  │
+├─────────────────────────────────────────────────────────────────────────┤
+│ USUÁRIO SELECIONA "TIDY OUT"                                            │
+├─────────────────────────────────────────────────────────────────────────┤
+│ 1. selectedCompanyId = 'uuid-tidy-out'                                 │
+│ 2. queryCompanyIds = ['uuid-tidy-out']                                 │
+│ 3. useEffect dispara fetchReceipts()                                   │
+│ 4. Query: .eq('company_id', 'uuid-tidy-out')                           │
+│ 5. Dados filtrados renderizam ✓                                         │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
-
----
-
-### Resumo
-
-- **1 mudança** no useEffect
-- Adiciona `accessibleCompanyIds` às dependências
-- Adiciona condição de guarda para evitar query vazia no mount inicial
-- Resultado: Dados renderizam automaticamente quando "All Companies" está selecionado
 
