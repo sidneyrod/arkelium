@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { PeriodSelector, DateRange, getDefaultDateRange } from '@/components/ui/period-selector';
+import { useAccessibleCompanies } from '@/hooks/useAccessibleCompanies';
+import { CompanyFilter } from '@/components/ui/company-filter';
+import SearchInput from '@/components/ui/search-input';
 import {
   Table,
   TableBody,
@@ -59,6 +61,7 @@ interface PaymentReceipt {
 
 const Receipts = () => {
   const { t } = useLanguage();
+  const { companies: accessibleCompanies } = useAccessibleCompanies();
   
   const [receipts, setReceipts] = useState<PaymentReceipt[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,11 +71,28 @@ const Receipts = () => {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | 'all'>('all');
+
+  const accessibleCompanyIds = useMemo(() => accessibleCompanies.map(c => c.id), [accessibleCompanies]);
+
+  const queryCompanyIds = useMemo(() => {
+    if (selectedCompanyId === 'all') {
+      return accessibleCompanyIds;
+    }
+    return [selectedCompanyId];
+  }, [selectedCompanyId, accessibleCompanyIds]);
 
   const fetchReceipts = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // Guard: wait for companies to load
+      if (queryCompanyIds.length === 0) {
+        setReceipts([]);
+        return;
+      }
+      
+      let query = supabase
         .from('payment_receipts')
         .select(`
           *,
@@ -80,8 +100,16 @@ const Receipts = () => {
           profiles:cleaner_id(first_name, last_name)
         `)
         .gte('service_date', format(dateRange.startDate, 'yyyy-MM-dd'))
-        .lte('service_date', format(dateRange.endDate, 'yyyy-MM-dd'))
-        .order('created_at', { ascending: false });
+        .lte('service_date', format(dateRange.endDate, 'yyyy-MM-dd'));
+      
+      // Apply company filter
+      if (queryCompanyIds.length === 1) {
+        query = query.eq('company_id', queryCompanyIds[0]);
+      } else {
+        query = query.in('company_id', queryCompanyIds);
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
         console.error('Supabase error:', error);
@@ -107,8 +135,10 @@ const Receipts = () => {
   };
 
   useEffect(() => {
-    fetchReceipts();
-  }, [dateRange]);
+    if (accessibleCompanyIds.length > 0 || selectedCompanyId !== 'all') {
+      fetchReceipts();
+    }
+  }, [dateRange, selectedCompanyId, accessibleCompanyIds]);
 
   const filteredReceipts = receipts.filter(receipt => {
     if (!searchQuery) return true;
@@ -216,18 +246,24 @@ const Receipts = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      {/* Single Consolidated Row: Search + KPIs + DatePicker + Button */}
+      {/* Single Consolidated Row: Search + Company + KPIs + DatePicker + Button */}
       <div className="flex items-center gap-2 flex-wrap">
-        {/* Search Input */}
-        <div className="relative w-full sm:w-48">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search receipts..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 h-8"
-          />
-        </div>
+        {/* Search Input - 1st */}
+        <SearchInput
+          placeholder="Search receipts..."
+          value={searchQuery}
+          onChange={setSearchQuery}
+          className="min-w-[120px] max-w-[200px] flex-shrink-0 [&_input]:h-8"
+        />
+        
+        {/* Company Filter - 2nd */}
+        <CompanyFilter
+          value={selectedCompanyId}
+          onChange={setSelectedCompanyId}
+          showAllOption={accessibleCompanies.length > 1}
+          allLabel="All Companies"
+          className="w-[180px] h-8 text-xs flex-shrink-0"
+        />
 
         {/* Inline KPIs with flex-1 (neutral style like Invoices) */}
         <div className="flex items-center gap-2 flex-1">
