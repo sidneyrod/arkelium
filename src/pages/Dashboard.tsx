@@ -4,8 +4,10 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
+import { useAccessibleCompanies } from '@/hooks/useAccessibleCompanies';
 import useRoleAccess from '@/hooks/useRoleAccess';
 import { PeriodSelector, DateRange, getDefaultDateRange } from '@/components/ui/period-selector';
+import { CompanyFilter } from '@/components/ui/company-filter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import KPICard from '@/components/dashboard/KPICard';
 import RevenueTrendChart, { RevenuePoint } from '@/components/dashboard/RevenueTrendChart';
@@ -67,8 +69,63 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { isCleaner, isAdminOrManager } = useRoleAccess();
   const { activeCompanyId } = useActiveCompanyStore();
+  const { activeCompanies } = useAccessibleCompanies();
 
   const [period, setPeriod] = useState<DateRange>(getDefaultDateRange());
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Initialize with user's preferred default company or fallback
+  useEffect(() => {
+    const initializeDefaultCompany = async () => {
+      if (isInitialized || !user?.id) return;
+      
+      try {
+        // 1. Try user's configured default
+        const { data } = await supabase
+          .from('profiles')
+          .select('default_dashboard_company_id')
+          .eq('id', user.id)
+          .maybeSingle();
+        
+        if (data?.default_dashboard_company_id) {
+          // Verify user still has access to this company
+          const hasAccess = activeCompanies.some(c => c.id === data.default_dashboard_company_id);
+          if (hasAccess) {
+            setSelectedCompanyId(data.default_dashboard_company_id);
+            setIsInitialized(true);
+            return;
+          }
+        }
+        
+        // 2. Fallback to activeCompanyId
+        if (activeCompanyId) {
+          setSelectedCompanyId(activeCompanyId);
+          setIsInitialized(true);
+          return;
+        }
+        
+        // 3. Fallback to first accessible company
+        if (activeCompanies.length > 0) {
+          setSelectedCompanyId(activeCompanies[0].id);
+          setIsInitialized(true);
+        }
+      } catch (err) {
+        console.error('Error fetching default company preference:', err);
+        // Fallback
+        if (activeCompanyId) {
+          setSelectedCompanyId(activeCompanyId);
+        } else if (activeCompanies.length > 0) {
+          setSelectedCompanyId(activeCompanies[0].id);
+        }
+        setIsInitialized(true);
+      }
+    };
+    
+    if (activeCompanies.length > 0) {
+      initializeDefaultCompany();
+    }
+  }, [user?.id, activeCompanyId, activeCompanies, isInitialized]);
 
   const [stats, setStats] = useState<DashboardStats>({
     revenueMTD: 0,
@@ -101,9 +158,9 @@ const Dashboard = () => {
   const [upcomingJobs, setUpcomingJobs] = useState<UpcomingJob[]>([]);
 
   const fetchDashboardData = useCallback(async () => {
-    if (!activeCompanyId) return;
+    if (!selectedCompanyId) return;
 
-    const companyId = activeCompanyId;
+    const companyId = selectedCompanyId;
     const today = format(new Date(), 'yyyy-MM-dd');
     const weekStart = format(startOfWeek(new Date()), 'yyyy-MM-dd');
     const weekEnd = format(endOfWeek(new Date()), 'yyyy-MM-dd');
@@ -298,7 +355,7 @@ const Dashboard = () => {
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
     }
-  }, [activeCompanyId, user?.id, isCleaner, period]);
+  }, [selectedCompanyId, user?.id, isCleaner, period]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -343,9 +400,18 @@ const Dashboard = () => {
     return (
       <div className="p-4 space-y-4 bg-background min-h-screen">
         {/* Header Row */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
-          <PeriodSelector value={period} onChange={setPeriod} />
+          <div className="flex items-center gap-3">
+            <CompanyFilter
+              value={selectedCompanyId || ''}
+              onChange={(id) => setSelectedCompanyId(id === 'all' ? activeCompanies[0]?.id || null : id)}
+              showAllOption={false}
+              placeholder="Select Company"
+              className="w-[200px]"
+            />
+            <PeriodSelector value={period} onChange={setPeriod} />
+          </div>
         </div>
 
         {/* KPI Row - Exactly 4 Cards */}

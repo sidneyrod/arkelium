@@ -2600,6 +2600,7 @@ export type Database = {
           company_id: string
           country: string | null
           created_at: string
+          default_dashboard_company_id: string | null
           email: string | null
           employment_type: string | null
           first_name: string | null
@@ -2626,6 +2627,7 @@ export type Database = {
           company_id: string
           country?: string | null
           created_at?: string
+          default_dashboard_company_id?: string | null
           email?: string | null
           employment_type?: string | null
           first_name?: string | null
@@ -2652,6 +2654,7 @@ export type Database = {
           company_id?: string
           country?: string | null
           created_at?: string
+          default_dashboard_company_id?: string | null
           email?: string | null
           employment_type?: string | null
           first_name?: string | null
@@ -2675,6 +2678,13 @@ export type Database = {
           {
             foreignKeyName: "profiles_company_id_fkey"
             columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_default_dashboard_company_id_fkey"
+            columns: ["default_dashboard_company_id"]
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   BarChart3, 
   Banknote, 
@@ -14,12 +15,20 @@ import {
   Search,
   X,
   FileText,
-  Zap
+  Zap,
+  LayoutDashboard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAccessibleCompanies } from '@/hooks/useAccessibleCompanies';
 
 const settingsConfig = [
+  {
+    id: 'dashboard-settings',
+    title: 'Dashboard Settings',
+    keywords: ['dashboard', 'default', 'company', 'startup', 'home', 'initial'],
+  },
   {
     id: 'invoice-settings',
     title: 'Invoice Settings',
@@ -54,6 +63,9 @@ interface Preferences {
 }
 
 const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
+  const { user } = useAuth();
+  const { activeCompanies } = useAccessibleCompanies();
+  
   const [preferences, setPreferences] = useState<Preferences>({
     invoiceGenerationMode: 'manual',
     includeVisitsInReports: false,
@@ -61,6 +73,8 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
     autoGenerateCashReceipt: true,
     autoSendCashReceipt: false,
   });
+  const [defaultDashboardCompanyId, setDefaultDashboardCompanyId] = useState<string | null>(null);
+  const [initialDefaultDashboardCompanyId, setInitialDefaultDashboardCompanyId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -84,6 +98,7 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
     }
 
     try {
+      // Fetch company preferences
       const { data, error } = await supabase
         .from('company_estimate_config')
         .select('*')
@@ -106,12 +121,25 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
       
       setPreferences(prefs);
       setInitialPreferences(prefs);
+
+      // Fetch user's default dashboard company preference
+      if (user?.id) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('default_dashboard_company_id')
+          .eq('id', user.id)
+          .maybeSingle();
+        
+        const defaultId = profileData?.default_dashboard_company_id || null;
+        setDefaultDashboardCompanyId(defaultId);
+        setInitialDefaultDashboardCompanyId(defaultId);
+      }
     } catch (err) {
       console.error('Error in fetchPreferences:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [companyId]);
+  }, [companyId, user?.id]);
 
   useEffect(() => {
     fetchPreferences();
@@ -119,23 +147,26 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
 
   useEffect(() => {
     if (initialPreferences) {
-      const changed = 
+      const companyPrefsChanged = 
         preferences.invoiceGenerationMode !== initialPreferences.invoiceGenerationMode ||
         preferences.includeVisitsInReports !== initialPreferences.includeVisitsInReports ||
         preferences.enableCashKeptByEmployee !== initialPreferences.enableCashKeptByEmployee ||
         preferences.autoGenerateCashReceipt !== initialPreferences.autoGenerateCashReceipt ||
         preferences.autoSendCashReceipt !== initialPreferences.autoSendCashReceipt;
-      setHasChanges(changed);
+      
+      const dashboardPrefsChanged = defaultDashboardCompanyId !== initialDefaultDashboardCompanyId;
+      
+      setHasChanges(companyPrefsChanged || dashboardPrefsChanged);
     }
-  }, [preferences, initialPreferences]);
+  }, [preferences, initialPreferences, defaultDashboardCompanyId, initialDefaultDashboardCompanyId]);
 
   const handleSave = async () => {
     if (!companyId) return;
 
     setIsSaving(true);
     try {
-      // First try to update
-      const { error: updateError, count } = await supabase
+      // Save company preferences
+      const { error: updateError } = await supabase
         .from('company_estimate_config')
         .update({
           invoice_generation_mode: preferences.invoiceGenerationMode,
@@ -160,6 +191,20 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
           });
 
         if (insertError) throw insertError;
+      }
+
+      // Save user's default dashboard company preference
+      if (user?.id && defaultDashboardCompanyId !== initialDefaultDashboardCompanyId) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ default_dashboard_company_id: defaultDashboardCompanyId })
+          .eq('id', user.id);
+
+        if (profileError) {
+          console.error('Error saving dashboard preference:', profileError);
+        } else {
+          setInitialDefaultDashboardCompanyId(defaultDashboardCompanyId);
+        }
       }
 
       setInitialPreferences(preferences);
@@ -216,6 +261,53 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
         <div className="text-center py-8 text-muted-foreground">
           <p className="text-sm">No settings found matching "{searchTerm}"</p>
         </div>
+      )}
+
+      {/* Dashboard Settings */}
+      {filteredSections.some(s => s.id === 'dashboard-settings') && (
+        <Card className="border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <LayoutDashboard className="h-4 w-4 text-primary" />
+              Dashboard Settings
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Configure your dashboard startup preferences
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start justify-between p-4 rounded-lg border border-border/50 bg-muted/30">
+              <div className="flex-1 pr-4">
+                <Label htmlFor="default-company" className="text-sm font-medium">
+                  Default Dashboard Company
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Select which company data will be displayed when you open the Dashboard.
+                </p>
+              </div>
+              <Select 
+                value={defaultDashboardCompanyId || ''} 
+                onValueChange={(value) => setDefaultDashboardCompanyId(value || null)}
+              >
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Select company" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover">
+                  {activeCompanies.map(company => (
+                    <SelectItem key={company.id} value={company.id}>
+                      <span className="flex items-center gap-2">
+                        <span className="h-5 w-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-semibold shrink-0">
+                          {company.company_code}
+                        </span>
+                        <span>{company.trade_name}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Invoice Settings */}
