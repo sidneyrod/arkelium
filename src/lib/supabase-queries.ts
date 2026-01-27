@@ -73,6 +73,7 @@ export async function queryLedgerDistinctValues(
 export interface LedgerQueryParams {
   companyId: string;
   companyIds?: string[]; // Optional array for multi-company support
+  companyNameMap?: Record<string, string>; // Map of company ID to name for display
   startDate: string;
   endDate: string;
   eventTypeFilter?: string;
@@ -101,6 +102,7 @@ export async function queryFinancialLedger(
   const {
     companyId,
     companyIds,
+    companyNameMap,
     startDate,
     endDate,
     eventTypeFilter,
@@ -245,8 +247,8 @@ export async function queryFinancialLedger(
     logLedgerValidationErrors(validation.errors, companyId).catch(() => {});
   }
 
-  // Map to UI format
-  const mappedEntries = mapToLedgerEntries(validation.valid);
+  // Map to UI format (include company names)
+  const mappedEntries = mapToLedgerEntries(validation.valid, companyNameMap);
 
   return {
     data: mappedEntries,

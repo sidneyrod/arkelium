@@ -110,6 +110,7 @@ export interface FinancialLedgerRow {
 export interface LedgerEntry {
   id: string;
   companyId: string;
+  companyName: string;
   clientId: string | null;
   cleanerId: string | null;
   jobId: string | null;

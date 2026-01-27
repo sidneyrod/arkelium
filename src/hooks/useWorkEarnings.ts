@@ -18,6 +18,7 @@ export interface CleanerWorkSummary {
   id: string;
   cleanerId: string;
   cleanerName: string;
+  companyName: string;
   role: string;
   jobsCompleted: number;
   totalHoursWorked: number;
@@ -98,6 +99,7 @@ export function useWorkEarnings(params: UseWorkEarningsParams) {
         .from('jobs')
         .select(`
           id,
+          company_id,
           cleaner_id,
           client_id,
           scheduled_date,
@@ -108,6 +110,7 @@ export function useWorkEarnings(params: UseWorkEarningsParams) {
           payment_method,
           notes,
           job_type,
+          companies:company_id(trade_name),
           clients(id, name)
         `)
         .eq('status', 'completed')
@@ -242,6 +245,7 @@ export function useWorkEarnings(params: UseWorkEarningsParams) {
 
       // Group by cleaner
       const cleanerData: Record<string, {
+        companyName: string;
         jobsCompleted: number;
         totalHours: number;
         serviceValue: number;
@@ -255,6 +259,7 @@ export function useWorkEarnings(params: UseWorkEarningsParams) {
         
         if (!cleanerData[job.cleaner_id]) {
           cleanerData[job.cleaner_id] = {
+            companyName: (job as any).companies?.trade_name || 'Unknown',
             jobsCompleted: 0,
             totalHours: 0,
             serviceValue: 0,
@@ -291,6 +296,7 @@ export function useWorkEarnings(params: UseWorkEarningsParams) {
           id,
           cleanerId: id,
           cleanerName: info.name,
+          companyName: data.companyName,
           role: info.role,
           jobsCompleted: data.jobsCompleted,
           totalHoursWorked: Math.round(data.totalHours * 100) / 100,

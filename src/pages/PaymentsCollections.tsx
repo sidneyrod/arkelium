@@ -60,6 +60,7 @@ interface CashCollection {
   payment_receipt_id: string | null;
   notes: string | null;
   created_at: string;
+  company_name?: string;
   client_name?: string;
   cleaner_name?: string;
   receipt_number?: string;
@@ -75,6 +76,7 @@ interface PaymentReceipt {
   payment_method: string;
   service_date: string;
   created_at: string;
+  company_name?: string;
   client_name?: string;
   cleaner_name?: string;
 }
@@ -89,6 +91,7 @@ interface Invoice {
   status: string;
   service_date: string | null;
   created_at: string;
+  company_name?: string;
   client_name?: string;
   cleaner_name?: string;
 }
@@ -206,6 +209,7 @@ const PaymentsCollections = () => {
       .from('cash_collections')
       .select(`
         *,
+        companies:company_id(trade_name),
         client:client_id(name),
         cleaner:cleaner_id(first_name, last_name),
         receipt:payment_receipt_id(receipt_number)
@@ -237,6 +241,7 @@ const PaymentsCollections = () => {
 
     const mapped: CashCollection[] = (data || []).map((c: any) => ({
       ...c,
+      company_name: c.companies?.trade_name || 'Unknown',
       client_name: c.client?.name || 'Unknown',
       cleaner_name: c.cleaner ? `${c.cleaner.first_name || ''} ${c.cleaner.last_name || ''}`.trim() : 'Unknown',
       receipt_number: c.receipt?.receipt_number || null,
@@ -256,6 +261,7 @@ const PaymentsCollections = () => {
       .from('payment_receipts')
       .select(`
         *,
+        companies:company_id(trade_name),
         client:client_id(name),
         cleaner:cleaner_id(first_name, last_name)
       `, { count: 'exact' })
@@ -283,6 +289,7 @@ const PaymentsCollections = () => {
 
     const mapped: PaymentReceipt[] = (data || []).map((r: any) => ({
       ...r,
+      company_name: r.companies?.trade_name || 'Unknown',
       client_name: r.client?.name || 'Unknown',
       cleaner_name: r.cleaner ? `${r.cleaner.first_name || ''} ${r.cleaner.last_name || ''}`.trim() : 'N/A',
     }));
@@ -301,6 +308,7 @@ const PaymentsCollections = () => {
       .from('invoices')
       .select(`
         *,
+        companies:company_id(trade_name),
         client:client_id(name),
         cleaner:cleaner_id(first_name, last_name)
       `, { count: 'exact' })
@@ -331,6 +339,7 @@ const PaymentsCollections = () => {
 
     const mapped: Invoice[] = (data || []).map((i: any) => ({
       ...i,
+      company_name: i.companies?.trade_name || 'Unknown',
       client_name: i.client?.name || 'Unknown',
       cleaner_name: i.cleaner ? `${i.cleaner.first_name || ''} ${i.cleaner.last_name || ''}`.trim() : 'N/A',
     }));
@@ -464,6 +473,7 @@ const PaymentsCollections = () => {
       header: 'Date',
       render: (row) => format(new Date(row.service_date), 'MMM d, yyyy'),
     },
+    { key: 'company_name', header: 'Company' },
     { key: 'client_name', header: 'Client' },
     { key: 'cleaner_name', header: 'Cleaner' },
     {
@@ -541,6 +551,7 @@ const PaymentsCollections = () => {
       render: (row) => format(new Date(row.service_date), 'MMM d, yyyy'),
     },
     { key: 'receipt_number', header: 'Receipt #' },
+    { key: 'company_name', header: 'Company' },
     { key: 'client_name', header: 'Client' },
     { key: 'cleaner_name', header: 'Cleaner' },
     {
@@ -565,6 +576,7 @@ const PaymentsCollections = () => {
       render: (row) => format(new Date(row.created_at), 'MMM d, yyyy'),
     },
     { key: 'invoice_number', header: 'Invoice #' },
+    { key: 'company_name', header: 'Company' },
     { key: 'client_name', header: 'Client' },
     {
       key: 'total',

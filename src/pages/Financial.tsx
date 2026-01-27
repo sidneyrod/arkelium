@@ -106,6 +106,15 @@ const Financial = () => {
     return accessibleCompanies.find(c => c.id === selectedCompanyId)?.trade_name || 'Company';
   }, [selectedCompanyId, accessibleCompanies]);
   
+  // Company name map for ledger entries
+  const companyNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const c of accessibleCompanies) {
+      map[c.id] = c.trade_name;
+    }
+    return map;
+  }, [accessibleCompanies]);
+  
   const [showReportModal, setShowReportModal] = useState(false);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -210,6 +219,7 @@ const Financial = () => {
     const params: LedgerQueryParams = {
       companyId: queryCompanyIds.length === 1 ? queryCompanyIds[0] : queryCompanyIds[0], // Note: queryFinancialLedger needs to be updated for multi-company
       companyIds: queryCompanyIds, // Pass array for multi-company support
+      companyNameMap, // Pass company name map for display
       startDate,
       endDate,
       eventTypeFilter,
@@ -244,7 +254,7 @@ const Financial = () => {
     }
 
     return { data: result.data, count: result.count };
-  }, [queryCompanyIds, globalPeriod, eventTypeFilter, statusFilter, paymentMethodFilter, clientFilter, cleanerFilter, debouncedSearch, referenceFilter, grossFilter, deductFilter, netFilter]);
+  }, [queryCompanyIds, globalPeriod, eventTypeFilter, statusFilter, paymentMethodFilter, clientFilter, cleanerFilter, debouncedSearch, referenceFilter, grossFilter, deductFilter, netFilter, companyNameMap]);
 
   const {
     data: entries,
@@ -516,6 +526,15 @@ const Financial = () => {
         <span className="font-mono text-xs">
           {entry.transactionDate ? format(parseISO(entry.transactionDate), 'MMM d, yyyy') : '—'}
         </span>
+      ),
+    },
+    companyName: {
+      key: 'companyName',
+      header: (
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Company</span>
+      ),
+      render: (entry) => (
+        <span className="text-xs">{entry.companyName || '—'}</span>
       ),
     },
     eventType: {

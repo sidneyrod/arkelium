@@ -41,6 +41,7 @@ type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled' | 'part
 interface Invoice {
   id: string;
   invoiceNumber: string;
+  companyName: string;
   clientId: string;
   clientName: string;
   clientAddress: string;
@@ -202,6 +203,9 @@ const Invoices = () => {
         notes,
         created_at,
         paid_at,
+        companies:company_id (
+          trade_name
+        ),
         clients (
           id,
           name,
@@ -268,6 +272,7 @@ const Invoices = () => {
       return {
         id: inv.id,
         invoiceNumber: inv.invoice_number,
+        companyName: (inv.companies as any)?.trade_name || 'Unknown',
         clientId: inv.client_id,
         clientName: inv.clients?.name || 'Unknown Client',
         clientAddress: inv.clients?.client_locations?.[0]?.address || '',
@@ -370,6 +375,13 @@ const Invoices = () => {
           <FileText className="h-4 w-4 text-primary" />
           <span className="font-medium">{invoice.invoiceNumber}</span>
         </div>
+      ),
+    },
+    {
+      key: 'companyName',
+      header: 'Company',
+      render: (invoice) => (
+        <span className="text-sm">{invoice.companyName}</span>
       ),
     },
     {
