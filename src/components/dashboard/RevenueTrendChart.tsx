@@ -70,7 +70,7 @@ const RevenueTrendChart = ({ data }: RevenueTrendChartProps) => {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={data}
-              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+              margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
             >
               <CartesianGrid 
                 strokeDasharray="3 3" 
@@ -95,7 +95,7 @@ const RevenueTrendChart = ({ data }: RevenueTrendChartProps) => {
               <Tooltip content={<CustomTooltip />} />
               <Legend
                 verticalAlign="bottom"
-                height={36}
+                height={48}
                 iconType="circle"
                 iconSize={8}
                 formatter={(value) => (
