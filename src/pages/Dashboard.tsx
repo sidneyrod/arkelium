@@ -198,8 +198,8 @@ const Dashboard = () => {
     const prevMonthEnd = format(new Date(new Date().getFullYear(), new Date().getMonth(), 0), 'yyyy-MM-dd');
 
     try {
-      // For cleaners: only fetch their own jobs
-      if (isCleaner && user) {
+      // For cleaners ONLY (not admin/manager): only fetch their own jobs
+      if (isCleaner && !isAdminOrManager && user) {
         const { data: myTodayJobs } = await supabase
           .from('jobs')
           .select('id')
@@ -382,7 +382,7 @@ const Dashboard = () => {
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
     }
-  }, [selectedCompanyId, user?.id, isCleaner, period]);
+  }, [selectedCompanyId, user?.id, isCleaner, isAdminOrManager, period]);
 
   useEffect(() => {
     fetchDashboardData();
