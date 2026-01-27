@@ -1,69 +1,133 @@
 
-## Plano: Ajustar Posição das Legendas no Revenue Trend
 
-### Problema Identificado
+## Plano: Padronização do Header Invoices + Correções de Dados
 
-| Propriedade | Valor Atual | Problema |
-|-------------|-------------|----------|
-| `Legend height` | 36px (linha 98) | Espaço insuficiente para centralizar |
-| `LineChart margin.bottom` | 0px (linha 73) | Legenda colada no eixo X |
+### Problemas Identificados
 
----
-
-### Solução
-
-Aumentar a margem inferior do gráfico e a altura reservada para a legenda, criando espaço branco adequado para centralizar os itens "Revenue" e "Forecast".
-
-**Mudanças no arquivo `src/components/dashboard/RevenueTrendChart.tsx`:**
-
-| Linha | Antes | Depois |
-|-------|-------|--------|
-| 73 | `margin={{ top: 10, right: 10, left: 0, bottom: 0 }}` | `margin={{ top: 10, right: 10, left: 0, bottom: 20 }}` |
-| 98 | `height={36}` | `height={48}` |
+| # | Problema | Localização | Impacto |
+|---|----------|-------------|---------|
+| 1 | **CompanyFilter não elegante** | `Invoices.tsx:499-505` | Layout inconsistente com Schedule |
+| 2 | **Sequência errada** | `Invoices.tsx:497-560` | Company está antes da barra de pesquisa |
+| 3 | **Dados não atualizam ao mudar empresa** | `Invoices.tsx:311-313` | `selectedCompanyId` ausente das dependências do `useEffect` |
+| 4 | **Busca por texto funciona** | `Invoices.tsx:241-242` | Busca correta por `invoice_number` e `clients.name` (OK) |
 
 ---
 
-### Código da Mudança
+### Solução 1: Reordenar Campos do Header
 
+**Sequência Atual:**
+```text
+[Company Filter] → [Search] → [Status] → [KPIs] → [Period]
+```
+
+**Nova Sequência (padrão Schedule):**
+```text
+[Search] → [Company Filter] → [Status] → [KPIs] → [Period]
+```
+
+---
+
+### Solução 2: Padronizar Estilo do CompanyFilter
+
+**Invoices (Atual):**
 ```tsx
-// Linha 73 - Adicionar margem inferior
-<LineChart
-  data={data}
-  margin={{ top: 10, right: 10, left: 0, bottom: 20 }}  // bottom: 0 → 20
->
-
-// Linha 98 - Aumentar altura da legenda
-<Legend
-  verticalAlign="bottom"
-  height={48}  // 36 → 48
-  iconType="circle"
-  iconSize={8}
-  formatter={(value) => (
-    <span className="text-xs text-muted-foreground ml-1">{value}</span>
-  )}
+<CompanyFilter
+  value={selectedCompanyId}
+  onChange={setSelectedCompanyId}
+  showAllOption={accessibleCompanies.length > 1}
+  allLabel="All Companies"
+  className="w-[160px] h-8"  // Mais estreito
 />
 ```
+
+**Schedule (Referência):**
+```tsx
+<CompanyFilter
+  value={selectedCompanyId}
+  onChange={(value) => setSelectedCompanyId(value === 'all' ? '' : value)}
+  showAllOption={false}
+  placeholder="Select Company"
+  className="w-[180px] h-8 text-xs flex-shrink-0"  // Mais largo, sem wrap
+/>
+```
+
+**Invoices (Novo):**
+```tsx
+<CompanyFilter
+  value={selectedCompanyId}
+  onChange={setSelectedCompanyId}
+  showAllOption={accessibleCompanies.length > 1}
+  allLabel="All Companies"
+  className="w-[180px] h-8 text-xs flex-shrink-0"  // Padronizado
+/>
+```
+
+---
+
+### Solução 3: Adicionar `selectedCompanyId` às Dependências do Refresh
+
+**Linha 311-313 - Atual:**
+```tsx
+useEffect(() => {
+  refresh();
+}, [dateRange, statusFilter, debouncedSearch]);  // ❌ Faltando selectedCompanyId
+```
+
+**Após correção:**
+```tsx
+useEffect(() => {
+  refresh();
+}, [dateRange, statusFilter, debouncedSearch, selectedCompanyId]);  // ✓ Incluído
+```
+
+---
+
+### Solução 4: Ajustar SearchInput para Consistência
+
+**Atual:**
+```tsx
+<SearchInput
+  placeholder="Search invoices..."
+  value={search}
+  onChange={setSearch}
+  className="w-full sm:w-40"  // Largura variável
+/>
+```
+
+**Novo (padrão Schedule):**
+```tsx
+<SearchInput
+  placeholder="Search invoices..."
+  value={search}
+  onChange={setSearch}
+  className="min-w-[120px] max-w-[200px] flex-shrink-0 h-8"  // Largura fixa, sem wrap
+/>
+```
+
+---
+
+### Resumo das Mudanças
+
+| Arquivo | Linha(s) | Mudança |
+|---------|----------|---------|
+| `src/pages/Invoices.tsx` | 497-559 | Reordenar: Search → Company → Status → KPIs → Period |
+| `src/pages/Invoices.tsx` | ~505 | Padronizar CompanyFilter: `w-[180px] text-xs flex-shrink-0` |
+| `src/pages/Invoices.tsx` | ~512 | Padronizar SearchInput: `min-w-[120px] max-w-[200px] flex-shrink-0` |
+| `src/pages/Invoices.tsx` | 313 | Adicionar `selectedCompanyId` ao array de dependências |
 
 ---
 
 ### Resultado Visual Esperado
 
 ```text
-┌─────────────────────────────────────────┐
-│           [Gráfico de Linhas]           │
-│                                         │
-├─────────────────────────────────────────┤
-│  Aug   Sep   Oct   Nov   Dec   Jan      │  ← Eixo X
-│                                         │
-│         ● Revenue    ● Forecast         │  ← Legendas centralizadas
-│                                         │
-└─────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────────┐
+│ [🔍 Search...] [🏢 Select Company ▼] [All Status ▼] [Total] [Paid] [Pending] [$] [📅] │
+└────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
----
+### Verificação Funcional
 
-### Arquivo a Modificar
+- **Mudar empresa:** Dados recarregam automaticamente ✓
+- **Buscar por texto:** Filtra por invoice_number e client.name ✓ (já funcionando)
+- **Layout consistente:** Mesma aparência do Schedule ✓
 
-| Arquivo | Mudança |
-|---------|---------|
-| `src/components/dashboard/RevenueTrendChart.tsx` | Aumentar `margin.bottom` de 0 para 20, e `Legend height` de 36 para 48 |
