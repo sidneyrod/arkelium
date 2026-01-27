@@ -15,6 +15,16 @@ import OperationalDonut from '@/components/dashboard/OperationalDonut';
 import AttentionCard from '@/components/dashboard/AttentionCard';
 import StatCard from '@/components/ui/stat-card';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   DollarSign,
   Clock,
   Briefcase,
@@ -23,6 +33,7 @@ import {
   CalendarX,
   Calendar,
   CalendarCheck,
+  Settings2,
 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, parseISO, subMonths } from 'date-fns';
 import { toSafeLocalDate } from '@/lib/dates';
@@ -74,8 +85,10 @@ const Dashboard = () => {
   const [period, setPeriod] = useState<DateRange>(getDefaultDateRange());
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [hasDefaultPreference, setHasDefaultPreference] = useState<boolean | null>(null);
+  const [showPreferenceDialog, setShowPreferenceDialog] = useState(false);
 
-  // Initialize with user's preferred default company or fallback
+  // Initialize with user's preferred default company - NO fallback if no preference
   useEffect(() => {
     const initializeDefaultCompany = async () => {
       if (isInitialized || !user?.id) return;
@@ -93,31 +106,19 @@ const Dashboard = () => {
           const hasAccess = activeCompanies.some(c => c.id === data.default_dashboard_company_id);
           if (hasAccess) {
             setSelectedCompanyId(data.default_dashboard_company_id);
+            setHasDefaultPreference(true);
             setIsInitialized(true);
             return;
           }
         }
         
-        // 2. Fallback to activeCompanyId
-        if (activeCompanyId) {
-          setSelectedCompanyId(activeCompanyId);
-          setIsInitialized(true);
-          return;
-        }
+        // 2. No preference saved - keep null to show "Select Company"
+        setHasDefaultPreference(false);
+        setIsInitialized(true);
         
-        // 3. Fallback to first accessible company
-        if (activeCompanies.length > 0) {
-          setSelectedCompanyId(activeCompanies[0].id);
-          setIsInitialized(true);
-        }
       } catch (err) {
         console.error('Error fetching default company preference:', err);
-        // Fallback
-        if (activeCompanyId) {
-          setSelectedCompanyId(activeCompanyId);
-        } else if (activeCompanies.length > 0) {
-          setSelectedCompanyId(activeCompanies[0].id);
-        }
+        setHasDefaultPreference(false);
         setIsInitialized(true);
       }
     };
@@ -125,7 +126,34 @@ const Dashboard = () => {
     if (activeCompanies.length > 0) {
       initializeDefaultCompany();
     }
-  }, [user?.id, activeCompanyId, activeCompanies, isInitialized]);
+  }, [user?.id, activeCompanies, isInitialized]);
+
+  // Handler for company selection changes
+  const handleCompanyChange = (companyId: string) => {
+    const newCompanyId = companyId === 'all' ? null : companyId;
+    
+    // If selecting for the first time and no preference is saved, show dialog
+    if (newCompanyId && hasDefaultPreference === false) {
+      setShowPreferenceDialog(true);
+    }
+    
+    setSelectedCompanyId(newCompanyId);
+  };
+
+  // Handler to save preference and navigate to settings
+  const handleGoToPreferences = async () => {
+    if (selectedCompanyId && user?.id) {
+      await supabase
+        .from('profiles')
+        .update({ default_dashboard_company_id: selectedCompanyId })
+        .eq('id', user.id);
+      
+      setHasDefaultPreference(true);
+    }
+    
+    setShowPreferenceDialog(false);
+    navigate('/company?tab=preferences');
+  };
 
   const [stats, setStats] = useState<DashboardStats>({
     revenueMTD: 0,
@@ -405,7 +433,7 @@ const Dashboard = () => {
           <div className="flex items-center gap-3">
             <CompanyFilter
               value={selectedCompanyId || ''}
-              onChange={(id) => setSelectedCompanyId(id === 'all' ? activeCompanies[0]?.id || null : id)}
+              onChange={handleCompanyChange}
               showAllOption={false}
               placeholder="Select Company"
               className="w-[200px]"
@@ -494,6 +522,29 @@ const Dashboard = () => {
             />
           </div>
         </div>
+
+        {/* Preference Configuration Dialog */}
+        <AlertDialog open={showPreferenceDialog} onOpenChange={setShowPreferenceDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <Settings2 className="h-5 w-5 text-primary" />
+                Set Default Dashboard Company
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                You haven't configured a default company for your Dashboard yet.
+                Would you like to set this company as your default and go to 
+                Preferences to complete the setup?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Not Now</AlertDialogCancel>
+              <AlertDialogAction onClick={handleGoToPreferences}>
+                Go to Preferences
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     );
   }
