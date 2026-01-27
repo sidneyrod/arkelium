@@ -72,6 +72,7 @@ export async function queryLedgerDistinctValues(
 
 export interface LedgerQueryParams {
   companyId: string;
+  companyIds?: string[]; // Optional array for multi-company support
   startDate: string;
   endDate: string;
   eventTypeFilter?: string;
@@ -99,6 +100,7 @@ export async function queryFinancialLedger(
 ): Promise<LedgerQueryResult> {
   const {
     companyId,
+    companyIds,
     startDate,
     endDate,
     eventTypeFilter,
@@ -119,9 +121,19 @@ export async function queryFinancialLedger(
   let query = supabase
     .from('financial_ledger')
     .select('*', { count: 'exact' })
-    .eq('company_id', companyId)
     .gte('transaction_date', startDate)
     .lte('transaction_date', endDate);
+
+  // Apply company filter - multi-company or single
+  if (companyIds && companyIds.length > 0) {
+    if (companyIds.length === 1) {
+      query = query.eq('company_id', companyIds[0]);
+    } else {
+      query = query.in('company_id', companyIds);
+    }
+  } else if (companyId) {
+    query = query.eq('company_id', companyId);
+  }
 
   // Apply filters
   if (eventTypeFilter && eventTypeFilter !== 'all') {

@@ -5,6 +5,10 @@ import { getDefaultDateRange } from '@/components/ui/period-selector';
 import { format } from 'date-fns';
 import { useCompanyPreferences } from '@/hooks/useCompanyPreferences';
 
+export interface UseWorkEarningsParams {
+  companyIds: string[];
+}
+
 export interface WorkEarningsPeriod {
   startDate: string;
   endDate: string;
@@ -49,7 +53,8 @@ export interface GlobalSummary {
   cashDeliveredToOffice: number;
 }
 
-export function useWorkEarnings() {
+export function useWorkEarnings(params: UseWorkEarningsParams) {
+  const { companyIds } = params;
   const { user } = useAuth();
   const { preferences, isLoading: prefsLoading } = useCompanyPreferences();
   
@@ -80,28 +85,15 @@ export function useWorkEarnings() {
   // Whether cash kept by employee feature is enabled
   const enableCashKept = preferences.enableCashKeptByEmployee;
 
-  const getCompanyId = useCallback(async () => {
-    const userId = user?.id ?? null;
-    const profileCompanyId = user?.profile?.company_id ?? null;
-    if (!userId) return null;
-    if (profileCompanyId) return profileCompanyId;
-    const { data } = await supabase.from('profiles')
-      .select('company_id')
-      .eq('id', userId)
-      .single();
-    return data?.company_id ?? null;
-  }, [user?.id, user?.profile?.company_id]);
-
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const companyId = await getCompanyId();
-      if (!companyId) {
+      if (companyIds.length === 0) {
         setIsLoading(false);
         return;
       }
 
-      // Fetch completed jobs in period
+      // Fetch completed jobs in period with company filter
       let jobsQuery = supabase
         .from('jobs')
         .select(`
@@ -118,10 +110,16 @@ export function useWorkEarnings() {
           job_type,
           clients(id, name)
         `)
-        .eq('company_id', companyId)
         .eq('status', 'completed')
         .gte('scheduled_date', period.startDate)
         .lte('scheduled_date', period.endDate);
+
+      // Apply company filter
+      if (companyIds.length === 1) {
+        jobsQuery = jobsQuery.eq('company_id', companyIds[0]);
+      } else {
+        jobsQuery = jobsQuery.in('company_id', companyIds);
+      }
 
       // Apply visit filter based on company preferences
       if (excludeVisits) {
@@ -137,7 +135,7 @@ export function useWorkEarnings() {
       }
 
       // Fetch cash collections in period
-      const { data: cashCollections, error: cashError } = await supabase
+      let cashQuery = supabase
         .from('cash_collections')
         .select(`
           id,
@@ -147,29 +145,46 @@ export function useWorkEarnings() {
           compensation_status,
           service_date
         `)
-        .eq('company_id', companyId)
         .gte('service_date', period.startDate)
         .lte('service_date', period.endDate);
+
+      if (companyIds.length === 1) {
+        cashQuery = cashQuery.eq('company_id', companyIds[0]);
+      } else {
+        cashQuery = cashQuery.in('company_id', companyIds);
+      }
+
+      const { data: cashCollections, error: cashError } = await cashQuery;
 
       if (cashError) {
         console.error('Error fetching cash collections:', cashError);
       }
 
-      // Fetch cleaner profiles with roles
-      const { data: cleaners, error: cleanersError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name')
-        .eq('company_id', companyId);
+      // Fetch cleaner profiles with roles - need to get from all companies in scope
+      let cleanersQuery = supabase.from('profiles').select('id, first_name, last_name');
+      
+      if (companyIds.length === 1) {
+        cleanersQuery = cleanersQuery.eq('company_id', companyIds[0]);
+      } else {
+        cleanersQuery = cleanersQuery.in('company_id', companyIds);
+      }
+
+      const { data: cleaners, error: cleanersError } = await cleanersQuery;
 
       if (cleanersError) {
         console.error('Error fetching cleaners:', cleanersError);
       }
 
       // Fetch user roles
-      const { data: userRoles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role')
-        .eq('company_id', companyId);
+      let rolesQuery = supabase.from('user_roles').select('user_id, role');
+      
+      if (companyIds.length === 1) {
+        rolesQuery = rolesQuery.eq('company_id', companyIds[0]);
+      } else {
+        rolesQuery = rolesQuery.in('company_id', companyIds);
+      }
+
+      const { data: userRoles, error: rolesError } = await rolesQuery;
 
       if (rolesError) {
         console.error('Error fetching user roles:', rolesError);
@@ -295,11 +310,10 @@ export function useWorkEarnings() {
     } finally {
       setIsLoading(false);
     }
-  }, [getCompanyId, period, excludeVisits]);
+  }, [companyIds, period, excludeVisits]);
 
   const fetchCleanerDetails = useCallback(async (cleanerId: string): Promise<JobDetail[]> => {
-    const companyId = await getCompanyId();
-    if (!companyId) return [];
+    if (companyIds.length === 0) return [];
 
     let jobsQuery = supabase
       .from('jobs')
@@ -316,12 +330,18 @@ export function useWorkEarnings() {
         job_type,
         clients(id, name)
       `)
-      .eq('company_id', companyId)
       .eq('cleaner_id', cleanerId)
       .eq('status', 'completed')
       .gte('scheduled_date', period.startDate)
       .lte('scheduled_date', period.endDate)
       .order('scheduled_date', { ascending: false });
+
+    // Apply company filter
+    if (companyIds.length === 1) {
+      jobsQuery = jobsQuery.eq('company_id', companyIds[0]);
+    } else {
+      jobsQuery = jobsQuery.in('company_id', companyIds);
+    }
 
     // Apply visit filter based on company preferences
     if (excludeVisits) {
@@ -336,11 +356,18 @@ export function useWorkEarnings() {
     }
 
     // Get cash collections for this cleaner
-    const { data: cashData } = await supabase
+    let cashQuery = supabase
       .from('cash_collections')
       .select('job_id, cash_handling, compensation_status')
-      .eq('company_id', companyId)
       .eq('cleaner_id', cleanerId);
+
+    if (companyIds.length === 1) {
+      cashQuery = cashQuery.eq('company_id', companyIds[0]);
+    } else {
+      cashQuery = cashQuery.in('company_id', companyIds);
+    }
+
+    const { data: cashData } = await cashQuery;
 
     const cashMap: Record<string, { handling: string; status: string }> = {};
     for (const c of cashData || []) {
@@ -371,13 +398,12 @@ export function useWorkEarnings() {
         cashHandling: cashInfo?.handling || null,
         cashStatus: cashInfo?.status || null,
         notes: job.notes,
-      };
+    };
     });
-  }, [getCompanyId, period, excludeVisits]);
+  }, [companyIds, period, excludeVisits]);
 
   const getExportData = useCallback(async () => {
-    const companyId = await getCompanyId();
-    if (!companyId) return [];
+    if (companyIds.length === 0) return [];
 
     let jobsQuery = supabase
       .from('jobs')
@@ -394,11 +420,17 @@ export function useWorkEarnings() {
         clients(name),
         cleaner:cleaner_id(first_name, last_name)
       `)
-      .eq('company_id', companyId)
       .eq('status', 'completed')
       .gte('scheduled_date', period.startDate)
       .lte('scheduled_date', period.endDate)
       .order('scheduled_date', { ascending: false });
+
+    // Apply company filter
+    if (companyIds.length === 1) {
+      jobsQuery = jobsQuery.eq('company_id', companyIds[0]);
+    } else {
+      jobsQuery = jobsQuery.in('company_id', companyIds);
+    }
 
     // Apply visit filter based on company preferences
     if (excludeVisits) {
@@ -407,15 +439,27 @@ export function useWorkEarnings() {
 
     const { data: jobs } = await jobsQuery;
 
-    const { data: cashData } = await supabase
+    let cashQuery = supabase
       .from('cash_collections')
-      .select('job_id, amount, cash_handling, compensation_status')
-      .eq('company_id', companyId);
+      .select('job_id, amount, cash_handling, compensation_status');
 
-    const { data: userRoles } = await supabase
-      .from('user_roles')
-      .select('user_id, role')
-      .eq('company_id', companyId);
+    if (companyIds.length === 1) {
+      cashQuery = cashQuery.eq('company_id', companyIds[0]);
+    } else {
+      cashQuery = cashQuery.in('company_id', companyIds);
+    }
+
+    const { data: cashData } = await cashQuery;
+
+    let rolesQuery = supabase.from('user_roles').select('user_id, role');
+    
+    if (companyIds.length === 1) {
+      rolesQuery = rolesQuery.eq('company_id', companyIds[0]);
+    } else {
+      rolesQuery = rolesQuery.in('company_id', companyIds);
+    }
+
+    const { data: userRoles } = await rolesQuery;
 
     const roleMap: Record<string, string> = {};
     for (const r of userRoles || []) {
@@ -456,13 +500,13 @@ export function useWorkEarnings() {
         Notes: job.notes || '',
       };
     });
-  }, [getCompanyId, period, excludeVisits, enableCashKept]);
+  }, [companyIds, period, excludeVisits, enableCashKept]);
 
   useEffect(() => {
-    if (user?.id && !prefsLoading) {
+    if (companyIds.length > 0 && !prefsLoading) {
       fetchData();
     }
-  }, [user?.id, user?.profile?.company_id, fetchData, prefsLoading]);
+  }, [companyIds, fetchData, prefsLoading]);
 
   return {
     period,
