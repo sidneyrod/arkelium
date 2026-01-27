@@ -1,133 +1,114 @@
 
 
-## Plano: Padronização do Header Invoices + Correções de Dados
+## Plano: Carregar Dados de Invoices ao Abrir a Página
 
-### Problemas Identificados
+### Problema Identificado
 
-| # | Problema | Localização | Impacto |
-|---|----------|-------------|---------|
-| 1 | **CompanyFilter não elegante** | `Invoices.tsx:499-505` | Layout inconsistente com Schedule |
-| 2 | **Sequência errada** | `Invoices.tsx:497-560` | Company está antes da barra de pesquisa |
-| 3 | **Dados não atualizam ao mudar empresa** | `Invoices.tsx:311-313` | `selectedCompanyId` ausente das dependências do `useEffect` |
-| 4 | **Busca por texto funciona** | `Invoices.tsx:241-242` | Busca correta por `invoice_number` e `clients.name` (OK) |
+| Causa Raiz | Localização | Impacto |
+|------------|-------------|---------|
+| **`useEffect` dispara antes das empresas carregarem** | `Invoices.tsx:311-313` | `queryCompanyIds` está vazio na primeira execução, retornando 0 resultados |
 
----
+### Fluxo do Bug
 
-### Solução 1: Reordenar Campos do Header
-
-**Sequência Atual:**
 ```text
-[Company Filter] → [Search] → [Status] → [KPIs] → [Period]
-```
-
-**Nova Sequência (padrão Schedule):**
-```text
-[Search] → [Company Filter] → [Status] → [KPIs] → [Period]
-```
-
----
-
-### Solução 2: Padronizar Estilo do CompanyFilter
-
-**Invoices (Atual):**
-```tsx
-<CompanyFilter
-  value={selectedCompanyId}
-  onChange={setSelectedCompanyId}
-  showAllOption={accessibleCompanies.length > 1}
-  allLabel="All Companies"
-  className="w-[160px] h-8"  // Mais estreito
-/>
-```
-
-**Schedule (Referência):**
-```tsx
-<CompanyFilter
-  value={selectedCompanyId}
-  onChange={(value) => setSelectedCompanyId(value === 'all' ? '' : value)}
-  showAllOption={false}
-  placeholder="Select Company"
-  className="w-[180px] h-8 text-xs flex-shrink-0"  // Mais largo, sem wrap
-/>
-```
-
-**Invoices (Novo):**
-```tsx
-<CompanyFilter
-  value={selectedCompanyId}
-  onChange={setSelectedCompanyId}
-  showAllOption={accessibleCompanies.length > 1}
-  allLabel="All Companies"
-  className="w-[180px] h-8 text-xs flex-shrink-0"  // Padronizado
-/>
+┌─────────────────────────────────────────────────────────────────────┐
+│ PÁGINA CARREGA                                                      │
+├─────────────────────────────────────────────────────────────────────┤
+│ 1. selectedCompanyId = 'all' ✓                                     │
+│ 2. accessibleCompanies = [] (ainda carregando)                     │
+│ 3. accessibleCompanyIds = [] (mapeado de array vazio)              │
+│ 4. queryCompanyIds = [] (selectedCompanyId='all' → usa accessibles)│
+│ 5. useEffect dispara refresh()                                     │
+│ 6. fetchInvoices: queryCompanyIds.length === 0 → return vazio     │
+│ 7. Dados: 0 invoices ❌                                             │
+│                                                                     │
+│ ...algum tempo depois...                                            │
+│                                                                     │
+│ 8. accessibleCompanies carrega [Tidy Out, ...]                     │
+│ 9. MAS nenhum useEffect dispara novo refresh!                      │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-### Solução 3: Adicionar `selectedCompanyId` às Dependências do Refresh
+### Solução
+
+Adicionar `accessibleCompanyIds` ao array de dependências do `useEffect` que chama `refresh()`. Dessa forma, quando as empresas acessíveis terminarem de carregar, o `useEffect` será re-disparado e os dados serão buscados corretamente.
 
 **Linha 311-313 - Atual:**
 ```tsx
 useEffect(() => {
   refresh();
-}, [dateRange, statusFilter, debouncedSearch]);  // ❌ Faltando selectedCompanyId
+}, [dateRange, statusFilter, debouncedSearch, selectedCompanyId]);
 ```
 
 **Após correção:**
 ```tsx
 useEffect(() => {
-  refresh();
-}, [dateRange, statusFilter, debouncedSearch, selectedCompanyId]);  // ✓ Incluído
+  // Only refresh if we have companies to query
+  if (accessibleCompanyIds.length > 0 || selectedCompanyId !== 'all') {
+    refresh();
+  }
+}, [dateRange, statusFilter, debouncedSearch, selectedCompanyId, accessibleCompanyIds]);
 ```
 
 ---
 
-### Solução 4: Ajustar SearchInput para Consistência
+### Detalhes da Mudança
 
-**Atual:**
+| Arquivo | Linha | Mudança |
+|---------|-------|---------|
+| `src/pages/Invoices.tsx` | 311-313 | Adicionar `accessibleCompanyIds` às dependências e condição de guarda |
+
+---
+
+### Código Completo
+
 ```tsx
-<SearchInput
-  placeholder="Search invoices..."
-  value={search}
-  onChange={setSearch}
-  className="w-full sm:w-40"  // Largura variável
-/>
-```
+// src/pages/Invoices.tsx - Linhas 310-314
 
-**Novo (padrão Schedule):**
-```tsx
-<SearchInput
-  placeholder="Search invoices..."
-  value={search}
-  onChange={setSearch}
-  className="min-w-[120px] max-w-[200px] flex-shrink-0 h-8"  // Largura fixa, sem wrap
-/>
+// Refresh when filters change OR when accessible companies finish loading
+useEffect(() => {
+  // Only refresh if we have companies to query (prevents empty query on mount)
+  if (accessibleCompanyIds.length > 0 || selectedCompanyId !== 'all') {
+    refresh();
+  }
+}, [dateRange, statusFilter, debouncedSearch, selectedCompanyId, accessibleCompanyIds]);
 ```
 
 ---
 
-### Resumo das Mudanças
-
-| Arquivo | Linha(s) | Mudança |
-|---------|----------|---------|
-| `src/pages/Invoices.tsx` | 497-559 | Reordenar: Search → Company → Status → KPIs → Period |
-| `src/pages/Invoices.tsx` | ~505 | Padronizar CompanyFilter: `w-[180px] text-xs flex-shrink-0` |
-| `src/pages/Invoices.tsx` | ~512 | Padronizar SearchInput: `min-w-[120px] max-w-[200px] flex-shrink-0` |
-| `src/pages/Invoices.tsx` | 313 | Adicionar `selectedCompanyId` ao array de dependências |
-
----
-
-### Resultado Visual Esperado
+### Fluxo Corrigido
 
 ```text
-┌────────────────────────────────────────────────────────────────────────────────────┐
-│ [🔍 Search...] [🏢 Select Company ▼] [All Status ▼] [Total] [Paid] [Pending] [$] [📅] │
-└────────────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│ PÁGINA CARREGA                                                      │
+├─────────────────────────────────────────────────────────────────────┤
+│ 1. selectedCompanyId = 'all' ✓                                     │
+│ 2. accessibleCompanies = [] (ainda carregando)                     │
+│ 3. accessibleCompanyIds = []                                       │
+│ 4. useEffect dispara, MAS condição falha:                          │
+│    accessibleCompanyIds.length > 0 = false                         │
+│    selectedCompanyId !== 'all' = false                             │
+│    → refresh() NÃO é chamado                                       │
+│                                                                     │
+│ ...empresas carregam...                                             │
+│                                                                     │
+│ 5. accessibleCompanies = [Tidy Out, ...]                           │
+│ 6. accessibleCompanyIds = ['uuid1', 'uuid2']                       │
+│ 7. useEffect DISPARA novamente (dependência mudou)                 │
+│ 8. Condição accessibleCompanyIds.length > 0 = true ✓               │
+│ 9. refresh() é chamado                                             │
+│ 10. Dados: invoices carregadas ✓                                   │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Verificação Funcional
+---
 
-- **Mudar empresa:** Dados recarregam automaticamente ✓
-- **Buscar por texto:** Filtra por invoice_number e client.name ✓ (já funcionando)
-- **Layout consistente:** Mesma aparência do Schedule ✓
+### Resumo
+
+- **1 mudança** no useEffect
+- Adiciona `accessibleCompanyIds` às dependências
+- Adiciona condição de guarda para evitar query vazia no mount inicial
+- Resultado: Dados renderizam automaticamente quando "All Companies" está selecionado
 
