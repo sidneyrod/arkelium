@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
@@ -72,6 +73,8 @@ interface ChecklistItem {
 const Company = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'branding');
   
   // Active company store (global state)
   const { 
@@ -999,7 +1002,7 @@ const Company = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      <Tabs defaultValue="branding" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <TabsList className="h-auto p-1 gap-2 bg-muted/50">
           <TabsTrigger value="profile" className="gap-2 px-4 py-2 data-[state=active]:bg-background">

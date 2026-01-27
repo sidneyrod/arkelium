@@ -286,13 +286,22 @@ const PreferencesTab = ({ companyId }: PreferencesTabProps) => {
                 </p>
               </div>
               <Select 
-                value={defaultDashboardCompanyId || ''} 
-                onValueChange={(value) => setDefaultDashboardCompanyId(value || null)}
+                value={defaultDashboardCompanyId || 'none'} 
+                onValueChange={(value) => setDefaultDashboardCompanyId(value === 'none' ? null : value)}
               >
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-[220px]">
                   <SelectValue placeholder="Select company" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover">
+                  <SelectItem value="none">
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      <span className="h-5 w-5 rounded-full bg-muted/50 flex items-center justify-center text-[10px]">
+                        —
+                      </span>
+                      <span>Default (Select each time)</span>
+                    </span>
+                  </SelectItem>
+                  <div className="h-px bg-border my-1" />
                   {activeCompanies.map(company => (
                     <SelectItem key={company.id} value={company.id}>
                       <span className="flex items-center gap-2">

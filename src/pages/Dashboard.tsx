@@ -131,13 +131,12 @@ const Dashboard = () => {
   // Handler for company selection changes
   const handleCompanyChange = (companyId: string) => {
     const newCompanyId = companyId === 'all' ? null : companyId;
+    setSelectedCompanyId(newCompanyId);
     
-    // If selecting for the first time and no preference is saved, show dialog
+    // Always show dialog if no preference is saved and a company is selected
     if (newCompanyId && hasDefaultPreference === false) {
       setShowPreferenceDialog(true);
     }
-    
-    setSelectedCompanyId(newCompanyId);
   };
 
   // Handler to save preference and navigate to settings
