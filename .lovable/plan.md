@@ -1,114 +1,231 @@
 
 
-## Plano: Adicionar Filtro Dinâmico de Empresas na Tela Receipts
+## Plano: Filtro Dinâmico de Empresas em Módulos Operacionais
 
-### Análise Atual
+### Resumo da Análise
 
-| Componente | Status | Problema |
-|------------|--------|----------|
-| `payment_receipts.company_id` | ✅ Existe | Tabela já possui coluna `company_id` |
-| `CompanyFilter` no Header | ❌ Ausente | Não existe filtro de empresa |
-| Filtragem por empresa na query | ❌ Ausente | Query não filtra por `company_id` |
+| Tela | Status Atual | Ação Necessária |
+|------|--------------|-----------------|
+| **Payments & Collections** | Usa `activeCompanyId` do store global | ⚠️ Migrar para `CompanyFilter` local após Search |
+| **Financial (Ledger)** | Usa `activeCompanyId` do store global | ⚠️ Migrar para `CompanyFilter` local após Search + impactar exports |
+| **Work & Time Tracking** | Busca `company_id` do profile do usuário | ⚠️ Migrar para `CompanyFilter` local + passar para hook |
+| **Completed Services** | Usa `user.profile.company_id` fixo | ⚠️ Migrar para `CompanyFilter` local após Search |
+| **Dashboard** | Já possui `CompanyFilter` mas posição incorreta | ✅ Ajustar posição (após Search se houver) |
 
 ---
 
-### Mudanças Necessárias
+### Padrão Unificado a Implementar
 
-#### 1. Adicionar Importações
+Todas as telas seguirão o mesmo padrão estabelecido em `Invoices.tsx` e `Receipts.tsx`:
 
 ```tsx
-// Novas importações
+// 1. Importações
 import { useAccessibleCompanies } from '@/hooks/useAccessibleCompanies';
 import { CompanyFilter } from '@/components/ui/company-filter';
-import SearchInput from '@/components/ui/search-input';
-```
 
----
-
-#### 2. Adicionar Estado de Empresa
-
-```tsx
-// Dentro do componente Receipts
-const { companies: accessibleCompanies, isLoading: isLoadingCompanies } = useAccessibleCompanies();
-
+// 2. Estado e Memos
+const { companies: accessibleCompanies } = useAccessibleCompanies();
 const [selectedCompanyId, setSelectedCompanyId] = useState<string | 'all'>('all');
 
 const accessibleCompanyIds = useMemo(() => accessibleCompanies.map(c => c.id), [accessibleCompanies]);
 
 const queryCompanyIds = useMemo(() => {
-  if (selectedCompanyId === 'all') {
-    return accessibleCompanyIds;
+  return selectedCompanyId === 'all' ? accessibleCompanyIds : [selectedCompanyId];
+}, [selectedCompanyId, accessibleCompanyIds]);
+
+// 3. Guard clause em fetch functions
+if (queryCompanyIds.length === 0) {
+  return { data: [], count: 0 };
+}
+
+// 4. Query com filtro de empresa
+if (queryCompanyIds.length === 1) {
+  query = query.eq('company_id', queryCompanyIds[0]);
+} else {
+  query = query.in('company_id', queryCompanyIds);
+}
+
+// 5. useEffect com dependência correta
+useEffect(() => {
+  if (accessibleCompanyIds.length > 0 || selectedCompanyId !== 'all') {
+    refresh();
   }
-  return [selectedCompanyId];
+}, [/* outros filtros */, selectedCompanyId, accessibleCompanyIds]);
+```
+
+---
+
+## 1. Payments & Collections (`src/pages/PaymentsCollections.tsx`)
+
+### Mudanças Necessárias
+
+**Imports:**
+```tsx
+// Remover:
+import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
+
+// Adicionar:
+import { useAccessibleCompanies } from '@/hooks/useAccessibleCompanies';
+import { CompanyFilter } from '@/components/ui/company-filter';
+```
+
+**Estado:**
+```tsx
+// Remover:
+const { activeCompanyId } = useActiveCompanyStore();
+
+// Adicionar:
+const { companies: accessibleCompanies } = useAccessibleCompanies();
+const [selectedCompanyId, setSelectedCompanyId] = useState<string | 'all'>('all');
+
+const accessibleCompanyIds = useMemo(() => accessibleCompanies.map(c => c.id), [accessibleCompanies]);
+const queryCompanyIds = useMemo(() => {
+  return selectedCompanyId === 'all' ? accessibleCompanyIds : [selectedCompanyId];
 }, [selectedCompanyId, accessibleCompanyIds]);
 ```
 
----
+**Funções de Fetch (fetchKpis, fetchCashCollections, fetchReceipts, fetchInvoices):**
+- Substituir `activeCompanyId` por lógica `queryCompanyIds`
+- Adicionar guard clause
 
-#### 3. Atualizar Query `fetchReceipts`
-
+**Header (Linha ~602-641):**
 ```tsx
-const fetchReceipts = async () => {
-  try {
-    setLoading(true);
-    
-    // Guard: aguarda empresas carregarem
-    if (queryCompanyIds.length === 0) {
-      setReceipts([]);
-      return;
-    }
-    
-    let query = supabase
-      .from('payment_receipts')
-      .select(`
-        *,
-        clients(name, email),
-        profiles:cleaner_id(first_name, last_name)
-      `)
-      .gte('service_date', format(dateRange.startDate, 'yyyy-MM-dd'))
-      .lte('service_date', format(dateRange.endDate, 'yyyy-MM-dd'));
-    
-    // Aplicar filtro de empresa
-    if (queryCompanyIds.length === 1) {
-      query = query.eq('company_id', queryCompanyIds[0]);
-    } else {
-      query = query.in('company_id', queryCompanyIds);
-    }
-    
-    const { data, error } = await query.order('created_at', { ascending: false });
-    
-    // ... resto do código
-  }
-};
+<div className="flex flex-wrap items-center gap-3">
+  <SearchInput ... />
+  
+  {/* NOVO - Company Filter logo após search */}
+  <CompanyFilter
+    value={selectedCompanyId}
+    onChange={setSelectedCompanyId}
+    showAllOption={accessibleCompanies.length > 1}
+    allLabel="All Companies"
+    className="w-[180px] h-8 text-xs flex-shrink-0"
+  />
+  
+  <Select value={selectedStatus} ... />
+  ...
+</div>
 ```
 
----
-
-#### 4. Atualizar `useEffect` para Incluir Empresa
-
+**useEffect (Linha ~312-317):**
 ```tsx
 useEffect(() => {
   if (accessibleCompanyIds.length > 0 || selectedCompanyId !== 'all') {
-    fetchReceipts();
+    cashPagination.refresh();
+    receiptsPagination.refresh();
+    invoicesPagination.refresh();
+    fetchKpis();
   }
-}, [dateRange, selectedCompanyId, accessibleCompanyIds]);
+}, [selectedCompanyId, accessibleCompanyIds, dateRange, selectedStatus, debouncedSearch]);
 ```
 
 ---
 
-#### 5. Atualizar Header (Sequência: Search → Company → KPIs)
+## 2. Financial / Ledger (`src/pages/Financial.tsx`)
 
+### Mudanças Necessárias
+
+**Imports:**
 ```tsx
-<div className="flex items-center gap-2 flex-wrap">
-  {/* Search Input - 1st */}
+// Remover:
+import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
+
+// Adicionar:
+import { useAccessibleCompanies } from '@/hooks/useAccessibleCompanies';
+import { CompanyFilter } from '@/components/ui/company-filter';
+```
+
+**Estado:**
+```tsx
+// Substituir:
+const { activeCompanyId, activeCompanyName } = useActiveCompanyStore();
+
+// Por:
+const { companies: accessibleCompanies } = useAccessibleCompanies();
+const [selectedCompanyId, setSelectedCompanyId] = useState<string | 'all'>('all');
+
+const accessibleCompanyIds = useMemo(() => accessibleCompanies.map(c => c.id), [accessibleCompanies]);
+const queryCompanyIds = useMemo(() => {
+  return selectedCompanyId === 'all' ? accessibleCompanyIds : [selectedCompanyId];
+}, [selectedCompanyId, accessibleCompanyIds]);
+
+// Para exports - nome da empresa selecionada
+const selectedCompanyName = useMemo(() => {
+  if (selectedCompanyId === 'all') return 'All Companies';
+  return accessibleCompanies.find(c => c.id === selectedCompanyId)?.trade_name || 'Company';
+}, [selectedCompanyId, accessibleCompanies]);
+```
+
+**fetchLedgerEntries:**
+- Substituir `activeCompanyId` por lógica multi-company
+- Ajustar `queryFinancialLedger` para aceitar array ou single company
+
+**Exports (CSV/PDF):**
+- Substituir `activeCompanyName` por `selectedCompanyName`
+- Exibir nome correto da empresa no relatório
+
+**Header (Linha ~697-750):**
+```tsx
+<div className="flex items-center justify-between gap-3 flex-wrap pb-1">
+  <div className="flex items-center gap-3">
+    <SearchInput ... />
+    
+    {/* NOVO - Company Filter após search */}
+    <CompanyFilter
+      value={selectedCompanyId}
+      onChange={setSelectedCompanyId}
+      showAllOption={accessibleCompanies.length > 1}
+      allLabel="All Companies"
+      className="w-[180px] h-8 text-xs flex-shrink-0"
+    />
+    
+    <DatePickerDialog ... />
+    ...
+  </div>
+</div>
+```
+
+---
+
+## 3. Work & Time Tracking (`src/pages/WorkEarningsSummary.tsx` + `src/hooks/useWorkEarnings.ts`)
+
+### Mudanças em `WorkEarningsSummary.tsx`
+
+**Imports:**
+```tsx
+import { useAccessibleCompanies } from '@/hooks/useAccessibleCompanies';
+import { CompanyFilter } from '@/components/ui/company-filter';
+import SearchInput from '@/components/ui/search-input';
+```
+
+**Estado:**
+```tsx
+const { companies: accessibleCompanies } = useAccessibleCompanies();
+const [selectedCompanyId, setSelectedCompanyId] = useState<string | 'all'>('all');
+const [search, setSearch] = useState('');
+
+const accessibleCompanyIds = useMemo(() => accessibleCompanies.map(c => c.id), [accessibleCompanies]);
+const queryCompanyIds = useMemo(() => {
+  return selectedCompanyId === 'all' ? accessibleCompanyIds : [selectedCompanyId];
+}, [selectedCompanyId, accessibleCompanyIds]);
+```
+
+**Hook useWorkEarnings:**
+- Modificar para aceitar `companyIds: string[]` como parâmetro
+- Atualizar queries para filtrar por múltiplas empresas
+
+**Header:**
+```tsx
+<div className="flex items-center gap-2">
+  {/* NOVO - Search */}
   <SearchInput
-    placeholder="Search receipts..."
-    value={searchQuery}
-    onChange={setSearchQuery}
+    placeholder="Search employee..."
+    value={search}
+    onChange={setSearch}
     className="min-w-[120px] max-w-[200px] flex-shrink-0 h-8"
   />
   
-  {/* Company Filter - 2nd (NOVO) */}
+  {/* NOVO - Company Filter */}
   <CompanyFilter
     value={selectedCompanyId}
     onChange={setSelectedCompanyId}
@@ -117,65 +234,98 @@ useEffect(() => {
     className="w-[180px] h-8 text-xs flex-shrink-0"
   />
 
-  {/* Inline KPIs - permanece */}
-  <div className="flex items-center gap-2 flex-1">
-    ...
-  </div>
+  {/* KPIs existentes... */}
+</div>
+```
 
-  {/* Date Filter - permanece */}
-  <PeriodSelector value={dateRange} onChange={setDateRange} className="shrink-0" />
+### Mudanças em `useWorkEarnings.ts`
+
+```tsx
+export function useWorkEarnings(companyIds: string[]) {
+  // ...
   
-  {/* Generate Button - permanece */}
-  <Button onClick={() => setGenerateModalOpen(true)} size="sm" className="gap-1.5 h-8">
-    <Plus className="h-4 w-4" />
-    Generate Receipt
-  </Button>
+  const fetchData = useCallback(async () => {
+    if (companyIds.length === 0) {
+      setIsLoading(false);
+      return;
+    }
+    
+    // Build query with company filter
+    let jobsQuery = supabase.from('jobs').select(...);
+    
+    if (companyIds.length === 1) {
+      jobsQuery = jobsQuery.eq('company_id', companyIds[0]);
+    } else {
+      jobsQuery = jobsQuery.in('company_id', companyIds);
+    }
+    
+    // ... resto do código
+  }, [companyIds, period, excludeVisits]);
+}
+```
+
+---
+
+## 4. Completed Services (`src/pages/CompletedServices.tsx`)
+
+### Mudanças Necessárias
+
+**Imports:**
+```tsx
+import { useAccessibleCompanies } from '@/hooks/useAccessibleCompanies';
+import { CompanyFilter } from '@/components/ui/company-filter';
+```
+
+**Estado:**
+```tsx
+const { companies: accessibleCompanies } = useAccessibleCompanies();
+const [selectedCompanyId, setSelectedCompanyId] = useState<string | 'all'>('all');
+
+const accessibleCompanyIds = useMemo(() => accessibleCompanies.map(c => c.id), [accessibleCompanies]);
+const queryCompanyIds = useMemo(() => {
+  return selectedCompanyId === 'all' ? accessibleCompanyIds : [selectedCompanyId];
+}, [selectedCompanyId, accessibleCompanyIds]);
+```
+
+**Nota:** A RPC `get_completed_services_pending_invoices` precisará ser atualizada para aceitar parâmetro de company_ids ou o filtro será aplicado no cliente.
+
+**Header:**
+```tsx
+<div className="flex items-center gap-2">
+  <SearchInput ... />
+  
+  {/* NOVO */}
+  <CompanyFilter
+    value={selectedCompanyId}
+    onChange={setSelectedCompanyId}
+    showAllOption={accessibleCompanies.length > 1}
+    allLabel="All Companies"
+    className="w-[180px] h-8 text-xs flex-shrink-0"
+  />
+  
+  {/* resto... */}
 </div>
 ```
 
 ---
 
-### Resumo das Mudanças
+## Resumo das Mudanças por Arquivo
 
-| Arquivo | Mudança |
-|---------|---------|
-| `src/pages/Receipts.tsx` | Adicionar importações: `useAccessibleCompanies`, `CompanyFilter`, `SearchInput` |
-| `src/pages/Receipts.tsx` | Adicionar estado: `selectedCompanyId`, `accessibleCompanyIds`, `queryCompanyIds` |
-| `src/pages/Receipts.tsx` | Atualizar `fetchReceipts` para filtrar por `company_id` |
-| `src/pages/Receipts.tsx` | Atualizar `useEffect` para incluir `accessibleCompanyIds` e `selectedCompanyId` |
-| `src/pages/Receipts.tsx` | Atualizar header: Trocar Input por SearchInput + adicionar CompanyFilter após search |
+| Arquivo | Tipo de Mudança |
+|---------|-----------------|
+| `src/pages/PaymentsCollections.tsx` | Migrar de `activeCompanyStore` para `CompanyFilter` local |
+| `src/pages/Financial.tsx` | Migrar de `activeCompanyStore` para `CompanyFilter` local + atualizar exports |
+| `src/pages/WorkEarningsSummary.tsx` | Adicionar `CompanyFilter` + `SearchInput` + passar para hook |
+| `src/hooks/useWorkEarnings.ts` | Aceitar `companyIds[]` como parâmetro ao invés de buscar do profile |
+| `src/pages/CompletedServices.tsx` | Adicionar `CompanyFilter` após Search |
 
 ---
 
-### Resultado Visual Esperado
+## Benefícios
 
-```text
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│ [🔍 Search...] [🏢 All Companies ▼] [Total 6] [$1502.90] [Sent 6/6] [📅] [+ Generate]   │
-└────────────────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Fluxo de Dados
-
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│ USUÁRIO ABRE RECEIPTS                                                   │
-├─────────────────────────────────────────────────────────────────────────┤
-│ 1. useAccessibleCompanies carrega empresas                             │
-│ 2. selectedCompanyId = 'all' (padrão)                                  │
-│ 3. accessibleCompanyIds = ['uuid1', 'uuid2', ...]                      │
-│ 4. queryCompanyIds = accessibleCompanyIds (pois 'all')                 │
-│ 5. useEffect dispara fetchReceipts()                                   │
-│ 6. Query: .in('company_id', queryCompanyIds)                           │
-│ 7. Dados renderizam automaticamente ✓                                  │
-├─────────────────────────────────────────────────────────────────────────┤
-│ USUÁRIO SELECIONA "TIDY OUT"                                            │
-├─────────────────────────────────────────────────────────────────────────┤
-│ 1. selectedCompanyId = 'uuid-tidy-out'                                 │
-│ 2. queryCompanyIds = ['uuid-tidy-out']                                 │
-│ 3. useEffect dispara fetchReceipts()                                   │
-│ 4. Query: .eq('company_id', 'uuid-tidy-out')                           │
-│ 5. Dados filtrados renderizam ✓                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+1. **Consistência Visual**: Todas as telas operacionais seguem o mesmo padrão de layout
+2. **Flexibilidade**: Usuários podem alternar entre empresas sem sair da tela
+3. **Consolidação**: "All Companies" permite visão consolidada de dados multi-tenant
+4. **Relatórios Corretos**: Exports (CSV/PDF) no Ledger refletem a empresa selecionada
+5. **Dados em Tempo Real**: Alternar empresa atualiza dados imediatamente
 
