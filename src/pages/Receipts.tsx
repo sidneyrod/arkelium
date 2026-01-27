@@ -54,6 +54,7 @@ interface PaymentReceipt {
   sent_to_email: string | null;
   notes: string | null;
   created_at: string;
+  company_name?: string;
   client_name?: string;
   cleaner_name?: string;
   client_email?: string;
@@ -96,6 +97,7 @@ const Receipts = () => {
         .from('payment_receipts')
         .select(`
           *,
+          companies:company_id(trade_name),
           clients(name, email),
           profiles:cleaner_id(first_name, last_name)
         `)
@@ -118,6 +120,7 @@ const Receipts = () => {
       
       const mappedData = (data || []).map(r => ({
         ...r,
+        company_name: (r.companies as any)?.trade_name || '-',
         client_name: (r.clients as any)?.name || '-',
         client_email: (r.clients as any)?.email || null,
         cleaner_name: (r.profiles as any) 
@@ -145,6 +148,7 @@ const Receipts = () => {
     const query = searchQuery.toLowerCase();
     return (
       receipt.receipt_number.toLowerCase().includes(query) ||
+      (receipt.company_name || '').toLowerCase().includes(query) ||
       (receipt.client_name || '').toLowerCase().includes(query) ||
       (receipt.cleaner_name || '').toLowerCase().includes(query) ||
       receipt.payment_method.toLowerCase().includes(query)
@@ -312,6 +316,7 @@ const Receipts = () => {
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <TableHead className="text-xs font-semibold uppercase tracking-wider">Receipt #</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider">Company</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider">Client</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Cleaner</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider">Service Date</TableHead>
@@ -329,6 +334,7 @@ const Receipts = () => {
                   onClick={() => handleViewReceipt(receipt)}
                 >
                   <TableCell className="font-mono font-medium">{receipt.receipt_number}</TableCell>
+                  <TableCell className="text-sm">{receipt.company_name}</TableCell>
                   <TableCell>{receipt.client_name}</TableCell>
                   <TableCell className="hidden md:table-cell">{receipt.cleaner_name}</TableCell>
                   <TableCell>{format(new Date(receipt.service_date), 'MMM d, yyyy')}</TableCell>

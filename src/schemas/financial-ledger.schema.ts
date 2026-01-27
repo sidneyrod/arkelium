@@ -182,10 +182,11 @@ function safeNumber(primary: unknown, fallback: unknown): number {
  * column names (gross_amount, net_amount, deductions) to eliminate
  * the need for fallback logic here.
  */
-export function mapToLedgerEntries(rows: FinancialLedgerRow[]): LedgerEntry[] {
+export function mapToLedgerEntries(rows: FinancialLedgerRow[], companyNameMap?: Record<string, string>): LedgerEntry[] {
   return rows.map((row): LedgerEntry => ({
     id: row.id,
     companyId: row.company_id,
+    companyName: companyNameMap?.[row.company_id] || 'Unknown',
     clientId: row.client_id ?? null,
     cleanerId: row.cleaner_id ?? null,
     jobId: row.job_id ?? null,

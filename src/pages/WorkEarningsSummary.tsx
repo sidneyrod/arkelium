@@ -69,7 +69,10 @@ const WorkEarningsSummary = () => {
   const filteredSummaries = useMemo(() => {
     if (!search.trim()) return cleanerSummaries;
     const q = search.toLowerCase();
-    return cleanerSummaries.filter(c => c.cleanerName.toLowerCase().includes(q));
+    return cleanerSummaries.filter(c => 
+      c.cleanerName.toLowerCase().includes(q) ||
+      (c.companyName || '').toLowerCase().includes(q)
+    );
   }, [cleanerSummaries, search]);
 
   const handleCleanerClick = (cleaner: CleanerWorkSummary) => {
@@ -213,6 +216,7 @@ const WorkEarningsSummary = () => {
               <TableHeader>
                 <TableRow className="text-[11px] uppercase tracking-wide hover:bg-transparent">
                   <TableHead className="w-[200px]">Employee</TableHead>
+                  <TableHead className="w-[140px]">Company</TableHead>
                   <TableHead className="w-[100px]">Role</TableHead>
                   <TableHead className="text-right w-[80px]">Jobs</TableHead>
                   <TableHead className="text-right w-[100px]">Hours</TableHead>
@@ -239,6 +243,9 @@ const WorkEarningsSummary = () => {
                         </Avatar>
                         <span className="font-medium">{cleaner.cleanerName}</span>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-muted-foreground">{cleaner.companyName}</span>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-[9px] capitalize">

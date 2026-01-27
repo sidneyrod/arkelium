@@ -8,6 +8,7 @@ export interface LedgerColumnConfig {
 
 const DEFAULT_COLUMN_ORDER: LedgerColumnConfig[] = [
   { key: 'transactionDate', label: 'Date', visible: true },
+  { key: 'companyName', label: 'Company', visible: true },
   { key: 'eventType', label: 'Type', visible: true },
   { key: 'referenceNumber', label: 'Reference', visible: true },
   { key: 'clientName', label: 'Client', visible: true },

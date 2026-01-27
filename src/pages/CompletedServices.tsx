@@ -29,6 +29,7 @@ interface CompletedService {
   id: string;
   clientId: string;
   clientName: string;
+  companyName: string;
   address: string;
   date: string;
   duration: string;
@@ -92,6 +93,7 @@ const CompletedServices = () => {
       id: job.id,
       clientId: job.client_id,
       clientName: job.client_name || 'Unknown',
+      companyName: accessibleCompanies.find(c => c.id === job.company_id)?.trade_name || 'Unknown',
       address: job.address || 'No address',
       date: job.scheduled_date,
       duration: job.duration_minutes ? `${job.duration_minutes / 60}h` : '2h',
@@ -107,6 +109,7 @@ const CompletedServices = () => {
       const q = debouncedSearch.toLowerCase();
       mappedServices = mappedServices.filter(s =>
         s.clientName.toLowerCase().includes(q) ||
+        (s.companyName || '').toLowerCase().includes(q) ||
         s.employeeName.toLowerCase().includes(q) ||
         s.address.toLowerCase().includes(q)
       );
@@ -300,6 +303,13 @@ const CompletedServices = () => {
           onCheckedChange={(checked) => handleSelectService(service.id, checked as boolean)}
           onClick={(e) => e.stopPropagation()}
         />
+      ),
+    },
+    {
+      key: 'companyName',
+      header: 'Company',
+      render: (service) => (
+        <span className="text-sm">{service.companyName}</span>
       ),
     },
     {
