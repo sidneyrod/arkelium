@@ -310,7 +310,7 @@ const Invoices = () => {
   // Refresh when filters change
   useEffect(() => {
     refresh();
-  }, [dateRange, statusFilter, debouncedSearch]);
+  }, [dateRange, statusFilter, debouncedSearch, selectedCompanyId]);
 
   // Stats based on visible invoices (simplified - for accurate totals use RPC)
   const stats = useMemo(() => {
@@ -495,26 +495,26 @@ const Invoices = () => {
     <div className="p-2 lg:p-3 space-y-2">
       {/* Inline KPIs + Filters */}
       <div className="flex items-center gap-2 flex-wrap">
-        {/* Company Filter */}
+        {/* Search Input - 1st */}
+        <SearchInput
+          placeholder="Search invoices..."
+          value={search}
+          onChange={setSearch}
+          className="min-w-[120px] max-w-[200px] flex-shrink-0 h-8"
+        />
+        
+        {/* Company Filter - 2nd */}
         <CompanyFilter
           value={selectedCompanyId}
           onChange={setSelectedCompanyId}
           showAllOption={accessibleCompanies.length > 1}
           allLabel="All Companies"
-          className="w-[160px] h-8"
+          className="w-[180px] h-8 text-xs flex-shrink-0"
         />
         
-        {/* Search Input */}
-        <SearchInput
-          placeholder="Search invoices..."
-          value={search}
-          onChange={setSearch}
-          className="w-full sm:w-40"
-        />
-        
-        {/* Status Filter */}
+        {/* Status Filter - 3rd */}
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[130px] h-8">
+          <SelectTrigger className="w-[130px] h-8 flex-shrink-0">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
