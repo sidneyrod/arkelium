@@ -1,229 +1,193 @@
 
-## Plano: Seleção Dinâmica de Empresa no Dashboard
 
-### Visão Geral do Requisito
+## Plano: Seleção de Empresa Dinâmica com Popup de Preferência
 
-O usuário precisa:
-1. **Empresa Padrão Configurável**: Opção nas Preferências da Empresa para definir qual empresa inicia os dados do Dashboard ao logar
-2. **Seletor Dinâmico no Dashboard**: Opção para trocar a empresa ao lado do filtro de data para análise dinâmica
-3. **Filtro de Data**: Seguir padrão existente (1º dia do mês até hoje) - já implementado via `getDefaultDateRange()`
+### Problemas Identificados
 
----
-
-### Arquitetura Atual
-
-| Componente | Função |
-|------------|--------|
-| `activeCompanyStore` | Armazena empresa ativa globalmente (persistido no localStorage) |
-| `useAccessibleCompanies` | Retorna empresas acessíveis ao usuário |
-| `TopBar.tsx` | Define empresa inicial baseada no `profile.company_id` |
-| `Dashboard.tsx` | Usa `activeCompanyId` do store para buscar dados |
-| `company_estimate_config` | Preferências da empresa (invoice, cash, etc.) |
+| Problema | Localização | Causa |
+|----------|-------------|-------|
+| **Empresa sempre selecionada automaticamente** | `Dashboard.tsx` linhas 109-111 | O fallback seleciona a primeira empresa mesmo sem preferência |
+| **Popup de configuração inexistente** | - | Não existe lógica para detectar primeira seleção sem preferência |
+| **"Select Company" nunca aparece** | - | Devido ao auto-select de fallback |
 
 ---
 
-### Mudanças Necessárias
+### Arquitetura da Solução
 
-#### 1. Schema do Banco de Dados
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│                     FLUXO DE INICIALIZAÇÃO                          │
+├─────────────────────────────────────────────────────────────────────┤
+│ 1. Dashboard monta                                                  │
+│ 2. Busca profiles.default_dashboard_company_id                      │
+│    ├── Se existe e tem acesso → seleciona                           │
+│    └── Se NÃO existe → mantém null (mostra "Select Company")        │
+│ 3. selectedCompanyId = null → exibe placeholder no CompanyFilter    │
+└─────────────────────────────────────────────────────────────────────┘
 
-**Adicionar coluna na tabela `profiles`:**
-
-```sql
-ALTER TABLE profiles 
-ADD COLUMN default_dashboard_company_id uuid REFERENCES companies(id) ON DELETE SET NULL;
+┌─────────────────────────────────────────────────────────────────────┐
+│                  FLUXO DE PRIMEIRA SELEÇÃO                          │
+├─────────────────────────────────────────────────────────────────────┤
+│ 1. Usuário clica no CompanyFilter                                   │
+│ 2. Seleciona uma empresa                                            │
+│ 3. Sistema verifica: hasDefaultPreference === false?                │
+│    ├── SIM → Abre AlertDialog perguntando se quer salvar            │
+│    │         como padrão e ir para Preferências                     │
+│    └── NÃO → Apenas atualiza dados                                  │
+│ 4. Dados do Dashboard recarregam dinamicamente                      │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-**Motivação**: A preferência de empresa padrão do Dashboard é específica do **usuário**, não da empresa. Assim, cada usuário pode escolher qual empresa ele quer ver primeiro ao logar.
+---
+
+### Arquivos a Modificar
+
+| Arquivo | Mudanças |
+|---------|----------|
+| `src/pages/Dashboard.tsx` | (1) Não fazer fallback automático se não tiver preferência; (2) Adicionar estado para controle de popup; (3) Adicionar AlertDialog para oferecer configuração; (4) Handler para mudança de empresa com verificação de preferência |
 
 ---
 
-#### 2. Company/Preferences - Novo Card "Dashboard Settings"
+### Mudanças Detalhadas
 
-**Arquivo**: `src/components/company/PreferencesTab.tsx`
-
-Adicionar nova seção para selecionar empresa padrão do Dashboard:
+#### 1. Estado para Controle de Preferência
 
 ```tsx
-{/* Dashboard Settings */}
-<Card className="border-border/50">
-  <CardHeader className="pb-3">
-    <CardTitle className="text-sm font-medium flex items-center gap-2">
-      <LayoutDashboard className="h-4 w-4 text-primary" />
-      Dashboard Settings
-    </CardTitle>
-    <CardDescription className="text-xs">
-      Configure your dashboard startup preferences
-    </CardDescription>
-  </CardHeader>
-  <CardContent className="space-y-4">
-    <div className="flex items-start justify-between p-4 rounded-lg border border-border/50 bg-muted/30">
-      <div className="flex-1 pr-4">
-        <Label htmlFor="default-company" className="text-sm font-medium">
-          Default Dashboard Company
-        </Label>
-        <p className="text-xs text-muted-foreground mt-1">
-          Select which company data will be displayed when you open the Dashboard.
-        </p>
-      </div>
-      <Select value={defaultDashboardCompany} onValueChange={setDefaultDashboardCompany}>
-        <SelectTrigger className="w-[200px]">
-          <SelectValue placeholder="Select company" />
-        </SelectTrigger>
-        <SelectContent>
-          {accessibleCompanies.map(company => (
-            <SelectItem key={company.id} value={company.id}>
-              {company.trade_name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  </CardContent>
-</Card>
+// Novos estados
+const [hasDefaultPreference, setHasDefaultPreference] = useState<boolean | null>(null);
+const [showPreferenceDialog, setShowPreferenceDialog] = useState(false);
 ```
 
----
+#### 2. Modificar Lógica de Inicialização (linhas 78-128)
 
-#### 3. Dashboard - Adicionar CompanyFilter no Header
+**Antes:**
+```tsx
+// 3. Fallback to first accessible company
+if (activeCompanies.length > 0) {
+  setSelectedCompanyId(activeCompanies[0].id);
+  setIsInitialized(true);
+}
+```
 
-**Arquivo**: `src/pages/Dashboard.tsx`
+**Depois:**
+```tsx
+// 3. Se não tem preferência, NÃO selecionar automaticamente
+// Deixar null para mostrar "Select Company"
+setHasDefaultPreference(false);
+setIsInitialized(true);
+// Não define selectedCompanyId - fica null
+```
 
-Modificar a row de header para incluir o seletor de empresa:
+#### 3. Handler de Mudança de Empresa
 
 ```tsx
-{/* Header Row */}
-<div className="flex flex-wrap items-center justify-between gap-4">
-  <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
+const handleCompanyChange = (companyId: string) => {
+  const newCompanyId = companyId === 'all' ? null : companyId;
   
-  {/* Company + Period Filters */}
-  <div className="flex items-center gap-3">
-    <CompanyFilter
-      value={selectedCompanyId || ''}
-      onChange={(id) => setSelectedCompanyId(id === 'all' ? null : id)}
-      showAllOption={false}
-      placeholder="Select Company"
-      className="w-[200px]"
-    />
-    <PeriodSelector value={period} onChange={setPeriod} />
-  </div>
-</div>
+  // Se é a primeira seleção e não tem preferência salva
+  if (newCompanyId && hasDefaultPreference === false) {
+    setShowPreferenceDialog(true);
+  }
+  
+  setSelectedCompanyId(newCompanyId);
+};
 ```
 
-**Layout Visual:**
-```
-┌──────────────────────────────────────────────────────────────────┐
-│ Dashboard                  [📦 TidyOut ▼] [📅 Jan 1 - Jan 27 ▼] │
-└──────────────────────────────────────────────────────────────────┘
-```
-
----
-
-#### 4. Lógica de Inicialização
-
-**Arquivo**: `src/pages/Dashboard.tsx`
+#### 4. Adicionar AlertDialog para Preferência
 
 ```tsx
-const Dashboard = () => {
-  const { user } = useAuth();
-  const { activeCompanyId, setActiveCompany } = useActiveCompanyStore();
-  const { companies, getDefaultCompanyId } = useAccessibleCompanies();
-  
-  // Local state for dashboard company filter
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
-  
-  // Initialize with user's preferred default company
-  useEffect(() => {
-    const initializeDefaultCompany = async () => {
-      if (selectedCompanyId) return; // Already initialized
-      
-      // 1. Try user's configured default
-      const { data } = await supabase
-        .from('profiles')
-        .select('default_dashboard_company_id')
-        .eq('id', user?.id)
-        .single();
-      
-      if (data?.default_dashboard_company_id) {
-        setSelectedCompanyId(data.default_dashboard_company_id);
-        return;
-      }
-      
-      // 2. Fallback to activeCompanyId or first accessible
-      setSelectedCompanyId(activeCompanyId || getDefaultCompanyId());
-    };
+{/* Dialog de Configuração de Preferência */}
+<AlertDialog open={showPreferenceDialog} onOpenChange={setShowPreferenceDialog}>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+      <AlertDialogTitle className="flex items-center gap-2">
+        <Settings2 className="h-5 w-5 text-primary" />
+        Set Default Dashboard Company
+      </AlertDialogTitle>
+      <AlertDialogDescription>
+        You haven't configured a default company for your Dashboard yet.
+        Would you like to set this company as your default and go to 
+        Preferences to complete the setup?
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel>Not Now</AlertDialogCancel>
+      <AlertDialogAction onClick={handleGoToPreferences}>
+        Go to Preferences
+      </AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
+```
+
+#### 5. Handler para Navegação às Preferências
+
+```tsx
+const handleGoToPreferences = async () => {
+  // Salvar a empresa selecionada como padrão
+  if (selectedCompanyId && user?.id) {
+    await supabase
+      .from('profiles')
+      .update({ default_dashboard_company_id: selectedCompanyId })
+      .eq('id', user.id);
     
-    initializeDefaultCompany();
-  }, [user?.id, companies]);
+    setHasDefaultPreference(true);
+  }
   
-  // Fetch dashboard data using selectedCompanyId
-  const fetchDashboardData = useCallback(async () => {
-    if (!selectedCompanyId) return;
-    
-    const companyId = selectedCompanyId;
-    // ... rest of fetch logic
-  }, [selectedCompanyId, period]);
+  setShowPreferenceDialog(false);
+  navigate('/company?tab=preferences');
 };
 ```
 
 ---
 
-### Resumo dos Arquivos a Modificar
+### Imports Adicionais
 
-| Arquivo | Mudança |
-|---------|---------|
-| **Migração SQL** | Adicionar `default_dashboard_company_id` na tabela `profiles` |
-| `src/pages/Dashboard.tsx` | Adicionar `CompanyFilter` no header + lógica de inicialização |
-| `src/components/company/PreferencesTab.tsx` | Adicionar card "Dashboard Settings" para selecionar empresa padrão |
-| `src/hooks/useCompanyPreferences.ts` | (Opcional) Adicionar preferência de empresa padrão do usuário |
-
----
-
-### Fluxo de Dados
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         LOGIN                                       │
-├─────────────────────────────────────────────────────────────────────┤
-│ 1. User logs in                                                     │
-│ 2. AuthContext loads profile                                        │
-│ 3. Dashboard mounts → reads profiles.default_dashboard_company_id   │
-│ 4. If null → fallback to activeCompanyId or first accessible        │
-│ 5. Dashboard fetches data for selectedCompanyId                     │
-└─────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────┐
-│                   DYNAMIC COMPANY SWITCH                            │
-├─────────────────────────────────────────────────────────────────────┤
-│ 1. User clicks CompanyFilter on Dashboard                           │
-│ 2. Selects different company                                        │
-│ 3. setSelectedCompanyId triggers fetchDashboardData                 │
-│ 4. KPIs, charts, alerts update for new company                      │
-│ 5. (Does NOT change global activeCompanyId)                         │
-└─────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────┐
-│              CONFIGURE DEFAULT (Company/Preferences)                │
-├─────────────────────────────────────────────────────────────────────┤
-│ 1. User opens Company Profile → Preferences tab                     │
-│ 2. Selects "Default Dashboard Company"                              │
-│ 3. Saves → UPDATE profiles SET default_dashboard_company_id = ?     │
-│ 4. Next login → Dashboard auto-selects this company                 │
-└─────────────────────────────────────────────────────────────────────┘
+```tsx
+import { Settings2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 ```
 
 ---
 
-### Considerações de Segurança
+### Comportamento Final
 
-1. **RLS**: A coluna `default_dashboard_company_id` só pode ser atualizada pelo próprio usuário
-2. **Validação**: Ao salvar, verificar se o usuário tem acesso à empresa selecionada via `user_roles`
-3. **FK Constraint**: `ON DELETE SET NULL` para evitar referências órfãs se empresa for arquivada
+| Cenário | Comportamento |
+|---------|---------------|
+| **Primeiro login (sem preferência)** | CompanyFilter mostra "Select Company" |
+| **Primeira seleção** | Popup pergunta se quer configurar preferência |
+| **Usuário clica "Go to Preferences"** | Salva preferência e redireciona para `/company?tab=preferences` |
+| **Usuário clica "Not Now"** | Fecha popup, continua usando a empresa selecionada |
+| **Login subsequente (com preferência)** | Carrega automaticamente a empresa preferida |
+| **Trocar empresa após configurar** | Apenas troca, sem popup |
 
 ---
 
-### Resultado Esperado
+### Verificação de Dados Dinâmicos
 
-1. **Ao logar**: Dashboard carrega automaticamente os dados da empresa configurada como padrão pelo usuário
-2. **Durante uso**: Usuário pode trocar a empresa dinamicamente sem sair do Dashboard
-3. **Filtro de data**: Mantém comportamento padrão (1º do mês até hoje)
-4. **Persistência**: A preferência fica salva no perfil do usuário
+A lógica de `fetchDashboardData` (linha 160) já está correta:
+- Usa `selectedCompanyId` como filtro
+- Verifica `if (!selectedCompanyId) return;` - não busca dados sem empresa
+- Todas as queries usam `.eq('company_id', companyId)`
+
+Os dados já são dinâmicos - o gráfico mostrará dados da empresa selecionada assim que uma for escolhida.
+
+---
+
+### Resumo da Implementação
+
+1. **Remover fallback automático** na inicialização
+2. **Adicionar estado** para rastrear se tem preferência
+3. **Adicionar AlertDialog** para oferecer configuração
+4. **Modificar onChange** do CompanyFilter para detectar primeira seleção
+5. **Handler de navegação** que salva preferência e redireciona
+
