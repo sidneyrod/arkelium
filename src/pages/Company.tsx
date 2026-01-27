@@ -74,7 +74,7 @@ const Company = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'branding');
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'profile');
   
   // Active company store (global state)
   const { 
