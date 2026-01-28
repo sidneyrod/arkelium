@@ -85,7 +85,8 @@ const Sidebar = () => {
                path.startsWith('/my-payroll')) {
       setOpenGroup('Financial');
     } else if (path.startsWith('/access-roles') || path.startsWith('/users') || 
-               path.startsWith('/company') || path.startsWith('/settings')) {
+               path.startsWith('/companies') || path.startsWith('/business') || 
+               path.startsWith('/settings')) {
       setOpenGroup('Administration');
     }
   }, [location.pathname]);
@@ -183,7 +184,8 @@ const Sidebar = () => {
   const adminItems: MenuItem[] = [];
   
   if (isAdmin) {
-    adminItems.push({ path: '/company', label: 'Company Profile', icon: Building2 });
+    adminItems.push({ path: '/companies', label: 'Companies', icon: Building2 });
+    adminItems.push({ path: '/business', label: 'Business', icon: Settings2 });
     adminItems.push({ path: '/users', label: t.nav.users, icon: Users });
     adminItems.push({ path: '/access-roles', label: 'Access & Roles', icon: Shield });
     adminItems.push({ path: '/settings', label: t.nav.settings, icon: Settings });
