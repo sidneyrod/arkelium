@@ -10,7 +10,8 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import AppLayout from "@/components/layout/AppLayout";
 import ForcedPasswordChangeModal from "@/components/modals/ForcedPasswordChangeModal";
 import Dashboard from "./pages/Dashboard";
-import Company from "./pages/Company";
+import Companies from "./pages/Companies";
+import Business from "./pages/Business";
 import Users from "./pages/Users";
 import Clients from "./pages/Clients";
 import Contracts from "./pages/Contracts";
@@ -183,7 +184,8 @@ const AppRoutes = () => {
         
         {/* Admin-only routes (not permission-configurable) */}
         <Route path="/access-roles" element={<AdminRoute><AccessRoles /></AdminRoute>} />
-        <Route path="/company" element={<AdminRoute><Company /></AdminRoute>} />
+        <Route path="/companies" element={<AdminRoute><Companies /></AdminRoute>} />
+        <Route path="/business" element={<AdminRoute><Business /></AdminRoute>} />
         <Route path="/users" element={<AdminRoute><Users /></AdminRoute>} />
         <Route path="/settings" element={<AdminRoute><Settings /></AdminRoute>} />
         

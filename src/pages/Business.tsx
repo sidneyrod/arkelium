@@ -1,22 +1,19 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useAuth } from '@/contexts/AuthContext';
-import { useWorkspaceStore } from '@/stores/workspaceStore';
-import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
+import { useAccessibleCompanies } from '@/hooks/useAccessibleCompanies';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
+import { CompanyFilter } from '@/components/ui/company-filter';
+import PageHeader from '@/components/ui/page-header';
 import { 
-  Building2, 
-  Upload, 
   DollarSign, 
   Palette, 
   Settings2, 
@@ -27,16 +24,13 @@ import {
   GripVertical,
   Calendar,
   Loader2,
-  FileText,
   Zap,
-  Sliders
+  Sliders,
+  Upload,
+  Building2
 } from 'lucide-react';
-import { CANADIAN_TIMEZONES } from '@/hooks/useTimezone';
 import PreferencesTab from '@/components/company/PreferencesTab';
 import ActivitiesTab from '@/components/company/ActivitiesTab';
-import CompanyListTable, { CompanyListItem } from '@/components/company/CompanyListTable';
-import EditCompanyModal, { CompanyFormData } from '@/components/company/EditCompanyModal';
-import ConfirmDialog from '@/components/modals/ConfirmDialog';
 
 interface CompanyBranding {
   id?: string;
@@ -70,42 +64,18 @@ interface ChecklistItem {
   display_order: number;
 }
 
-const Company = () => {
+const Business = () => {
   const { t } = useLanguage();
-  const { user } = useAuth();
   const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'profile');
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'activities');
   
-  // Active company store (global state)
-  const { 
-    activeCompanyId, 
-    setActiveCompany, 
-    setCompanies: setGlobalCompanies 
-  } = useActiveCompanyStore();
+  // Company filter state
+  const { companies: accessibleCompanies, activeCompanies, getDefaultCompanyId } = useAccessibleCompanies();
+  const accessibleCompanyIds = accessibleCompanies.map(c => c.id);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
-  const [isLoadingCompanies, setIsLoadingCompanies] = useState(true);
-  const [hasChanges, setHasChanges] = useState(false);
-  
-  // Companies list (full data for table)
-  const [companies, setCompanies] = useState<CompanyListItem[]>([]);
-  
-  // Active company profile data (for tabs)
-  const [profile, setProfile] = useState<CompanyFormData>({
-    trade_name: '',
-    legal_name: '',
-    address: '',
-    city: '',
-    province: 'Ontario',
-    postal_code: '',
-    email: '',
-    phone: '',
-    website: '',
-    timezone: 'America/Toronto'
-  });
-  const [initialProfile, setInitialProfile] = useState<CompanyFormData | null>(null);
   
   const [branding, setBranding] = useState<CompanyBranding>({
     logo_url: null,
@@ -113,14 +83,12 @@ const Company = () => {
     secondary_color: '#2d5a45',
     accent_color: '#4ade80'
   });
-  const [initialBranding, setInitialBranding] = useState<CompanyBranding | null>(null);
   
   const [estimateConfig, setEstimateConfig] = useState<EstimateConfig>({
     default_hourly_rate: 35,
     tax_rate: 13,
     invoice_generation_mode: 'manual'
   });
-  const [initialEstimateConfig, setInitialEstimateConfig] = useState<EstimateConfig | null>(null);
   
   const [extraFees, setExtraFees] = useState<ExtraFee[]>([]);
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
@@ -139,100 +107,16 @@ const Company = () => {
   const [editingChecklist, setEditingChecklist] = useState<ChecklistItem | null>(null);
   const [checklistForm, setChecklistForm] = useState({ name: '' });
 
-  // Company modal state
-  const [companyModalOpen, setCompanyModalOpen] = useState(false);
-  const [companyModalMode, setCompanyModalMode] = useState<'create' | 'edit'>('create');
-  const [editingCompany, setEditingCompany] = useState<CompanyFormData | null>(null);
-  const [isSubmittingCompany, setIsSubmittingCompany] = useState(false);
-
-  // Delete confirmation dialog state
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [companyToDelete, setCompanyToDelete] = useState<CompanyListItem | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  // Check if there are changes
-  const checkForChanges = useCallback(() => {
-    if (!initialProfile || !initialBranding || !initialEstimateConfig) return false;
-    
-    const profileChanged = JSON.stringify(profile) !== JSON.stringify(initialProfile);
-    const brandingChanged = JSON.stringify({
-      logo_url: branding.logo_url,
-      primary_color: branding.primary_color,
-      secondary_color: branding.secondary_color,
-      accent_color: branding.accent_color
-    }) !== JSON.stringify({
-      logo_url: initialBranding.logo_url,
-      primary_color: initialBranding.primary_color,
-      secondary_color: initialBranding.secondary_color,
-      accent_color: initialBranding.accent_color
-    });
-    const estimateChanged = JSON.stringify({
-      default_hourly_rate: estimateConfig.default_hourly_rate,
-      tax_rate: estimateConfig.tax_rate,
-      invoice_generation_mode: estimateConfig.invoice_generation_mode
-    }) !== JSON.stringify({
-      default_hourly_rate: initialEstimateConfig.default_hourly_rate,
-      tax_rate: initialEstimateConfig.tax_rate,
-      invoice_generation_mode: initialEstimateConfig.invoice_generation_mode
-    });
-    
-    return profileChanged || brandingChanged || estimateChanged;
-  }, [profile, branding, estimateConfig, initialProfile, initialBranding, initialEstimateConfig]);
-
-  const { setTabUnsavedChanges } = useWorkspaceStore();
-
+  // Initialize selected company
   useEffect(() => {
-    const changed = checkForChanges();
-    setHasChanges(changed);
-    setTabUnsavedChanges('company', changed);
-  }, [checkForChanges, setTabUnsavedChanges]);
-
-  // Fetch all companies with full data
-  const fetchCompanies = useCallback(async () => {
-    setIsLoadingCompanies(true);
-    try {
-      const { data, error } = await supabase
-        .from('companies')
-        .select('id, company_code, trade_name, legal_name, city, email, phone, status, created_at')
-        .order('company_code', { ascending: true });
-      
-      if (error) throw error;
-      
-      if (data) {
-        setCompanies(data as CompanyListItem[]);
-        
-        // Sync to global store (for TopBar)
-        const activeCompanies = data.filter(c => c.status !== 'archived');
-        setGlobalCompanies(activeCompanies.map(c => ({ 
-          id: c.id, 
-          company_code: c.company_code, 
-          trade_name: c.trade_name 
-        })));
-        
-        // Set initial active company if not set
-        if (!activeCompanyId && data.length > 0) {
-          // Prefer user's profile company, or first company
-          const userCompany = data.find(c => c.id === user?.profile?.company_id);
-          const targetCompany = userCompany || data[0];
-          setActiveCompany(targetCompany.id, targetCompany.company_code, targetCompany.trade_name);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching companies:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load companies',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsLoadingCompanies(false);
+    if (!selectedCompanyId && accessibleCompanyIds.length > 0) {
+      const defaultId = getDefaultCompanyId();
+      setSelectedCompanyId(defaultId || accessibleCompanyIds[0]);
     }
-  }, [user?.profile?.company_id, activeCompanyId, setActiveCompany, setGlobalCompanies]);
+  }, [accessibleCompanyIds, selectedCompanyId, getDefaultCompanyId]);
 
+  // Fetch business group name
   useEffect(() => {
-    fetchCompanies();
-    
-    // Fetch business group name
     const fetchGroupName = async () => {
       const { data } = await supabase
         .from('app_settings')
@@ -244,49 +128,10 @@ const Company = () => {
     fetchGroupName();
   }, []);
 
-  // Load active company data (tabs data)
-  const loadActiveCompanyData = useCallback(async (companyId: string) => {
+  // Load company data when selectedCompanyId changes
+  const loadCompanyData = useCallback(async (companyId: string) => {
     setIsFetching(true);
     try {
-      // Fetch company profile
-      const { data: companyData, error: companyError } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('id', companyId)
-        .maybeSingle();
-
-      if (companyError) throw companyError;
-      
-      if (!companyData) {
-        console.warn('Company not found:', companyId);
-        toast({
-          title: 'Warning',
-          description: 'Company not accessible. Selecting another company.',
-          variant: 'destructive'
-        });
-        // Try to select another company
-        const otherCompany = companies.find(c => c.id !== companyId && c.status !== 'archived');
-        if (otherCompany) {
-          setActiveCompany(otherCompany.id, otherCompany.company_code, otherCompany.trade_name);
-        }
-        return;
-      }
-
-      const profileData: CompanyFormData = {
-        trade_name: companyData.trade_name || '',
-        legal_name: companyData.legal_name || '',
-        address: companyData.address || '',
-        city: companyData.city || '',
-        province: companyData.province || 'Ontario',
-        postal_code: companyData.postal_code || '',
-        email: companyData.email || '',
-        phone: companyData.phone || '',
-        website: companyData.website || '',
-        timezone: (companyData as any).timezone || 'America/Toronto'
-      };
-      setProfile(profileData);
-      setInitialProfile(profileData);
-
       // Fetch branding
       const { data: brandingData } = await supabase
         .from('company_branding')
@@ -295,24 +140,20 @@ const Company = () => {
         .maybeSingle();
 
       if (brandingData) {
-        const brandData: CompanyBranding = {
+        setBranding({
           id: brandingData.id,
           logo_url: brandingData.logo_url,
           primary_color: brandingData.primary_color || '#1a3d2e',
           secondary_color: brandingData.secondary_color || '#2d5a45',
           accent_color: brandingData.accent_color || '#4ade80'
-        };
-        setBranding(brandData);
-        setInitialBranding(brandData);
+        });
       } else {
-        const defaultBranding: CompanyBranding = {
+        setBranding({
           logo_url: null,
           primary_color: '#1a3d2e',
           secondary_color: '#2d5a45',
           accent_color: '#4ade80'
-        };
-        setBranding(defaultBranding);
-        setInitialBranding(defaultBranding);
+        });
       }
 
       // Fetch estimate config
@@ -323,22 +164,18 @@ const Company = () => {
         .maybeSingle();
 
       if (estimateData) {
-        const estConfig: EstimateConfig = {
+        setEstimateConfig({
           id: estimateData.id,
           default_hourly_rate: estimateData.default_hourly_rate || 35,
           tax_rate: estimateData.tax_rate || 13,
           invoice_generation_mode: (estimateData as any).invoice_generation_mode || 'manual'
-        };
-        setEstimateConfig(estConfig);
-        setInitialEstimateConfig(estConfig);
+        });
       } else {
-        const defaultConfig: EstimateConfig = {
+        setEstimateConfig({
           default_hourly_rate: 35,
           tax_rate: 13,
           invoice_generation_mode: 'manual'
-        };
-        setEstimateConfig(defaultConfig);
-        setInitialEstimateConfig(defaultConfig);
+        });
       }
 
       // Fetch extra fees
@@ -369,161 +206,15 @@ const Company = () => {
     } finally {
       setIsFetching(false);
     }
-  }, [companies]);
+  }, []);
 
-  // Load active company data when activeCompanyId changes
   useEffect(() => {
-    if (activeCompanyId) {
-      loadActiveCompanyData(activeCompanyId);
+    if (selectedCompanyId) {
+      loadCompanyData(selectedCompanyId);
     } else {
       setIsFetching(false);
     }
-  }, [activeCompanyId, loadActiveCompanyData]);
-
-  // Handle selecting a company from the list
-  const handleSelectCompany = (companyId: string) => {
-    const company = companies.find(c => c.id === companyId);
-    if (company) {
-      setActiveCompany(company.id, company.company_code, company.trade_name);
-    }
-  };
-
-  // Open modal to register new company
-  const handleOpenRegisterModal = () => {
-    setCompanyModalMode('create');
-    setEditingCompany(null);
-    setCompanyModalOpen(true);
-  };
-
-  // Open modal to edit company
-  const handleOpenEditModal = (company: CompanyListItem) => {
-    setCompanyModalMode('edit');
-    // Get full data if it's the active company, otherwise use list data
-    if (company.id === activeCompanyId) {
-      setEditingCompany({ ...profile });
-    } else {
-      // Fetch full data for non-active company
-      supabase
-        .from('companies')
-        .select('*')
-        .eq('id', company.id)
-        .maybeSingle()
-        .then(({ data }) => {
-          if (data) {
-            setEditingCompany({
-              trade_name: data.trade_name || '',
-              legal_name: data.legal_name || '',
-              address: data.address || '',
-              city: data.city || '',
-              province: data.province || 'Ontario',
-              postal_code: data.postal_code || '',
-              email: data.email || '',
-              phone: data.phone || '',
-              website: data.website || '',
-              timezone: (data as any).timezone || 'America/Toronto'
-            });
-          }
-        });
-    }
-    setCompanyModalOpen(true);
-  };
-
-  // Handle save company (create or edit)
-  const handleSaveCompany = async (data: CompanyFormData) => {
-    setIsSubmittingCompany(true);
-    try {
-      if (companyModalMode === 'create') {
-        // Use edge function for creating company
-        const { data: result, error } = await supabase.functions.invoke('setup-company', {
-          body: {
-            companyName: data.trade_name,
-            legalName: data.legal_name,
-            email: data.email || undefined,
-            phone: data.phone || undefined,
-            province: data.province,
-            address: data.address || undefined,
-            city: data.city || undefined,
-            postalCode: data.postal_code || undefined,
-            website: data.website || undefined,
-            timezone: data.timezone,
-            activities: data.activities || [],
-          }
-        });
-
-        if (error) throw error;
-        if (result?.error) throw new Error(result.error);
-
-        // Refresh companies list
-        await fetchCompanies();
-        
-        // Select the new company
-        if (result?.company?.id) {
-          const newCompany = result.company;
-          setActiveCompany(newCompany.id, newCompany.company_code, newCompany.trade_name);
-        }
-
-        toast({
-          title: t.common.success,
-          description: 'Company registered successfully'
-        });
-      } else {
-        // Edit existing company - find which company we're editing
-        const companyToEdit = companies.find(c => 
-          c.trade_name === editingCompany?.trade_name && 
-          c.legal_name === editingCompany?.legal_name
-        ) || (activeCompanyId ? { id: activeCompanyId } : null);
-        
-        if (!companyToEdit) throw new Error('Company not found');
-
-        const { error } = await supabase
-          .from('companies')
-          .update({
-            trade_name: data.trade_name,
-            legal_name: data.legal_name,
-            address: data.address,
-            city: data.city,
-            province: data.province,
-            postal_code: data.postal_code,
-            email: data.email,
-            phone: data.phone,
-            website: data.website,
-            timezone: data.timezone
-          })
-          .eq('id', companyToEdit.id);
-
-        if (error) throw error;
-
-        // Update local list
-        setCompanies(prev => prev.map(c => 
-          c.id === companyToEdit.id 
-            ? { ...c, trade_name: data.trade_name, legal_name: data.legal_name, city: data.city, email: data.email, phone: data.phone }
-            : c
-        ));
-
-        // If editing active company, update profile state
-        if (companyToEdit.id === activeCompanyId) {
-          setProfile(data);
-          setInitialProfile(data);
-        }
-
-        toast({
-          title: t.common.success,
-          description: 'Company updated successfully'
-        });
-      }
-
-      setCompanyModalOpen(false);
-    } catch (error) {
-      console.error('Error saving company:', error);
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to save company',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsSubmittingCompany(false);
-    }
-  };
+  }, [selectedCompanyId, loadCompanyData]);
 
   // Handle save business group name
   const handleSaveGroupName = async () => {
@@ -555,103 +246,9 @@ const Company = () => {
     }
   };
 
-  // Handle delete company with validation - opens confirmation dialog
-  const handleDeleteCompany = async (companyId: string) => {
-    try {
-      // Find company in list
-      const company = companies.find(c => c.id === companyId);
-      if (!company) return;
-
-      // First, check if company can be deleted via RPC
-      const { data: checkResult, error: checkError } = await supabase
-        .rpc('check_company_can_delete', { p_company_id: companyId });
-
-      if (checkError) {
-        console.error('Error checking company dependencies:', checkError);
-        toast({
-          title: 'Error',
-          description: 'Failed to verify if company can be deleted',
-          variant: 'destructive'
-        });
-        return;
-      }
-
-      const result = checkResult as { can_delete: boolean; reason: string | null; dependencies: Record<string, number> | null };
-
-      if (!result?.can_delete) {
-        const deps = result?.dependencies;
-        const depsList = deps ? Object.entries(deps)
-          .filter(([_, count]) => (count as number) > 0)
-          .map(([key, count]) => `${count} ${key.replace('_', ' ')}`)
-          .join(', ') : '';
-        
-        toast({
-          title: 'Cannot Delete Company',
-          description: `This company has associated data: ${depsList}. Remove all data first.`,
-          variant: 'destructive'
-        });
-        return;
-      }
-
-      // Company can be deleted - open confirmation dialog
-      setCompanyToDelete(company);
-      setDeleteDialogOpen(true);
-    } catch (error) {
-      console.error('Error checking company:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to check company status',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  // Actually performs the deletion after user confirms
-  const confirmDeleteCompany = async () => {
-    if (!companyToDelete) return;
-
-    setIsDeleting(true);
-    try {
-      const { error: deleteError } = await supabase
-        .from('companies')
-        .delete()
-        .eq('id', companyToDelete.id);
-
-      if (deleteError) throw deleteError;
-
-      // Update local list
-      setCompanies(prev => prev.filter(c => c.id !== companyToDelete.id));
-      
-      // If deleted company was active, switch to another
-      if (activeCompanyId === companyToDelete.id) {
-        const otherCompany = companies.find(c => c.id !== companyToDelete.id);
-        if (otherCompany) {
-          setActiveCompany(otherCompany.id, otherCompany.company_code, otherCompany.trade_name);
-        }
-      }
-
-      toast({
-        title: 'Company Deleted',
-        description: `"${companyToDelete.trade_name}" has been permanently removed.`,
-      });
-
-      setDeleteDialogOpen(false);
-    } catch (error) {
-      console.error('Error deleting company:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to delete company. Make sure you have admin permissions.',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsDeleting(false);
-      setCompanyToDelete(null);
-    }
-  };
-
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !activeCompanyId) {
+    if (!file || !selectedCompanyId) {
       toast({
         title: 'Error',
         description: 'No file selected or company not found',
@@ -673,7 +270,7 @@ const Company = () => {
         return;
       }
 
-      const fileName = `${activeCompanyId}/logo.${fileExt}`;
+      const fileName = `${selectedCompanyId}/logo.${fileExt}`;
       
       await supabase.storage.from('company-assets').remove([fileName]);
       
@@ -697,7 +294,7 @@ const Company = () => {
         .from('company_branding')
         .upsert({
           id: branding.id,
-          company_id: activeCompanyId,
+          company_id: selectedCompanyId,
           logo_url: publicUrl,
           primary_color: branding.primary_color,
           secondary_color: branding.secondary_color,
@@ -718,83 +315,7 @@ const Company = () => {
     }
   };
 
-  const handleSave = async () => {
-    if (!activeCompanyId || !hasChanges) return;
-    
-    setIsLoading(true);
-    try {
-      const { error: profileError } = await supabase
-        .from('companies')
-        .update({
-          trade_name: profile.trade_name,
-          legal_name: profile.legal_name,
-          address: profile.address,
-          city: profile.city,
-          province: profile.province,
-          postal_code: profile.postal_code,
-          email: profile.email,
-          phone: profile.phone,
-          website: profile.website,
-          timezone: profile.timezone
-        })
-        .eq('id', activeCompanyId);
-
-      if (profileError) throw profileError;
-
-      const { error: brandingError } = await supabase
-        .from('company_branding')
-        .upsert({
-          id: branding.id,
-          company_id: activeCompanyId,
-          logo_url: branding.logo_url,
-          primary_color: branding.primary_color,
-          secondary_color: branding.secondary_color,
-          accent_color: branding.accent_color
-        }, { onConflict: 'company_id' });
-
-      if (brandingError) throw brandingError;
-
-      const { error: estimateError } = await supabase
-        .from('company_estimate_config')
-        .upsert({
-          id: estimateConfig.id,
-          company_id: activeCompanyId,
-          default_hourly_rate: estimateConfig.default_hourly_rate,
-          tax_rate: estimateConfig.tax_rate,
-          invoice_generation_mode: estimateConfig.invoice_generation_mode
-        }, { onConflict: 'company_id' });
-
-      if (estimateError) throw estimateError;
-
-      setInitialProfile({ ...profile });
-      setInitialBranding({ ...branding });
-      setInitialEstimateConfig({ ...estimateConfig });
-      setHasChanges(false);
-
-      // Update companies list
-      setCompanies(prev => prev.map(c => 
-        c.id === activeCompanyId 
-          ? { ...c, trade_name: profile.trade_name, legal_name: profile.legal_name, city: profile.city, email: profile.email, phone: profile.phone }
-          : c
-      ));
-
-      toast({
-        title: t.common.success,
-        description: t.company.saved,
-      });
-    } catch (error) {
-      console.error('Error saving company data:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to save company data',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Fee handlers - fixed to use activeCompanyId
+  // Fee handlers
   const openFeeModal = (fee?: ExtraFee) => {
     if (fee) {
       setEditingFee(fee);
@@ -807,7 +328,7 @@ const Company = () => {
   };
 
   const handleSaveFee = async () => {
-    if (!feeForm.name.trim() || !activeCompanyId) {
+    if (!feeForm.name.trim() || !selectedCompanyId) {
       toast({ title: 'Error', description: 'Fee name is required', variant: 'destructive' });
       return;
     }
@@ -831,7 +352,7 @@ const Company = () => {
         const { data, error } = await supabase
           .from('extra_fees')
           .insert({
-            company_id: activeCompanyId,
+            company_id: selectedCompanyId,
             name: feeForm.name,
             amount: feeForm.amount,
             is_active: true,
@@ -854,14 +375,14 @@ const Company = () => {
   };
 
   const handleDeleteFee = async (id: string) => {
-    if (!activeCompanyId) return;
+    if (!selectedCompanyId) return;
     
     try {
       const { error } = await supabase
         .from('extra_fees')
         .delete()
         .eq('id', id)
-        .eq('company_id', activeCompanyId);
+        .eq('company_id', selectedCompanyId);
 
       if (error) throw error;
 
@@ -888,7 +409,7 @@ const Company = () => {
     }
   };
 
-  // Checklist handlers - fixed to use activeCompanyId
+  // Checklist handlers
   const openChecklistModal = (item?: ChecklistItem) => {
     if (item) {
       setEditingChecklist(item);
@@ -901,7 +422,7 @@ const Company = () => {
   };
 
   const handleSaveChecklist = async () => {
-    if (!checklistForm.name.trim() || !activeCompanyId) {
+    if (!checklistForm.name.trim() || !selectedCompanyId) {
       toast({ title: 'Error', description: 'Item name is required', variant: 'destructive' });
       return;
     }
@@ -925,7 +446,7 @@ const Company = () => {
         const { data, error } = await supabase
           .from('checklist_items')
           .insert({
-            company_id: activeCompanyId,
+            company_id: selectedCompanyId,
             name: checklistForm.name,
             is_active: true,
             display_order: maxOrder
@@ -946,14 +467,14 @@ const Company = () => {
   };
 
   const handleDeleteChecklist = async (id: string) => {
-    if (!activeCompanyId) return;
+    if (!selectedCompanyId) return;
     
     try {
       const { error } = await supabase
         .from('checklist_items')
         .delete()
         .eq('id', id)
-        .eq('company_id', activeCompanyId);
+        .eq('company_id', selectedCompanyId);
 
       if (error) throw error;
 
@@ -1000,56 +521,52 @@ const Company = () => {
     }
   };
 
+  const selectedCompanyName = activeCompanies.find(c => c.id === selectedCompanyId)?.trade_name || '';
+
   return (
     <div className="p-2 lg:p-3 space-y-2">
+      {/* Header with Company Filter */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <PageHeader 
+          title="Business Settings" 
+          description={selectedCompanyName ? `Configuring: ${selectedCompanyName}` : 'Select a company to configure'}
+        />
+        <CompanyFilter
+          value={selectedCompanyId}
+          onChange={setSelectedCompanyId}
+          showAllOption={false}
+          className="w-[200px]"
+        />
+      </div>
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <TabsList className="h-auto p-1 gap-2 bg-muted/50">
-          <TabsTrigger value="profile" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
-              <Building2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Profile</span>
-            </TabsTrigger>
-            <TabsTrigger value="activities" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
-              <Zap className="h-4 w-4" />
-              <span className="hidden sm:inline">Activities</span>
-            </TabsTrigger>
-            <TabsTrigger value="branding" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
-              <Palette className="h-4 w-4" />
-              <span className="hidden sm:inline">{t.company.branding}</span>
-            </TabsTrigger>
-            <TabsTrigger value="estimates" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
-              <Settings2 className="h-4 w-4" />
-              <span className="hidden sm:inline">{t.company.estimateConfig}</span>
-            </TabsTrigger>
-            <TabsTrigger value="schedule" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
-              <Calendar className="h-4 w-4" />
-              <span className="hidden sm:inline">Schedule Config</span>
-            </TabsTrigger>
-            <TabsTrigger value="preferences" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
-              <Sliders className="h-4 w-4" />
-              <span className="hidden sm:inline">Preferences</span>
-            </TabsTrigger>
-          </TabsList>
-        </div>
-
-
-        {/* Profile Tab - Company List */}
-        <TabsContent value="profile" className="space-y-4 mt-4">
-          <CompanyListTable
-            companies={companies}
-            activeCompanyId={activeCompanyId}
-            isLoading={isLoadingCompanies}
-            onSelectCompany={handleSelectCompany}
-            onEditCompany={handleOpenEditModal}
-            onDeleteCompany={handleDeleteCompany}
-            onRegisterCompany={handleOpenRegisterModal}
-          />
-        </TabsContent>
+        <TabsList className="h-auto p-1 gap-2 bg-muted/50">
+          <TabsTrigger value="activities" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
+            <Zap className="h-4 w-4" />
+            <span className="hidden sm:inline">Activities</span>
+          </TabsTrigger>
+          <TabsTrigger value="branding" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
+            <Palette className="h-4 w-4" />
+            <span className="hidden sm:inline">{t.company.branding}</span>
+          </TabsTrigger>
+          <TabsTrigger value="estimates" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
+            <Settings2 className="h-4 w-4" />
+            <span className="hidden sm:inline">{t.company.estimateConfig}</span>
+          </TabsTrigger>
+          <TabsTrigger value="schedule" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
+            <Calendar className="h-4 w-4" />
+            <span className="hidden sm:inline">Schedule Config</span>
+          </TabsTrigger>
+          <TabsTrigger value="preferences" className="gap-2 px-4 py-2 data-[state=active]:bg-background">
+            <Sliders className="h-4 w-4" />
+            <span className="hidden sm:inline">Preferences</span>
+          </TabsTrigger>
+        </TabsList>
 
         {/* Activities Tab */}
         <TabsContent value="activities" className="space-y-4 mt-4">
           <ActivitiesTab 
-            companyId={activeCompanyId} 
+            companyId={selectedCompanyId} 
             isLoading={isFetching}
           />
         </TabsContent>
@@ -1096,67 +613,67 @@ const Company = () => {
 
               {/* Company Logo Card */}
               <Card className="border-border/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <ImageIcon className="h-4 w-4 text-primary" />
-                  {t.company.logo}
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  {t.company.logoDescription}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-start gap-4">
-                  <div className="h-20 w-20 rounded-lg bg-muted flex items-center justify-center overflow-hidden border-2 border-dashed border-border shrink-0">
-                    {branding.logo_url ? (
-                      <img 
-                        src={branding.logo_url} 
-                        alt="Company logo" 
-                        className="h-full w-full object-contain"
-                      />
-                    ) : (
-                      <div className="text-center">
-                        <ImageIcon className="h-6 w-6 text-muted-foreground mx-auto mb-1" />
-                        <span className="text-xs text-muted-foreground">No logo</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleLogoUpload}
-                    />
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="gap-2 h-8"
-                      >
-                        <Upload className="h-3.5 w-3.5" />
-                        {t.company.uploadLogo}
-                      </Button>
-                      {branding.logo_url && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          className="text-destructive hover:text-destructive h-8"
-                          onClick={() => setBranding(prev => ({ ...prev, logo_url: null }))}
-                        >
-                          Remove
-                        </Button>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4 text-primary" />
+                    {t.company.logo}
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    {t.company.logoDescription}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-start gap-4">
+                    <div className="h-20 w-20 rounded-lg bg-muted flex items-center justify-center overflow-hidden border-2 border-dashed border-border shrink-0">
+                      {branding.logo_url ? (
+                        <img 
+                          src={branding.logo_url} 
+                          alt="Company logo" 
+                          className="h-full w-full object-contain"
+                        />
+                      ) : (
+                        <div className="text-center">
+                          <ImageIcon className="h-6 w-6 text-muted-foreground mx-auto mb-1" />
+                          <span className="text-xs text-muted-foreground">No logo</span>
+                        </div>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground max-w-xs">
-                      Recommended: PNG or SVG format, at least 200x200 pixels
-                    </p>
+                    <div className="space-y-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleLogoUpload}
+                      />
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="gap-2 h-8"
+                        >
+                          <Upload className="h-3.5 w-3.5" />
+                          {t.company.uploadLogo}
+                        </Button>
+                        {branding.logo_url && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="text-destructive hover:text-destructive h-8"
+                            onClick={() => setBranding(prev => ({ ...prev, logo_url: null }))}
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground max-w-xs">
+                        Recommended: PNG or SVG format, at least 200x200 pixels
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
             </>
           )}
         </TabsContent>
@@ -1364,7 +881,7 @@ const Company = () => {
         </TabsContent>
 
         {/* Preferences Tab */}
-        <PreferencesTab companyId={activeCompanyId} />
+        <PreferencesTab companyId={selectedCompanyId} />
       </Tabs>
 
       {/* Fee Modal */}
@@ -1375,27 +892,28 @@ const Company = () => {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Fee Name</Label>
+              <Label htmlFor="fee-name">Fee Name</Label>
               <Input
+                id="fee-name"
                 value={feeForm.name}
-                onChange={(e) => setFeeForm({ ...feeForm, name: e.target.value })}
-                placeholder="e.g., Pet Fee"
+                onChange={(e) => setFeeForm(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="e.g., Pet Fee, Green Cleaning..."
               />
             </div>
             <div className="space-y-2">
-              <Label>Amount ($)</Label>
+              <Label htmlFor="fee-amount">Amount ($)</Label>
               <Input
+                id="fee-amount"
                 type="number"
                 step="0.01"
                 value={feeForm.amount}
-                onChange={(e) => setFeeForm({ ...feeForm, amount: parseFloat(e.target.value) || 0 })}
-                placeholder="0.00"
+                onChange={(e) => setFeeForm(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setFeeModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveFee}>Save</Button>
+            <Button onClick={handleSaveFee}>{editingFee ? 'Save Changes' : 'Add Fee'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1404,51 +922,27 @@ const Company = () => {
       <Dialog open={checklistModalOpen} onOpenChange={setChecklistModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingChecklist ? 'Edit Checklist Item' : 'Add Checklist Item'}</DialogTitle>
+            <DialogTitle>{editingChecklist ? 'Edit Item' : 'Add Checklist Item'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Item Name</Label>
+              <Label htmlFor="checklist-name">Item Name</Label>
               <Input
+                id="checklist-name"
                 value={checklistForm.name}
-                onChange={(e) => setChecklistForm({ ...checklistForm, name: e.target.value })}
-                placeholder="e.g., Vacuum floors"
+                onChange={(e) => setChecklistForm(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="e.g., Vacuum floors, Clean bathrooms..."
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setChecklistModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveChecklist}>Save</Button>
+            <Button onClick={handleSaveChecklist}>{editingChecklist ? 'Save Changes' : 'Add Item'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Company Modal (Create/Edit) */}
-      <EditCompanyModal
-        open={companyModalOpen}
-        onOpenChange={setCompanyModalOpen}
-        company={editingCompany}
-        isLoading={isSubmittingCompany}
-        onSave={handleSaveCompany}
-        mode={companyModalMode}
-      />
-
-      {/* Delete Company Confirmation Dialog */}
-      <ConfirmDialog
-        open={deleteDialogOpen}
-        onOpenChange={(open) => {
-          setDeleteDialogOpen(open);
-          if (!open) setCompanyToDelete(null);
-        }}
-        onConfirm={confirmDeleteCompany}
-        title={`Delete "${companyToDelete?.trade_name || 'Company'}"?`}
-        description={`This will permanently delete the company "${companyToDelete?.trade_name}" (Code #${String(companyToDelete?.company_code || 0).padStart(3, '0')}). This action cannot be undone.`}
-        confirmText={isDeleting ? 'Deleting...' : 'Delete Company'}
-        cancelText="Cancel"
-        variant="destructive"
-      />
     </div>
   );
 };
 
-export default Company;
+export default Business;
