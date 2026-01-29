@@ -133,63 +133,70 @@ export default function EditCompanyModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto p-5">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-primary" />
+          <DialogTitle className="flex items-center gap-2 text-base font-semibold">
+            <Building2 className="h-4 w-4 text-primary" />
             {mode === 'create' ? 'Register New Company' : 'Edit Company'}
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4 py-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="trade_name">Company Name *</Label>
+        <div className="space-y-3 py-2">
+          {/* Row 1: Company Name + Legal Name */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="trade_name" className="text-xs">Company Name *</Label>
               <Input
                 id="trade_name"
                 value={formData.trade_name}
                 onChange={(e) => updateField('trade_name', e.target.value)}
                 placeholder="Trade name"
+                className="h-9"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="legal_name">Legal Name *</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="legal_name" className="text-xs">Legal Name *</Label>
               <Input
                 id="legal_name"
                 value={formData.legal_name}
                 onChange={(e) => updateField('legal_name', e.target.value)}
                 placeholder="Legal business name"
+                className="h-9"
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="address">Address</Label>
+          {/* Row 2: Address (full width) */}
+          <div className="space-y-1.5">
+            <Label htmlFor="address" className="text-xs">Address</Label>
             <Input
               id="address"
               value={formData.address}
               onChange={(e) => updateField('address', e.target.value)}
               placeholder="Street address"
+              className="h-9"
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
+          {/* Row 3: City + Province + Postal Code */}
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="city" className="text-xs">City</Label>
               <Input
                 id="city"
                 value={formData.city}
                 onChange={(e) => updateField('city', e.target.value)}
                 placeholder="City"
+                className="h-9"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="province">Province</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="province" className="text-xs">Province</Label>
               <Select 
                 value={formData.province} 
                 onValueChange={(value) => updateField('province', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue placeholder="Select province" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover">
@@ -199,56 +206,58 @@ export default function EditCompanyModal({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="postal_code">Postal Code</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="postal_code" className="text-xs">Postal Code</Label>
               <Input
                 id="postal_code"
                 value={formData.postal_code}
                 onChange={(e) => updateField('postal_code', e.target.value)}
                 placeholder="A1A 1A1"
+                className="h-9"
               />
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+          {/* Row 4: Email + Phone + Website + Timezone (4 columns) */}
+          <div className="grid gap-3 sm:grid-cols-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-xs">Email</Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => updateField('email', e.target.value)}
                 placeholder="contact@company.com"
+                className="h-9"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="phone" className="text-xs">Phone</Label>
               <Input
                 id="phone"
                 value={formData.phone}
                 onChange={(e) => updateField('phone', e.target.value)}
                 placeholder="(555) 123-4567"
+                className="h-9"
               />
             </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="website">Website</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="website" className="text-xs">Website</Label>
               <Input
                 id="website"
                 value={formData.website}
                 onChange={(e) => updateField('website', e.target.value)}
                 placeholder="https://company.com"
+                className="h-9"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="timezone">Timezone</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="timezone" className="text-xs">Timezone</Label>
               <Select 
                 value={formData.timezone} 
                 onValueChange={(value) => updateField('timezone', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue placeholder="Select timezone" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover">
@@ -262,19 +271,19 @@ export default function EditCompanyModal({
 
           {/* Activities Section - Only show for create mode */}
           {mode === 'create' && (
-            <div className="space-y-3 pt-2 border-t">
-              <Label className="text-base font-medium">Services Offered</Label>
-              <p className="text-sm text-muted-foreground">
-                Select the types of services this company provides. You can add more later in Settings.
+            <div className="space-y-2 pt-2 border-t">
+              <Label className="text-xs font-medium">Services Offered</Label>
+              <p className="text-xs text-muted-foreground">
+                Select the types of services this company provides.
               </p>
               
               {/* Selected activities as chips */}
-              <div className="flex flex-wrap gap-2 min-h-[36px]">
+              <div className="flex flex-wrap gap-1.5 min-h-[32px]">
                 {selectedActivities.map(activity => (
                   <Badge 
                     key={activity.code} 
                     variant="secondary" 
-                    className="gap-1 py-1.5 px-3 text-sm"
+                    className="gap-1 py-1 px-2 text-xs"
                   >
                     {activity.label}
                     <X 
@@ -287,44 +296,44 @@ export default function EditCompanyModal({
                 {/* Add button with popover */}
                 <Popover open={activityPopoverOpen} onOpenChange={setActivityPopoverOpen}>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-8 gap-1">
-                      <Plus className="h-3.5 w-3.5" /> Add Service
+                    <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
+                      <Plus className="h-3 w-3" /> Add Service
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-64 p-0" align="start">
+                  <PopoverContent className="w-56 p-0" align="start">
                     {/* Search input */}
                     <div className="p-2 border-b">
                       <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
                         <Input 
                           placeholder="Search services..." 
                           value={activitySearch}
                           onChange={(e) => setActivitySearch(e.target.value)}
-                          className="h-8 pl-8"
+                          className="h-7 pl-7 text-xs"
                         />
                       </div>
                     </div>
                     
                     {/* Suggestions list */}
-                    <ScrollArea className="h-[200px]">
+                    <ScrollArea className="h-[180px]">
                       <div className="p-1">
                         {loadingSuggestions ? (
                           <div className="flex items-center justify-center py-4">
-                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
                           </div>
                         ) : availableSuggestions.length > 0 ? (
                           availableSuggestions.map(activity => (
                             <button
                               key={activity.code}
                               type="button"
-                              className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent transition-colors"
+                              className="w-full text-left px-2 py-1.5 text-xs rounded hover:bg-accent transition-colors"
                               onClick={() => addActivity(activity.code, activity.label)}
                             >
                               {activity.label}
                             </button>
                           ))
                         ) : activitySearch && (
-                          <p className="text-sm text-muted-foreground px-3 py-2">
+                          <p className="text-xs text-muted-foreground px-2 py-1.5">
                             No matching services found
                           </p>
                         )}
@@ -333,7 +342,7 @@ export default function EditCompanyModal({
                         <div className="border-t mt-1 pt-1">
                           <button
                             type="button"
-                            className="w-full text-left px-3 py-2 text-sm rounded hover:bg-accent text-muted-foreground transition-colors flex items-center gap-1"
+                            className="w-full text-left px-2 py-1.5 text-xs rounded hover:bg-accent text-muted-foreground transition-colors flex items-center gap-1"
                             onClick={() => {
                               const label = window.prompt('Enter custom service name:');
                               if (label?.trim()) {
@@ -352,8 +361,8 @@ export default function EditCompanyModal({
               </div>
               
               {selectedActivities.length === 0 && (
-                <p className="text-sm text-muted-foreground italic">
-                  Click "Add Service" to select the types of services this company provides.
+                <p className="text-xs text-muted-foreground italic">
+                  Click "Add Service" to select services.
                 </p>
               )}
             </div>
