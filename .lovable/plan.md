@@ -1,203 +1,179 @@
 
 
-## Plano: Separar Company Profile em Duas Telas
+## Plano: Ajustar Nomes das Abas, Barra de Pesquisa e Modal de Registro
 
-### Objetivo
+### Problemas Identificados
 
-Dividir a tela atual "Company Profile" em duas telas distintas:
-
-| Tela Atual | Nova Tela | Conteúdo |
-|------------|-----------|----------|
-| Company Profile (Profile Tab) | **Companies** | CRUD de empresas (lista, criar, editar, excluir) |
-| Company Profile (outras tabs) | **Business** | Activities, Branding, Estimates, Schedule Config, Preferences |
-
----
-
-## Estrutura Final
-
-### 1. Tela Companies (`/companies`)
-
-**Responsabilidade:** Apenas cadastro de empresas
-
-- Lista de empresas com tabela
-- Botão "Register Company"
-- Modal de criar/editar empresa
-- Excluir empresa
-- Selecionar empresa ativa
-
-**Não terá:**
-- Tabs
-- Configurações de branding, pricing, preferences
+| Problema | Local | Causa |
+|----------|-------|-------|
+| Abas "Companies" e "Business" mostram "Page" | `AppLayout.tsx` | Rotas `/companies` e `/business` não estão mapeadas em `getPageLabel` |
+| Barra de pesquisa com nomes incorretos | `TopBar.tsx` | `navigationItems` não atualizado com novas rotas e nomes corretos |
+| Modal "Register New Company" muito estreito | `EditCompanyModal.tsx` | `max-w-[600px]` e layout de campos não otimizado |
 
 ---
 
-### 2. Tela Business (`/business`)
+## 1. Corrigir Nomes das Abas (`AppLayout.tsx`)
 
-**Responsabilidade:** Configurações do grupo de negócios e empresas
+**Arquivo:** `src/components/layout/AppLayout.tsx`
 
-**Tabs:**
-| Tab | Descrição |
-|-----|-----------|
-| Activities | Atividades de serviço (por empresa selecionada) |
-| Branding | Logo, cores, Business Group Name |
-| Estimates | Hourly rate, tax rate, extra fees |
-| Schedule Config | Checklist de conclusão |
-| Preferences | Invoice mode, cash handling, reports, receipt settings |
+**Mudança:** Adicionar mapeamento para `/companies` e `/business` no `pathMap`:
 
-**Nota:** Cada tab carrega dados da empresa ativa selecionada no CompanyFilter local (mesmo padrão dinâmico dos outros módulos).
-
----
-
-## Navegação Sidebar
-
-A estrutura do menu será atualizada:
-
-```text
-Administration
-├── Companies (novo)      → /companies
-├── Business (novo)       → /business
-├── Users                 → /users  
-├── Access & Roles        → /access-roles
-├── Settings              → /settings
-└── Audit & Activity Log  → /activity-log
+```tsx
+const getPageLabel = (path: string, t: any): string => {
+  const pathMap: Record<string, string> = {
+    '/': t?.nav?.dashboard || 'Dashboard',
+    '/companies': 'Companies',           // NOVO
+    '/business': 'Business',             // NOVO
+    '/company': t?.nav?.company || 'Company',  // Manter para compatibilidade
+    // ... resto existente
+  };
+  return pathMap[path] || 'Page';
+};
 ```
 
 ---
 
-## Arquivos a Criar/Modificar
+## 2. Corrigir Barra de Pesquisa (`TopBar.tsx`)
+
+**Arquivo:** `src/components/layout/TopBar.tsx`
+
+**Mudanças no `navigationItems`:**
+
+```tsx
+const navigationItems = [
+  // ... existentes
+  
+  // ATUALIZAR Activity Log para incluir "Audit"
+  { id: 'activity-log', title: 'Audit & Activity Log', path: '/activity-log', keywords: [...] },
+  
+  // REMOVER ou atualizar entrada antiga de Company
+  // { id: 'company', title: 'Company', path: '/company', keywords: [...] }, // REMOVER
+  
+  // ADICIONAR novas rotas
+  { id: 'companies', title: 'Companies', path: '/companies', keywords: ['companies', 'empresas', 'register', 'cadastro'] },
+  { id: 'business', title: 'Business', path: '/business', keywords: ['business', 'negócio', 'branding', 'estimates', 'preferences', 'settings'] },
+];
+```
+
+---
+
+## 3. Melhorar Modal de Registro (`EditCompanyModal.tsx`)
+
+**Arquivo:** `src/components/company/EditCompanyModal.tsx`
+
+### 3.1. Aumentar Largura do Modal
+
+```tsx
+// De:
+<DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+
+// Para:
+<DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto p-5">
+```
+
+### 3.2. Reduzir Tamanho do Título
+
+```tsx
+// De:
+<DialogTitle className="flex items-center gap-2">
+
+// Para:
+<DialogTitle className="flex items-center gap-2 text-base font-semibold">
+```
+
+### 3.3. Reorganizar Campos em Mais Colunas
+
+**Substituir layout atual por grade mais densa:**
+
+```tsx
+<div className="space-y-3 py-3">
+  {/* Row 1: Company Name + Legal Name */}
+  <div className="grid gap-3 sm:grid-cols-2">
+    <div className="space-y-1.5">
+      <Label className="text-xs">Company Name *</Label>
+      <Input ... className="h-9" />
+    </div>
+    <div className="space-y-1.5">
+      <Label className="text-xs">Legal Name *</Label>
+      <Input ... className="h-9" />
+    </div>
+  </div>
+
+  {/* Row 2: Address (full width) */}
+  <div className="space-y-1.5">
+    <Label className="text-xs">Address</Label>
+    <Input ... className="h-9" />
+  </div>
+
+  {/* Row 3: City + Province + Postal Code (3 columns) */}
+  <div className="grid gap-3 sm:grid-cols-3">
+    <div className="space-y-1.5">
+      <Label className="text-xs">City</Label>
+      <Input ... className="h-9" />
+    </div>
+    <div className="space-y-1.5">
+      <Label className="text-xs">Province</Label>
+      <Select ...>
+        <SelectTrigger className="h-9">...</SelectTrigger>
+      </Select>
+    </div>
+    <div className="space-y-1.5">
+      <Label className="text-xs">Postal Code</Label>
+      <Input ... className="h-9" />
+    </div>
+  </div>
+
+  {/* Row 4: Email + Phone + Website + Timezone (4 columns) */}
+  <div className="grid gap-3 sm:grid-cols-4">
+    <div className="space-y-1.5">
+      <Label className="text-xs">Email</Label>
+      <Input ... className="h-9" />
+    </div>
+    <div className="space-y-1.5">
+      <Label className="text-xs">Phone</Label>
+      <Input ... className="h-9" />
+    </div>
+    <div className="space-y-1.5">
+      <Label className="text-xs">Website</Label>
+      <Input ... className="h-9" />
+    </div>
+    <div className="space-y-1.5">
+      <Label className="text-xs">Timezone</Label>
+      <Select ...>
+        <SelectTrigger className="h-9">...</SelectTrigger>
+      </Select>
+    </div>
+  </div>
+
+  {/* Services Section (only in create mode) - smaller styling */}
+  {mode === 'create' && (
+    <div className="space-y-2 pt-2 border-t">
+      <Label className="text-xs font-medium">Services Offered</Label>
+      <p className="text-xs text-muted-foreground">
+        Select the types of services this company provides.
+      </p>
+      {/* Activity chips with smaller badges */}
+      ...
+    </div>
+  )}
+</div>
+```
+
+---
+
+## Resumo das Mudanças
 
 | Arquivo | Ação |
 |---------|------|
-| `src/pages/Companies.tsx` | **Criar** - Nova página apenas com lista/CRUD de empresas |
-| `src/pages/Business.tsx` | **Criar** - Nova página com tabs de configurações |
-| `src/pages/Company.tsx` | **Remover** - Substituída pelas duas novas |
-| `src/components/layout/Sidebar.tsx` | **Editar** - Adicionar links Companies e Business |
-| `src/App.tsx` | **Editar** - Atualizar rotas |
+| `src/components/layout/AppLayout.tsx` | Adicionar `/companies` e `/business` ao `pathMap` |
+| `src/components/layout/TopBar.tsx` | Atualizar `navigationItems` com nomes corretos |
+| `src/components/company/EditCompanyModal.tsx` | Aumentar largura, reduzir título, reorganizar campos em 4 colunas |
 
 ---
 
-## Detalhes Técnicos
+## Resultado Esperado
 
-### Companies.tsx
-
-```tsx
-// Estrutura simplificada
-const Companies = () => {
-  // Lista de empresas
-  // Modal criar/editar
-  // Confirmação de exclusão
-  // Sem tabs
-  
-  return (
-    <div className="p-2 lg:p-3 space-y-4">
-      <PageHeader title="Companies" description="Manage your business companies" />
-      
-      {/* Tabela de empresas reutiliza CompanyListTable */}
-      <CompanyListTable ... />
-      
-      {/* Modal criar/editar reutiliza EditCompanyModal */}
-      <EditCompanyModal ... />
-    </div>
-  );
-};
-```
-
----
-
-### Business.tsx
-
-```tsx
-// Estrutura com tabs de configuração
-const Business = () => {
-  // CompanyFilter para selecionar empresa
-  // Tabs: Activities, Branding, Estimates, Schedule, Preferences
-  
-  return (
-    <div className="p-2 lg:p-3 space-y-2">
-      {/* Header com CompanyFilter */}
-      <div className="flex items-center justify-between">
-        <PageHeader title="Business Settings" />
-        <CompanyFilter
-          value={selectedCompanyId}
-          onChange={setSelectedCompanyId}
-          showAllOption={false}  // Apenas uma empresa por vez aqui
-        />
-      </div>
-      
-      <Tabs>
-        <TabsList>
-          <TabsTrigger value="activities">Activities</TabsTrigger>
-          <TabsTrigger value="branding">Branding</TabsTrigger>
-          <TabsTrigger value="estimates">Estimates</TabsTrigger>
-          <TabsTrigger value="schedule">Schedule Config</TabsTrigger>
-          <TabsTrigger value="preferences">Preferences</TabsTrigger>
-        </TabsList>
-        
-        {/* Conteúdo das tabs - reutiliza componentes existentes */}
-        <TabsContent value="activities">
-          <ActivitiesTab companyId={selectedCompanyId} />
-        </TabsContent>
-        {/* ... outras tabs ... */}
-      </Tabs>
-    </div>
-  );
-};
-```
-
----
-
-## Reutilização de Componentes
-
-Os seguintes componentes serão **reutilizados sem modificação**:
-
-| Componente | Usado em |
-|------------|----------|
-| `CompanyListTable` | Companies.tsx |
-| `EditCompanyModal` | Companies.tsx |
-| `ActivitiesTab` | Business.tsx |
-| `PreferencesTab` | Business.tsx |
-
----
-
-## Fluxo de Navegação
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                     COMPANIES PAGE                          │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ [+ Register Company]                                 │   │
-│  ├─────────────────────────────────────────────────────┤   │
-│  │ # │ Company Name    │ City    │ Status │ Actions   │   │
-│  │ 1 │ Tidy Out        │ Toronto │ Active │ ✏️ 🗑️      │   │
-│  │ 2 │ CleanPro        │ Ottawa  │ Active │ ✏️ 🗑️      │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  Clicking ✏️ opens EditCompanyModal                         │
-└─────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────┐
-│                     BUSINESS PAGE                           │
-│                                                             │
-│  Business Settings          [🏢 Tidy Out ▼] CompanyFilter   │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ [Activities] [Branding] [Estimates] [Schedule] [Pref]│   │
-│  ├─────────────────────────────────────────────────────┤   │
-│  │                                                       │   │
-│  │   Content based on selected tab + company             │   │
-│  │                                                       │   │
-│  └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Benefícios
-
-1. **Separação de responsabilidades** - Cadastro separado de configuração
-2. **Navegação mais clara** - Usuário sabe exatamente onde ir
-3. **Menos complexidade** - Cada página tem foco único
-4. **Padrão dinâmico** - Business usa CompanyFilter para alternar contexto
-5. **Reutilização** - Componentes existentes são preservados
+1. **Abas** - Exibirão "Companies" e "Business" corretamente
+2. **Pesquisa** - "Audit & Activity Log" aparecerá como no menu
+3. **Modal** - Mais largo, texto menor, menos scroll
 
