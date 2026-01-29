@@ -134,14 +134,14 @@ export default function EditCompanyModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto p-5">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base font-semibold">
-            <Building2 className="h-4 w-4 text-primary" />
+        <DialogHeader className="pb-2">
+          <DialogTitle className="flex items-center gap-2 text-sm font-semibold">
+            <Building2 className="h-3.5 w-3.5 text-primary" />
             {mode === 'create' ? 'Register New Company' : 'Edit Company'}
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-3 py-2">
+        <div className="space-y-2">
           {/* Row 1: Company Name + Legal Name */}
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
@@ -271,23 +271,23 @@ export default function EditCompanyModal({
 
           {/* Activities Section - Only show for create mode */}
           {mode === 'create' && (
-            <div className="space-y-2 pt-2 border-t">
-              <Label className="text-xs font-medium">Services Offered</Label>
-              <p className="text-xs text-muted-foreground">
-                Select the types of services this company provides.
-              </p>
+            <div className="space-y-1.5 pt-1.5 border-t">
+              <div className="flex items-center gap-2">
+                <Label className="text-xs font-medium">Services Offered</Label>
+                <span className="text-[10px] text-muted-foreground">– Select the types of services this company provides</span>
+              </div>
               
               {/* Selected activities as chips */}
-              <div className="flex flex-wrap gap-1.5 min-h-[32px]">
+              <div className="flex flex-wrap gap-1 min-h-[28px]">
                 {selectedActivities.map(activity => (
                   <Badge 
                     key={activity.code} 
                     variant="secondary" 
-                    className="gap-1 py-1 px-2 text-xs"
+                    className="gap-1 py-0.5 px-2 text-[11px]"
                   >
                     {activity.label}
                     <X 
-                      className="h-3 w-3 cursor-pointer hover:text-destructive transition-colors" 
+                      className="h-2.5 w-2.5 cursor-pointer hover:text-destructive transition-colors" 
                       onClick={() => removeActivity(activity.code)} 
                     />
                   </Badge>
@@ -296,8 +296,8 @@ export default function EditCompanyModal({
                 {/* Add button with popover */}
                 <Popover open={activityPopoverOpen} onOpenChange={setActivityPopoverOpen}>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
-                      <Plus className="h-3 w-3" /> Add Service
+                    <Button variant="outline" size="sm" className="h-6 gap-1 text-[11px] px-2">
+                      <Plus className="h-2.5 w-2.5" /> Add Service
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-56 p-0" align="start">
@@ -361,15 +361,13 @@ export default function EditCompanyModal({
               </div>
               
               {selectedActivities.length === 0 && (
-                <p className="text-xs text-muted-foreground italic">
-                  Click "Add Service" to select services.
-                </p>
+                <span className="text-[10px] text-muted-foreground italic">Click "Add Service" to select services</span>
               )}
             </div>
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="pt-2">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
             Cancel
           </Button>
