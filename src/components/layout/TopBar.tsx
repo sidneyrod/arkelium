@@ -53,7 +53,7 @@ const navigationItems = [
   { id: 'completed-services', title: 'Completed Services', path: '/completed-services', keywords: ['completed', 'services', 'serviços', 'concluídos', 'finished'] },
   { id: 'visit-history', title: 'Visit History', path: '/visit-history', keywords: ['visit', 'history', 'histórico', 'visitas', 'visits', 'past'] },
   { id: 'off-requests', title: 'Field Requests', path: '/off-requests', keywords: ['field', 'requests', 'solicitações', 'time off', 'folga', 'vacation', 'férias'] },
-  { id: 'activity-log', title: 'Activity Log', path: '/activity-log', keywords: ['activity', 'log', 'atividade', 'registro', 'history', 'histórico', 'audit'] },
+  { id: 'activity-log', title: 'Audit & Activity Log', path: '/activity-log', keywords: ['activity', 'log', 'atividade', 'registro', 'history', 'histórico', 'audit'] },
   { id: 'notifications', title: 'Notifications', path: '/notifications', keywords: ['notifications', 'notificações', 'alerts', 'alertas', 'messages'] },
   { id: 'clients', title: 'Clients', path: '/clients', keywords: ['clients', 'clientes', 'customers'] },
   { id: 'contracts', title: 'Contracts', path: '/contracts', keywords: ['contracts', 'contratos', 'agreements'] },
@@ -65,7 +65,8 @@ const navigationItems = [
   { id: 'work-time-tracking', title: 'Work & Time Tracking', path: '/work-time-tracking', keywords: ['work', 'time', 'tracking', 'payroll', 'folha', 'horas', 'hours', 'trabalho'] },
   { id: 'access-roles', title: 'Access & Roles', path: '/access-roles', keywords: ['access', 'roles', 'permissions', 'permissões', 'acesso', 'funções'] },
   { id: 'users', title: 'Users', path: '/users', keywords: ['users', 'usuários', 'employees', 'funcionários', 'team', 'equipe'] },
-  { id: 'company', title: 'Company', path: '/company', keywords: ['company', 'empresa', 'organization', 'settings'] },
+  { id: 'companies', title: 'Companies', path: '/companies', keywords: ['companies', 'empresas', 'register', 'cadastro', 'organization'] },
+  { id: 'business', title: 'Business', path: '/business', keywords: ['business', 'negócio', 'branding', 'estimates', 'preferences', 'settings', 'configurações'] },
   { id: 'settings', title: 'Settings', path: '/settings', keywords: ['settings', 'configurações', 'preferences', 'preferências'] },
 ];
 

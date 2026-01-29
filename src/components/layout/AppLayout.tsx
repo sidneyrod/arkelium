@@ -15,7 +15,8 @@ const RESTORED_SESSION_KEY = 'workspace-session-restored';
 const getPageLabel = (path: string, t: any): string => {
   const pathMap: Record<string, string> = {
     '/': t?.nav?.dashboard || 'Dashboard',
-    '/company': t?.nav?.company || 'Company',
+    '/companies': 'Companies',
+    '/business': 'Business',
     '/users': t?.nav?.users || 'Users',
     '/access-roles': 'Access & Roles',
     '/clients': t?.nav?.clients || 'Clients',
