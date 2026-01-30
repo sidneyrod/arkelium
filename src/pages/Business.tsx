@@ -11,8 +11,6 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
-import { CompanyFilter } from '@/components/ui/company-filter';
-import PageHeader from '@/components/ui/page-header';
 import { 
   DollarSign, 
   Palette, 
@@ -521,24 +519,8 @@ const Business = () => {
     }
   };
 
-  const selectedCompanyName = activeCompanies.find(c => c.id === selectedCompanyId)?.trade_name || '';
-
   return (
-    <div className="p-2 lg:p-3 space-y-2">
-      {/* Header with Company Filter */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <PageHeader 
-          title="Business Settings" 
-          description={selectedCompanyName ? `Configuring: ${selectedCompanyName}` : 'Select a company to configure'}
-        />
-        <CompanyFilter
-          value={selectedCompanyId}
-          onChange={setSelectedCompanyId}
-          showAllOption={false}
-          className="w-[200px]"
-        />
-      </div>
-
+    <div className="p-2 lg:p-3">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="h-auto p-1 gap-2 bg-muted/50">
           <TabsTrigger value="activities" className="gap-2 px-4 py-2 data-[state=active]:bg-background">

@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActiveCompanyStore } from '@/stores/activeCompanyStore';
-import PageHeader from '@/components/ui/page-header';
+
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 import { Building2 } from 'lucide-react';
@@ -296,12 +296,7 @@ const Companies = () => {
   };
 
   return (
-    <div className="p-2 lg:p-3 space-y-4">
-      <PageHeader 
-        title="Companies" 
-        description="Manage your business companies"
-      />
-
+    <div className="p-2 lg:p-3 space-y-2">
       <CompanyListTable
         companies={companies}
         activeCompanyId={activeCompanyId}
