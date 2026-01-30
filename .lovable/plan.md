@@ -1,162 +1,142 @@
 
-
-## Plano: Ajustar Nomes das Abas, Barra de Pesquisa e Modal de Registro
+## Plano: Remover Headers e Company Filter das Telas Companies e Business
 
 ### Problemas Identificados
 
-| Problema | Local | Causa |
-|----------|-------|-------|
-| Abas "Companies" e "Business" mostram "Page" | `AppLayout.tsx` | Rotas `/companies` e `/business` não estão mapeadas em `getPageLabel` |
-| Barra de pesquisa com nomes incorretos | `TopBar.tsx` | `navigationItems` não atualizado com novas rotas e nomes corretos |
-| Modal "Register New Company" muito estreito | `EditCompanyModal.tsx` | `max-w-[600px]` e layout de campos não otimizado |
+| Tela | Problema | Local no Código |
+|------|----------|-----------------|
+| **Companies** | Título "Companies" e descrição "Manage your business companies" desnecessários | `src/pages/Companies.tsx` linhas 300-303 |
+| **Business** | Título "Business Settings" e "Configuring: {company}" desnecessários | `src/pages/Business.tsx` linhas 529-540 |
+| **Business** | CompanyFilter não necessário (dados serão dinâmicos) | `src/pages/Business.tsx` linhas 534-539 |
 
 ---
 
-## 1. Corrigir Nomes das Abas (`AppLayout.tsx`)
+## Mudanças Detalhadas
 
-**Arquivo:** `src/components/layout/AppLayout.tsx`
+### 1. Companies.tsx
 
-**Mudança:** Adicionar mapeamento para `/companies` e `/business` no `pathMap`:
-
+**Antes (linhas 298-304):**
 ```tsx
-const getPageLabel = (path: string, t: any): string => {
-  const pathMap: Record<string, string> = {
-    '/': t?.nav?.dashboard || 'Dashboard',
-    '/companies': 'Companies',           // NOVO
-    '/business': 'Business',             // NOVO
-    '/company': t?.nav?.company || 'Company',  // Manter para compatibilidade
-    // ... resto existente
-  };
-  return pathMap[path] || 'Page';
-};
+return (
+  <div className="p-2 lg:p-3 space-y-4">
+    <PageHeader 
+      title="Companies" 
+      description="Manage your business companies"
+    />
+
+    <CompanyListTable ...
+```
+
+**Depois:**
+```tsx
+return (
+  <div className="p-2 lg:p-3 space-y-2">
+    <CompanyListTable ...
+```
+
+**Mudanças:**
+- Remover completamente o `<PageHeader />` (título e descrição)
+- Ajustar `space-y-4` para `space-y-2` (menos espaço vertical)
+- Remover import de `PageHeader` se não utilizado em outros lugares
+
+---
+
+### 2. Business.tsx
+
+**Antes (linhas 526-541):**
+```tsx
+return (
+  <div className="p-2 lg:p-3 space-y-2">
+    {/* Header with Company Filter */}
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <PageHeader 
+        title="Business Settings" 
+        description={selectedCompanyName ? `Configuring: ${selectedCompanyName}` : 'Select a company to configure'}
+      />
+      <CompanyFilter
+        value={selectedCompanyId}
+        onChange={setSelectedCompanyId}
+        showAllOption={false}
+        className="w-[200px]"
+      />
+    </div>
+
+    <Tabs ...
+```
+
+**Depois:**
+```tsx
+return (
+  <div className="p-2 lg:p-3">
+    <Tabs ...
+```
+
+**Mudanças:**
+- Remover todo o bloco `<div className="flex flex-col...">` com `PageHeader` e `CompanyFilter`
+- Remover `space-y-2` do container principal (as Tabs já têm espaçamento interno)
+- Remover variável `selectedCompanyName` (linha 524) pois não será mais usada
+- Remover import de `PageHeader` e `CompanyFilter`
+- **Nota:** A lógica de `selectedCompanyId` permanece para carregar dados, mas o usuário não terá controle manual - será dinâmico baseado em contexto global
+
+---
+
+## Imports a Remover
+
+### Companies.tsx
+```tsx
+// Remover se não utilizado
+import PageHeader from '@/components/ui/page-header';
+```
+
+### Business.tsx
+```tsx
+// Remover (não mais usado)
+import { CompanyFilter } from '@/components/ui/company-filter';
+import PageHeader from '@/components/ui/page-header';
 ```
 
 ---
 
-## 2. Corrigir Barra de Pesquisa (`TopBar.tsx`)
+## Resultado Visual Esperado
 
-**Arquivo:** `src/components/layout/TopBar.tsx`
+### Companies (Antes vs Depois)
 
-**Mudanças no `navigationItems`:**
+**Antes:**
+```text
+┌──────────────────────────────────────────────┐
+│ Companies                                    │
+│ Manage your business companies               │
+│                                              │
+│ ┌────────────────────────────────────────┐  │
+│ │ 🏢 Registered Companies   [Search] [+] │  │
+```
 
-```tsx
-const navigationItems = [
-  // ... existentes
-  
-  // ATUALIZAR Activity Log para incluir "Audit"
-  { id: 'activity-log', title: 'Audit & Activity Log', path: '/activity-log', keywords: [...] },
-  
-  // REMOVER ou atualizar entrada antiga de Company
-  // { id: 'company', title: 'Company', path: '/company', keywords: [...] }, // REMOVER
-  
-  // ADICIONAR novas rotas
-  { id: 'companies', title: 'Companies', path: '/companies', keywords: ['companies', 'empresas', 'register', 'cadastro'] },
-  { id: 'business', title: 'Business', path: '/business', keywords: ['business', 'negócio', 'branding', 'estimates', 'preferences', 'settings'] },
-];
+**Depois:**
+```text
+┌──────────────────────────────────────────────┐
+│ ┌────────────────────────────────────────┐  │
+│ │ 🏢 Registered Companies   [Search] [+] │  │
 ```
 
 ---
 
-## 3. Melhorar Modal de Registro (`EditCompanyModal.tsx`)
+### Business (Antes vs Depois)
 
-**Arquivo:** `src/components/company/EditCompanyModal.tsx`
-
-### 3.1. Aumentar Largura do Modal
-
-```tsx
-// De:
-<DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-
-// Para:
-<DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto p-5">
+**Antes:**
+```text
+┌────────────────────────────────────────────────────────┐
+│ Business Settings          [🏢 Tidy Out ▼]             │
+│ Configuring: Tidy Out                                  │
+│                                                        │
+│ [Activities] [Branding] [Estimates] [Schedule] [Pref]  │
 ```
 
-### 3.2. Reduzir Tamanho do Título
-
-```tsx
-// De:
-<DialogTitle className="flex items-center gap-2">
-
-// Para:
-<DialogTitle className="flex items-center gap-2 text-base font-semibold">
-```
-
-### 3.3. Reorganizar Campos em Mais Colunas
-
-**Substituir layout atual por grade mais densa:**
-
-```tsx
-<div className="space-y-3 py-3">
-  {/* Row 1: Company Name + Legal Name */}
-  <div className="grid gap-3 sm:grid-cols-2">
-    <div className="space-y-1.5">
-      <Label className="text-xs">Company Name *</Label>
-      <Input ... className="h-9" />
-    </div>
-    <div className="space-y-1.5">
-      <Label className="text-xs">Legal Name *</Label>
-      <Input ... className="h-9" />
-    </div>
-  </div>
-
-  {/* Row 2: Address (full width) */}
-  <div className="space-y-1.5">
-    <Label className="text-xs">Address</Label>
-    <Input ... className="h-9" />
-  </div>
-
-  {/* Row 3: City + Province + Postal Code (3 columns) */}
-  <div className="grid gap-3 sm:grid-cols-3">
-    <div className="space-y-1.5">
-      <Label className="text-xs">City</Label>
-      <Input ... className="h-9" />
-    </div>
-    <div className="space-y-1.5">
-      <Label className="text-xs">Province</Label>
-      <Select ...>
-        <SelectTrigger className="h-9">...</SelectTrigger>
-      </Select>
-    </div>
-    <div className="space-y-1.5">
-      <Label className="text-xs">Postal Code</Label>
-      <Input ... className="h-9" />
-    </div>
-  </div>
-
-  {/* Row 4: Email + Phone + Website + Timezone (4 columns) */}
-  <div className="grid gap-3 sm:grid-cols-4">
-    <div className="space-y-1.5">
-      <Label className="text-xs">Email</Label>
-      <Input ... className="h-9" />
-    </div>
-    <div className="space-y-1.5">
-      <Label className="text-xs">Phone</Label>
-      <Input ... className="h-9" />
-    </div>
-    <div className="space-y-1.5">
-      <Label className="text-xs">Website</Label>
-      <Input ... className="h-9" />
-    </div>
-    <div className="space-y-1.5">
-      <Label className="text-xs">Timezone</Label>
-      <Select ...>
-        <SelectTrigger className="h-9">...</SelectTrigger>
-      </Select>
-    </div>
-  </div>
-
-  {/* Services Section (only in create mode) - smaller styling */}
-  {mode === 'create' && (
-    <div className="space-y-2 pt-2 border-t">
-      <Label className="text-xs font-medium">Services Offered</Label>
-      <p className="text-xs text-muted-foreground">
-        Select the types of services this company provides.
-      </p>
-      {/* Activity chips with smaller badges */}
-      ...
-    </div>
-  )}
-</div>
+**Depois:**
+```text
+┌────────────────────────────────────────────────────────┐
+│ [Activities] [Branding] [Estimates] [Schedule] [Pref]  │
+│                                                        │
+│ Content...                                             │
 ```
 
 ---
@@ -165,15 +145,5 @@ const navigationItems = [
 
 | Arquivo | Ação |
 |---------|------|
-| `src/components/layout/AppLayout.tsx` | Adicionar `/companies` e `/business` ao `pathMap` |
-| `src/components/layout/TopBar.tsx` | Atualizar `navigationItems` com nomes corretos |
-| `src/components/company/EditCompanyModal.tsx` | Aumentar largura, reduzir título, reorganizar campos em 4 colunas |
-
----
-
-## Resultado Esperado
-
-1. **Abas** - Exibirão "Companies" e "Business" corretamente
-2. **Pesquisa** - "Audit & Activity Log" aparecerá como no menu
-3. **Modal** - Mais largo, texto menor, menos scroll
-
+| `src/pages/Companies.tsx` | Remover `PageHeader`, ajustar espaçamento |
+| `src/pages/Business.tsx` | Remover `PageHeader`, `CompanyFilter`, ajustar espaçamento, limpar imports |
