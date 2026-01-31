@@ -112,87 +112,94 @@ const WorkEarningsSummary = () => {
 
   return (
     <div className="p-2 lg:p-3 space-y-2">
-      {/* Header: Single line with all elements */}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        {/* Search Input - compact */}
-        <SearchInput
-          placeholder="Search..."
-          value={search}
-          onChange={setSearch}
-          className="w-[130px] h-8"
-        />
-        
-        {/* Company Filter - compact */}
-        <CompanyFilter
-          value={selectedCompanyId}
-          onChange={setSelectedCompanyId}
-          showAllOption={accessibleCompanies.length > 1}
-          allLabel="All Companies"
-          className="w-[140px] h-8 text-xs"
-        />
+      {/* Header: 2 Lines for better responsiveness */}
+      <div className="space-y-2">
+        {/* Line 1: Filters + KPIs with horizontal scroll */}
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-thin pb-1">
+          {/* Search Input - fixed width */}
+          <SearchInput
+            placeholder="Search employee..."
+            value={search}
+            onChange={setSearch}
+            className="w-[160px] flex-shrink-0 h-8"
+          />
+          
+          {/* Company Filter - fixed width */}
+          <CompanyFilter
+            value={selectedCompanyId}
+            onChange={setSelectedCompanyId}
+            showAllOption={accessibleCompanies.length > 1}
+            allLabel="All Companies"
+            className="w-[160px] h-8 text-xs flex-shrink-0"
+          />
 
-        {/* KPIs - compact badges without labels */}
-        <div className="flex items-center gap-1">
-          <div className="flex items-center gap-1 px-2 py-1 bg-card border rounded text-xs whitespace-nowrap">
-            <Briefcase className="h-3 w-3 text-primary" />
-            <span className="font-semibold">{globalSummary.totalJobsCompleted}</span>
+          {/* KPIs - no flex-1, with whitespace-nowrap */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-card border rounded-md whitespace-nowrap">
+              <Briefcase className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span className="text-[10px] text-muted-foreground">Jobs</span>
+              <span className="font-semibold text-sm">{globalSummary.totalJobsCompleted}</span>
+            </div>
+            
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-card border rounded-md whitespace-nowrap">
+              <Clock className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+              <span className="text-[10px] text-muted-foreground">Hours</span>
+              <span className="font-semibold text-sm">{globalSummary.totalHoursWorked.toFixed(1)}h</span>
+            </div>
+            
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-card border rounded-md whitespace-nowrap">
+              <TrendingUp className="h-3.5 w-3.5 text-green-500 shrink-0" />
+              <span className="text-[10px] text-muted-foreground">Revenue</span>
+              <span className="font-semibold text-sm">${globalSummary.totalGrossServiceRevenue.toLocaleString()}</span>
+            </div>
+            
+            {/* Cash KPIs - only when enableCashKept = true */}
+            {enableCashKept && (
+              <>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-card border rounded-md whitespace-nowrap">
+                  <Banknote className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                  <span className="text-[10px] text-muted-foreground">Collected</span>
+                  <span className="font-semibold text-sm">${globalSummary.totalCashCollected.toLocaleString()}</span>
+                </div>
+                
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-card border rounded-md whitespace-nowrap">
+                  <DollarSign className="h-3.5 w-3.5 text-purple-500 shrink-0" />
+                  <span className="text-[10px] text-muted-foreground">Kept</span>
+                  <span className="font-semibold text-sm">${globalSummary.cashKeptApproved.toLocaleString()}</span>
+                </div>
+                
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-card border rounded-md whitespace-nowrap">
+                  <CheckCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                  <span className="text-[10px] text-muted-foreground">To Office</span>
+                  <span className="font-semibold text-sm">${globalSummary.cashDeliveredToOffice.toLocaleString()}</span>
+                </div>
+              </>
+            )}
           </div>
-          
-          <div className="flex items-center gap-1 px-2 py-1 bg-card border rounded text-xs whitespace-nowrap">
-            <Clock className="h-3 w-3 text-blue-500" />
-            <span className="font-semibold">{globalSummary.totalHoursWorked.toFixed(1)}h</span>
-          </div>
-          
-          <div className="flex items-center gap-1 px-2 py-1 bg-card border rounded text-xs whitespace-nowrap">
-            <TrendingUp className="h-3 w-3 text-green-500" />
-            <span className="font-semibold">${globalSummary.totalGrossServiceRevenue.toLocaleString()}</span>
-          </div>
-          
-          {/* Cash KPIs - conditional */}
-          {enableCashKept && (
-            <>
-              <div className="flex items-center gap-1 px-2 py-1 bg-card border rounded text-xs whitespace-nowrap">
-                <Banknote className="h-3 w-3 text-amber-500" />
-                <span className="font-semibold">${globalSummary.totalCashCollected.toLocaleString()}</span>
-              </div>
-              
-              <div className="flex items-center gap-1 px-2 py-1 bg-card border rounded text-xs whitespace-nowrap">
-                <DollarSign className="h-3 w-3 text-purple-500" />
-                <span className="font-semibold">${globalSummary.cashKeptApproved.toLocaleString()}</span>
-              </div>
-              
-              <div className="flex items-center gap-1 px-2 py-1 bg-card border rounded text-xs whitespace-nowrap">
-                <CheckCircle className="h-3 w-3 text-emerald-500" />
-                <span className="font-semibold">${globalSummary.cashDeliveredToOffice.toLocaleString()}</span>
-              </div>
-            </>
-          )}
         </div>
 
-        {/* Spacer to push actions to right */}
-        <div className="flex-1" />
+        {/* Line 2: Actions aligned to the right */}
+        <div className="flex items-center justify-end gap-2">
+          <DatePickerDialog
+            mode="range"
+            selected={dateRange}
+            onSelect={handleDateRangeSelect}
+            dateFormat="MMM d, yyyy"
+            className="text-xs h-8 flex-shrink-0"
+          />
 
-        {/* Date Picker */}
-        <DatePickerDialog
-          mode="range"
-          selected={dateRange}
-          onSelect={handleDateRangeSelect}
-          dateFormat="MMM d"
-          className="text-xs h-8"
-        />
+          <Button variant="outline" size="sm" className="gap-2 h-8" onClick={fetchData}>
+            <RefreshCw className="h-3.5 w-3.5" />
+            Refresh
+          </Button>
 
-        {/* Refresh Button - icon only */}
-        <Button variant="outline" size="icon" className="h-8 w-8" onClick={fetchData}>
-          <RefreshCw className="h-3.5 w-3.5" />
-        </Button>
-
-        {/* Export Report Button */}
-        <ExportReportButton
-          period={period}
-          globalSummary={globalSummary}
-          getExportData={getExportData}
-          enableCashKept={enableCashKept}
-        />
+          <ExportReportButton
+            period={period}
+            globalSummary={globalSummary}
+            getExportData={getExportData}
+            enableCashKept={enableCashKept}
+          />
+        </div>
       </div>
 
       {/* Staff Work Summary Table */}
